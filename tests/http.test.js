@@ -9,6 +9,9 @@ process.env.ANTIGRAVITY_CLI_PATH = process.execPath;
 process.env.ANTIGRAVITY_CLI_PREFIX_ARGS = JSON.stringify([fakeAgy]);
 process.env.ANTIGRAVITY_DEFAULT_MODEL = 'gemini-test-high';
 process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
+// The developer machine may have a real local agy login. Keep protocol tests
+// deterministic and exercise the official subprocess fallback here.
+process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 
 const { createServer } = require('../antigravity-gateway');
 
@@ -50,7 +53,8 @@ test('Anthropic non-stream and stream responses are protocol-shaped', async (t) 
   const text = await streamed.text();
   assert.match(text, /event: message_start/);
   assert.match(text, /event: message_stop/);
-  assert.match(text, /hello-1/);
+  assert.match(text, /"text":"hel"/);
+  assert.match(text, /"text":"lo-1"/);
 });
 
 test('Anthropic tools are returned to the client and never executed by gateway', async (t) => {

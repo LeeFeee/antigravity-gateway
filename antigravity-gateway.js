@@ -8,6 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
+const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const {
   GatewayError,
   anthropicResponse,
@@ -61,6 +62,9 @@ const CONTEXT_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT || 2 
 const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY || 4));
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
+const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'auto').trim().toLowerCase();
+const DIRECT_PROVIDER = new DirectAntigravityProvider();
+const DIRECT_ALLOW_ANY_MODEL = process.env.ANTIGRAVITY_DIRECT_ALLOW_ANY_MODEL !== '0';
 
 const responseStore = new Map();
 const activeWorkers = new Set();
@@ -121,10 +125,24 @@ function configuredAliases() {
   }
 }
 
+function usesDirectTransport() {
+  if (TRANSPORT === 'direct') return true;
+  if (TRANSPORT === 'agy') return false;
+  return DIRECT_PROVIDER.isConfigured();
+}
+
+function directAuthDescription() {
+  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return 'local-agy-session (in-memory token bridge)';
+  if (DIRECT_PROVIDER.isConfigured()) return 'explicit OAuth env/auth file (manual fallback)';
+  return 'unavailable';
+}
+
 async function availableModels(force = false) {
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
-    const models = await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
+    const models = usesDirectTransport()
+      ? await DIRECT_PROVIDER.listModels()
+      : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
     if (!models.length) throw new GatewayError('`agy models` 没有返回可识别的模型 ID。', { code: 'empty_model_catalog', status: 503 });
     modelCache = { at: Date.now(), models, error: null };
   } catch (error) {
@@ -144,6 +162,7 @@ async function resolveModel(requested) {
   let chosen = aliases[requested] || requested || DEFAULT_MODEL;
   if (isClientAlias(chosen)) chosen = aliases[chosen] || DEFAULT_MODEL;
   if (!models.includes(chosen)) {
+    if (usesDirectTransport() && DIRECT_ALLOW_ANY_MODEL && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(chosen)) return chosen;
     if (chosen === DEFAULT_MODEL && models.length) {
       chosen = models.find((model) => model.startsWith('gemini-') && /high$/.test(model))
         || models.find((model) => model.startsWith('gemini-'))
@@ -221,6 +240,11 @@ function printHelp() {
   --agy-path <path>       agy 可执行文件路径
   -m, --model <id>        默认 Antigravity 模型
 
+传输模式:
+  ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
+  auto 优先复用本地 agy 会话并跳过包装，否则回退到 agy；direct 强制直连。
+  本地会话默认位于 ~/.gemini/jetski-standalone-oauth-token；手动兜底可用 ANTIGRAVITY_AUTH_FILE。
+
 接口:
   GET  /
   GET  /v1/models
@@ -293,7 +317,7 @@ function errorBody(error, protocol) {
 }
 
 function mapAgyError(error) {
-  if (error instanceof GatewayError || error instanceof AgyError) return error;
+  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError) return error;
   return new GatewayError('Antigravity Gateway 内部错误。', { code: 'internal_error', status: 500 });
 }
 
@@ -303,12 +327,33 @@ function cleanupResponseStore() {
   while (responseStore.size > 1000) responseStore.delete(responseStore.keys().next().value);
 }
 
-async function runTurn(normalized, model, signal) {
+async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
+  const release = await requestSlots.acquire(signal);
+  if (usesDirectTransport()) {
+    try {
+      let raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, onDelta });
+      try {
+        return finalizeModelResult(normalized, raw);
+      } catch (error) {
+        if (error.code === 'invalid_auto_mode_classifier_output') {
+          raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+          return finalizeModelResult(normalized, raw);
+        }
+        if (error.code === 'invalid_structured_output') {
+          raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+          return finalizeModelResult(normalized, raw);
+        }
+        throw error;
+      }
+    } finally {
+      release();
+    }
+  }
   const prompt = buildPrompt(normalized);
   if (Buffer.byteLength(prompt) > CONTEXT_LIMIT) {
+    release();
     throw new GatewayError('规范化后的上下文超过网关安全上限。', { code: 'context_too_large', status: 413 });
   }
-  const release = await requestSlots.acquire(signal);
   const workerId = crypto.randomUUID();
   const workDir = path.join(RUNTIME, 'workspaces', workerId);
   // agy requires a log path. Keep it inside the per-request directory so the
@@ -324,16 +369,16 @@ async function runTurn(normalized, model, signal) {
   });
   activeWorkers.add(worker);
   try {
-    let raw = await worker.send(prompt, { signal });
+    let raw = await worker.send(prompt, { signal, onDelta });
     try {
       return finalizeModelResult(normalized, raw);
     } catch (error) {
       if (error.code === 'invalid_auto_mode_classifier_output') {
-        raw = await worker.send('AUTO_MODE_XML_REPAIR: Return only the XML verdict required by the original system contract. No prose or Markdown.', { signal });
+        raw = await worker.send('AUTO_MODE_XML_REPAIR: Return only the XML verdict required by the original system contract. No prose or Markdown.', { signal, onDelta });
         return finalizeModelResult(normalized, raw);
       }
       if (error.code === 'invalid_structured_output') {
-        raw = await worker.send(`STRUCTURED_OUTPUT_REPAIR: Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}`, { signal });
+        raw = await worker.send(`STRUCTURED_OUTPUT_REPAIR: Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}`, { signal, onDelta });
         return finalizeModelResult(normalized, raw);
       }
       throw error;
@@ -357,6 +402,87 @@ function beginSse(res) {
   }, 15000);
   timer.unref?.();
   return () => clearInterval(timer);
+}
+
+function textStreamingAllowed(normalized) {
+  return Boolean(normalized.stream)
+    && normalized.tools.length === 0
+    && !normalized.structuredSchema
+    && !normalized.autoMode;
+}
+
+function createAnthropicTextEmitter(res, model) {
+  const id = `msg_${crypto.randomUUID().replaceAll('-', '')}`;
+  let started = false;
+  let blockStarted = false;
+  let emittedText = '';
+  const start = () => {
+    if (started) return;
+    started = true;
+    sendSse(res, 'message_start', { type: 'message_start', message: {
+      id, type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null,
+      usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+    } });
+  };
+  const emitText = (text) => {
+    text = String(text || '');
+    if (!text) return;
+    start();
+    if (!blockStarted) {
+      blockStarted = true;
+      sendSse(res, 'content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } });
+    }
+    emittedText += text;
+    sendSse(res, 'content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } });
+  };
+  return {
+    onDelta: (text) => emitText(text),
+    finish: (body) => {
+      start();
+      const finalText = body.content?.find((block) => block.type === 'text')?.text || '';
+      if (finalText && !emittedText) emitText(finalText);
+      else if (finalText.startsWith(emittedText)) emitText(finalText.slice(emittedText.length));
+      if (blockStarted) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: 0 });
+      sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: { output_tokens: body.usage.output_tokens || 0 } });
+      sendSse(res, 'message_stop', { type: 'message_stop' });
+      res.end();
+    }
+  };
+}
+
+function createChatTextEmitter(res, model) {
+  const id = `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`;
+  const created = Math.floor(Date.now() / 1000);
+  let started = false;
+  let emittedText = '';
+  const start = () => {
+    if (started) return;
+    started = true;
+    res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] })}\n\n`);
+  };
+  return {
+    onDelta: (text) => {
+      text = String(text || '');
+      if (!text) return;
+      start();
+      emittedText += text;
+      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: text }, finish_reason: null }] })}\n\n`);
+    },
+    finish: (body) => {
+      start();
+      const finalText = body.choices?.[0]?.message?.content || '';
+      if (finalText && !emittedText) {
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: finalText }, finish_reason: null }] })}\n\n`);
+      } else if (finalText.startsWith(emittedText) && finalText.length > emittedText.length) {
+        const remainder = finalText.slice(emittedText.length);
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: remainder }, finish_reason: null }] })}\n\n`);
+      }
+      const finishReason = body.choices?.[0]?.finish_reason || 'stop';
+      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      res.end();
+    }
+  };
 }
 
 function emitAnthropicStream(res, body) {
@@ -418,10 +544,12 @@ async function handleAnthropic(payload, req, res, signal) {
   const model = await resolveModel(normalized.model);
   console.log(`[Antigravity Gateway] /v1/messages model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
+  const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal); } finally { stopHeartbeat?.(); }
+  try { result = await runTurn(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = anthropicResponse(normalized.model || model, result);
-  if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
+  if (liveEmitter) liveEmitter.finish(body);
+  else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleChat(payload, req, res, signal) {
@@ -429,10 +557,12 @@ async function handleChat(payload, req, res, signal) {
   const model = await resolveModel(normalized.model);
   console.log(`[Antigravity Gateway] /v1/chat/completions model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
+  const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal); } finally { stopHeartbeat?.(); }
+  try { result = await runTurn(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = chatResponse(normalized.model || model, result);
-  if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
+  if (liveEmitter) liveEmitter.finish(body);
+  else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleResponses(payload, req, res, signal) {
@@ -451,7 +581,7 @@ async function handleResponses(payload, req, res, signal) {
   console.log(`[Antigravity Gateway] /v1/responses model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal); } finally { stopHeartbeat?.(); }
+  try { result = await runTurn(normalized, model, signal, { sessionId: scope }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
   const assistantText = result.toolCalls.length
@@ -482,9 +612,11 @@ async function requestHandler(req, res) {
       sendJson(res, 200, {
         name: 'antigravity-gateway', version: '0.1.0', status: 'ok',
         listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: versionCache },
-        auth: 'official-agy-keyring-session', default_model: await resolveModel(DEFAULT_MODEL),
+        transport: usesDirectTransport() ? 'direct' : 'agy',
+        auth: usesDirectTransport() ? directAuthDescription() : 'official-agy-keyring-session',
+        default_model: await resolveModel(DEFAULT_MODEL),
         models: models.length,
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, credentials_read_by_gateway: false }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), credentials_read_by_gateway: usesDirectTransport() }
       });
       return;
     }
@@ -549,7 +681,7 @@ if (require.main === module) {
     try {
       const models = await availableModels(true);
       modelInfo = `${models.length} 个模型，默认 ${await resolveModel(DEFAULT_MODEL)}`;
-      version = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
+      if (!usesDirectTransport()) version = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
       versionCache = version;
     } catch (error) {
       modelInfo = `检测失败：${error.message}`;
@@ -558,9 +690,10 @@ if (require.main === module) {
     console.log(' 🚀 Antigravity Gateway 已启动');
     console.log('-----------------------------------------------------------------');
     console.log(` 监听地址: http://${HOST}:${PORT}`);
+    console.log(` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`);
     console.log(` Antigravity CLI: ${AGY_PATH} (${version})`);
     console.log(` 模型配置: ${modelInfo}`);
-    console.log(' 登录复用: 官方 agy 系统 Keyring（网关不读取令牌）');
+    console.log(` 登录方式: ${usesDirectTransport() ? directAuthDescription() : '官方 agy 系统 Keyring（网关不读取令牌）'}`);
     console.log(' 客户端接口: Claude Code / Codex CLI / OpenAI Chat Completions');
     console.log(' 工具桥: 实验性结构化投影；工具由客户端执行');
     console.log('=================================================================');

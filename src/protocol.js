@@ -70,6 +70,16 @@ function normalizeTools(tools, protocol) {
   }).filter((tool) => typeof tool.name === 'string' && tool.name.length > 0);
 }
 
+function generationConfigFrom(payload) {
+  const config = {};
+  const maxTokens = payload.max_tokens ?? payload.max_output_tokens;
+  if (Number.isFinite(Number(maxTokens)) && Number(maxTokens) > 0) config.maxOutputTokens = Number(maxTokens);
+  if (Number.isFinite(Number(payload.temperature))) config.temperature = Number(payload.temperature);
+  if (Number.isFinite(Number(payload.top_p))) config.topP = Number(payload.top_p);
+  if (Number.isFinite(Number(payload.top_k))) config.topK = Number(payload.top_k);
+  return Object.keys(config).length ? config : null;
+}
+
 function toolChoiceRule(choice) {
   if (choice == null || choice === 'auto') return { mode: 'auto' };
   if (choice === 'none' || choice?.type === 'none') return { mode: 'none' };
@@ -92,6 +102,7 @@ function normalizeAnthropic(payload) {
     messages,
     tools: normalizeTools(payload.tools, 'anthropic'),
     toolChoice: payload.tool_choice,
+    generationConfig: generationConfigFrom(payload),
     stream: Boolean(payload.stream),
     structuredSchema: payload.output_config?.format?.type === 'json_schema'
       ? payload.output_config.format.schema
@@ -120,6 +131,7 @@ function normalizeChat(payload) {
   return {
     protocol: 'chat', model: payload.model, system: systemParts.join('\n'), messages,
     tools: normalizeTools(payload.tools, 'chat'), toolChoice: payload.tool_choice,
+    generationConfig: generationConfigFrom(payload),
     stream: Boolean(payload.stream), structuredSchema: payload.response_format?.type === 'json_schema'
       ? payload.response_format.json_schema?.schema : null, autoMode: false
   };
@@ -145,6 +157,7 @@ function normalizeResponses(payload, previousTranscript) {
   return {
     protocol: 'responses', model: payload.model, system, messages,
     tools: normalizeTools(payload.tools, 'responses'), toolChoice: payload.tool_choice,
+    generationConfig: generationConfigFrom(payload),
     stream: Boolean(payload.stream), structuredSchema: payload.text?.format?.type === 'json_schema'
       ? payload.text.format.schema : null, autoMode: false
   };
