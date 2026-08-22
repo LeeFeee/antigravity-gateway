@@ -237,7 +237,8 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
         // Gemini 3 requires a signature on the first functionCall part of
         // each step. If an old Claude transcript no longer contains the
         // provider signature (for example after a gateway restart), use the
-        // same explicit compatibility sentinel used by CLIProxyAPI. Never
+        // the same explicit compatibility sentinel used by established
+        // Cloud Code proxy implementations. Never
         // add it to parallel sibling calls: only the first call in a part
         // group may carry a signature.
         const signature = recoveredSignature || (needsThoughtSignature && !functionCallSeen ? THOUGHT_SIGNATURE_SENTINEL : '');

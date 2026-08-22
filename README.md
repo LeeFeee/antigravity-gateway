@@ -66,6 +66,8 @@ winget install --exact --id OpenJS.NodeJS.LTS
 
 ### 安装与启动
 
+> **结论：新版本仍然是一条命令安装、一条命令启动。** 安装完成后不需要进入安装目录，也不需要手动处理项目依赖。
+
 全局安装，只需一条命令：
 
 ```bash
@@ -182,7 +184,7 @@ npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs
 npm uninstall --global antigravity-gateway
 ```
 
-只有参与项目开发时才需要克隆源码，然后在项目根目录运行 `npm test` 或 `npm start`；普通用户不需要这些步骤。
+只有参与项目开发时才需要克隆源码，然后在项目根目录运行 `npm test` 或 `npm start`；普通用户直接使用上面的全局安装和 `antigravity-gateway` 启动命令即可。
 
 健康检查与模型目录：
 
@@ -404,6 +406,8 @@ Verify with `node --version` and `npm --version`, or install an LTS release from
 
 ### Install and start
 
+> **Summary: the new release still uses one command to install and one command to start.** After installation, users do not need to enter the package directory or manage project dependencies manually.
+
 Install globally with one command:
 
 ```bash
@@ -478,7 +482,7 @@ npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs
 npm uninstall --global antigravity-gateway
 ```
 
-Cloning the repository and using `npm test` or `npm start` is only necessary for contributors.
+Cloning the repository and using `npm test` or `npm start` is only necessary for contributors. Regular users should use the global install command and run `antigravity-gateway` from any directory.
 
 ### Endpoints
 
