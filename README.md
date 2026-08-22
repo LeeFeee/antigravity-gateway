@@ -69,7 +69,7 @@ winget install --exact --id OpenJS.NodeJS.LTS
 全局安装，只需一条命令：
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway.git
+npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
 安装过程中会自动完成环境检查并安装项目依赖。不要使用 `--ignore-scripts`，否则 npm 会跳过环境检查。
@@ -121,7 +121,7 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 更新与卸载：
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway.git
+npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 
@@ -334,7 +334,7 @@ Verify with `node --version` and `npm --version`, or install an LTS release from
 Install globally with one command:
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway.git
+npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
 The environment is checked and project dependencies are installed automatically. Do not use `--ignore-scripts`, which disables the environment check.
@@ -374,7 +374,7 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 Update or uninstall:
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway.git
+npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 

@@ -9,6 +9,7 @@
 - Added an npm lifecycle environment check for Node.js, supported operating systems/architectures, and writable temporary storage.
 - Added fallback discovery for the official per-user `agy` install locations when the current shell has not reloaded its updated `PATH`.
 - Documented Node.js/npm bootstrap commands for macOS, Linux, and Windows.
+- Switched the GitHub install command to the branch tarball URL for reliable npm lifecycle execution without requiring a Git checkout.
 
 ## 0.1.0 - 2026-08-22
 
