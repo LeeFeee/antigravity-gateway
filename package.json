@@ -1,0 +1,37 @@
+{
+  "name": "antigravity-gateway",
+  "version": "0.1.0",
+  "description": "Experimental local Anthropic/OpenAI compatibility gateway backed by the official Antigravity CLI.",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "antigravity-gateway.js",
+  "files": [
+    "antigravity-gateway.js",
+    "src/",
+    "scripts/",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "bin": {
+    "antigravity-gateway": "antigravity-gateway.js"
+  },
+  "scripts": {
+    "start": "node antigravity-gateway.js",
+    "postinstall": "node scripts/check-environment.js",
+    "check": "node --check antigravity-gateway.js && node --check src/agy-worker.js && node --check src/protocol.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "antigravity",
+    "gemini",
+    "anthropic-compatible",
+    "openai-compatible",
+    "claude-code",
+    "codex-cli",
+    "gateway"
+  ]
+}
