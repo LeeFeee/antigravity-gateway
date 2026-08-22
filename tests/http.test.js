@@ -70,8 +70,9 @@ test('Anthropic tools are returned to the client and never executed by gateway',
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.stop_reason, 'tool_use');
-  assert.equal(body.content[0].name, 'shell');
-  assert.deepEqual(body.content[0].input, { command: 'pwd' });
+  const toolUse = body.content.find((block) => block.type === 'tool_use');
+  assert.equal(toolUse.name, 'shell');
+  assert.deepEqual(toolUse.input, { command: 'pwd' });
 });
 
 test('Responses supports previous_response_id and function call shape', async (t) => {

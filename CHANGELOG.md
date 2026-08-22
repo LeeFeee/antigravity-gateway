@@ -9,7 +9,11 @@
 - Added a small minimum output budget for high/thinking models so low client caps do not consume the entire turn on hidden reasoning and return an empty visible message.
 - Added live text SSE forwarding for plain Anthropic and Chat Completions requests; constrained tool, Auto mode, and structured-output requests remain buffered for validation.
 - Added direct-provider unit coverage and documented the new transport and credential boundaries in both README languages.
-- Added direct-upstream context budgeting: large tool output and stale history are compacted before Cloud Code requests, and nullable/union tool schema types are normalized to the scalar schema format accepted by the upstream.
+- Normalized nullable/union tool schema types to the scalar schema format accepted by Cloud Code.
+- Fixed native tool-history requests by removing Claude-only tool IDs from Gemini function-call parts.
+- Preserved Cloud Code `thoughtSignature` values across Claude tool turns so follow-up requests can use prior native function calls.
+- Added Gemini 3 thought-signature replay compatibility for stale Claude histories: real signatures are preserved, while a missing signature uses the first-call `skip_thought_signature_validator` sentinel and is not duplicated across parallel calls.
+- Replaced the direct transport's XML tool-call envelope with typed `functionCall`/`functionResponse` mapping, including tool IDs, tool-name correlation, streamed argument assembly, and native tool-call validation.
 - Upstream HTTP 400 diagnostics now include the sanitized provider reason instead of only a generic gateway error.
 - Removed maintainer-specific absolute paths and resolve `agy` from the current user's `PATH` by default.
 - Moved transient workspaces and logs from the source tree to a per-user operating-system temporary directory, with an environment-variable override.

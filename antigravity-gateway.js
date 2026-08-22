@@ -490,10 +490,17 @@ function emitAnthropicStream(res, body) {
   const start = { ...body, content: [], stop_reason: null, stop_sequence: null };
   sendSse(res, 'message_start', { type: 'message_start', message: start });
   body.content.forEach((block, index) => {
-    const empty = block.type === 'text' ? { type: 'text', text: '' } : { ...block, input: {} };
+    const empty = block.type === 'text'
+      ? { type: 'text', text: '' }
+      : block.type === 'thinking'
+        ? { type: 'thinking', thinking: '' }
+        : { ...block, input: {} };
     sendSse(res, 'content_block_start', { type: 'content_block_start', index, content_block: empty });
     if (block.type === 'text') {
       sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } });
+    } else if (block.type === 'thinking') {
+      if (block.thinking) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'thinking_delta', thinking: block.thinking } });
+      if (block.signature) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } });
     } else {
       sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } });
     }
@@ -584,14 +591,24 @@ async function handleResponses(payload, req, res, signal) {
   try { result = await runTurn(normalized, model, signal, { sessionId: scope }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
-  const assistantText = result.toolCalls.length
-    ? result.toolCalls.map((call) => `[ASSISTANT_TOOL_CALL id=${call.id} name=${call.name}]\n${JSON.stringify(call.arguments)}`).join('\n')
-    : result.text;
   responseStore.set(responseId, {
     at: Date.now(),
     scope,
     system: normalized.system,
-    messages: [...normalized.messages, { role: 'assistant', text: assistantText }]
+    messages: [...normalized.messages, {
+      role: 'assistant',
+      text: result.text || '',
+      parts: [
+        ...(result.text ? [{ type: 'text', text: result.text }] : []),
+        ...result.toolCalls.map((call) => ({
+          type: 'tool_call',
+          id: call.id,
+          name: call.name,
+          arguments: call.arguments,
+          ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {})
+        }))
+      ]
+    }]
   });
   if (normalized.stream) emitResponsesStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }

@@ -11,6 +11,7 @@ const {
   normalizeAutoMode,
   normalizeResponses,
   normalizeStructured,
+  normalizeToolCalls,
   parseToolCalls,
   validateSchema
 } = require('../src/protocol');
@@ -54,6 +55,27 @@ test('tool envelope is parsed only against the client whitelist and schema', () 
   assert.match(calls[0].id, /^call_/);
   assert.throws(() => parseToolCalls('{"name":"unknown","arguments":{}}', [shellTool]), /未提供/);
   assert.throws(() => parseToolCalls('{"name":"shell","arguments":{}}', [shellTool]), /Schema/);
+});
+
+test('native tool calls are normalized without a text envelope', () => {
+  const calls = normalizeToolCalls([
+    { id: 'call_native', name: 'shell', args: { command: 'pwd' }, thoughtSignature: 'sig-1' }
+  ], [shellTool]);
+  assert.deepEqual(calls, [{
+    id: 'call_native', name: 'shell', arguments: { command: 'pwd' }, thoughtSignature: 'sig-1'
+  }]);
+  assert.deepEqual(
+    normalizeAnthropic({
+      messages: [
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'call_native', name: 'shell', input: { command: 'pwd' } }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'call_native', content: '/tmp' }] }
+      ]
+    }).messages.map((message) => message.parts),
+    [
+      [{ type: 'tool_call', id: 'call_native', name: 'shell', arguments: { command: 'pwd' } }],
+      [{ type: 'tool_result', id: 'call_native', content: '/tmp' }]
+    ]
+  );
 });
 
 test('fenced single-call JSON is a controlled fallback for agy structured wrapping', () => {
@@ -104,9 +126,14 @@ test('Responses previous transcript is prepended without mutating it', () => {
 test('Anthropic response exposes external tools in native format', () => {
   const body = anthropicResponse('gemini-test-high', {
     text: '',
-    toolCalls: [{ id: 'call_1', name: 'shell', arguments: { command: 'pwd' } }],
+    toolCalls: [{ id: 'call_1', name: 'shell', arguments: { command: 'pwd' }, thoughtSignature: 'sig-1' }],
     usage: { input_tokens: 10, output_tokens: 2 }
   });
   assert.equal(body.stop_reason, 'tool_use');
-  assert.deepEqual(body.content[0], { type: 'tool_use', id: 'call_1', name: 'shell', input: { command: 'pwd' } });
+  assert.deepEqual(body.content[0], { type: 'thinking', thinking: '', signature: 'sig-1' });
+  assert.deepEqual(body.content[1], { type: 'tool_use', id: 'call_1', name: 'shell', input: { command: 'pwd' } });
+  assert.deepEqual(
+    normalizeAnthropic({ messages: [{ role: 'assistant', content: body.content }] }).messages[0].parts,
+    [{ type: 'tool_call', id: 'call_1', name: 'shell', arguments: { command: 'pwd' }, thoughtSignature: 'sig-1' }]
+  );
 });

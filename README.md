@@ -285,15 +285,18 @@ agy --input-format stream-json \
 
 ### 工具调用如何工作
 
-`agy` 的无头协议目前没有直接接收 Claude Code/Codex 外部工具定义的原生接口。因此本项目采用“结构化工具投影”：
+两种传输模式的工具链路不同：
 
-1. 网关把客户端提供的工具名称、说明和 JSON Schema 放进受控提示区。
-2. 模型需要工具时返回一个专用 JSON 信封。
-3. 网关严格检查工具名称与参数 Schema，并生成客户端调用 ID。
-4. Claude Code 或 Codex 在自己的权限体系内执行工具。
-5. 下一次请求把工具结果交回网关，模型继续回答。
+- `direct` 模式使用 Cloud Code 原生 Function Calling，把 Claude/OpenAI 的 `tool_use`、`tool_calls`、`tool_result` 和 `function_call_output` 结构化映射为 `functionCall`/`functionResponse`，并在会话内保留工具 ID、工具名称和 `thoughtSignature`。对于网关重启后遗留的 Gemini 3 工具历史，如果客户端没有回传签名，会使用 Cloud Code 兼容的首个调用标记，避免直接触发 `missing a thought_signature`；真实签名仍优先使用。
+- `agy` 模式的无头协议没有直接接收 Claude Code/Codex 外部工具定义的原生接口，因此仍采用“结构化工具投影”：
 
-网关本身不执行客户端工具。这个桥接方式已经通过 Claude Code 的真实 `Bash(printf:*)` 两轮闭环验证，但它仍是实验性兼容层，不等同于 Gemini 原生 Function Calling。
+  1. 网关把客户端提供的工具名称、说明和 JSON Schema 放进受控提示区。
+  2. 模型需要工具时返回一个专用 JSON 信封。
+  3. 网关严格检查工具名称与参数 Schema，并生成客户端调用 ID。
+  4. Claude Code 或 Codex 在自己的权限体系内执行工具。
+  5. 下一次请求把工具结果交回网关，模型继续回答。
+
+网关本身不执行客户端工具。直连模式使用原生 Function Calling；`agy` 模式的信封投影仍属于实验性兼容层。
 
 ### 安全与隐私
 
@@ -313,11 +316,10 @@ agy --input-format stream-json \
 - 请求会消耗 Antigravity 账号对应的额度，并可能出现在 Antigravity 的会话历史或缓存中。
 - 当前只支持文本输入；图片、音频和文件输入会返回 400。
 - `agy` 模式的工具、Auto mode 和结构化输出仍以整轮结果校验为主；直连模式的普通纯文本流式请求会把上游 SSE 增量转发给客户端，带工具或结构化约束时仍可能缓冲到结果完成。
-- 工具桥依赖模型遵守结构化信封，复杂并行工具和强提示注入场景仍需继续测试。
+- `agy` 模式的工具桥依赖模型遵守结构化信封；直连模式虽然使用原生 Function Calling，但复杂并行工具仍需继续测试。
 - Claude Code/Codex 的系统提示里可能包含当前工程路径；虽然 `agy` 的工作目录是隔离的，不能把它视为对用户目录的绝对访问隔离。
 - Antigravity CLI 更新可能改变模型 ID、NDJSON 字段或系统行为。升级 `agy` 后请先运行 `npm test` 和最小真实请求。
 - `count_tokens` 是字符估算值，不是 Antigravity 官方 Tokenizer 结果。
-- 直连模式会在请求超过上游有效上下文预算时，优先压缩旧工具输出和历史消息，保留当前请求及最近工具交换；压缩会在日志中记录字符数变化，不会修改客户端原始会话。
 
 ### 配置项
 
@@ -333,9 +335,6 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | 直连上游地址 |
 | `ANTIGRAVITY_DIRECT_MODELS` | 空（自动探测） | 可选；固定直连 `/v1/models` 展示的逗号分隔模型列表 |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | 直连上游模型目录探测超时；失败时使用保守默认模型 |
-| `ANTIGRAVITY_DIRECT_CONTEXT_CHARS` | `130000` | 直连上游请求的软上下文预算；超出时压缩历史消息 |
-| `ANTIGRAVITY_DIRECT_TOOL_RESULT_CHARS` | `16000` | 单个客户端工具结果的最大转发字符数；超出部分保留首尾并标记省略 |
-| `ANTIGRAVITY_DIRECT_HISTORY_MESSAGE_CHARS` | `12000` | 历史消息压缩时的单条消息上限 |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | 自动生成 `antigravity/cli/... (aidev_client; ...)` | 直连请求 User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | 监听地址 |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | 监听端口 |
@@ -542,9 +541,6 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | Direct upstream base URL |
 | `ANTIGRAVITY_DIRECT_MODELS` | empty (auto-discover) | Optional comma-separated models shown by direct `/v1/models` |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | Direct upstream model discovery timeout; falls back to a conservative default |
-| `ANTIGRAVITY_DIRECT_CONTEXT_CHARS` | `130000` | Soft character budget for direct upstream requests; older history is compacted above it |
-| `ANTIGRAVITY_DIRECT_TOOL_RESULT_CHARS` | `16000` | Maximum forwarded characters for one client tool result; the middle is omitted above this limit |
-| `ANTIGRAVITY_DIRECT_HISTORY_MESSAGE_CHARS` | `12000` | Per-message limit used while compacting historical context |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | `antigravity/hub/2.2.1 darwin/arm64` | Direct upstream User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | Listen address |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | Listen port |
@@ -562,7 +558,7 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 
 In `agy` mode, the gateway starts an isolated headless subprocess and exchanges NDJSON over stdin/stdout. In direct mode, it reads the local agy session in memory and follows the native Cloud Code protocol: daily endpoint first, production endpoint fallback, OAuth Bearer, Antigravity `User-Agent`, `project`, `requestId`, `request.sessionId`, `request.contents`, `request.tools`, and `request.toolConfig`. No `agy` process or `agy` wrapper prompt is involved. Client requests are converted back into Anthropic or OpenAI responses.
 
-Client tools use an experimental structured projection. The gateway validates tool names and JSON arguments, but the actual tool is executed only by Claude Code or Codex under the client's own permission system.
+Client tools use native Function Calling in direct mode: Claude/OpenAI tool blocks are mapped to Cloud Code `functionCall`/`functionResponse` parts, with tool IDs, names, and `thoughtSignature` retained across the turn. If a stale Gemini 3 tool history has lost its signature after a gateway restart or client replay, the first missing signature uses Cloud Code's compatibility sentinel instead of sending an invalid function-call part; a real signature always takes precedence. The `agy` fallback uses an experimental structured projection. The gateway validates tool names and JSON arguments, but the actual tool is executed only by Claude Code or Codex under the client's own permission system.
 
 ### Limitations
 
@@ -570,10 +566,9 @@ Client tools use an experimental structured projection. The gateway validates to
 - Local session filenames and fields are agy implementation details and may change across releases. If discovery fails, the root status endpoint reports that the gateway is using the official agy fallback.
 - Text input only.
 - Plain-text direct SSE requests stream upstream deltas; tool, Auto mode, and structured-output requests may still be buffered for validation.
-- Tool projection is experimental and may fail on complex or adversarial prompts.
+- The `agy` tool projection is experimental; direct native Function Calling is preferred, but complex parallel calls still need testing.
 - Calls consume normal Antigravity quota and may appear in Antigravity history/cache.
 - CLI updates can change model IDs and NDJSON behavior.
-- Direct mode compacts oversized tool output and stale history before forwarding to Cloud Code, preserving the current turn and recent tool exchange. The original client conversation is not modified.
 
 ### License
 

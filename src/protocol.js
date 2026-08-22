@@ -16,6 +16,72 @@ function compactJson(value) {
   try { return JSON.stringify(value); } catch { return 'null'; }
 }
 
+function parseJsonValue(value) {
+  if (typeof value !== 'string') return value;
+  const source = value.trim();
+  if (!source) return '';
+  try { return JSON.parse(source); } catch { return value; }
+}
+
+function toolCallPart(id, name, input, thoughtSignature) {
+  return {
+    type: 'tool_call',
+    ...(id ? { id: String(id) } : {}),
+    name: String(name || ''),
+    arguments: input && typeof input === 'object' && !Array.isArray(input)
+      ? input
+      : parseJsonValue(input ?? {}),
+    ...(thoughtSignature ? { thoughtSignature: String(thoughtSignature) } : {})
+  };
+}
+
+function toolResultPart(id, content, name, isError = false) {
+  return {
+    type: 'tool_result',
+    ...(id ? { id: String(id) } : {}),
+    ...(name ? { name: String(name) } : {}),
+    content: typeof content === 'string' ? content : compactJson(content),
+    ...(isError ? { isError: true } : {})
+  };
+}
+
+function internalPartsFromContent(content, protocol) {
+  if (typeof content === 'string') return content ? [{ type: 'text', text: content }] : [];
+  if (content == null) return [];
+  if (!Array.isArray(content)) return [{ type: 'text', text: compactJson(content) }];
+  const parts = [];
+  let pendingSignature = '';
+  for (const block of content) {
+    if (typeof block === 'string') {
+      if (block) parts.push({ type: 'text', text: block });
+      continue;
+    }
+    if (!block || typeof block !== 'object') continue;
+    if (block.type === 'thinking') {
+      const signature = block.signature || block.thoughtSignature || block.thought_signature;
+      if (signature) pendingSignature = String(signature);
+      continue;
+    }
+    if (['text', 'input_text', 'output_text'].includes(block.type)) {
+      if (block.text != null && String(block.text)) parts.push({ type: 'text', text: String(block.text) });
+    } else if (block.type === 'tool_use') {
+      parts.push(toolCallPart(block.id, block.name, block.input, block.signature || block.thoughtSignature || pendingSignature));
+      pendingSignature = '';
+    } else if (block.type === 'tool_result') {
+      parts.push(toolResultPart(block.tool_use_id, textFromContent(block.content, protocol), block.name, block.is_error === true));
+    } else if (block.type === 'function_call') {
+      parts.push(toolCallPart(block.call_id || block.id, block.name, block.arguments, block.thoughtSignature));
+    } else if (block.type === 'function_call_output' || block.type === 'computer_call_output') {
+      parts.push(toolResultPart(block.call_id, typeof block.output === 'string' ? block.output : compactJson(block.output)));
+    } else if (block.text != null) {
+      parts.push({ type: 'text', text: String(block.text) });
+    } else if (block.content != null) {
+      parts.push(...internalPartsFromContent(block.content, protocol));
+    }
+  }
+  return parts;
+}
+
 function textFromContent(content, protocol) {
   if (typeof content === 'string') return content;
   if (content == null) return '';
@@ -93,7 +159,8 @@ function normalizeAnthropic(payload) {
   const system = textFromContent(payload.system, 'anthropic');
   const messages = (payload.messages || []).map((message) => ({
     role: message.role || 'user',
-    text: textFromContent(message.content, 'anthropic')
+    text: textFromContent(message.content, 'anthropic'),
+    parts: internalPartsFromContent(message.content, 'anthropic')
   }));
   return {
     protocol: 'anthropic',
@@ -117,15 +184,21 @@ function normalizeChat(payload) {
   for (const message of payload.messages || []) {
     const text = textFromContent(message.content, 'chat');
     if (message.role === 'system' || message.role === 'developer') systemParts.push(text);
-    else if (message.role === 'tool') messages.push({ role: 'user', text: `[CLIENT_TOOL_RESULT id=${message.tool_call_id || ''}]\n${text}` });
+    else if (message.role === 'tool') messages.push({
+      role: 'user',
+      text: `[CLIENT_TOOL_RESULT id=${message.tool_call_id || ''}]\n${text}`,
+      parts: [toolResultPart(message.tool_call_id, text, message.name, message.is_error === true)]
+    });
     else {
       let combined = text;
+      const parts = internalPartsFromContent(message.content, 'chat');
       if (Array.isArray(message.tool_calls)) {
         for (const call of message.tool_calls) {
           combined += `\n[ASSISTANT_TOOL_CALL id=${call.id || ''} name=${call.function?.name || ''}]\n${call.function?.arguments || '{}'}`;
+          parts.push(toolCallPart(call.id, call.function?.name, call.function?.arguments));
         }
       }
-      messages.push({ role: message.role || 'user', text: combined });
+      messages.push({ role: message.role || 'user', text: combined, parts });
     }
   }
   return {
@@ -138,7 +211,7 @@ function normalizeChat(payload) {
 }
 
 function normalizeResponses(payload, previousTranscript) {
-  const messages = previousTranscript ? previousTranscript.messages.map((item) => ({ ...item })) : [];
+  const messages = previousTranscript ? previousTranscript.messages.map((item) => ({ ...item, parts: item.parts ? item.parts.map((part) => ({ ...part })) : undefined })) : [];
   const previousSystem = previousTranscript?.system || '';
   const instructions = payload.instructions || '';
   const system = !instructions || instructions === previousSystem
@@ -147,11 +220,26 @@ function normalizeResponses(payload, previousTranscript) {
   const input = typeof payload.input === 'string' ? [{ role: 'user', content: payload.input }] : (payload.input || []);
   for (const item of input) {
     if (typeof item === 'string') messages.push({ role: 'user', text: item });
-    else if (item?.type === 'message' || item?.role) messages.push({ role: item.role || 'user', text: textFromContent(item.content, 'responses') });
+    else if (item?.type === 'message' || item?.role) messages.push({
+      role: item.role || 'user',
+      text: textFromContent(item.content, 'responses'),
+      parts: internalPartsFromContent(item.content, 'responses')
+    });
     else if (item?.type === 'function_call_output' || item?.type === 'computer_call_output') {
-      messages.push({ role: 'user', text: `[CLIENT_TOOL_RESULT id=${item.call_id || ''}]\n${typeof item.output === 'string' ? item.output : compactJson(item.output)}` });
+      const output = typeof item.output === 'string' ? item.output : compactJson(item.output);
+      messages.push({
+        role: 'user',
+        text: `[CLIENT_TOOL_RESULT id=${item.call_id || ''}]\n${output}`,
+        parts: [toolResultPart(item.call_id, output)]
+      });
     } else if (item?.type === 'function_call') {
-      messages.push({ role: 'assistant', text: `[ASSISTANT_TOOL_CALL id=${item.call_id || item.id || ''} name=${item.name || ''}]\n${typeof item.arguments === 'string' ? item.arguments : compactJson(item.arguments || {})}` });
+      const id = item.call_id || item.id || '';
+      const args = typeof item.arguments === 'string' ? item.arguments : compactJson(item.arguments || {});
+      messages.push({
+        role: 'assistant',
+        text: `[ASSISTANT_TOOL_CALL id=${id} name=${item.name || ''}]\n${args}`,
+        parts: [toolCallPart(id, item.name, item.arguments)]
+      });
     }
   }
   return {
@@ -242,6 +330,29 @@ function validateSchema(value, schema, depth = 0) {
   return true;
 }
 
+function normalizeToolCalls(rawCalls, tools) {
+  if (!tools.length) return null;
+  const byName = new Map(tools.map((tool) => [tool.name, tool]));
+  return rawCalls.map((call) => {
+    const argumentsValue = call.arguments ?? call.args ?? call.input ?? {};
+    const argumentsObject = typeof argumentsValue === 'string' ? parseJsonValue(argumentsValue) : argumentsValue;
+    const tool = byName.get(call.name);
+    if (!tool) throw new GatewayError(`模型请求了客户端未提供的工具: ${call.name}`, { code: 'invalid_tool_call', status: 502 });
+    if (!argumentsObject || typeof argumentsObject !== 'object' || Array.isArray(argumentsObject)) {
+      throw new GatewayError(`工具 ${call.name} 的参数不是 JSON 对象。`, { code: 'invalid_tool_call', status: 502 });
+    }
+    if (!validateSchema(argumentsObject, tool.schema)) {
+      throw new GatewayError(`工具 ${call.name} 的参数不符合客户端 Schema。`, { code: 'invalid_tool_call', status: 502 });
+    }
+    return {
+      id: typeof call.id === 'string' && call.id ? call.id : `call_${crypto.randomUUID().replaceAll('-', '')}`,
+      name: call.name,
+      arguments: argumentsObject,
+      ...(typeof call.thoughtSignature === 'string' && call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {})
+    };
+  });
+}
+
 function parseToolCalls(text, tools) {
   if (!tools.length) return null;
   const source = String(text || '').trim();
@@ -251,18 +362,7 @@ function parseToolCalls(text, tools) {
   let calls = Array.isArray(parsed.tool_calls) ? parsed.tool_calls : null;
   if (!calls && typeof parsed.name === 'string' && parsed.arguments && typeof parsed.arguments === 'object') calls = [parsed];
   if (!calls?.length) return null;
-  const byName = new Map(tools.map((tool) => [tool.name, tool]));
-  return calls.map((call) => {
-    const tool = byName.get(call.name);
-    if (!tool) throw new GatewayError(`模型请求了客户端未提供的工具: ${call.name}`, { code: 'invalid_tool_call', status: 502 });
-    if (!call.arguments || typeof call.arguments !== 'object' || Array.isArray(call.arguments)) {
-      throw new GatewayError(`工具 ${call.name} 的参数不是 JSON 对象。`, { code: 'invalid_tool_call', status: 502 });
-    }
-    if (!validateSchema(call.arguments, tool.schema)) {
-      throw new GatewayError(`工具 ${call.name} 的参数不符合客户端 Schema。`, { code: 'invalid_tool_call', status: 502 });
-    }
-    return { id: `call_${crypto.randomUUID().replaceAll('-', '')}`, name: call.name, arguments: call.arguments };
-  });
+  return normalizeToolCalls(calls, tools);
 }
 
 function normalizeAutoMode(text) {
@@ -294,7 +394,9 @@ function finalizeModelResult(normalized, agyResult) {
       code: 'internal_tool_use_blocked', status: 502
     });
   }
-  const toolCalls = parseToolCalls(agyResult.text, normalized.tools) || [];
+  const toolCalls = Array.isArray(agyResult.toolCalls)
+    ? normalizeToolCalls(agyResult.toolCalls, normalized.tools) || []
+    : parseToolCalls(agyResult.text, normalized.tools) || [];
   const choice = toolChoiceRule(normalized.toolChoice);
   if (choice.mode === 'none' && toolCalls.length) {
     throw new GatewayError('模型违反 tool_choice=none 并请求了工具。', { code: 'invalid_tool_choice', status: 502 });
@@ -305,7 +407,8 @@ function finalizeModelResult(normalized, agyResult) {
   if (choice.mode === 'named' && (!toolCalls.length || toolCalls.some((call) => call.name !== choice.name))) {
     throw new GatewayError(`模型未按 tool_choice 请求指定工具: ${choice.name}`, { code: 'invalid_tool_choice', status: 502 });
   }
-  let text = toolCalls.length ? '' : String(agyResult.text || '');
+  const nativeToolCalls = Array.isArray(agyResult.toolCalls);
+  let text = nativeToolCalls ? String(agyResult.text || '') : (toolCalls.length ? '' : String(agyResult.text || ''));
   if (normalized.autoMode) text = normalizeAutoMode(text);
   if (normalized.structuredSchema && !toolCalls.length) text = normalizeStructured(text, normalized.structuredSchema);
   return { ...agyResult, text, toolCalls };
@@ -313,8 +416,15 @@ function finalizeModelResult(normalized, agyResult) {
 
 function anthropicResponse(model, result) {
   const content = [];
+  // Keep the provider signature carrier before any visible assistant output.
+  // Claude Code can then preserve it as part of the assistant tool turn.
+  for (const call of result.toolCalls) {
+    if (call.thoughtSignature) content.push({ type: 'thinking', thinking: '', signature: call.thoughtSignature });
+  }
   if (result.text) content.push({ type: 'text', text: result.text });
-  for (const call of result.toolCalls) content.push({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments });
+  for (const call of result.toolCalls) {
+    content.push({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments });
+  }
   return {
     id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
     type: 'message', role: 'assistant', model,
@@ -385,6 +495,7 @@ module.exports = {
   normalizeResponses,
   normalizeStructured,
   normalizeTools,
+  normalizeToolCalls,
   parseToolCalls,
   responsesResponse,
   textFromContent,
