@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
+const { DirectAntigravityProvider, buildDirectRequest, compactForUpstream } = require('../src/direct-provider');
 const { LocalAgyAuthProvider } = require('../src/local-agy-auth');
 
 function normalized(stream = false) {
@@ -45,6 +45,50 @@ test('direct request follows Antigravity Claude tool mode and strips unsupported
   assert.equal(request.request.tools[0].functionDeclarations[0].parameters.title, undefined);
   assert.equal(request.request.tools[0].functionDeclarations[0].parameters.properties.command.format, undefined);
   assert.equal(request.request.tools[0].functionDeclarations[0].parameters.additionalProperties, false);
+});
+
+test('direct request normalizes nullable union schema types for Cloud Code', () => {
+  const request = buildDirectRequest({
+    ...normalized(),
+    tools: [{ name: 'save', description: 'save', schema: {
+      type: 'object', properties: { path: { type: ['string', 'null'] } }
+    } }]
+  }, 'gemini-test-high', 'project-1', '-123');
+  const pathSchema = request.request.tools[0].functionDeclarations[0].parameters.properties.path;
+  assert.equal(pathSchema.type, 'string');
+  assert.equal(pathSchema.nullable, true);
+});
+
+test('direct upstream compaction keeps the latest turn and bounds historical output', () => {
+  const normalizedRequest = {
+    ...normalized(),
+    messages: [
+      { role: 'user', text: 'old request ' + 'word '.repeat(12000) },
+      { role: 'assistant', text: 'old answer ' + 'answer '.repeat(12000) },
+      { role: 'user', text: '[CLIENT_TOOL_RESULT id=old]\n' + 'directory-entry '.repeat(12000) },
+      { role: 'user', text: 'latest request: save the article' }
+    ],
+    tools: Array.from({ length: 27 }, (_, index) => ({
+      name: `tool_${index}`, description: 'tool', schema: { type: 'object', properties: { value: { type: 'string' } } }
+    }))
+  };
+  const compacted = compactForUpstream(normalizedRequest, {
+    model: 'gemini-test-high', projectId: 'project-1', sessionId: '-123', maxChars: 30000
+  });
+  assert.equal(compacted.changed, true);
+  assert.match(compacted.normalized.messages.at(-1).text, /latest request/);
+  assert.ok(compacted.finalChars <= 30000);
+  assert.match(JSON.stringify(compacted.normalized), /省略中间/);
+});
+
+test('direct request keeps orphaned compacted tool results as text', () => {
+  const request = buildDirectRequest({
+    ...normalized(),
+    messages: [{ role: 'user', text: '[CLIENT_TOOL_RESULT id=orphan]\nold output' }],
+    tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
+  }, 'gemini-test-high', 'project-1', '-123');
+  assert.match(request.request.contents[0].parts[0].text, /CLIENT_TOOL_RESULT id=orphan/);
+  assert.equal(request.request.contents[0].parts[0].functionResponse, undefined);
 });
 
 test('direct request keeps a visible response budget for high-thinking models', () => {

@@ -14,6 +14,9 @@ const GENERATE_PATH = '/v1internal:generateContent';
 const STREAM_PATH = '/v1internal:streamGenerateContent';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 3000);
+const DIRECT_CONTEXT_CHARS = Number(process.env.ANTIGRAVITY_DIRECT_CONTEXT_CHARS || 130000);
+const DIRECT_TOOL_RESULT_CHARS = Number(process.env.ANTIGRAVITY_DIRECT_TOOL_RESULT_CHARS || 16000);
+const DIRECT_HISTORY_MESSAGE_CHARS = Number(process.env.ANTIGRAVITY_DIRECT_HISTORY_MESSAGE_CHARS || 12000);
 const DEFAULT_USER_AGENT = `antigravity/cli/${process.env.ANTIGRAVITY_CLI_VERSION || '1.1.18'} (aidev_client; os_type=${process.platform}; arch=${process.arch}; auth_method=consumer)`;
 const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 
@@ -128,8 +131,23 @@ function cleanToolSchema(schema, depth = 0) {
   if (!schema || typeof schema !== 'object' || depth > 12) return { type: 'object' };
   if (Array.isArray(schema)) return schema.map((item) => cleanToolSchema(item, depth + 1));
   const output = {};
-  for (const key of ['type', 'description', 'enum', 'nullable', 'required', 'additionalProperties']) {
+  for (const key of ['description', 'enum', 'nullable', 'required', 'additionalProperties']) {
     if (schema[key] !== undefined) output[key] = key === 'enum' && Array.isArray(schema[key]) ? schema[key].map(String) : schema[key];
+  }
+  const rawType = schema.type;
+  if (Array.isArray(rawType)) {
+    const types = rawType.map(String).filter(Boolean);
+    const nonNull = types.filter((type) => type !== 'null');
+    output.type = nonNull[0] || 'object';
+    if (types.includes('null')) output.nullable = true;
+  } else if (typeof rawType === 'string' && rawType) {
+    output.type = rawType;
+  }
+  const variants = Array.isArray(schema.anyOf) ? schema.anyOf : Array.isArray(schema.oneOf) ? schema.oneOf : [];
+  if (!output.type && variants.length) {
+    const candidate = variants.find((item) => item && item.type !== 'null') || variants[0];
+    Object.assign(output, cleanToolSchema(candidate, depth + 1));
+    if (variants.some((item) => item?.type === 'null')) output.nullable = true;
   }
   if (schema.properties && typeof schema.properties === 'object') {
     output.properties = Object.fromEntries(Object.entries(schema.properties).map(([name, value]) => [name, cleanToolSchema(value, depth + 1)]));
@@ -137,6 +155,119 @@ function cleanToolSchema(schema, depth = 0) {
   if (schema.items) output.items = cleanToolSchema(schema.items, depth + 1);
   if (!output.type && (output.properties || output.required)) output.type = 'object';
   return output;
+}
+
+function truncateMiddle(value, limit) {
+  const text = String(value || '');
+  const max = Math.max(256, Number(limit) || 0);
+  if (text.length <= max) return { text, changed: false };
+  const head = Math.floor(max * 0.62);
+  const tail = Math.max(64, max - head);
+  return {
+    text: `${text.slice(0, head)}\n[Antigravity Gateway 已省略中间 ${text.length - head - tail} 个字符的历史输出]\n${text.slice(-tail)}`,
+    changed: true
+  };
+}
+
+function compactMessageText(text, { toolResultLimit = DIRECT_TOOL_RESULT_CHARS, messageLimit = DIRECT_HISTORY_MESSAGE_CHARS } = {}) {
+  const source = String(text || '');
+  if (source.startsWith('[CLIENT_TOOL_RESULT')) {
+    const newline = source.indexOf('\n');
+    if (newline >= 0) {
+      const header = source.slice(0, newline);
+      const result = truncateMiddle(source.slice(newline + 1), toolResultLimit);
+      return { text: result.changed ? `${header}\n${result.text}` : source, changed: result.changed };
+    }
+  }
+  const result = truncateMiddle(source, messageLimit);
+  return result;
+}
+
+function requestSize(normalized, model, projectId, sessionId) {
+  return JSON.stringify(buildDirectRequest(normalized, model || 'gemini', projectId || 'project', sessionId || '-gateway-context')).length;
+}
+
+/**
+ * Cloud Code's internal endpoint has a smaller effective context budget than
+ * Claude Code's client. Keep the latest turn and the most useful recent
+ * history, while compacting large tool output before it reaches the upstream.
+ * The original normalized request remains untouched for client-side validation.
+ */
+function compactForUpstream(normalized, { model, projectId, sessionId, maxChars = DIRECT_CONTEXT_CHARS } = {}) {
+  const messages = (normalized.messages || []).map((message) => ({ ...message }));
+  const compacted = { ...normalized, messages };
+  const originalChars = requestSize(compacted, model, projectId, sessionId);
+  if (originalChars <= maxChars) return { normalized: compacted, changed: false, originalChars, finalChars: originalChars };
+
+  let changed = false;
+  for (const message of messages) {
+    const result = compactMessageText(message.text, { toolResultLimit: DIRECT_TOOL_RESULT_CHARS, messageLimit: DIRECT_HISTORY_MESSAGE_CHARS });
+    if (result.changed) {
+      message.text = result.text;
+      changed = true;
+    }
+  }
+
+  // Protect the current turn, the most recent tool exchange, and the latest
+  // substantive assistant answer (often the artifact the user wants saved).
+  const protectedIndexes = new Set();
+  for (let index = Math.max(0, messages.length - 8); index < messages.length; index += 1) protectedIndexes.add(index);
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (String(messages[index].text || '').length >= 1000) {
+      protectedIndexes.add(index);
+      break;
+    }
+  }
+
+  let currentChars = requestSize(compacted, model, projectId, sessionId);
+  if (currentChars > maxChars) {
+    // First shorten older messages without deleting the conversation shape.
+    for (let index = 0; index < messages.length && currentChars > maxChars; index += 1) {
+      if (protectedIndexes.has(index)) continue;
+      const result = truncateMiddle(messages[index].text, Math.min(DIRECT_HISTORY_MESSAGE_CHARS, 6000));
+      if (!result.changed) continue;
+      messages[index].text = result.text;
+      changed = true;
+      currentChars = requestSize(compacted, model, projectId, sessionId);
+    }
+  }
+
+  // If a long-lived session is still above budget, remove the oldest history
+  // entries. The current turn and recent tool exchange remain available.
+  while (currentChars > maxChars && messages.length > 1) {
+    const removable = messages.findIndex((_message, index) => !protectedIndexes.has(index));
+    if (removable < 0) break;
+    messages.splice(removable, 1);
+    const shifted = [...protectedIndexes].map((index) => index > removable ? index - 1 : index);
+    protectedIndexes.clear();
+    shifted.forEach((index) => protectedIndexes.add(index));
+    changed = true;
+    currentChars = requestSize(compacted, model, projectId, sessionId);
+  }
+
+  // As a final guard, shorten protected historical messages and, only if
+  // necessary, the latest message. This keeps the gateway from forwarding a
+  // request that the upstream will reject with an opaque HTTP 400.
+  if (currentChars > maxChars) {
+    for (let index = 0; index < messages.length && currentChars > maxChars; index += 1) {
+      const result = truncateMiddle(messages[index].text, index === messages.length - 1 ? 12000 : 4000);
+      if (!result.changed) continue;
+      messages[index].text = result.text;
+      changed = true;
+      currentChars = requestSize(compacted, model, projectId, sessionId);
+    }
+  }
+
+  return { normalized: compacted, changed, originalChars, finalChars: requestSize(compacted, model, projectId, sessionId) };
+}
+
+function upstreamErrorMessage(text) {
+  try {
+    const body = JSON.parse(String(text || '{}'));
+    return redact(body?.error?.message || body?.message || '');
+  } catch {
+    return redact(text);
+  }
 }
 
 function contentsFromNormalized(normalized) {
@@ -148,10 +279,17 @@ function contentsFromNormalized(normalized) {
       parts: [{ functionCall: { name: marker.name, args: marker.args }, ...(marker.id ? { id: marker.id } : {}) }]
     };
     const result = parseToolResultMarker(message.text);
-    if (result) return {
-      role: 'user',
-      parts: [{ functionResponse: { name: toolNames.get(result.id) || result.name || 'tool', response: { result: result.result } } }]
-    };
+    if (result) {
+      const functionName = toolNames.get(result.id) || result.name;
+      // A compacted history may contain a tool result without its original
+      // assistant tool-call marker. Do not send an undeclared function name to
+      // Cloud Code; preserve the result as ordinary context instead.
+      if (!functionName) return { role: 'user', parts: [{ text: message.text }] };
+      return {
+        role: 'user',
+        parts: [{ functionResponse: { name: functionName, response: { result: result.result } } }]
+      };
+    }
     return { role: normalizedRole(message.role), parts: [{ text: String(message.text || '') }] };
   }).filter((item, index) => {
     const original = normalized.messages[index];
@@ -409,14 +547,24 @@ class DirectAntigravityProvider {
   async send(normalized, model, { signal, sessionId, repairInstruction = '', onDelta } = {}) {
     let token = await this.access(signal);
     let project = await this.project(signal, token);
-    const requestBody = buildDirectRequest(normalized, model, project, sessionId, repairInstruction);
+    const context = compactForUpstream(normalized, { model, projectId: project, sessionId });
+    const upstreamNormalized = context.normalized;
+    if (context.changed) {
+      console.warn(`[Antigravity Gateway] direct context compacted ${context.originalChars} -> ${context.finalChars} chars`);
+    }
+    if (context.finalChars > DIRECT_CONTEXT_CHARS) {
+      throw new DirectProviderError(`Antigravity 请求上下文过大，压缩后仍有 ${context.finalChars} 个字符。请新开会话或降低客户端注入内容。`, {
+        code: 'direct_context_too_large', status: 413
+      });
+    }
+    const requestBody = buildDirectRequest(upstreamNormalized, model, project, sessionId, repairInstruction);
     const attempt = async (base, forceRefresh = false) => {
       if (forceRefresh) {
         token = await this.access(signal, true);
         project = await this.project(signal, token);
         requestBody.project = project;
       }
-      const stream = Boolean(normalized.stream);
+      const stream = Boolean(upstreamNormalized.stream);
       const url = `${base}${stream ? STREAM_PATH : GENERATE_PATH}${stream ? '?alt=sse' : ''}`;
       return this.fetchImpl(url, {
         method: 'POST', signal,
@@ -440,11 +588,12 @@ class DirectAntigravityProvider {
     if (!response && lastError) throw lastError;
     if (!response.ok) {
       const text = await readBody(response);
-      throw new DirectProviderError('Antigravity 直连请求失败。', { code: 'direct_upstream_error', status: response.status, details: redact(text) });
+      const detail = upstreamErrorMessage(text);
+      throw new DirectProviderError(detail ? `Antigravity 直连请求失败：${detail}` : 'Antigravity 直连请求失败。', { code: 'direct_upstream_error', status: response.status, details: detail });
     }
     const state = { text: '', calls: [], usage: {} };
     const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-    if (normalized.stream || contentType.includes('text/event-stream')) {
+    if (upstreamNormalized.stream || contentType.includes('text/event-stream')) {
       const reader = response.body?.getReader?.();
       if (!reader) return this._parseJson(await readBody(response), state, onDelta);
       const decoder = new TextDecoder();
@@ -480,9 +629,12 @@ class DirectAntigravityProvider {
 module.exports = {
   DAILY_BASE_URL,
   DEFAULT_BASE_URL,
+  DIRECT_CONTEXT_CHARS,
   DirectAntigravityProvider,
   DirectProviderError,
   MODEL_SLUG,
   buildDirectRequest,
+  cleanToolSchema,
+  compactForUpstream,
   stableSessionId
 };

@@ -9,6 +9,8 @@
 - Added a small minimum output budget for high/thinking models so low client caps do not consume the entire turn on hidden reasoning and return an empty visible message.
 - Added live text SSE forwarding for plain Anthropic and Chat Completions requests; constrained tool, Auto mode, and structured-output requests remain buffered for validation.
 - Added direct-provider unit coverage and documented the new transport and credential boundaries in both README languages.
+- Added direct-upstream context budgeting: large tool output and stale history are compacted before Cloud Code requests, and nullable/union tool schema types are normalized to the scalar schema format accepted by the upstream.
+- Upstream HTTP 400 diagnostics now include the sanitized provider reason instead of only a generic gateway error.
 - Removed maintainer-specific absolute paths and resolve `agy` from the current user's `PATH` by default.
 - Moved transient workspaces and logs from the source tree to a per-user operating-system temporary directory, with an environment-variable override.
 - Reworked the bilingual README for arbitrary installation directories, account-specific model discovery, and macOS/Linux/Windows environment configuration.

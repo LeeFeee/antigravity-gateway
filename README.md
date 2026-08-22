@@ -317,6 +317,7 @@ agy --input-format stream-json \
 - Claude Code/Codex 的系统提示里可能包含当前工程路径；虽然 `agy` 的工作目录是隔离的，不能把它视为对用户目录的绝对访问隔离。
 - Antigravity CLI 更新可能改变模型 ID、NDJSON 字段或系统行为。升级 `agy` 后请先运行 `npm test` 和最小真实请求。
 - `count_tokens` 是字符估算值，不是 Antigravity 官方 Tokenizer 结果。
+- 直连模式会在请求超过上游有效上下文预算时，优先压缩旧工具输出和历史消息，保留当前请求及最近工具交换；压缩会在日志中记录字符数变化，不会修改客户端原始会话。
 
 ### 配置项
 
@@ -332,6 +333,9 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | 直连上游地址 |
 | `ANTIGRAVITY_DIRECT_MODELS` | 空（自动探测） | 可选；固定直连 `/v1/models` 展示的逗号分隔模型列表 |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | 直连上游模型目录探测超时；失败时使用保守默认模型 |
+| `ANTIGRAVITY_DIRECT_CONTEXT_CHARS` | `130000` | 直连上游请求的软上下文预算；超出时压缩历史消息 |
+| `ANTIGRAVITY_DIRECT_TOOL_RESULT_CHARS` | `16000` | 单个客户端工具结果的最大转发字符数；超出部分保留首尾并标记省略 |
+| `ANTIGRAVITY_DIRECT_HISTORY_MESSAGE_CHARS` | `12000` | 历史消息压缩时的单条消息上限 |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | 自动生成 `antigravity/cli/... (aidev_client; ...)` | 直连请求 User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | 监听地址 |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | 监听端口 |
@@ -538,6 +542,9 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | Direct upstream base URL |
 | `ANTIGRAVITY_DIRECT_MODELS` | empty (auto-discover) | Optional comma-separated models shown by direct `/v1/models` |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | Direct upstream model discovery timeout; falls back to a conservative default |
+| `ANTIGRAVITY_DIRECT_CONTEXT_CHARS` | `130000` | Soft character budget for direct upstream requests; older history is compacted above it |
+| `ANTIGRAVITY_DIRECT_TOOL_RESULT_CHARS` | `16000` | Maximum forwarded characters for one client tool result; the middle is omitted above this limit |
+| `ANTIGRAVITY_DIRECT_HISTORY_MESSAGE_CHARS` | `12000` | Per-message limit used while compacting historical context |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | `antigravity/hub/2.2.1 darwin/arm64` | Direct upstream User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | Listen address |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | Listen port |
@@ -566,6 +573,7 @@ Client tools use an experimental structured projection. The gateway validates to
 - Tool projection is experimental and may fail on complex or adversarial prompts.
 - Calls consume normal Antigravity quota and may appear in Antigravity history/cache.
 - CLI updates can change model IDs and NDJSON behavior.
+- Direct mode compacts oversized tool output and stale history before forwarding to Cloud Code, preserving the current turn and recent tool exchange. The original client conversation is not modified.
 
 ### License
 
