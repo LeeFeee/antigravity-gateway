@@ -1,8 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.1.1 - 2026-08-23
 
-- Added an auto-selected native Cloud Code transport that first reuses the local agy session files (`jetski-standalone-oauth-token` / `oauth_creds.json`) in memory, so requests can skip the `agy` Agent wrapper prompt without a second OAuth setup.
+- Added the gateway version to the startup banner, health response, `--help`, and `--version`, all sourced from `package.json`.
+- Fixed direct-mode authentication on macOS by reading the official `gemini / antigravity` Keychain record before stale local session files.
+- Fixed OAuth client-secret discovery so adjacent Mach-O bytes are not included in the secret; expired access tokens can now be refreshed directly without handing model requests to agy.
+- Made native Cloud Code `direct` transport the default; missing credentials now fail explicitly instead of silently switching to the agy Agent transport.
+- Added native Cloud Code transport that reuses the local Keychain/session state in memory, so requests can skip the `agy` Agent wrapper prompt without a second OAuth setup.
 - Kept explicit auth JSON/access-token/refresh-token/project configuration as a documented manual fallback; refreshed local tokens are never written back by the gateway.
 - Added local agy auth discovery, in-memory refresh, native request envelopes, Antigravity User-Agent/tool mode, function-call projection, and upstream text-delta forwarding.
 - Added direct `fetchAvailableModels` discovery with daily-to-production fallback and a bounded timeout; explicit `ANTIGRAVITY_DIRECT_MODELS` still overrides discovery.

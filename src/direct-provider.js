@@ -463,7 +463,7 @@ class DirectAntigravityProvider {
         return this.accessToken;
       } catch (error) {
         if (!(error instanceof LocalAgyAuthError)) throw error;
-        throw new DirectProviderError(error.message, { code: error.code, status: error.status, cause: error });
+        throw new DirectProviderError(error.message, { code: error.code, status: error.status, details: error.details, cause: error });
       }
     }
     const auth = this.loadAuth();

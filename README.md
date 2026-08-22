@@ -4,11 +4,13 @@
 
 ## 中文
 
-Antigravity Gateway 是一个实验性的本地兼容网关。它优先读取官方 Antigravity/agy 已经登录的本地会话文件，在内存中复用登录态，使用 Cloud Code 原生请求、请求头、JSON 信封和 SSE 响应方式直接访问 Antigravity 上游服务。这样可以绕过 `agy` Agent 包装层注入的长系统提示词，让 Claude Code、Codex CLI 和 Trae 通过本地 HTTP 接口调用模型。
+Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antigravity/agy 已有的 macOS Keychain 登录记录或本地会话文件中读取登录态，仅在内存中使用，并通过 Cloud Code 原生请求、请求头、JSON 信封和 SSE 响应直接访问 Antigravity 上游服务。这样可以绕过 `agy` Agent 包装层注入的长系统提示词，让 Claude Code、Codex CLI 和 Trae 通过本地 HTTP 接口调用模型。
 
-如果当前 agy 版本没有可识别的本地会话文件，`auto` 模式会安全回退到官方 `agy` 的无头 `stream-json` 模式。网关不解密 Keychain，也不会把令牌写回文件；刷新后的短期令牌只保存在当前进程内存中。
+默认传输模式是 `direct`，不会回退到 `agy` 执行模型请求。macOS 上，网关通过系统 `security` 命令读取当前用户钥匙串中的 `gemini / antigravity` 登录记录；找不到时才检查兼容的本地会话文件。令牌不会进入日志、响应或仓库，刷新后的短期令牌也只保存在当前进程内存中。
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
+
+当前发布版本：`v0.1.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`，并创建同名 Git 标签。
 
 ### 已实现
 
@@ -32,7 +34,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它优先读取官
 | 项目运行依赖 | 由 npm 自动安装；当前版本没有第三方运行时依赖 |
 | 操作系统与架构 | 安装时自动检查 macOS/Linux/Windows 与 ARM64/x64 支持 |
 | 临时存储 | 安装时自动验证操作系统临时目录是否可写 |
-| 官方 Antigravity CLI（`agy`） | 视为用户已经安装并登录；网关优先复用 agy 生成的本地会话文件，不负责安装或管理账号 |
+| 官方 Antigravity CLI（`agy`） | 视为用户已经安装并登录；macOS 网关复用其系统 Keychain 登录记录，其他受支持环境可使用本地会话文件 |
 
 安装过程中会自动检查 Node 版本、操作系统、CPU 架构和临时目录，并由 npm 自动处理项目依赖。检查不通过时安装会停止并给出明确原因。网关会从 `PATH` 以及官方默认安装位置查找 `agy`，不依赖用户名或固定 Home 目录。
 
@@ -76,6 +78,13 @@ npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs
 
 安装过程中会自动完成环境检查并安装项目依赖。不要使用 `--ignore-scripts`，否则 npm 会跳过环境检查。
 
+检查安装版本：
+
+```bash
+antigravity-gateway --version
+# 0.1.1
+```
+
 安装后，无论终端当前位于哪个目录，都可以直接启动：
 
 ```bash
@@ -108,13 +117,15 @@ antigravity-gateway --agy-path "C:\path\to\agy.exe"
 antigravity-gateway --help
 ```
 
-### 追求速度：复用本地 agy 会话的直连模式
+### 默认模式：复用本地登录态并直连 Cloud Code
 
-默认 `ANTIGRAVITY_GATEWAY_TRANSPORT=auto`。网关按以下顺序工作：
+默认 `ANTIGRAVITY_GATEWAY_TRANSPORT=direct`。网关按以下顺序工作：
 
-1. 检查当前用户的本地 agy 会话文件（默认 `~/.gemini/jetski-standalone-oauth-token`，其次 `~/.gemini/oauth_creds.json`）。
-2. 找到登录态后，按 Cloud Code 原生协议直接请求 `daily-cloudcode-pa.googleapis.com` / `cloudcode-pa.googleapis.com`，跳过 `agy` Agent 包装层。
-3. 找不到本地会话时，回退到官方 `agy` 子进程；这时会保留 agy 自身的系统提示词和工具行为。
+1. macOS 优先读取当前用户系统 Keychain 中 `service=gemini`、`account=antigravity` 的官方登录记录。
+2. 找不到 Keychain 记录时，再检查 `~/.gemini/jetski-standalone-oauth-token` 和 `~/.gemini/oauth_creds.json`。
+3. 找到登录态后，按 Cloud Code 原生协议直接请求 `daily-cloudcode-pa.googleapis.com` / `cloudcode-pa.googleapis.com`，跳过 `agy` Agent 包装层。
+4. access token 过期时，网关从本机安装的 agy 中运行时识别对应的 OAuth 客户端配置，只向 Google OAuth token endpoint 续期；不会启动 agy Agent，也不会把模型请求交给 agy。
+5. 找不到登录态时直接返回明确的 401，不会自动切换到 agy 模式。
 
 普通用户不需要再次配置 OAuth，也不需要把 Google token 手工复制到环境变量。只要 agy/Antigravity 已登录，直接启动网关即可：
 
@@ -122,10 +133,10 @@ antigravity-gateway --help
 antigravity-gateway
 ```
 
-也可以显式选择：
+默认已是直连；也可以显式固定：
 
 ```bash
-# 强制跳过 agy，直接访问 cloudcode-pa.googleapis.com
+# 固定跳过 agy，直接访问 cloudcode-pa.googleapis.com
 export ANTIGRAVITY_GATEWAY_TRANSPORT=direct
 
 # 仅在没有可识别的本地 agy 会话、且你明确知道自己在做什么时，才使用手动凭据
@@ -183,6 +194,8 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
+
+更新安装不会替换已经运行在内存中的旧进程。更新后请先在旧网关终端按 `Ctrl+C`，再运行 `antigravity-gateway`；启动横幅中的 `网关版本` 应显示当前版本。
 
 只有参与项目开发时才需要克隆源码，然后在项目根目录运行 `npm test` 或 `npm start`；普通用户直接使用上面的全局安装和 `antigravity-gateway` 启动命令即可。
 
@@ -263,12 +276,10 @@ Claude Code / Codex CLI
           │ Anthropic / Responses / Chat Completions
           ▼
 Antigravity Gateway（协议转换、校验、SSE、会话上下文）
-          ├─ auto/direct：本地 agy 会话 + Cloud Code JSON/SSE
-          │
-          └─ agy：stdin/stdout NDJSON
-                    │ 官方 Keyring 登录状态
-                    ▼
-              Antigravity 服务
+          │ macOS Keychain / 本地会话（仅内存）
+          │ Cloud Code JSON/SSE 直连
+          ▼
+     Antigravity 服务
 ```
 
 直连分支使用本地 agy 会话对应的 Google OAuth Bearer，优先尝试 `daily-cloudcode-pa.googleapis.com`，再尝试 `cloudcode-pa.googleapis.com`，向 `/v1internal:generateContent` 或 `/v1internal:streamGenerateContent?alt=sse` 发送 Antigravity 原生请求，并填写 `project`、`requestId`、`request.sessionId`、`userAgent`、`request.contents`、`request.tools` 和 `request.toolConfig`。它不启动 `agy`，所以不会注入 `agy` 的 Agent 系统提示词；Anthropic、Responses、Chat Completions 的协议转换仍由本地网关负责。
@@ -304,7 +315,7 @@ agy --input-format stream-json \
 
 - 默认只监听 `127.0.0.1`。
 - 非本机地址监听时强制要求设置 API Key。
-- 网关不会调用 macOS `security`，不打开或解密 Keychain；直连模式只读取 agy 的本地会话文件到内存，令牌不会进入日志或响应。
+- macOS 直连模式调用系统 `/usr/bin/security` 读取当前用户 Keychain 中官方 agy 登录记录，仅在内存中解析；令牌不会进入日志、响应、配置文件或仓库。
 - `agy` 子进程只继承 HOME、PATH、语言和终端等最小环境，不继承 OpenAI Key、网关 Key或其他云凭据。
 - 每次请求结束后删除独立工作目录和 `agy` 日志。
 - 默认日志只记录接口、实际模型、请求字符数、工具数和错误摘要，不记录提示词正文。
@@ -313,8 +324,8 @@ agy --input-format stream-json \
 
 ### 已知限制
 
-- `agy` 模式是通过官方 agent harness 做的兼容层，不是无系统提示词的原始 Gemini API；`agy` 自带较长系统上下文。`auto`/`direct` 模式优先复用本地 agy 会话，只有显式手动配置时才读取外部 OAuth 文件或环境变量。
-- 本地会话文件名和字段属于 agy 的实现细节，可能随 CLI 更新而变化；如果网关识别不到，状态页会显示已回退到官方 agy 模式。
+- 默认 `direct` 模式不会启动 agy Agent；只有用户显式设置 `ANTIGRAVITY_GATEWAY_TRANSPORT=agy` 才使用旧兼容传输。
+- Keychain 项目名、本地会话字段和 agy 内置 OAuth 客户端格式都属于官方客户端实现细节，可能随 CLI 更新而变化；识别失败时网关会返回登录态诊断，不会静默回退。
 - 请求会消耗 Antigravity 账号对应的额度，并可能出现在 Antigravity 的会话历史或缓存中。
 - 当前只支持文本输入；图片、音频和文件输入会返回 400。
 - `agy` 模式的工具、Auto mode 和结构化输出仍以整轮结果校验为主；直连模式的普通纯文本流式请求会把上游 SSE 增量转发给客户端，带工具或结构化约束时仍可能缓冲到结果完成。
@@ -328,8 +339,8 @@ agy --input-format stream-json \
 | 环境变量 | 默认值 | 说明 |
 |---|---:|---|
 | `ANTIGRAVITY_CLI_PATH` | `agy` | `agy` 命令或绝对路径；默认从 `PATH` 查找 |
-| `ANTIGRAVITY_GATEWAY_TRANSPORT` | `auto` | `auto`、`direct` 或 `agy`；直连模式跳过 `agy` 包装 |
-| `ANTIGRAVITY_LOCAL_AUTH_FILE` | `~/.gemini/jetski-standalone-oauth-token` | 可选；覆盖本地 agy 会话文件路径 |
+| `ANTIGRAVITY_GATEWAY_TRANSPORT` | `direct` | 默认直连；`auto`、`agy` 仅作为显式兼容选项 |
+| `ANTIGRAVITY_LOCAL_AUTH_FILE` | Keychain，其次本地会话文件 | 可选；设置后覆盖自动登录态发现并只读取指定文件 |
 | `ANTIGRAVITY_AUTH_FILE` | 空 | 外部 Antigravity OAuth JSON 路径（手动兜底） |
 | `ANTIGRAVITY_ACCESS_TOKEN` | 空 | 直连模式的 OAuth access token |
 | `ANTIGRAVITY_REFRESH_TOKEN` | 空 | 直连模式的 OAuth refresh token |
@@ -347,7 +358,7 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单轮超时 |
 | `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `8388608` | HTTP 请求体字节上限 |
 | `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | `2097152` | 规范化提示字节上限 |
-| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 同时运行的 `agy` 数量 |
+| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 同时处理的上游请求数量 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 等待队列长度 |
 
 ### 项目验证范围
@@ -358,11 +369,13 @@ agy --input-format stream-json \
 
 ## English
 
-Antigravity Gateway is an experimental local compatibility gateway. It first reads the local session files created by an already authenticated Antigravity/agy installation, keeps refreshed credentials in memory, and uses the native Cloud Code request envelope, headers, and SSE response shape. This lets Claude Code, Codex CLI, and Trae call Antigravity through local Anthropic/OpenAI-compatible endpoints without the long `agy` Agent wrapper prompt.
+Antigravity Gateway is an experimental local compatibility gateway. It reads the official Antigravity/agy login state from the current user's macOS Keychain or compatible local session files, keeps credentials in memory, and uses the native Cloud Code request envelope, headers, and SSE response shape. This lets Claude Code, Codex CLI, and Trae call Antigravity through local Anthropic/OpenAI-compatible endpoints without the long `agy` Agent wrapper prompt.
 
-If the installed agy version does not expose a recognized local session file, `auto` safely falls back to the official `agy` headless `stream-json` process. The gateway never decrypts the system keyring and never writes refreshed plaintext tokens back to disk.
+The default transport is `direct`; model requests never silently fall back to the agy Agent. On macOS, the gateway uses the system `security` command to read the `gemini / antigravity` Keychain record in memory. Tokens are never logged, returned to clients, committed, or written back to plaintext files.
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
+
+Current release: `v0.1.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`, and receives a matching Git tag.
 
 ### Requirements
 
@@ -416,6 +429,13 @@ npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs
 
 The environment is checked and project dependencies are installed automatically. Do not use `--ignore-scripts`, which disables the environment check.
 
+Check the installed version:
+
+```bash
+antigravity-gateway --version
+# 0.1.1
+```
+
 Start from any directory with one command:
 
 ```bash
@@ -426,7 +446,7 @@ There is no need to enter the installation directory or run `npm start`. The pac
 
 ### Fast direct transport
 
-The default `ANTIGRAVITY_GATEWAY_TRANSPORT=auto` checks `~/.gemini/jetski-standalone-oauth-token` and then `~/.gemini/oauth_creds.json`. When a local agy session is found, the gateway calls the Cloud Code `v1internal` endpoints directly and skips the `agy` Agent wrapper prompt. If no session is found, it falls back to `agy`.
+The default `ANTIGRAVITY_GATEWAY_TRANSPORT=direct` reads the official `gemini / antigravity` record from the current user's macOS Keychain, then checks `~/.gemini/jetski-standalone-oauth-token` and `~/.gemini/oauth_creds.json` as compatibility fallbacks. The gateway calls the Cloud Code `v1internal` endpoints directly and skips the `agy` Agent wrapper prompt. If no login state is found, it returns 401 instead of silently switching transports.
 
 You do not need a second OAuth setup. Sign in once through agy/Antigravity, then run:
 
@@ -482,6 +502,8 @@ npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs
 npm uninstall --global antigravity-gateway
 ```
 
+Updating the package does not replace an already-running process in memory. Stop the old gateway with `Ctrl+C`, start `antigravity-gateway` again, and confirm the `Gateway version` line in the startup banner.
+
 Cloning the repository and using `npm test` or `npm start` is only necessary for contributors. Regular users should use the global install command and run `antigravity-gateway` from any directory.
 
 ### Endpoints
@@ -536,8 +558,8 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | Environment variable | Default | Purpose |
 |---|---|---|
 | `ANTIGRAVITY_CLI_PATH` | `agy` | CLI command or absolute path; resolved from `PATH` by default |
-| `ANTIGRAVITY_GATEWAY_TRANSPORT` | `auto` | `auto`, `direct`, or `agy`; direct skips the `agy` wrapper |
-| `ANTIGRAVITY_LOCAL_AUTH_FILE` | `~/.gemini/jetski-standalone-oauth-token` | Optional local agy session file override |
+| `ANTIGRAVITY_GATEWAY_TRANSPORT` | `direct` | Direct by default; `auto` and `agy` remain explicit compatibility options |
+| `ANTIGRAVITY_LOCAL_AUTH_FILE` | Keychain, then local session files | Optional override; when set, only the specified file is read |
 | `ANTIGRAVITY_AUTH_FILE` | empty | External Antigravity OAuth JSON path (manual fallback) |
 | `ANTIGRAVITY_ACCESS_TOKEN` | empty | OAuth access token for direct transport |
 | `ANTIGRAVITY_REFRESH_TOKEN` | empty | OAuth refresh token for direct transport |

@@ -9,6 +9,7 @@ const path = require('node:path');
 
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
   anthropicResponse,
@@ -62,7 +63,7 @@ const CONTEXT_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT || 2 
 const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY || 4));
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
-const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'auto').trim().toLowerCase();
+const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
 const DIRECT_PROVIDER = new DirectAntigravityProvider();
 const DIRECT_ALLOW_ANY_MODEL = process.env.ANTIGRAVITY_DIRECT_ALLOW_ANY_MODEL !== '0';
 
@@ -132,7 +133,7 @@ function usesDirectTransport() {
 }
 
 function directAuthDescription() {
-  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return 'local-agy-session (in-memory token bridge)';
+  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return 'macOS Keychain / local session（仅内存读取）';
   if (DIRECT_PROVIDER.isConfigured()) return 'explicit OAuth env/auth file (manual fallback)';
   return 'unavailable';
 }
@@ -198,7 +199,7 @@ function codexModelInfo(slug, priority) {
     context_window: 200000,
     max_context_window: 200000,
     auto_compact_token_limit: null,
-    comp_hash: 'antigravity-gateway-0.1.0',
+    comp_hash: `antigravity-gateway-${GATEWAY_VERSION}`,
     base_instructions: 'Follow the client instructions and use only client-provided tools when needed.',
     reasoning_summary_format: 'experimental',
     default_reasoning_summary: 'none',
@@ -227,7 +228,7 @@ function codexModelInfo(slug, priority) {
 }
 
 function printHelp() {
-  console.log(`Antigravity Gateway 0.1.0
+  console.log(`Antigravity Gateway ${GATEWAY_VERSION}
 
 用法:
   antigravity-gateway [选项]
@@ -242,8 +243,8 @@ function printHelp() {
 
 传输模式:
   ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
-  auto 优先复用本地 agy 会话并跳过包装，否则回退到 agy；direct 强制直连。
-  本地会话默认位于 ~/.gemini/jetski-standalone-oauth-token；手动兜底可用 ANTIGRAVITY_AUTH_FILE。
+  默认 direct：从 macOS Keychain 或本地会话文件读取登录态并直连 Cloud Code。
+  auto/agy 仅为显式兼容选项；手动凭据兜底可用 ANTIGRAVITY_AUTH_FILE。
 
 接口:
   GET  /
@@ -627,7 +628,7 @@ async function requestHandler(req, res) {
       const models = await availableModels();
       if (!versionCache) versionCache = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS }).catch(() => 'unknown');
       sendJson(res, 200, {
-        name: 'antigravity-gateway', version: '0.1.0', status: 'ok',
+        name: 'antigravity-gateway', version: GATEWAY_VERSION, status: 'ok',
         listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: versionCache },
         transport: usesDirectTransport() ? 'direct' : 'agy',
         auth: usesDirectTransport() ? directAuthDescription() : 'official-agy-keyring-session',
@@ -677,7 +678,7 @@ function createServer() {
 
 if (require.main === module) {
   if (CLI_ARGS.help) { printHelp(); return; }
-  if (CLI_ARGS.version) { console.log('0.1.0'); return; }
+  if (CLI_ARGS.version) { console.log(GATEWAY_VERSION); return; }
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     console.error('[Antigravity Gateway Error] 端口必须是 1-65535 的整数。');
     process.exitCode = 1;
@@ -694,21 +695,22 @@ if (require.main === module) {
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
     let modelInfo = '待首次请求检测';
-    let version = 'unknown';
+    let agyVersion = 'unknown';
     try {
       const models = await availableModels(true);
       modelInfo = `${models.length} 个模型，默认 ${await resolveModel(DEFAULT_MODEL)}`;
-      if (!usesDirectTransport()) version = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
-      versionCache = version;
+      if (!usesDirectTransport()) agyVersion = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
+      versionCache = agyVersion;
     } catch (error) {
       modelInfo = `检测失败：${error.message}`;
     }
     console.log('=================================================================');
     console.log(' 🚀 Antigravity Gateway 已启动');
     console.log('-----------------------------------------------------------------');
+    console.log(` 网关版本: v${GATEWAY_VERSION}`);
     console.log(` 监听地址: http://${HOST}:${PORT}`);
     console.log(` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`);
-    console.log(` Antigravity CLI: ${AGY_PATH} (${version})`);
+    console.log(` Antigravity CLI: ${AGY_PATH} (${agyVersion})`);
     console.log(` 模型配置: ${modelInfo}`);
     console.log(` 登录方式: ${usesDirectTransport() ? directAuthDescription() : '官方 agy 系统 Keyring（网关不读取令牌）'}`);
     console.log(' 客户端接口: Claude Code / Codex CLI / OpenAI Chat Completions');

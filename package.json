@@ -1,7 +1,7 @@
 {
   "name": "antigravity-gateway",
-  "version": "0.1.0",
-  "description": "Experimental local Anthropic/OpenAI compatibility gateway that reuses local agy login state with native Cloud Code transport and official agy fallback.",
+  "version": "0.1.1",
+  "description": "Experimental local Anthropic/OpenAI compatibility gateway that reuses the official local Antigravity login state with native Cloud Code transport.",
   "license": "MIT",
   "type": "commonjs",
   "main": "antigravity-gateway.js",

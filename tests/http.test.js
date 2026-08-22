@@ -14,6 +14,7 @@ process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 
 const { createServer } = require('../antigravity-gateway');
+const { version: packageVersion } = require('../package.json');
 
 async function withServer(t) {
   const server = createServer();
@@ -33,6 +34,15 @@ test('model endpoint reflects agy models', async (t) => {
   assert.deepEqual(body.data.map((item) => item.id), ['gemini-test-high', 'gemini-test-low']);
   assert.deepEqual(body.models.map((item) => item.slug), ['gemini-test-high', 'gemini-test-low']);
   assert.equal(body.models[0].supports_parallel_tool_calls, true);
+});
+
+test('health endpoint reports the package release version', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(base);
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.name, 'antigravity-gateway');
+  assert.equal(body.version, packageVersion);
 });
 
 test('Anthropic non-stream and stream responses are protocol-shaped', async (t) => {

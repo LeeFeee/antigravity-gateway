@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
-const { LocalAgyAuthProvider } = require('../src/local-agy-auth');
+const { LocalAgyAuthProvider, decodeKeychainRecord, discoverClientCredentials } = require('../src/local-agy-auth');
 
 function normalized(stream = false) {
   return {
@@ -276,12 +276,52 @@ test('local agy auth adapter reads jetski state and does not write refreshed pla
   }, auth_method: 'consumer' }), { mode: 0o600 });
   const auth = new LocalAgyAuthProvider({
     authFile: file,
+    clientCredentials: [{ clientId: 'test-client', clientSecret: 'test-secret' }],
     fetchImpl: async () => new Response(JSON.stringify({ access_token: 'refreshed-local-token', expires_in: 3600 }), { status: 200 })
   });
   const result = await auth.get();
   assert.equal(result.accessToken, 'refreshed-local-token');
   assert.equal(result.authMethod, 'consumer');
   assert.equal(JSON.parse(fs.readFileSync(file, 'utf8')).token.access_token, 'expired-local-token');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('local agy auth reads the official macOS Keychain record before stale files', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-keychain-test-'));
+  const file = path.join(dir, '.gemini', 'jetski-standalone-oauth-token');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify({ token: {
+    access_token: 'stale-file-token',
+    refresh_token: 'stale-file-refresh',
+    expiry: '2000-01-01T00:00:00Z'
+  } }));
+  const encoded = `go-keyring-base64:${Buffer.from(JSON.stringify({ token: {
+    access_token: 'current-keychain-token',
+    refresh_token: 'current-keychain-refresh',
+    expiry: '2099-01-01T00:00:00Z'
+  }, auth_method: 'consumer' })).toString('base64')}`;
+  const auth = new LocalAgyAuthProvider({
+    homeDir: dir,
+    platform: 'darwin',
+    execFileSyncImpl: () => encoded
+  });
+  const result = await auth.get();
+  assert.equal(result.accessToken, 'current-keychain-token');
+  assert.equal(result.sourcePath, 'keychain:gemini/antigravity');
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('Keychain decoder rejects malformed records without exposing the secret', () => {
+  assert.equal(decodeKeychainRecord('go-keyring-base64:not-valid-base64'), null);
+});
+
+test('OAuth credential discovery does not absorb adjacent Mach-O bytes into the secret', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-client-test-'));
+  const binary = path.join(dir, 'agy');
+  const expectedSecret = `GOCSPX-${'a'.repeat(28)}`;
+  fs.writeFileSync(binary, `123456789-${'b'.repeat(20)}.apps.googleusercontent.com\0${expectedSecret}${'Z'.repeat(40)}`);
+  const credentials = discoverClientCredentials({ homeDir: dir, agyPath: binary });
+  assert.equal(credentials[0].clientSecret, expectedSecret);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
