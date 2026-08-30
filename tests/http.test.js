@@ -143,5 +143,18 @@ test('Claude Code Auto mode output is normalized to XML only', async (t) => {
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.content[0].text, '<block>no</block>');
-  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-high');
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+});
+
+test('Claude Code Haiku helper agents use the fast model route', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      messages: [{ role: 'user', content: 'helper request' }]
+    })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
 });

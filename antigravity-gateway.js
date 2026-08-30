@@ -56,6 +56,7 @@ const AGY_PREFIX_ARGS = (() => {
   } catch { return []; }
 })();
 const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-3.7-flash-high';
+const FAST_MODEL = String(process.env.ANTIGRAVITY_FAST_MODEL || '').trim();
 const API_KEY = process.env.ANTIGRAVITY_GATEWAY_API_KEY || '';
 const REQUEST_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_BODY_LIMIT || 8 * 1024 * 1024);
 const REQUEST_TIMEOUT = Number(process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS || 300000);
@@ -157,10 +158,33 @@ function isClientAlias(model) {
   return /^(claude|gpt|codex|o[134](?:-|$))/i.test(model || '');
 }
 
-async function resolveModel(requested) {
+function preferredFastModel(models) {
+  if (FAST_MODEL) return FAST_MODEL;
+  const priorities = [
+    /^gemini-3\.7-flash-low$/i,
+    /^gemini-3\.6-flash-low$/i,
+    /^gemini-3\.5-flash-(?:extra-)?low$/i,
+    /flash-lite/i,
+    /-flash-low$/i,
+    /-low$/i,
+    /-flash$/i
+  ];
+  for (const pattern of priorities) {
+    const match = models.find((model) => pattern.test(model));
+    if (match) return match;
+  }
+  return DEFAULT_MODEL;
+}
+
+async function resolveModel(requested, { preferFast = false } = {}) {
   const models = await availableModels();
   const aliases = configuredAliases();
-  let chosen = aliases[requested] || requested || DEFAULT_MODEL;
+  const original = requested || DEFAULT_MODEL;
+  const explicitAlias = aliases[original];
+  let chosen = explicitAlias || original;
+  if (!explicitAlias && (preferFast || /^claude-haiku(?:-|$)/i.test(original))) {
+    chosen = preferredFastModel(models);
+  }
   if (isClientAlias(chosen)) chosen = aliases[chosen] || DEFAULT_MODEL;
   if (!models.includes(chosen)) {
     if (usesDirectTransport() && DIRECT_ALLOW_ANY_MODEL && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(chosen)) return chosen;
@@ -319,7 +343,14 @@ function errorBody(error, protocol) {
 
 function mapAgyError(error) {
   if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError) return error;
-  return new GatewayError('Antigravity Gateway 内部错误。', { code: 'internal_error', status: 500 });
+  if (error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || /request aborted/i.test(String(error?.message || ''))) {
+    return new GatewayError('客户端已取消请求。', { code: 'request_aborted', status: 499 });
+  }
+  return new GatewayError('Antigravity Gateway 内部错误。', {
+    code: 'internal_error',
+    status: 500,
+    details: String(error?.stack || error?.message || error || 'unknown error')
+  });
 }
 
 function cleanupResponseStore() {
@@ -549,8 +580,11 @@ function emitResponsesStream(res, body) {
 
 async function handleAnthropic(payload, req, res, signal) {
   const normalized = normalizeAnthropic(payload);
-  const model = await resolveModel(normalized.model);
-  console.log(`[Antigravity Gateway] /v1/messages model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
+  const requestClass = normalized.autoMode
+    ? 'auto-mode'
+    : /^claude-haiku(?:-|$)/i.test(normalized.model || '') ? 'helper-agent' : 'main';
+  console.log(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
@@ -633,6 +667,7 @@ async function requestHandler(req, res) {
         transport: usesDirectTransport() ? 'direct' : 'agy',
         auth: usesDirectTransport() ? directAuthDescription() : 'official-agy-keyring-session',
         default_model: await resolveModel(DEFAULT_MODEL),
+        fast_model: await resolveModel('claude-haiku-internal', { preferFast: true }),
         models: models.length,
         capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), credentials_read_by_gateway: usesDirectTransport() }
       });
@@ -644,7 +679,8 @@ async function requestHandler(req, res) {
         object: 'list',
         data: models.map((id) => ({ id, object: 'model', created: 0, owned_by: 'antigravity', display_name: id })),
         models: models.map((id, index) => codexModelInfo(id, index)),
-        default_model: await resolveModel(DEFAULT_MODEL)
+        default_model: await resolveModel(DEFAULT_MODEL),
+        fast_model: await resolveModel('claude-haiku-internal', { preferFast: true })
       });
       return;
     }
@@ -661,6 +697,15 @@ async function requestHandler(req, res) {
     throw new GatewayError(`接口不存在: ${route}`, { code: 'not_found', status: 404 });
   } catch (rawError) {
     const error = mapAgyError(rawError);
+    // Claude Code may cancel an in-flight classifier/tool request as soon as a
+    // newer branch wins. That is normal client control flow, not a gateway
+    // failure, and the socket is already gone so no error body can be sent.
+    if (controller.signal.aborted || res.destroyed) {
+      if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
+        console.warn(`[Antigravity Gateway] 请求已由客户端取消 (${error.code || 'request_aborted'})`);
+      }
+      return;
+    }
     const diagnostic = process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1' && error.details ? ` (${error.details})` : '';
     console.error(`[Antigravity Gateway Error] ${error.message}${diagnostic}`);
     if (!res.headersSent) sendJson(res, error.status || 500, errorBody(error, protocol));
@@ -698,7 +743,7 @@ if (require.main === module) {
     let agyVersion = 'unknown';
     try {
       const models = await availableModels(true);
-      modelInfo = `${models.length} 个模型，默认 ${await resolveModel(DEFAULT_MODEL)}`;
+      modelInfo = `${models.length} 个模型，默认 ${await resolveModel(DEFAULT_MODEL)}，辅助 ${await resolveModel('claude-haiku-internal', { preferFast: true })}`;
       if (!usesDirectTransport()) agyVersion = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
       versionCache = agyVersion;
     } catch (error) {

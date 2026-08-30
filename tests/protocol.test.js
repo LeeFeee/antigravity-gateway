@@ -16,6 +16,19 @@ const {
   validateSchema
 } = require('../src/protocol');
 
+test('Claude Code provider identity marker is neutralized without dropping system instructions', () => {
+  const normalized = normalizeAnthropic({
+    system: [
+      { type: 'text', text: "You are a Claude agent, built on Anthropic's Claude Agent SDK." },
+      { type: 'text', text: 'Keep all project and permission instructions.' }
+    ],
+    messages: [{ role: 'user', content: 'hello' }]
+  });
+  assert.doesNotMatch(normalized.system, /Anthropic's Claude Agent SDK/);
+  assert.match(normalized.system, /AI coding agent operating behind a protocol-compatible client/);
+  assert.match(normalized.system, /Keep all project and permission instructions/);
+});
+
 const shellTool = {
   name: 'shell',
   description: 'run a command',

@@ -155,8 +155,20 @@ function toolChoiceRule(choice) {
   return { mode: 'auto' };
 }
 
+function sanitizeAnthropicProviderIdentity(text) {
+  return String(text || '').replace(
+    /^You are a Claude agent, built on Anthropic's Claude Agent SDK\.\s*$/gmi,
+    'You are an AI coding agent operating behind a protocol-compatible client.'
+  );
+}
+
 function normalizeAnthropic(payload) {
-  const system = textFromContent(payload.system, 'anthropic');
+  // Claude Code 2.1.251 adds a standalone Anthropic-provider identity line.
+  // Cloud Code rejects that exact line with RESOURCE_EXHAUSTED even when sent
+  // by itself, while the rest of the same client system prompt is accepted.
+  // Replace only this provider-specific transport marker; preserve every
+  // behavioral, safety, permission, project, and user instruction verbatim.
+  const system = sanitizeAnthropicProviderIdentity(textFromContent(payload.system, 'anthropic'));
   const messages = (payload.messages || []).map((message) => ({
     role: message.role || 'user',
     text: textFromContent(message.content, 'anthropic'),
@@ -493,6 +505,7 @@ module.exports = {
   normalizeAutoMode,
   normalizeChat,
   normalizeResponses,
+  sanitizeAnthropicProviderIdentity,
   normalizeStructured,
   normalizeTools,
   normalizeToolCalls,

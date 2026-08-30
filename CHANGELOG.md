@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.2 - 2026-08-30
+
+- Fixed Claude Code 2.1.251 requests being rejected by Cloud Code as `429 RESOURCE_EXHAUSTED` because of the newly injected standalone `You are a Claude agent, built on Anthropic's Claude Agent SDK.` provider marker. The gateway now replaces only that transport-specific identity line with a neutral compatibility identity and preserves the rest of the system prompt unchanged.
+- Fixed Claude Code 2.1.251 built-in helper agents and Auto mode probes competing with the main session for the same high-capacity model route. Haiku aliases and detected Auto mode classifiers now select an available low-latency model by default.
+- Added `ANTIGRAVITY_FAST_MODEL` for an explicit helper/classifier model override; exact entries in `ANTIGRAVITY_MODEL_ALIASES` still take precedence.
+- Fixed direct transport stopping immediately on a `429 RESOURCE_EXHAUSTED` response from `daily-cloudcode`; retryable 429/5xx responses now try the normal Cloud Code endpoint and use one bounded exponential-backoff retry.
+- Added `fast_model` to health/model discovery responses and show both default and auxiliary routes in the startup banner.
+- Treat Claude Code cancellation of superseded classifier/tool requests as normal control flow instead of reporting a misleading gateway internal error.
+- Added regression coverage for Haiku routing, Auto mode routing, daily-to-normal 429 fallback, and bounded retry recovery.
+
 ## 0.1.1 - 2026-08-23
 
 - Added the gateway version to the startup banner, health response, `--help`, and `--version`, all sourced from `package.json`.

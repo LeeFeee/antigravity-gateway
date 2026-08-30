@@ -14,6 +14,8 @@ const GENERATE_PATH = '/v1internal:generateContent';
 const STREAM_PATH = '/v1internal:streamGenerateContent';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 3000);
+const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MAX_RETRIES || 1));
+const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
 const DEFAULT_USER_AGENT = `antigravity/cli/${process.env.ANTIGRAVITY_CLI_VERSION || '1.1.18'} (aidev_client; os_type=${process.platform}; arch=${process.arch}; auth_method=consumer)`;
 const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 const THOUGHT_SIGNATURE_SENTINEL = 'skip_thought_signature_validator';
@@ -210,6 +212,36 @@ function upstreamErrorMessage(text) {
   }
 }
 
+function retryAfterMs(response, attempt, baseMs) {
+  const raw = String(response?.headers?.get?.('retry-after') || '').trim();
+  let headerMs = 0;
+  if (/^\d+(?:\.\d+)?$/.test(raw)) headerMs = Number(raw) * 1000;
+  else if (raw) {
+    const at = Date.parse(raw);
+    if (Number.isFinite(at)) headerMs = Math.max(0, at - Date.now());
+  }
+  const exponential = baseMs * (2 ** attempt);
+  const jitter = Math.floor(Math.random() * Math.max(1, Math.floor(baseMs / 3)));
+  return Math.min(30_000, Math.max(headerMs, exponential + jitter));
+}
+
+function waitForRetry(milliseconds, signal) {
+  if (!(milliseconds > 0)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, milliseconds);
+    function done() {
+      signal?.removeEventListener('abort', aborted);
+      resolve();
+    }
+    function aborted() {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', aborted);
+      reject(signal.reason || new Error('Request aborted'));
+    }
+    signal?.addEventListener('abort', aborted, { once: true });
+  });
+}
+
 function normalizedMessageParts(message) {
   if (Array.isArray(message?.parts)) return message.parts;
   const marker = normalizedRole(message?.role) === 'model' ? parseToolMarker(message?.text) : null;
@@ -388,7 +420,7 @@ async function readBody(response) {
 }
 
 class DirectAntigravityProvider {
-  constructor({ fetchImpl = globalThis.fetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels() } = {}) {
+  constructor({ fetchImpl = globalThis.fetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS } = {}) {
     this.fetchImpl = fetchImpl;
     this.authFile = authFile;
     this.localAuth = localAuth;
@@ -398,6 +430,8 @@ class DirectAntigravityProvider {
     this.projectId = String(projectId || '').trim();
     this.userAgent = userAgent;
     this.modelList = models;
+    this.maxRetries = Math.max(0, Number(maxRetries) || 0);
+    this.retryBaseMs = Math.max(1, Number(retryBaseMs) || DEFAULT_RETRY_BASE_MS);
     this.discoveredModels = [];
     this.fileAuth = {};
     this.authLoaded = false;
@@ -565,23 +599,48 @@ class DirectAntigravityProvider {
       });
     };
     let response;
-    let lastError;
-    for (const base of this.baseUrls()) {
-      try {
-        response = await attempt(base, false);
-        if (response.status === 401 && this.refreshToken) response = await attempt(base, true);
-        if (response.ok || response.status < 500 || base === this.baseUrls().at(-1)) break;
-        await response.body?.cancel?.();
-      } catch (error) {
-        lastError = error;
-        if (base === this.baseUrls().at(-1)) throw error;
+    let lastFailure;
+    const bases = this.baseUrls();
+    requestRounds:
+    for (let retry = 0; retry <= this.maxRetries; retry += 1) {
+      for (const base of bases) {
+        let candidate;
+        try {
+          candidate = await attempt(base, false);
+          if (candidate.status === 401 && this.refreshToken) candidate = await attempt(base, true);
+        } catch (error) {
+          lastFailure = { error };
+          continue;
+        }
+        if (candidate.ok) {
+          response = candidate;
+          break requestRounds;
+        }
+        const text = await readBody(candidate);
+        const detail = upstreamErrorMessage(text);
+        lastFailure = { response: candidate, status: candidate.status, detail, diagnostic: redact(text) };
+        const retryable = candidate.status === 429 || candidate.status >= 500;
+        if (!retryable) {
+          throw new DirectProviderError(detail ? `Antigravity 直连请求失败：${detail}` : 'Antigravity 直连请求失败。', {
+            code: 'direct_upstream_error', status: candidate.status, details: detail
+          });
+        }
+        // A 429 from daily-cloudcode is allowed to fall through to the normal
+        // Cloud Code endpoint. The previous implementation stopped at every
+        // status below 500, so a transient daily-capacity limit never reached
+        // the healthy fallback endpoint.
+      }
+      if (retry < this.maxRetries) {
+        const delay = retryAfterMs(lastFailure?.response, retry, this.retryBaseMs);
+        await waitForRetry(delay, signal);
       }
     }
-    if (!response && lastError) throw lastError;
-    if (!response.ok) {
-      const text = await readBody(response);
-      const detail = upstreamErrorMessage(text);
-      throw new DirectProviderError(detail ? `Antigravity 直连请求失败：${detail}` : 'Antigravity 直连请求失败。', { code: 'direct_upstream_error', status: response.status, details: detail });
+    if (!response) {
+      if (lastFailure?.error) throw lastFailure.error;
+      const detail = lastFailure?.detail || '';
+      throw new DirectProviderError(detail ? `Antigravity 直连请求失败：${detail}` : 'Antigravity 直连请求失败。', {
+        code: 'direct_upstream_error', status: lastFailure?.status || 502, details: lastFailure?.diagnostic || detail
+      });
     }
     const state = { text: '', calls: [], usage: {} };
     const contentType = String(response.headers.get('content-type') || '').toLowerCase();

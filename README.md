@@ -231,11 +231,16 @@ export ANTHROPIC_API_KEY=change-me
 claude --model gemini-3.7-flash-high
 ```
 
-如果 Claude Code 的标题生成、安全分类器或子任务请求内部指定了 `claude-*` 模型，网关会把这些客户端别名映射到 `ANTIGRAVITY_DEFAULT_MODEL`。可通过环境变量自定义映射：
+Claude Code 的内置 `Claude Code Guide`、Explore 等辅助 Agent 会指定 Haiku，Auto mode 也会产生独立的分类请求。网关默认把 Haiku 和已识别的 Auto mode 请求路由到当前账号可用的低延迟模型，避免和主会话争用高档模型容量；其他 `claude-*` 别名仍映射到 `ANTIGRAVITY_DEFAULT_MODEL`。可显式指定辅助模型或精确别名：
 
 ```bash
+export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
 export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.7-flash-high"}'
 ```
+
+直连上游返回暂时性的 `429 RESOURCE_EXHAUSTED` 时，网关会先切换备用 Cloud Code 端点，再做一次有限指数退避。它不会压缩或删除客户端上下文；持续 429 仍会按真实错误返回。
+
+Claude Code 2.1.251 会额外注入一条 Anthropic SDK 身份声明，Cloud Code 会把该声明拒绝为 `429 RESOURCE_EXHAUSTED`。网关仅把这条供应商专属身份行替换为中性兼容身份；其余安全规则、权限约束、项目说明、用户提示和完整对话均原样保留。
 
 #### Codex CLI
 
@@ -354,7 +359,10 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_GATEWAY_API_KEY` | 空 | 本地接口密码；非本机监听时必填 |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | 操作系统临时目录 | 隔离工作区和临时日志所在目录 |
 | `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | 默认模型与 Claude 别名目标 |
+| `ANTIGRAVITY_FAST_MODEL` | 自动选择账号中的低延迟模型 | Haiku 辅助 Agent 与 Auto mode 分类请求目标 |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON 模型别名表 |
+| `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | 429/5xx 在备用端点失败后的额外重试轮数 |
+| `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | 直连瞬时错误的初始退避毫秒数 |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单轮超时 |
 | `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `8388608` | HTTP 请求体字节上限 |
 | `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | `2097152` | 规范化提示字节上限 |
@@ -525,6 +533,17 @@ export ANTHROPIC_API_KEY=change-me
 claude --model gemini-3.7-flash-high
 ```
 
+Claude Code built-in helper agents such as Claude Code Guide and Explore request Haiku, while Auto mode sends separate classifier turns. The gateway routes Haiku aliases and detected Auto mode classifiers to an available low-latency model so they do not compete with the main high-tier route. Override the auxiliary model or an exact alias when needed:
+
+```bash
+export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
+export ANTIGRAVITY_MODEL_ALIASES='{"claude-haiku-4-5-20251001":"gemini-3.7-flash-low"}'
+```
+
+For transient `429 RESOURCE_EXHAUSTED` responses, direct transport tries the alternate Cloud Code endpoint and then performs one bounded exponential-backoff retry. It does not compress or discard client context; persistent quota errors remain visible to the client.
+
+Claude Code 2.1.251 injects a standalone Anthropic SDK provider-identity line that Cloud Code rejects as `429 RESOURCE_EXHAUSTED`. The gateway replaces only that provider-specific identity marker with a neutral compatibility identity; all safety rules, permissions, project instructions, user prompts, and conversation content remain intact.
+
 ### Codex CLI
 
 ```toml
@@ -573,7 +592,10 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_GATEWAY_API_KEY` | empty | Gateway key; required for non-loopback binding |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | OS temporary directory | Isolated workspaces and temporary logs |
 | `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | Default model and client-alias target |
+| `ANTIGRAVITY_FAST_MODEL` | auto-selected low-latency account model | Target for Haiku helper agents and Auto mode classifiers |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON model alias map |
+| `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | Additional retry rounds after both endpoints return 429/5xx |
+| `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | Initial direct-transport backoff in milliseconds |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Per-turn timeout |
 | `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `8388608` | Maximum HTTP request body in bytes |
 | `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | `2097152` | Maximum normalized prompt size in bytes |

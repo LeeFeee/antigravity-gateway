@@ -169,6 +169,42 @@ test('direct provider parses non-stream text and usage', async () => {
   assert.equal(calls[0].options.headers.authorization, 'Bearer token');
 });
 
+test('direct provider falls back from a daily Cloud Code 429 to the normal endpoint', async () => {
+  const calls = [];
+  const provider = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token', projectId: 'project-1', maxRetries: 0,
+    fetchImpl: async (url) => {
+      calls.push(url);
+      if (url.startsWith('https://daily-cloudcode-pa.googleapis.com')) {
+        return new Response(JSON.stringify({ error: { message: 'Resource has been exhausted' } }), { status: 429 });
+      }
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'fallback-ok' }] } }] }), { status: 200 });
+    }
+  });
+  const result = await provider.send(normalized(), 'gemini-test-high', { sessionId: '-429-fallback' });
+  assert.equal(result.text, 'fallback-ok');
+  assert.equal(calls.length, 2);
+  assert.match(calls[0], /^https:\/\/daily-cloudcode-pa\.googleapis\.com/);
+  assert.match(calls[1], /^https:\/\/cloudcode-pa\.googleapis\.com/);
+});
+
+test('direct provider retries transient 429 responses with a bounded backoff', async () => {
+  let calls = 0;
+  const provider = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token', projectId: 'project-1', maxRetries: 1, retryBaseMs: 1,
+    fetchImpl: async () => {
+      calls += 1;
+      if (calls <= 2) return new Response(JSON.stringify({ error: { message: 'Resource has been exhausted' } }), { status: 429 });
+      return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'retry-ok' }] } }] }), { status: 200 });
+    }
+  });
+  const result = await provider.send(normalized(), 'gemini-test-high', { sessionId: '-429-retry' });
+  assert.equal(result.text, 'retry-ok');
+  assert.equal(calls, 3);
+});
+
 test('direct provider forwards upstream SSE text deltas', async () => {
   const deltas = [];
   const provider = new DirectAntigravityProvider({
