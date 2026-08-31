@@ -6,6 +6,7 @@ const test = require('node:test');
 const {
   anthropicResponse,
   buildPrompt,
+  detectAutoModeFormat,
   finalizeModelResult,
   normalizeAnthropic,
   normalizeAutoMode,
@@ -13,6 +14,7 @@ const {
   normalizeStructured,
   normalizeToolCalls,
   parseToolCalls,
+  responsesResponse,
   validateSchema
 } = require('../src/protocol');
 
@@ -105,6 +107,39 @@ test('Auto mode extracts XML and fails closed', () => {
   assert.throws(() => normalizeAutoMode('probably safe'), /XML/);
 });
 
+test('current Claude Code Auto mode block contract is detected by grammar', () => {
+  const system = [
+    'You evaluate actions in Auto Mode.',
+    '## Output Format',
+    'If the action should be blocked: <block>yes</block><category>Risk</category><reason>why</reason>',
+    'If the action should be allowed: <block>no</block>'
+  ].join('\n');
+  assert.equal(detectAutoModeFormat(system), 'block');
+  const normalized = normalizeAnthropic({ system, messages: [{ role: 'user', content: 'classify' }] });
+  assert.equal(normalized.autoMode, true);
+  assert.equal(normalized.autoModeFormat, 'block');
+  assert.match(buildPrompt(normalized), /beginning with <block>/);
+});
+
+test('current Claude Code Auto mode severity contract is detected and normalized', () => {
+  const system = [
+    'Auto Mode classification process. Grade harm only.',
+    'The allow/block boundary is 50.',
+    'Your ENTIRE response MUST begin with <severity>N</severity>.'
+  ].join('\n');
+  assert.equal(detectAutoModeFormat(system), 'severity');
+  const normalized = normalizeAnthropic({ system, messages: [{ role: 'user', content: 'classify' }] });
+  assert.equal(normalized.autoMode, true);
+  assert.equal(normalized.autoModeFormat, 'severity');
+  assert.match(buildPrompt(normalized), /beginning with <severity>/);
+  assert.equal(normalizeAutoMode('analysis\n<severity>24</severity>', 'severity'), '<severity>24</severity>');
+  assert.equal(
+    normalizeAutoMode('<severity>87.5</severity><category>destructive</category>', 'severity'),
+    '<severity>87.5</severity><category>destructive</category>'
+  );
+  assert.throws(() => normalizeAutoMode('<severity>101</severity>', 'severity'), /XML/);
+});
+
 test('structured JSON is extracted and validated', () => {
   const schema = { type: 'object', required: ['ok'], properties: { ok: { type: 'boolean' } }, additionalProperties: false };
   assert.equal(normalizeStructured('```json\n{"ok":true}\n```', schema), '{"ok":true}');
@@ -134,6 +169,40 @@ test('Responses previous transcript is prepended without mutating it', () => {
   const normalized = normalizeResponses({ model: 'm', input: 'second' }, previous);
   assert.deepEqual(normalized.messages.map((item) => item.text), ['first', 'answer', 'second']);
   assert.equal(previous.messages.length, 2);
+});
+
+test('Responses custom tools round-trip as custom_tool_call instead of function_call', () => {
+  const normalized = normalizeResponses({
+    model: 'm',
+    input: 'edit a file',
+    tools: [{
+      type: 'custom', name: 'apply_patch', description: 'Apply a patch',
+      format: { type: 'grammar', syntax: 'lark', definition: 'start: "*** Begin Patch"' }
+    }]
+  });
+  assert.equal(normalized.tools[0].kind, 'custom');
+  assert.deepEqual(normalized.tools[0].schema.required, ['input']);
+  assert.match(normalized.tools[0].description, /\*\*\* Begin Patch/);
+  assert.match(normalized.tools[0].description, /lark grammar/);
+  const result = finalizeModelResult(normalized, {
+    text: '', usage: {}, internalToolUsed: false,
+    toolCalls: [{ id: 'call_patch', name: 'apply_patch', args: { input: '*** Begin Patch\n*** End Patch' } }]
+  });
+  assert.equal(result.toolCalls[0].kind, 'custom');
+  const body = responsesResponse('m', result, 'resp_patch');
+  assert.deepEqual(body.output[0], {
+    id: body.output[0].id,
+    type: 'custom_tool_call', status: 'completed', call_id: 'call_patch',
+    name: 'apply_patch', input: '*** Begin Patch\n*** End Patch'
+  });
+
+  const continued = normalizeResponses({ input: [
+    { type: 'custom_tool_call', call_id: 'call_patch', name: 'apply_patch', input: '*** Begin Patch\n*** End Patch' },
+    { type: 'custom_tool_call_output', call_id: 'call_patch', output: 'Success' }
+  ] });
+  assert.equal(continued.messages[0].parts[0].kind, 'custom');
+  assert.equal(continued.messages[0].parts[0].arguments.input, '*** Begin Patch\n*** End Patch');
+  assert.equal(continued.messages[1].parts[0].type, 'tool_result');
 });
 
 test('Anthropic response exposes external tools in native format', () => {

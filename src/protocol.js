@@ -23,7 +23,7 @@ function parseJsonValue(value) {
   try { return JSON.parse(source); } catch { return value; }
 }
 
-function toolCallPart(id, name, input, thoughtSignature) {
+function toolCallPart(id, name, input, thoughtSignature, kind = 'function') {
   return {
     type: 'tool_call',
     ...(id ? { id: String(id) } : {}),
@@ -31,6 +31,7 @@ function toolCallPart(id, name, input, thoughtSignature) {
     arguments: input && typeof input === 'object' && !Array.isArray(input)
       ? input
       : parseJsonValue(input ?? {}),
+    ...(kind === 'custom' ? { kind: 'custom' } : {}),
     ...(thoughtSignature ? { thoughtSignature: String(thoughtSignature) } : {})
   };
 }
@@ -125,12 +126,37 @@ function normalizeTools(tools, protocol) {
       return {
         name: tool.function?.name,
         description: tool.function?.description || '',
+        kind: 'function',
         schema: tool.function?.parameters || { type: 'object' }
+      };
+    }
+    if (protocol === 'responses' && tool?.type === 'custom') {
+      const applyPatchHint = tool.name === 'apply_patch'
+        ? '\nThe raw input must be one complete Codex patch beginning with "*** Begin Patch" and ending with "*** End Patch".'
+        : '';
+      const grammarHint = tool.format?.type === 'grammar' && typeof tool.format.definition === 'string'
+        ? `\nThe raw input must satisfy this ${tool.format.syntax || 'declared'} grammar:\n${tool.format.definition.slice(0, 16000)}`
+        : '';
+      return {
+        name: tool.name,
+        description: `${tool.description || 'Free-form client tool input.'}${applyPatchHint}${grammarHint}`,
+        kind: 'custom',
+        format: tool.format || null,
+        // Gemini function declarations require object arguments. This wrapper
+        // exists only on the upstream hop and is unwrapped before Codex sees
+        // the Responses custom-tool call.
+        schema: {
+          type: 'object',
+          required: ['input'],
+          properties: { input: { type: 'string', description: 'Exact raw input for the custom tool.' } },
+          additionalProperties: false
+        }
       };
     }
     return {
       name: tool?.name,
       description: tool?.description || '',
+      kind: 'function',
       schema: tool?.input_schema || tool?.parameters || { type: 'object' }
     };
   }).filter((tool) => typeof tool.name === 'string' && tool.name.length > 0);
@@ -162,6 +188,35 @@ function sanitizeAnthropicProviderIdentity(text) {
   );
 }
 
+function detectAutoModeFormat(system) {
+  const source = String(system || '');
+
+  // Claude Code has shipped more than one Auto Mode classifier contract.
+  // Detect the contract from its required output grammar instead of relying
+  // on one release-specific role sentence.
+  const severityContract = /<severity>\s*N\s*<\/severity>/i.test(source)
+    || (/<severity>/i.test(source) && /allow\s*\/\s*block boundary/i.test(source));
+  if (severityContract && (
+    /classification process/i.test(source)
+    || /auto[- ]mode/i.test(source)
+    || /grade harm only/i.test(source)
+    || /entire response must begin with\s*<severity>/i.test(source)
+  )) return 'severity';
+
+  const legacySecurityMonitor = /security monitor for autonomous ai coding agents/i.test(source)
+    && /<block>\s*(?:yes|no)\s*<\/block>/i.test(source);
+  const blockContract = /<block>\s*yes\s*<\/block>/i.test(source)
+    && /<block>\s*no\s*<\/block>/i.test(source);
+  if (legacySecurityMonitor || (blockContract && (
+    /security monitor for autonomous ai coding agents/i.test(source)
+    || (/if the action should be blocked/i.test(source) && /if the action should be allowed/i.test(source))
+    || (/auto[- ]mode/i.test(source) && /block rule/i.test(source))
+    || /entire response must begin with\s*<block>/i.test(source)
+  ))) return 'block';
+
+  return null;
+}
+
 function normalizeAnthropic(payload) {
   // Claude Code 2.1.251 adds a standalone Anthropic-provider identity line.
   // Cloud Code rejects that exact line with RESOURCE_EXHAUSTED even when sent
@@ -174,6 +229,7 @@ function normalizeAnthropic(payload) {
     text: textFromContent(message.content, 'anthropic'),
     parts: internalPartsFromContent(message.content, 'anthropic')
   }));
+  const autoModeFormat = detectAutoModeFormat(system);
   return {
     protocol: 'anthropic',
     model: payload.model,
@@ -186,7 +242,8 @@ function normalizeAnthropic(payload) {
     structuredSchema: payload.output_config?.format?.type === 'json_schema'
       ? payload.output_config.format.schema
       : payload.output_format?.type === 'json_schema' ? payload.output_format.schema : null,
-    autoMode: /security monitor for autonomous ai coding agents/i.test(system) && /<block>(?:yes|no)<\/block>/i.test(system)
+    autoMode: Boolean(autoModeFormat),
+    autoModeFormat
   };
 }
 
@@ -237,20 +294,22 @@ function normalizeResponses(payload, previousTranscript) {
       text: textFromContent(item.content, 'responses'),
       parts: internalPartsFromContent(item.content, 'responses')
     });
-    else if (item?.type === 'function_call_output' || item?.type === 'computer_call_output') {
+    else if (item?.type === 'function_call_output' || item?.type === 'custom_tool_call_output' || item?.type === 'computer_call_output') {
       const output = typeof item.output === 'string' ? item.output : compactJson(item.output);
       messages.push({
         role: 'user',
         text: `[CLIENT_TOOL_RESULT id=${item.call_id || ''}]\n${output}`,
         parts: [toolResultPart(item.call_id, output)]
       });
-    } else if (item?.type === 'function_call') {
+    } else if (item?.type === 'function_call' || item?.type === 'custom_tool_call') {
       const id = item.call_id || item.id || '';
-      const args = typeof item.arguments === 'string' ? item.arguments : compactJson(item.arguments || {});
+      const custom = item.type === 'custom_tool_call';
+      const input = custom ? { input: String(item.input || '') } : item.arguments;
+      const args = custom ? String(item.input || '') : typeof item.arguments === 'string' ? item.arguments : compactJson(item.arguments || {});
       messages.push({
         role: 'assistant',
         text: `[ASSISTANT_TOOL_CALL id=${id} name=${item.name || ''}]\n${args}`,
-        parts: [toolCallPart(id, item.name, item.arguments)]
+        parts: [toolCallPart(id, item.name, input, item.thoughtSignature, custom ? 'custom' : 'function')]
       });
     }
   }
@@ -300,7 +359,8 @@ function buildPrompt(normalized) {
     sections.push(`CLIENT_JSON_SCHEMA_BEGIN\n${compactJson(normalized.structuredSchema)}\nCLIENT_JSON_SCHEMA_END\nReturn only one JSON value that conforms to this schema, without Markdown fences or commentary.`);
   }
   if (normalized.autoMode) {
-    sections.push('CLAUDE_CODE_AUTO_MODE: Follow the system XML contract exactly. Return XML only, beginning with <block> and containing no Markdown or prose.');
+    const root = normalized.autoModeFormat === 'severity' ? 'severity' : 'block';
+    sections.push(`CLAUDE_CODE_AUTO_MODE: Follow the system XML contract exactly. Return XML only, beginning with <${root}> and containing no Markdown or prose.`);
   }
   return sections.join('\n\n');
 }
@@ -346,10 +406,17 @@ function normalizeToolCalls(rawCalls, tools) {
   if (!tools.length) return null;
   const byName = new Map(tools.map((tool) => [tool.name, tool]));
   return rawCalls.map((call) => {
-    const argumentsValue = call.arguments ?? call.args ?? call.input ?? {};
-    const argumentsObject = typeof argumentsValue === 'string' ? parseJsonValue(argumentsValue) : argumentsValue;
     const tool = byName.get(call.name);
     if (!tool) throw new GatewayError(`模型请求了客户端未提供的工具: ${call.name}`, { code: 'invalid_tool_call', status: 502 });
+    const argumentsValue = call.arguments ?? call.args ?? call.input ?? {};
+    let argumentsObject = typeof argumentsValue === 'string' ? parseJsonValue(argumentsValue) : argumentsValue;
+    if (tool.kind === 'custom') {
+      if (typeof argumentsObject === 'string') argumentsObject = { input: argumentsObject };
+      else if (argumentsObject && typeof argumentsObject === 'object' && !Array.isArray(argumentsObject)
+        && typeof argumentsObject.input !== 'string' && typeof call.input === 'string') {
+        argumentsObject = { input: call.input };
+      }
+    }
     if (!argumentsObject || typeof argumentsObject !== 'object' || Array.isArray(argumentsObject)) {
       throw new GatewayError(`工具 ${call.name} 的参数不是 JSON 对象。`, { code: 'invalid_tool_call', status: 502 });
     }
@@ -360,6 +427,7 @@ function normalizeToolCalls(rawCalls, tools) {
       id: typeof call.id === 'string' && call.id ? call.id : `call_${crypto.randomUUID().replaceAll('-', '')}`,
       name: call.name,
       arguments: argumentsObject,
+      ...(tool.kind === 'custom' ? { kind: 'custom', input: argumentsObject.input } : {}),
       ...(typeof call.thoughtSignature === 'string' && call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {})
     };
   });
@@ -377,13 +445,26 @@ function parseToolCalls(text, tools) {
   return normalizeToolCalls(calls, tools);
 }
 
-function normalizeAutoMode(text) {
+function normalizeAutoMode(text, format = 'block') {
   const source = String(text || '');
+  if (format === 'severity') {
+    const match = source.match(/<severity>\s*(\d+(?:\.\d+)?)\s*<\/severity>/i);
+    const value = match ? Number(match[1]) : NaN;
+    if (!Number.isFinite(value) || value < 0 || value > 100) {
+      throw new GatewayError('Antigravity 模型未返回 Claude Code Auto mode 要求的 XML 严重度判定。', {
+        code: 'invalid_auto_mode_classifier_output', status: 502,
+        details: `received=${JSON.stringify(source.trim().slice(0, 500))}`
+      });
+    }
+    const category = source.match(/<category>[\s\S]*?<\/category>/i)?.[0] || '';
+    return `<severity>${match[1]}</severity>${category}`;
+  }
   const no = source.match(/<block>\s*no\s*<\/block>/i);
   if (no) return '<block>no</block>';
   const yes = source.match(/<block>\s*yes\s*<\/block>/i);
   if (!yes) throw new GatewayError('Antigravity 模型未返回 Claude Code Auto mode 要求的 XML 判定。', {
-    code: 'invalid_auto_mode_classifier_output', status: 502
+    code: 'invalid_auto_mode_classifier_output', status: 502,
+    details: `received=${JSON.stringify(source.trim().slice(0, 500))}`
   });
   const category = source.match(/<category>[\s\S]*?<\/category>/i)?.[0] || '';
   const reason = source.match(/<reason>[\s\S]*?<\/reason>/i)?.[0] || '';
@@ -421,7 +502,7 @@ function finalizeModelResult(normalized, agyResult) {
   }
   const nativeToolCalls = Array.isArray(agyResult.toolCalls);
   let text = nativeToolCalls ? String(agyResult.text || '') : (toolCalls.length ? '' : String(agyResult.text || ''));
-  if (normalized.autoMode) text = normalizeAutoMode(text);
+  if (normalized.autoMode) text = normalizeAutoMode(text, normalized.autoModeFormat);
   if (normalized.structuredSchema && !toolCalls.length) text = normalizeStructured(text, normalized.structuredSchema);
   return { ...agyResult, text, toolCalls };
 }
@@ -478,11 +559,18 @@ function responsesResponse(model, result, responseId) {
       content: [{ type: 'output_text', text: result.text, annotations: [] }]
     });
   }
-  for (const call of result.toolCalls) output.push({
-    id: `fc_${crypto.randomUUID().replaceAll('-', '')}`,
-    type: 'function_call', status: 'completed', call_id: call.id,
-    name: call.name, arguments: compactJson(call.arguments)
-  });
+  for (const call of result.toolCalls) {
+    if (call.kind === 'custom') output.push({
+      id: `ctc_${crypto.randomUUID().replaceAll('-', '')}`,
+      type: 'custom_tool_call', status: 'completed', call_id: call.id,
+      name: call.name, input: call.input
+    });
+    else output.push({
+      id: `fc_${crypto.randomUUID().replaceAll('-', '')}`,
+      type: 'function_call', status: 'completed', call_id: call.id,
+      name: call.name, arguments: compactJson(call.arguments)
+    });
+  }
   return {
     id: responseId, object: 'response', created_at: Math.floor(Date.now() / 1000),
     status: 'completed', error: null, incomplete_details: null, model,
@@ -500,6 +588,7 @@ module.exports = {
   anthropicResponse,
   buildPrompt,
   chatResponse,
+  detectAutoModeFormat,
   finalizeModelResult,
   normalizeAnthropic,
   normalizeAutoMode,

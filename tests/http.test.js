@@ -13,7 +13,7 @@ process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
 // deterministic and exercise the official subprocess fallback here.
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 
-const { createServer } = require('../antigravity-gateway');
+const { codexModelInfo, createServer } = require('../antigravity-gateway');
 const { version: packageVersion } = require('../package.json');
 
 async function withServer(t) {
@@ -36,6 +36,12 @@ test('model endpoint reflects agy models', async (t) => {
   assert.equal(body.models[0].supports_parallel_tool_calls, true);
 });
 
+test('Gemini 3.7 Flash advertises its 1M context even when discovery metadata is temporarily unavailable', () => {
+  const model = codexModelInfo('gemini-3.7-flash-high', 0);
+  assert.equal(model.context_window, 1048576);
+  assert.equal(model.max_context_window, 1048576);
+});
+
 test('health endpoint reports the package release version', async (t) => {
   const base = await withServer(t);
   const response = await fetch(base);
@@ -43,6 +49,34 @@ test('health endpoint reports the package release version', async (t) => {
   assert.equal(response.status, 200);
   assert.equal(body.name, 'antigravity-gateway');
   assert.equal(body.version, packageVersion);
+});
+
+test('Claude Code provider connectivity probe does not produce a false missing-interface error', async (t) => {
+  const base = await withServer(t);
+  for (const method of ['GET', 'POST', 'HEAD']) {
+    const response = await fetch(`${base}/api/hello`, { method });
+    assert.equal(response.status, 200);
+    if (method !== 'HEAD') {
+      const body = await response.json();
+      assert.equal(body.status, 'ok');
+      assert.equal(body.name, 'antigravity-gateway');
+    }
+  }
+});
+
+test('Claude Code telemetry batches are acknowledged locally without upstream forwarding', async (t) => {
+  const base = await withServer(t);
+  for (const method of ['POST', 'HEAD']) {
+    const response = await fetch(`${base}/api/event_logging/batch`, {
+      method,
+      ...(method === 'POST' ? {
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ events: [{ name: 'client_test' }] })
+      } : {})
+    });
+    assert.equal(response.status, 204);
+    assert.equal(await response.text(), '');
+  }
 });
 
 test('Anthropic non-stream and stream responses are protocol-shaped', async (t) => {
@@ -137,6 +171,22 @@ test('Claude Code Auto mode output is normalized to XML only', async (t) => {
     body: JSON.stringify({
       model: 'claude-sonnet-5',
       system: 'You are a security monitor for autonomous AI coding agents. Return <block>no</block>.',
+      messages: [{ role: 'user', content: 'classify safe action' }]
+    })
+  });
+  const body = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(body.content[0].text, '<block>no</block>');
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+});
+
+test('current Claude Code Auto mode output-format contract uses the fast route', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      system: 'Auto Mode evaluator. If the action should be blocked: <block>yes</block>. If the action should be allowed: <block>no</block>.',
       messages: [{ role: 'user', content: 'classify safe action' }]
     })
   });

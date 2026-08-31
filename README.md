@@ -10,7 +10,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.1.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`，并创建同名 Git 标签。
+当前发布版本：`v0.2.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -21,9 +21,10 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 - OpenAI 与 Codex 双格式模型目录：`GET /v1/models`
 - 非流式与 SSE 响应
 - Claude Code Auto mode XML 结果规范化
+- Claude Code 连通性探测与本地遥测批次兼容（遥测不会转发）
 - JSON Schema 结构化输出修复
 - 实验性客户端工具调用桥
-- 模型别名映射、请求大小限制、上下文限制、并发队列、超时与取消
+- 模型别名映射、传输字节保护、真实模型上下文元数据、并发队列、超时与取消
 - 子进程环境变量隔离、日志清理和进程组清理
 
 ### 运行条件
@@ -73,16 +74,16 @@ winget install --exact --id OpenJS.NodeJS.LTS
 全局安装，只需一条命令：
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
-安装过程中会自动完成环境检查并安装项目依赖。不要使用 `--ignore-scripts`，否则 npm 会跳过环境检查。
+安装过程中会自动完成环境检查并安装项目依赖。npm 11 会限制未授权的生命周期脚本，因此命令显式允许本项目自己的 `postinstall` 环境检查；不要使用 `--ignore-scripts`。
 
 检查安装版本：
 
 ```bash
 antigravity-gateway --version
-# 0.1.1
+# 0.2.0
 ```
 
 安装后，无论终端当前位于哪个目录，都可以直接启动：
@@ -191,7 +192,7 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 更新与卸载：
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 
@@ -228,8 +229,23 @@ export NO_PROXY=127.0.0.1,localhost
 export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
 export ANTHROPIC_AUTH_TOKEN=change-me
 export ANTHROPIC_API_KEY=change-me
-claude --model gemini-3.7-flash-high
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
+claude --model 'gemini-3.7-flash-high[1m]'
 ```
+
+Windows PowerShell：
+
+```powershell
+$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
+$env:ANTHROPIC_AUTH_TOKEN = "change-me"
+$env:ANTHROPIC_API_KEY = "change-me"
+$env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
+claude --model "gemini-3.7-flash-high[1m]"
+```
+
+Cloud Code 当前为 Gemini 3.7 Flash 返回 `1,048,576` 输入 tokens 和 `65,536` 最大输出 tokens。Claude Code 不认识第三方模型 ID 时会自行采用 200K 回退窗口；模型名后缀 `[1m]` 或 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` 用于告诉 Claude Code 真实窗口，并不会修改或压缩网关输入。网关只保留 64 MiB 的 HTTP/内存字节保护，模型 token 上限由上游判定。
+
+如果 `settings.json` 里启用了 `CLAUDE_CODE_USE_BEDROCK`、`CLAUDE_CODE_USE_VERTEX` 或 `CLAUDE_CODE_USE_FOUNDRY`，Claude Code 会优先走对应云 provider，而不是 `ANTHROPIC_BASE_URL`。使用本地网关时请移除这些开关；这类请求不会到达网关日志。
 
 Claude Code 的内置 `Claude Code Guide`、Explore 等辅助 Agent 会指定 Haiku，Auto mode 也会产生独立的分类请求。网关默认把 Haiku 和已识别的 Auto mode 请求路由到当前账号可用的低延迟模型，避免和主会话争用高档模型容量；其他 `claude-*` 别名仍映射到 `ANTIGRAVITY_DEFAULT_MODEL`。可显式指定辅助模型或精确别名：
 
@@ -244,17 +260,34 @@ Claude Code 2.1.251 会额外注入一条 Anthropic SDK 身份声明，Cloud Cod
 
 #### Codex CLI
 
+网关启动时会根据当前账号的真实模型目录生成 Codex catalog。先取得当前用户机器上的绝对路径：
+
+```bash
+antigravity-gateway --codex-catalog-path
+```
+
+启动横幅也会显示同一路径。把它填入 `model_catalog_json`，可避免 Codex 对第三方模型使用回退元数据；Windows 路径建议使用 TOML 单引号，避免转义反斜杠。
+
 在 `~/.codex/config.toml` 中添加一个 provider：
 
 ```toml
 model = "gemini-3.7-flash-high"
 model_provider = "antigravity"
+model_catalog_json = "/ABSOLUTE/PATH/.antigravity-gateway/codex-models.json"
 
 [model_providers.antigravity]
 name = "Antigravity Gateway"
 base_url = "http://127.0.0.1:9897/v1"
 env_key = "ANTIGRAVITY_GATEWAY_API_KEY"
 wire_api = "responses"
+request_max_retries = 0
+stream_max_retries = 0
+```
+
+Windows 示例：
+
+```toml
+model_catalog_json = 'C:\Users\YOUR_NAME\.antigravity-gateway\codex-models.json'
 ```
 
 然后在运行 Codex 前设置：
@@ -263,6 +296,15 @@ wire_api = "responses"
 export ANTIGRAVITY_GATEWAY_API_KEY=change-me
 codex
 ```
+
+Windows PowerShell：
+
+```powershell
+$env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"
+codex
+```
+
+Codex 的标准函数工具与 `apply_patch` 自由格式工具均会保持原始 Responses 类型；网关不会再把 `custom_tool_call` 错降级为普通 `function_call`。
 
 ### 选择模型
 
@@ -358,22 +400,25 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | 监听端口 |
 | `ANTIGRAVITY_GATEWAY_API_KEY` | 空 | 本地接口密码；非本机监听时必填 |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | 操作系统临时目录 | 隔离工作区和临时日志所在目录 |
+| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | 持久化 Codex 模型目录所在位置 |
 | `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | 默认模型与 Claude 别名目标 |
 | `ANTIGRAVITY_FAST_MODEL` | 自动选择账号中的低延迟模型 | Haiku 辅助 Agent 与 Auto mode 分类请求目标 |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON 模型别名表 |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | 429/5xx 在备用端点失败后的额外重试轮数 |
 | `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | 直连瞬时错误的初始退避毫秒数 |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单轮超时 |
-| `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `8388608` | HTTP 请求体字节上限 |
-| `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | `2097152` | 规范化提示字节上限 |
+| `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `67108864` | HTTP 请求体字节保护；不是模型 token 窗口 |
+| `ANTIGRAVITY_GATEWAY_PROMPT_BYTE_LIMIT` | `67108864` | `agy` 兼容模式规范化提示的字节保护；不是模型 token 窗口 |
+| `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | 空 | 旧版字节配置别名，仅兼容已有配置；建议改用 `PROMPT_BYTE_LIMIT` |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 同时处理的上游请求数量 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 等待队列长度 |
 
 ### 项目验证范围
 
 - 自动化测试覆盖 worker、HTTP 协议转换、SSE、工具结果回传、会话隔离和错误处理。
-- 开发阶段验证过真实 `agy` 请求、Claude Code 文本与基础工具闭环，以及 Codex CLI Responses 基础请求。
-- 不同操作系统、CLI 版本、账号模型目录及复杂开发任务仍可能存在兼容性差异，提交 Issue 时请附 Node、`agy` 和客户端版本以及脱敏后的错误日志。
+- 已在 Windows 11 x64 上用官方 agy 1.1.22 本地登录态验证 Claude Code 2.1.251 的 1M 会话、PowerShell 工具、Auto mode 与 Explore 子代理，以及 Codex CLI 0.151.0 的 Responses、终端工具和 `apply_patch` 闭环。
+- 已在 macOS ARM64 上用 Keychain 登录态回归 Anthropic/Responses、Claude Code 文件工具与 Codex CLI 文件工具，Windows 修复不会替换原有 macOS 认证路径。
+- 不同 CLI 版本、账号模型目录及复杂开发任务仍可能存在兼容性差异，提交 Issue 时请附 Node、`agy` 和客户端版本以及脱敏后的错误日志。
 
 ## English
 
@@ -381,9 +426,11 @@ Antigravity Gateway is an experimental local compatibility gateway. It reads the
 
 The default transport is `direct`; model requests never silently fall back to the agy Agent. On macOS, the gateway uses the system `security` command to read the `gemini / antigravity` Keychain record in memory. Tokens are never logged, returned to clients, committed, or written back to plaintext files.
 
+Claude Code connectivity probes are handled locally. Its telemetry batch endpoint is acknowledged with HTTP 204 and is never forwarded upstream.
+
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.1.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`, and receives a matching Git tag.
+Current release: `v0.2.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -432,16 +479,16 @@ Verify with `node --version` and `npm --version`, or install an LTS release from
 Install globally with one command:
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
-The environment is checked and project dependencies are installed automatically. Do not use `--ignore-scripts`, which disables the environment check.
+The environment is checked and project dependencies are installed automatically. npm 11 restricts unapproved lifecycle scripts, so the command explicitly allows this package's own `postinstall` check. Do not use `--ignore-scripts`.
 
 Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.1.1
+# 0.2.0
 ```
 
 Start from any directory with one command:
@@ -506,7 +553,7 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 Update or uninstall:
 
 ```bash
-npm install --global https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 
@@ -530,8 +577,23 @@ export NO_PROXY=127.0.0.1,localhost
 export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
 export ANTHROPIC_AUTH_TOKEN=change-me
 export ANTHROPIC_API_KEY=change-me
-claude --model gemini-3.7-flash-high
+export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
+claude --model 'gemini-3.7-flash-high[1m]'
 ```
+
+PowerShell:
+
+```powershell
+$env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
+$env:ANTHROPIC_AUTH_TOKEN = "change-me"
+$env:ANTHROPIC_API_KEY = "change-me"
+$env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
+claude --model "gemini-3.7-flash-high[1m]"
+```
+
+Cloud Code currently reports a 1,048,576-token input window and 65,536 maximum output tokens for Gemini 3.7 Flash. Claude Code falls back to 200K for an unknown third-party model ID; `[1m]` or `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` tells the client the real window. The gateway does not compress the conversation.
+
+Remove `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, or `CLAUDE_CODE_USE_FOUNDRY` when using the local gateway. Those provider switches take precedence over `ANTHROPIC_BASE_URL`, so such requests never reach the gateway.
 
 Claude Code built-in helper agents such as Claude Code Guide and Explore request Haiku, while Auto mode sends separate classifier turns. The gateway routes Haiku aliases and detected Auto mode classifiers to an available low-latency model so they do not compete with the main high-tier route. Override the auxiliary model or an exact alias when needed:
 
@@ -546,21 +608,38 @@ Claude Code 2.1.251 injects a standalone Anthropic SDK provider-identity line th
 
 ### Codex CLI
 
+At startup the gateway writes a dynamic Codex model catalog from the current account. Print its absolute path with:
+
+```bash
+antigravity-gateway --codex-catalog-path
+```
+
 ```toml
 model = "gemini-3.7-flash-high"
 model_provider = "antigravity"
+model_catalog_json = "/ABSOLUTE/PATH/.antigravity-gateway/codex-models.json"
 
 [model_providers.antigravity]
 name = "Antigravity Gateway"
 base_url = "http://127.0.0.1:9897/v1"
 env_key = "ANTIGRAVITY_GATEWAY_API_KEY"
 wire_api = "responses"
+request_max_retries = 0
+stream_max_retries = 0
+```
+
+On Windows, use a TOML literal string so backslashes do not need escaping:
+
+```toml
+model_catalog_json = 'C:\Users\YOUR_NAME\.antigravity-gateway\codex-models.json'
 ```
 
 ```bash
 export ANTIGRAVITY_GATEWAY_API_KEY=change-me
 codex
 ```
+
+The catalog prevents Codex from applying fallback metadata to the third-party model ID. Standard function tools and free-form tools such as `apply_patch` preserve their native Responses types.
 
 ### Models
 
@@ -586,19 +665,21 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | Direct upstream base URL |
 | `ANTIGRAVITY_DIRECT_MODELS` | empty (auto-discover) | Optional comma-separated models shown by direct `/v1/models` |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | Direct upstream model discovery timeout; falls back to a conservative default |
-| `ANTIGRAVITY_DIRECT_USER_AGENT` | `antigravity/hub/2.2.1 darwin/arm64` | Direct upstream User-Agent |
+| `ANTIGRAVITY_DIRECT_USER_AGENT` | generated `antigravity/cli/... (aidev_client; ...)` | Direct upstream User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | Listen address |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | Listen port |
 | `ANTIGRAVITY_GATEWAY_API_KEY` | empty | Gateway key; required for non-loopback binding |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | OS temporary directory | Isolated workspaces and temporary logs |
+| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | Persistent generated Codex model catalog directory |
 | `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | Default model and client-alias target |
 | `ANTIGRAVITY_FAST_MODEL` | auto-selected low-latency account model | Target for Haiku helper agents and Auto mode classifiers |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON model alias map |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | Additional retry rounds after both endpoints return 429/5xx |
 | `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | Initial direct-transport backoff in milliseconds |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Per-turn timeout |
-| `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `8388608` | Maximum HTTP request body in bytes |
-| `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | `2097152` | Maximum normalized prompt size in bytes |
+| `ANTIGRAVITY_GATEWAY_BODY_LIMIT` | `67108864` | HTTP request byte guard; not a model token window |
+| `ANTIGRAVITY_GATEWAY_PROMPT_BYTE_LIMIT` | `67108864` | Normalized-prompt byte guard for `agy` compatibility mode; not a model token window |
+| `ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT` | empty | Deprecated byte-limit alias retained for existing configurations |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | Maximum concurrent `agy` workers |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | Maximum queued requests |
 

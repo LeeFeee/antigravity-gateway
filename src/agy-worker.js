@@ -7,13 +7,18 @@ const path = require('node:path');
 const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/;
 const DEFAULT_AGY_COMMAND = 'agy';
 
-function resolveAgyCommand(explicitPath) {
+function resolveAgyCommand(explicitPath, {
+  platform = process.platform,
+  env = process.env,
+  homeDir = require('node:os').homedir()
+} = {}) {
   if (explicitPath) return explicitPath;
-  const candidates = process.platform === 'win32'
+  const candidates = platform === 'win32'
     ? [
-        process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, 'agy', 'bin', 'agy.exe')
+        env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'agy', 'bin', 'agy.exe'),
+        path.join(homeDir, 'AppData', 'Local', 'agy', 'bin', 'agy.exe')
       ]
-    : [path.join(require('node:os').homedir(), '.local', 'bin', 'agy')];
+    : [path.join(homeDir, '.local', 'bin', 'agy')];
   return candidates.find((candidate) => candidate && fs.existsSync(candidate)) || DEFAULT_AGY_COMMAND;
 }
 
@@ -37,12 +42,17 @@ function redactDiagnostic(value) {
     .slice(-2000);
 }
 
-function safeChildEnv(source = process.env) {
-  const allowed = [
+function safeChildEnv(source = process.env, platform = process.platform) {
+  const portable = [
     'HOME', 'USER', 'LOGNAME', 'PATH', 'SHELL', 'TMPDIR',
     'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'COLORTERM', 'NO_COLOR',
     'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME'
   ];
+  const windows = [
+    'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA',
+    'SystemRoot', 'WINDIR', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP'
+  ];
+  const allowed = platform === 'win32' ? [...portable, ...windows] : portable;
   return Object.fromEntries(allowed.filter((key) => source[key] != null).map((key) => [key, source[key]]));
 }
 

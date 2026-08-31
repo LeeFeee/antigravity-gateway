@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 - 2026-08-31
+
+- Added first-class Windows support for the official `%USERPROFILE%\.gemini\antigravity-cli\antigravity-oauth-token` session and `%LOCALAPPDATA%\agy\bin\agy.exe`, without changing the existing macOS Keychain-first path.
+- Preserved the Windows profile, system, temporary-directory, and executable lookup variables required by agy child processes while continuing to exclude unrelated credentials.
+- Replaced whole-binary OAuth metadata reads with bounded incremental scanning so the Windows native agy executable can be inspected without allocating hundreds of megabytes as a string.
+- Detect the real agy version in direct mode on both Windows and macOS and handle Claude Code's `GET`/`POST`/`HEAD /api/hello` connectivity probes.
+- Acknowledge Claude Code's `/api/event_logging/batch` locally with HTTP 204 instead of forwarding telemetry or logging a false missing-interface error.
+- Added current Claude Code 2.1.251 Auto Mode block/severity contract detection and raised only the upstream classifier reasoning budget so complete XML verdicts are returned without retry storms.
+- Raised the Gemini 3 provider-side minimum for tiny output caps after real macOS testing proved that hidden reasoning could truncate a six-token answer; normal client context remains untouched.
+- Added native OpenAI Responses `custom_tool_call` and `custom_tool_call_output` round trips, including Codex `apply_patch` grammar projection, instead of degrading free-form tools into incompatible function calls.
+- Use Cloud Code's discovered `maxTokens` and `maxOutputTokens`; Gemini 3.7 Flash now advertises its verified 1,048,576-token input window and 65,536-token output limit rather than the old 200K fallback.
+- Reclassified gateway body/prompt guards as byte limits, raised both defaults to 64 MiB, and removed misleading context-window wording. The gateway still leaves authoritative token accounting to Cloud Code.
+- Generate a per-user Codex model catalog at startup and expose its path through the banner, health response, and `--codex-catalog-path`, preventing Codex fallback metadata warnings.
+- Verified on Windows 11 x64 with agy 1.1.22, Claude Code 2.1.251, and Codex CLI 0.151.0: direct login reuse, 1M client configuration, PowerShell tools, Auto Mode, Explore subagents, Responses tools, and `apply_patch`. Regressed real Anthropic/Responses and Claude Code/Codex file tools on macOS ARM64.
+
 ## 0.1.2 - 2026-08-30
 
 - Fixed Claude Code 2.1.251 requests being rejected by Cloud Code as `429 RESOURCE_EXHAUSTED` because of the newly injected standalone `You are a Claude agent, built on Anthropic's Claude Agent SDK.` provider marker. The gateway now replaces only that transport-specific identity line with a neutral compatibility identity and preserves the rest of the system prompt unchanged.

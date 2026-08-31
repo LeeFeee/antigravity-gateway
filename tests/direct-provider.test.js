@@ -7,7 +7,14 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
-const { LocalAgyAuthProvider, decodeKeychainRecord, discoverClientCredentials } = require('../src/local-agy-auth');
+const {
+  LocalAgyAuthProvider,
+  agyBinaryPaths,
+  decodeKeychainRecord,
+  defaultPaths,
+  discoverClientCredentials,
+  scanClientMetadata
+} = require('../src/local-agy-auth');
 
 function normalized(stream = false) {
   return {
@@ -146,7 +153,22 @@ test('direct request does not duplicate the signature sentinel for parallel Gemi
 
 test('direct request keeps a visible response budget for high-thinking models', () => {
   const request = buildDirectRequest({ ...normalized(), generationConfig: { maxOutputTokens: 16 } }, 'gemini-3.7-flash-high', 'project-1', '-123');
-  assert.equal(request.request.generationConfig.maxOutputTokens, 128);
+  assert.equal(request.request.generationConfig.maxOutputTokens, 1024);
+});
+
+test('direct request keeps a visible response budget for low-tier Gemini 3 models', () => {
+  const request = buildDirectRequest({ ...normalized(), generationConfig: { maxOutputTokens: 64 } }, 'gemini-3.7-flash-low', 'project-1', '-123');
+  assert.equal(request.request.generationConfig.maxOutputTokens, 1024);
+});
+
+test('direct request reserves enough hidden-thinking budget for Claude Code Auto mode XML', () => {
+  const request = buildDirectRequest({
+    ...normalized(),
+    autoMode: true,
+    autoModeFormat: 'severity',
+    generationConfig: { maxOutputTokens: 64 }
+  }, 'gemini-3.7-flash-low', 'project-1', '-123');
+  assert.equal(request.request.generationConfig.maxOutputTokens, 8192);
 });
 
 test('direct provider parses non-stream text and usage', async () => {
@@ -248,13 +270,21 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
       assert.match(url, /fetchAvailableModels$/);
       assert.equal(options.body, '{}');
       return new Response(JSON.stringify({ models: {
-        'gemini-3.7-flash-high': { displayName: 'Flash' },
+        'gemini-3.7-flash-high': { displayName: 'Flash', maxTokens: 1048576, maxOutputTokens: 65536, supportsImages: true, supportsThinking: true },
         'models/claude-sonnet-5': { displayName: 'Claude' },
         'not a model': { displayName: 'ignored' }
       } }), { status: 200 });
     }
   });
   assert.deepEqual(await provider.listModels(), ['gemini-3.7-flash-high', 'claude-sonnet-5']);
+  assert.deepEqual(provider.modelInfo('gemini-3.7-flash-high'), {
+    displayName: 'Flash',
+    maxTokens: 1048576,
+    maxOutputTokens: 65536,
+    supportsImages: true,
+    supportsThinking: true
+  });
+  assert.equal(provider.modelInfo('missing'), null);
 });
 
 test('direct provider returns native function calls without a gateway envelope', async () => {
@@ -322,6 +352,36 @@ test('local agy auth adapter reads jetski state and does not write refreshed pla
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
+test('Windows local agy auth reads the official antigravity-cli session without changing macOS paths', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-windows-auth-test-'));
+  const windowsFile = path.join(dir, '.gemini', 'antigravity-cli', 'antigravity-oauth-token');
+  fs.mkdirSync(path.dirname(windowsFile), { recursive: true });
+  fs.writeFileSync(windowsFile, JSON.stringify({ token: {
+    access_token: 'windows-local-token',
+    refresh_token: 'windows-local-refresh',
+    expiry: '2099-01-01T00:00:00Z'
+  }, auth_method: 'consumer' }));
+  const auth = new LocalAgyAuthProvider({ homeDir: dir, platform: 'win32' });
+  const result = await auth.get();
+  assert.equal(result.accessToken, 'windows-local-token');
+  assert.equal(result.sourcePath, windowsFile);
+  assert.equal(defaultPaths(dir, 'win32')[0], windowsFile);
+  assert.equal(defaultPaths(dir, 'darwin').includes(windowsFile), false);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('Windows agy binary discovery uses LOCALAPPDATA while macOS candidates remain unchanged', () => {
+  const dir = path.join(os.tmpdir(), 'antigravity-platform-paths');
+  const localAppData = path.join(dir, 'Local');
+  assert.equal(
+    agyBinaryPaths(dir, 'win32', { LOCALAPPDATA: localAppData })[0],
+    path.resolve(localAppData, 'agy', 'bin', 'agy.exe')
+  );
+  const macPaths = agyBinaryPaths(dir, 'darwin', {});
+  assert.equal(macPaths.includes(path.resolve(dir, '.local', 'bin', 'agy')), true);
+  assert.equal(macPaths.some((item) => item.endsWith('agy.exe')), false);
+});
+
 test('local agy auth reads the official macOS Keychain record before stale files', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-keychain-test-'));
   const file = path.join(dir, '.gemini', 'jetski-standalone-oauth-token');
@@ -358,6 +418,23 @@ test('OAuth credential discovery does not absorb adjacent Mach-O bytes into the 
   fs.writeFileSync(binary, `123456789-${'b'.repeat(20)}.apps.googleusercontent.com\0${expectedSecret}${'Z'.repeat(40)}`);
   const credentials = discoverClientCredentials({ homeDir: dir, agyPath: binary });
   assert.equal(credentials[0].clientSecret, expectedSecret);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('OAuth metadata scanner handles large native executables incrementally', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-stream-scan-test-'));
+  const binary = path.join(dir, 'agy.exe');
+  const clientId = `123456789-${'c'.repeat(20)}.apps.googleusercontent.com`;
+  const clientSecret = `GOCSPX-${'d'.repeat(28)}`;
+  fs.writeFileSync(binary, Buffer.concat([
+    Buffer.alloc((4 * 1024 * 1024) - 20, 0),
+    Buffer.from(`${clientId}\0${clientSecret}`),
+    Buffer.alloc(128, 0)
+  ]));
+  assert.deepEqual(scanClientMetadata(binary), {
+    clientIds: [clientId],
+    clientSecrets: [clientSecret]
+  });
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

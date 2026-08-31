@@ -35,6 +35,19 @@ test('default CLI command is portable and resolved from PATH', () => {
   assert.equal(resolveAgyCommand('/custom/bin/agy'), '/custom/bin/agy');
 });
 
+test('Windows CLI resolution finds the official LOCALAPPDATA installation', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-windows-cli-test-'));
+  const binary = path.join(root, 'agy', 'bin', 'agy.exe');
+  fs.mkdirSync(path.dirname(binary), { recursive: true });
+  fs.writeFileSync(binary, 'test');
+  assert.equal(resolveAgyCommand('', {
+    platform: 'win32',
+    env: { LOCALAPPDATA: root },
+    homeDir: path.join(root, 'home')
+  }), binary);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test('worker preserves a process across turns and converts cumulative usage to deltas', async (t) => {
   const worker = makeWorker(t);
   const deltas = [];
@@ -73,4 +86,20 @@ test('diagnostics redact tokens and usageDelta never goes negative', () => {
 test('child environment excludes unrelated credentials', () => {
   const env = safeChildEnv({ HOME: '/tmp/home', PATH: '/bin', OPENAI_API_KEY: 'secret', ANTIGRAVITY_GATEWAY_API_KEY: 'secret2' });
   assert.deepEqual(env, { HOME: '/tmp/home', PATH: '/bin' });
+});
+
+test('Windows child environment preserves OS and agy profile paths but excludes credentials', () => {
+  const env = safeChildEnv({
+    PATH: 'C:\\Windows',
+    USERPROFILE: 'C:\\Users\\test',
+    APPDATA: 'C:\\Users\\test\\AppData\\Roaming',
+    LOCALAPPDATA: 'C:\\Users\\test\\AppData\\Local',
+    SystemRoot: 'C:\\Windows',
+    COMSPEC: 'C:\\Windows\\System32\\cmd.exe',
+    OPENAI_API_KEY: 'secret'
+  }, 'win32');
+  assert.equal(env.USERPROFILE, 'C:\\Users\\test');
+  assert.equal(env.LOCALAPPDATA, 'C:\\Users\\test\\AppData\\Local');
+  assert.equal(env.SystemRoot, 'C:\\Windows');
+  assert.equal(env.OPENAI_API_KEY, undefined);
 });

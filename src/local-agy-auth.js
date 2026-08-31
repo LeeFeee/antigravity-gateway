@@ -57,11 +57,17 @@ function normalizeRecord(raw, sourcePath) {
   };
 }
 
-function defaultPaths(homeDir = os.homedir()) {
-  return [
+function defaultPaths(homeDir = os.homedir(), platform = process.platform) {
+  const paths = [
     path.join(homeDir, '.gemini', 'jetski-standalone-oauth-token'),
     path.join(homeDir, '.gemini', 'oauth_creds.json')
   ];
+  if (platform === 'win32') {
+    // The Windows agy CLI owns this file. Read it in place and never write a
+    // refreshed token back; the official CLI remains the credential owner.
+    paths.unshift(path.join(homeDir, '.gemini', 'antigravity-cli', 'antigravity-oauth-token'));
+  }
+  return paths;
 }
 
 function safeReadJson(file) {
@@ -123,37 +129,66 @@ function normalizeClientCredentials(value) {
   })).filter((item) => item.clientId && item.clientSecret);
 }
 
-function agyBinaryPaths(homeDir = os.homedir()) {
-  return [
-    process.env.ANTIGRAVITY_CLI_PATH,
-    path.join(homeDir, '.local', 'bin', 'agy'),
-    path.join(homeDir, '.antigravity', 'antigravity', 'bin', 'agy'),
-    '/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity'
-  ].filter(Boolean).map((item) => path.resolve(item));
+function agyBinaryPaths(homeDir = os.homedir(), platform = process.platform, env = process.env) {
+  const platformPaths = platform === 'win32'
+    ? [
+        env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'agy', 'bin', 'agy.exe'),
+        path.join(homeDir, 'AppData', 'Local', 'agy', 'bin', 'agy.exe'),
+        path.join(homeDir, '.local', 'bin', 'agy.exe')
+      ]
+    : [
+        path.join(homeDir, '.local', 'bin', 'agy'),
+        path.join(homeDir, '.antigravity', 'antigravity', 'bin', 'agy'),
+        '/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity'
+      ];
+  return [env.ANTIGRAVITY_CLI_PATH, ...platformPaths]
+    .filter(Boolean)
+    .map((item) => path.resolve(item));
 }
 
-function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '' } = {}) {
+function scanClientMetadata(file) {
+  const clientIds = new Set();
+  const clientSecrets = new Set();
+  const descriptor = fs.openSync(file, 'r');
+  const chunk = Buffer.allocUnsafe(4 * 1024 * 1024);
+  let carry = '';
+  try {
+    while (true) {
+      const bytes = fs.readSync(descriptor, chunk, 0, chunk.length, null);
+      if (!bytes) break;
+      const text = carry + chunk.subarray(0, bytes).toString('latin1');
+      for (const value of text.match(/[0-9]{8,}-[a-z0-9-]{20,}\.apps\.googleusercontent\.com/gi) || []) clientIds.add(value);
+      for (const value of text.match(/GOCSPX-[A-Za-z0-9_-]{28}/g) || []) clientSecrets.add(value);
+      carry = text.slice(-256);
+    }
+  } finally {
+    fs.closeSync(descriptor);
+  }
+  return { clientIds: [...clientIds], clientSecrets: [...clientSecrets] };
+}
+
+function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '', platform = process.platform, env = process.env } = {}) {
   if (discoveredClientCredentials) return discoveredClientCredentials;
   const configured = normalizeClientCredentials(
-    process.env.ANTIGRAVITY_GOOGLE_CLIENT_ID && process.env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET
-      ? [{ clientId: process.env.ANTIGRAVITY_GOOGLE_CLIENT_ID, clientSecret: process.env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET }]
+    env.ANTIGRAVITY_GOOGLE_CLIENT_ID && env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET
+      ? [{ clientId: env.ANTIGRAVITY_GOOGLE_CLIENT_ID, clientSecret: env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET }]
       : []
   );
   if (configured.length) return (discoveredClientCredentials = configured);
-  const paths = agyPath ? [path.resolve(agyPath), ...agyBinaryPaths(homeDir)] : agyBinaryPaths(homeDir);
+  const paths = agyPath
+    ? [path.resolve(agyPath), ...agyBinaryPaths(homeDir, platform, env)]
+    : agyBinaryPaths(homeDir, platform, env);
   const candidates = [];
   for (const file of [...new Set(paths)]) {
     try {
       if (!fs.statSync(file).isFile()) continue;
       // The official agy binary contains the installed OAuth client metadata.
-      // Read it only at runtime; no client credential is stored in this repo.
-      const text = fs.readFileSync(file).toString('latin1');
-      const ids = [...new Set(text.match(/[0-9]{8,}-[a-z0-9-]{20,}\.apps\.googleusercontent\.com/gi) || [])];
-      // Google desktop OAuth secrets use 28 characters after GOCSPX-. Do not
-      // use an open-ended quantifier here: Mach-O bytes adjacent to the secret
-      // can also look like URL-safe characters and produce an invalid secret.
-      const secrets = [...new Set(text.match(/GOCSPX-[A-Za-z0-9_-]{28}/g) || [])];
-      for (const clientId of ids) for (const clientSecret of secrets) candidates.push({ clientId, clientSecret });
+      // Scan it incrementally: the current Windows executable is large enough
+      // that converting the whole binary to a string can exhaust Node's heap.
+      // Google desktop OAuth secrets use exactly 28 characters after GOCSPX-;
+      // an open-ended match can absorb adjacent binary bytes.
+      const { clientIds, clientSecrets } = scanClientMetadata(file);
+      for (const clientId of clientIds) for (const clientSecret of clientSecrets) candidates.push({ clientId, clientSecret });
       if (candidates.length) break;
     } catch { /* another installation path may exist */ }
   }
@@ -176,8 +211,9 @@ class LocalAgyAuthProvider {
     this.fetchImpl = fetchImpl;
     this.tokenEndpoint = tokenEndpoint;
     this.clientCredentials = normalizeClientCredentials(clientCredentials);
-    this.paths = authFile ? [path.resolve(authFile)] : defaultPaths(homeDir);
     this.platform = platform;
+    this.homeDir = homeDir;
+    this.paths = authFile ? [path.resolve(authFile)] : defaultPaths(homeDir, platform);
     this.keychainService = keychainService;
     this.keychainAccount = keychainAccount;
     this.execFileSyncImpl = execFileSyncImpl;
@@ -215,7 +251,9 @@ class LocalAgyAuthProvider {
 
   async refresh(signal, refreshToken) {
     if (!refreshToken) throw new LocalAgyAuthError('本地 agy 登录态缺少 refresh token。', { code: 'local_agy_refresh_missing' });
-    const candidates = this.clientCredentials.length ? this.clientCredentials : discoverClientCredentials();
+    const candidates = this.clientCredentials.length
+      ? this.clientCredentials
+      : discoverClientCredentials({ homeDir: this.homeDir, platform: this.platform });
     if (!candidates.length) throw new LocalAgyAuthError('无法从本地 agy 安装中发现 OAuth 客户端配置。', { code: 'local_agy_client_credentials_missing' });
     let lastStatus = 401;
     let lastDetails = '';
@@ -268,9 +306,11 @@ module.exports = {
   LocalAgyAuthError,
   LocalAgyAuthProvider,
   TOKEN_ENDPOINT,
+  agyBinaryPaths,
   decodeKeychainRecord,
   discoverClientCredentials,
   defaultPaths,
   normalizeRecord,
-  readMacKeychainRecord
+  readMacKeychainRecord,
+  scanClientMetadata
 };

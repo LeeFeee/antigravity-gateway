@@ -304,12 +304,23 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
 }
 
 function buildDirectRequest(normalized, model, projectId, sessionId, repairInstruction = '', thoughtSignatures = null) {
-  const generationConfig = normalized.generationConfig ? { ...normalized.generationConfig } : null;
-  // High/thinking models spend part of maxOutputTokens on hidden reasoning. A
-  // tiny client cap (common in health checks and Auto-mode probes) otherwise
-  // leaves zero visible tokens and produces an empty response.
-  if (generationConfig && generationConfig.maxOutputTokens > 0 && generationConfig.maxOutputTokens < 128 && /(?:high|thinking)/i.test(model || '')) {
-    generationConfig.maxOutputTokens = 128;
+  let generationConfig = normalized.generationConfig ? { ...normalized.generationConfig } : null;
+  // Gemini 3 models at every reasoning tier spend part of maxOutputTokens on
+  // hidden reasoning. The previous 128-token floor was still observed to cut
+  // a six-token health reply down to "MAC_". Reserve provider-side reasoning
+  // room for tiny client caps; models still stop naturally after the requested
+  // short answer and the protocol adapter exposes only visible output.
+  if (generationConfig && generationConfig.maxOutputTokens > 0 && generationConfig.maxOutputTokens < 1024 && /^gemini-3(?:[.-]|$)/i.test(model || '')) {
+    generationConfig.maxOutputTokens = 1024;
+  }
+  // Claude Code Auto Mode often asks for only 64 visible tokens. Gemini 3's
+  // hidden reasoning is charged against the same upstream output budget, so
+  // 128 can still truncate a tiny verdict to "<severity>0". Reserve enough
+  // provider-side room for reasoning plus the complete XML classifier result;
+  // the adapter still returns only the normalized client contract.
+  if (normalized.autoMode && /^gemini-3(?:[.-]|$)/i.test(model || '')) {
+    generationConfig ||= {};
+    generationConfig.maxOutputTokens = Math.max(Number(generationConfig.maxOutputTokens) || 0, 8192);
   }
   const request = {
     contents: contentsFromNormalized(normalized, thoughtSignatures, model),
@@ -433,6 +444,7 @@ class DirectAntigravityProvider {
     this.maxRetries = Math.max(0, Number(maxRetries) || 0);
     this.retryBaseMs = Math.max(1, Number(retryBaseMs) || DEFAULT_RETRY_BASE_MS);
     this.discoveredModels = [];
+    this.discoveredModelInfo = new Map();
     this.fileAuth = {};
     this.authLoaded = false;
     this.projectLoaded = false;
@@ -554,14 +566,24 @@ class DirectAntigravityProvider {
           if (!response.ok) continue;
           let body;
           try { body = JSON.parse(text || '{}'); } catch { continue; }
-          const rawModels = Array.isArray(body.models)
-            ? body.models
+          const entries = Array.isArray(body.models)
+            ? body.models.map((value) => [extractModelId(value), value])
             : body.models && typeof body.models === 'object'
-              ? Object.keys(body.models)
+              ? Object.entries(body.models).map(([id, value]) => [extractModelId(id) || extractModelId(value), value])
               : [];
-          const models = rawModels.map(extractModelId).filter(Boolean);
+          const models = entries.map(([id]) => id).filter(Boolean);
           if (models.length) {
             this.discoveredModels = [...new Set(models)];
+            this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
+              const metadata = value && typeof value === 'object' ? value : {};
+              return [id, {
+                displayName: firstString(metadata.displayName, metadata.display_name) || id,
+                maxTokens: Math.max(0, Number(metadata.maxTokens ?? metadata.max_tokens ?? 0) || 0),
+                maxOutputTokens: Math.max(0, Number(metadata.maxOutputTokens ?? metadata.max_output_tokens ?? 0) || 0),
+                supportsImages: Boolean(metadata.supportsImages ?? metadata.supports_images),
+                supportsThinking: Boolean(metadata.supportsThinking ?? metadata.supports_thinking)
+              }];
+            }));
             return [...this.discoveredModels];
           }
         } catch {
@@ -572,6 +594,11 @@ class DirectAntigravityProvider {
       // Model discovery must not prevent the local gateway from starting.
     }
     return ['gemini-3.7-flash-high'];
+  }
+
+  modelInfo(model) {
+    const value = this.discoveredModelInfo.get(String(model || ''));
+    return value ? { ...value } : null;
   }
 
   baseUrls() {
