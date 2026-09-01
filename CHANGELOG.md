@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 - 2026-09-01
+
+- Added Windows Credential Manager authentication lookup for `LegacyGeneric:target=gemini:antigravity`, with the existing local session files retained as fallbacks.
+- Preserved macOS Keychain-first authentication and added platform-injected coverage so the Windows credential reader can be tested without affecting macOS.
+- Verified the release on macOS and Windows 11 with agy 1.1.22, including token refresh, model discovery, and a real direct request.
+
 ## 0.2.0 - 2026-08-31
 
 - Added first-class Windows support for the official `%USERPROFILE%\.gemini\antigravity-cli\antigravity-oauth-token` session and `%LOCALAPPDATA%\agy\bin\agy.exe`, without changing the existing macOS Keychain-first path.
