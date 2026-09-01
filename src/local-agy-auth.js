@@ -9,6 +9,7 @@ const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const KEYCHAIN_PREFIX = 'go-keyring-base64:';
 const DEFAULT_KEYCHAIN_SERVICE = 'gemini';
 const DEFAULT_KEYCHAIN_ACCOUNT = 'antigravity';
+const DEFAULT_WINDOWS_CREDENTIAL_TARGET = 'LegacyGeneric:target=gemini:antigravity';
 let discoveredClientCredentials;
 
 class LocalAgyAuthError extends Error {
@@ -86,6 +87,38 @@ function decodeKeychainRecord(secret, sourcePath = `keychain:${DEFAULT_KEYCHAIN_
       text = Buffer.from(text.slice(KEYCHAIN_PREFIX.length), 'base64').toString('utf8');
     }
     return normalizeRecord(JSON.parse(text), sourcePath);
+  } catch {
+    return null;
+  }
+}
+
+function readWindowsCredentialRecord({
+  platform = process.platform,
+  target = process.env.ANTIGRAVITY_WINDOWS_CREDENTIAL_TARGET || DEFAULT_WINDOWS_CREDENTIAL_TARGET,
+  execFileSyncImpl = execFileSync
+} = {}) {
+  if (platform !== 'win32') return null;
+  const script = [
+    'Add-Type -TypeDefinition @"',
+    'using System;',
+    'using System.Runtime.InteropServices;',
+    'public static class AntigravityCredentialReader {',
+    '  [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] public struct CREDENTIAL { public UInt32 Flags, Type; public IntPtr TargetName, Comment, LastWritten, CredentialBlobSize, CredentialBlob, Persist, AttributeCount, Attributes, TargetAlias, UserName; }',
+    '  [DllImport("advapi32.dll", EntryPoint="CredReadW", CharSet=CharSet.Unicode, SetLastError=true)] public static extern bool CredRead(string target, UInt32 type, UInt32 flags, out IntPtr credential);',
+    '  [DllImport("advapi32.dll")] public static extern void CredFree(IntPtr credential);',
+    '  public static string Read(string target) { IntPtr p; if(!CredRead(target,1,0,out p)) return ""; try { var c=Marshal.PtrToStructure<CREDENTIAL>(p); var b=new byte[(int)c.CredentialBlobSize]; if(b.Length>0) Marshal.Copy(c.CredentialBlob,b,0,b.Length); return Convert.ToBase64String(b); } finally { CredFree(p); } }',
+    '}',
+    '"@',
+    `$value = [AntigravityCredentialReader]::Read(${JSON.stringify(String(target))})`,
+    'if ($value) { [Console]::Write($value) }'
+  ].join('\n');
+  try {
+    const encoded = execFileSyncImpl('powershell.exe', [
+      '-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script
+    ], { encoding: 'utf8', timeout: 5000, maxBuffer: 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] });
+    const text = String(encoded || '').trim();
+    if (!text) return null;
+    return decodeKeychainRecord(Buffer.from(text, 'base64').toString('utf8'), `windows-credential:${target}`);
   } catch {
     return null;
   }
@@ -223,12 +256,18 @@ class LocalAgyAuthProvider {
 
   find() {
     if (this.useKeychain) {
-      const keychain = readMacKeychainRecord({
-        platform: this.platform,
-        service: this.keychainService,
-        account: this.keychainAccount,
-        execFileSyncImpl: this.execFileSyncImpl
-      });
+      const keychain = this.platform === 'win32'
+        ? readWindowsCredentialRecord({
+          platform: this.platform,
+          target: process.env.ANTIGRAVITY_WINDOWS_CREDENTIAL_TARGET || DEFAULT_WINDOWS_CREDENTIAL_TARGET,
+          execFileSyncImpl: this.execFileSyncImpl
+        })
+        : readMacKeychainRecord({
+          platform: this.platform,
+          service: this.keychainService,
+          account: this.keychainAccount,
+          execFileSyncImpl: this.execFileSyncImpl
+        });
       if (keychain) return keychain;
     }
     for (const file of this.paths) {
@@ -312,5 +351,6 @@ module.exports = {
   defaultPaths,
   normalizeRecord,
   readMacKeychainRecord,
+  readWindowsCredentialRecord,
   scanClientMetadata
 };

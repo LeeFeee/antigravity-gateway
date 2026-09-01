@@ -13,6 +13,7 @@ const {
   decodeKeychainRecord,
   defaultPaths,
   discoverClientCredentials,
+  readWindowsCredentialRecord,
   scanClientMetadata
 } = require('../src/local-agy-auth');
 
@@ -361,7 +362,7 @@ test('Windows local agy auth reads the official antigravity-cli session without 
     refresh_token: 'windows-local-refresh',
     expiry: '2099-01-01T00:00:00Z'
   }, auth_method: 'consumer' }));
-  const auth = new LocalAgyAuthProvider({ homeDir: dir, platform: 'win32' });
+  const auth = new LocalAgyAuthProvider({ homeDir: dir, platform: 'win32', useKeychain: false });
   const result = await auth.get();
   assert.equal(result.accessToken, 'windows-local-token');
   assert.equal(result.sourcePath, windowsFile);
@@ -380,6 +381,26 @@ test('Windows agy binary discovery uses LOCALAPPDATA while macOS candidates rema
   const macPaths = agyBinaryPaths(dir, 'darwin', {});
   assert.equal(macPaths.includes(path.resolve(dir, '.local', 'bin', 'agy')), true);
   assert.equal(macPaths.some((item) => item.endsWith('agy.exe')), false);
+});
+
+test('Windows local agy auth reads the Windows Credential Manager record before files', async () => {
+  const encoded = Buffer.from(JSON.stringify({ token: {
+    access_token: 'windows-keyring-token',
+    refresh_token: 'windows-keyring-refresh',
+    expiry: '2099-01-01T00:00:00Z'
+  }, auth_method: 'consumer' })).toString('base64');
+  let command = '';
+  const result = readWindowsCredentialRecord({
+    platform: 'win32',
+    target: 'LegacyGeneric:target=gemini:antigravity',
+    execFileSyncImpl: (file, args) => {
+      command = `${file} ${args.join(' ')}`;
+      return encoded;
+    }
+  });
+  assert.equal(result.accessToken, 'windows-keyring-token');
+  assert.equal(result.sourcePath, 'windows-credential:LegacyGeneric:target=gemini:antigravity');
+  assert.match(command, /CredReadW/);
 });
 
 test('local agy auth reads the official macOS Keychain record before stale files', async () => {
