@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 - 2026-09-01
+
+- Preserve the exact model ID supplied by Anthropic, Responses, and Chat Completions clients. The default model is now used only when a request omits `model`.
+- Removed automatic Claude/GPT/Haiku alias rewriting. Unknown models now return `model_not_found`; `ANTIGRAVITY_MODEL_ALIASES` remains available only for user-defined exact mappings.
+- Restrict the auxiliary fast-model route to detected Claude Code Auto Mode classifier requests, without changing the model used by the main conversation.
+- Added a concise startup banner with protocol-specific BaseURLs, API-key guidance, the active local credential source, and selected Gemini 3.7/Claude model IDs.
+- Added `--models`, `--claude-config`, and `--claude-config-path`. The generated Claude Code `modelPicker` settings expose every model discovered for the current account without inventing aliases.
+- Kept the Windows/macOS local credential acquisition implementation unchanged.
+
 ## 0.2.1 - 2026-09-01
 
 - Added Windows Credential Manager authentication lookup for `LegacyGeneric:target=gemini:antigravity`, with the existing local session files retained as fallbacks.

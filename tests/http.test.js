@@ -13,7 +13,13 @@ process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
 // deterministic and exercise the official subprocess fallback here.
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 
-const { codexModelInfo, createServer } = require('../antigravity-gateway');
+const {
+  claudeConfigBody,
+  codexModelInfo,
+  createServer,
+  featuredModels,
+  startupBanner
+} = require('../antigravity-gateway');
 const { version: packageVersion } = require('../package.json');
 
 async function withServer(t) {
@@ -31,9 +37,38 @@ test('model endpoint reflects agy models', async (t) => {
   const response = await fetch(`${base}/v1/models`);
   assert.equal(response.status, 200);
   const body = await response.json();
-  assert.deepEqual(body.data.map((item) => item.id), ['gemini-test-high', 'gemini-test-low']);
-  assert.deepEqual(body.models.map((item) => item.slug), ['gemini-test-high', 'gemini-test-low']);
+  const expected = ['gemini-test-high', 'gemini-test-low', 'claude-opus-4-6-thinking', 'claude-sonnet-4-6'];
+  assert.deepEqual(body.data.map((item) => item.id), expected);
+  assert.deepEqual(body.models.map((item) => item.slug), expected);
   assert.equal(body.models[0].supports_parallel_tool_calls, true);
+});
+
+test('Claude model picker contains every discovered model with exact IDs', () => {
+  const models = ['gemini-3.7-flash-high', 'claude-opus-4-6-thinking'];
+  const body = claudeConfigBody(models);
+  assert.equal(body.modelPicker.replaceBuiltInOptions, true);
+  assert.deepEqual(body.modelPicker.options.map((item) => item.model), models);
+});
+
+test('startup banner shows only featured real IDs and client base URLs', () => {
+  const models = [
+    'gemini-2.5-pro',
+    'gemini-3.7-flash-low',
+    'claude-sonnet-4-6',
+    'claude-opus-4-6-thinking'
+  ];
+  assert.deepEqual(featuredModels(models), [
+    'gemini-3.7-flash-low',
+    'claude-opus-4-6-thinking',
+    'claude-sonnet-4-6'
+  ]);
+  const banner = startupBanner({ models, credentialSource: 'test-credential-source' });
+  assert.match(banner, /BaseURL:\n    Antigravity: http:\/\/127\.0\.0\.1:9897\n    OpenAI: http:\/\/127\.0\.0\.1:9897\/v1/);
+  assert.match(banner, /API Key: antigravity-gateway（任意内容）/);
+  assert.match(banner, /本地密钥: test-credential-source/);
+  assert.match(banner, /    gemini-3\.7-flash-low/);
+  assert.doesNotMatch(banner, /    gemini-2\.5-pro/);
+  assert.match(banner, /更多模型: antigravity-gateway --models/);
 });
 
 test('Gemini 3.7 Flash advertises its 1M context even when discovery metadata is temporarily unavailable', () => {
@@ -196,15 +231,82 @@ test('current Claude Code Auto mode output-format contract uses the fast route',
   assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
 });
 
-test('Claude Code Haiku helper agents use the fast model route', async (t) => {
+test('normal Claude model IDs are never silently replaced', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6-thinking',
+      messages: [{ role: 'user', content: 'normal request' }]
+    })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
+});
+
+test('Chat Completions and Responses preserve exact client model IDs', async (t) => {
+  const base = await withServer(t);
+  const chat = await fetch(`${base}/v1/chat/completions`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      messages: [{ role: 'user', content: 'chat request' }]
+    })
+  });
+  assert.equal(chat.status, 200);
+  assert.equal(chat.headers.get('x-antigravity-model'), 'claude-sonnet-4-6');
+
+  const responses = await fetch(`${base}/v1/responses`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-opus-4-6-thinking',
+      input: 'responses request'
+    })
+  });
+  assert.equal(responses.status, 200);
+  assert.equal(responses.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
+});
+
+test('missing models return model_not_found instead of the default model', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/messages`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      messages: [{ role: 'user', content: 'helper request' }]
+      messages: [{ role: 'user', content: 'normal request' }]
+    })
+  });
+  const body = await response.json();
+  assert.equal(response.status, 400);
+  assert.equal(body.error.type, 'model_not_found');
+  assert.match(body.error.message, /claude-haiku-4-5-20251001/);
+});
+
+test('a missing client model field uses the configured default only', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ messages: [{ role: 'user', content: 'default request' }] })
+  });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-high');
+});
+
+test('explicit model aliases remain opt-in exact mappings', async (t) => {
+  const previous = process.env.ANTIGRAVITY_MODEL_ALIASES;
+  process.env.ANTIGRAVITY_MODEL_ALIASES = JSON.stringify({ 'my-opus': 'claude-opus-4-6-thinking' });
+  t.after(() => {
+    if (previous === undefined) delete process.env.ANTIGRAVITY_MODEL_ALIASES;
+    else process.env.ANTIGRAVITY_MODEL_ALIASES = previous;
+  });
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'my-opus',
+      messages: [{ role: 'user', content: 'explicit alias request' }]
     })
   });
   assert.equal(response.status, 200);
-  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+  assert.equal(response.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
 });

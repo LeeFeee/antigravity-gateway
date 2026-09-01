@@ -45,6 +45,9 @@ function parseArgs(argv) {
     else if (arg === '--agy-path') result.agyPath = argv[++index];
     else if (['-m', '--model'].includes(arg)) result.model = argv[++index];
     else if (arg === '--codex-catalog-path') result.codexCatalogPath = true;
+    else if (arg === '--claude-config-path') result.claudeConfigPath = true;
+    else if (arg === '--claude-config') result.claudeConfig = true;
+    else if (arg === '--models') result.models = true;
     else if (require.main === module) throw new Error(`未知选项: ${arg}`);
   }
   return result;
@@ -79,7 +82,6 @@ const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE |
 const MODEL_CACHE_MS = 60000;
 const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
 const DIRECT_PROVIDER = new DirectAntigravityProvider();
-const DIRECT_ALLOW_ANY_MODEL = process.env.ANTIGRAVITY_DIRECT_ALLOW_ANY_MODEL !== '0';
 
 const responseStore = new Map();
 const activeWorkers = new Set();
@@ -134,7 +136,8 @@ function isLoopbackHost(host) {
 function configuredAliases() {
   try {
     const value = JSON.parse(process.env.ANTIGRAVITY_MODEL_ALIASES || '{}');
-    return value && typeof value === 'object' ? value : {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter(([source, target]) => source && typeof target === 'string' && target.trim()));
   } catch {
     return {};
   }
@@ -167,10 +170,6 @@ async function availableModels(force = false) {
   return modelCache.models;
 }
 
-function isClientAlias(model) {
-  return /^(claude|gpt|codex|o[134](?:-|$))/i.test(model || '');
-}
-
 function preferredFastModel(models) {
   if (FAST_MODEL) return FAST_MODEL;
   const priorities = [
@@ -193,21 +192,14 @@ async function resolveModel(requested, { preferFast = false } = {}) {
   const models = await availableModels();
   const aliases = configuredAliases();
   const original = requested || DEFAULT_MODEL;
-  const explicitAlias = aliases[original];
-  let chosen = explicitAlias || original;
-  if (!explicitAlias && (preferFast || /^claude-haiku(?:-|$)/i.test(original))) {
-    chosen = preferredFastModel(models);
-  }
-  if (isClientAlias(chosen)) chosen = aliases[chosen] || DEFAULT_MODEL;
+  // Normal requests preserve the exact client model ID. Aliases are opt-in,
+  // exact mappings only. Auto Mode classifiers are the sole requests allowed
+  // to use the independent low-latency route.
+  const chosen = preferFast
+    ? preferredFastModel(models)
+    : (Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original);
   if (!models.includes(chosen)) {
-    if (usesDirectTransport() && DIRECT_ALLOW_ANY_MODEL && /^[a-z0-9][a-z0-9._-]{0,127}$/i.test(chosen)) return chosen;
-    if (chosen === DEFAULT_MODEL && models.length) {
-      chosen = models.find((model) => model.startsWith('gemini-') && /high$/.test(model))
-        || models.find((model) => model.startsWith('gemini-'))
-        || models[0];
-    } else {
-      throw new GatewayError(`Antigravity 当前账号没有模型: ${chosen}`, { code: 'model_not_found', status: 400 });
-    }
+    throw new GatewayError(`Antigravity 当前账号没有模型: ${chosen}`, { code: 'model_not_found', status: 400 });
   }
   return chosen;
 }
@@ -275,6 +267,10 @@ function codexCatalogPath() {
   return path.join(CONFIG_DIR, 'codex-models.json');
 }
 
+function claudeConfigPath() {
+  return path.join(CONFIG_DIR, 'claude-models.json');
+}
+
 function codexCatalogBody(models) {
   return {
     object: 'list',
@@ -292,6 +288,82 @@ function writeCodexCatalog(models) {
   return target;
 }
 
+function claudeConfigBody(models) {
+  return {
+    $schema: 'https://json.schemastore.org/claude-code-settings.json',
+    modelPicker: {
+      options: models.map((model) => ({
+        model,
+        label: model,
+        description: 'Antigravity Gateway'
+      })),
+      replaceBuiltInOptions: true
+    }
+  };
+}
+
+function writeClaudeConfig(models) {
+  const target = claudeConfigPath();
+  fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+  const temporary = `${target}.${process.pid}.tmp`;
+  fs.writeFileSync(temporary, `${JSON.stringify(claudeConfigBody(models), null, 2)}\n`, { mode: 0o600 });
+  fs.renameSync(temporary, target);
+  return target;
+}
+
+function featuredModels(models) {
+  const available = new Set(models);
+  const priorities = [
+    'gemini-3.7-flash-high',
+    'gemini-3.7-flash-medium',
+    'gemini-3.7-flash-low',
+    'gemini-3.7-flash-tiered'
+  ];
+  const selected = priorities.filter((model) => available.has(model));
+  for (const model of [...models].sort()) {
+    if (/^gemini-3\.7(?:[.-]|$)/i.test(model) && !selected.includes(model)) selected.push(model);
+  }
+  for (const model of ['claude-opus-4-6-thinking', 'claude-sonnet-4-6']) {
+    if (available.has(model)) selected.push(model);
+  }
+  return selected;
+}
+
+function credentialSourceDescription() {
+  if (!usesDirectTransport()) return '官方 agy 系统 Keyring（由 agy 管理）';
+  if (DIRECT_PROVIDER.localAuth?.last?.sourcePath) return DIRECT_PROVIDER.localAuth.last.sourcePath;
+  if (DIRECT_PROVIDER.authFile) return DIRECT_PROVIDER.authFile;
+  if (process.env.ANTIGRAVITY_ACCESS_TOKEN || process.env.ANTIGRAVITY_REFRESH_TOKEN) return '环境变量（值不显示）';
+  return '未检测到';
+}
+
+function startupBanner({ models = [], modelError = '', credentialSource = credentialSourceDescription() } = {}) {
+  const baseUrl = `http://${HOST}:${PORT}`;
+  const apiKey = API_KEY
+    ? '已配置（使用 ANTIGRAVITY_GATEWAY_API_KEY 的值）'
+    : 'antigravity-gateway（任意内容）';
+  const lines = [
+    '=================================================================',
+    ' 🚀 Antigravity Gateway 已启动',
+    '-----------------------------------------------------------------',
+    ` 网关版本: v${GATEWAY_VERSION}`,
+    ' BaseURL:',
+    `    Antigravity: ${baseUrl}`,
+    `    OpenAI: ${baseUrl}/v1`,
+    ` API Key: ${apiKey}`,
+    ` 本地密钥: ${credentialSource}`,
+    ` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`,
+    ' 可用模型:'
+  ];
+  const selected = featuredModels(models);
+  if (selected.length) lines.push(...selected.map((model) => `    ${model}`));
+  else lines.push(`    ${modelError ? `检测失败：${modelError}` : '未发现精选模型'}`);
+  lines.push(' 更多模型: antigravity-gateway --models');
+  lines.push(' Claude Code 模型配置: antigravity-gateway --claude-config-path');
+  lines.push('=================================================================');
+  return lines.join('\n');
+}
+
 function printHelp() {
   console.log(`Antigravity Gateway ${GATEWAY_VERSION}
 
@@ -305,7 +377,10 @@ function printHelp() {
   -H, --host <address>    监听地址，默认 127.0.0.1
   --agy-path <path>       agy 可执行文件路径
   -m, --model <id>        默认 Antigravity 模型
+  --models                 显示当前账号的全部真实模型 ID
   --codex-catalog-path    显示自动生成的 Codex 模型目录绝对路径
+  --claude-config-path    显示自动生成的 Claude Code 模型配置路径
+  --claude-config         输出 Claude Code modelPicker 配置 JSON
 
 传输模式:
   ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
@@ -625,9 +700,7 @@ function emitResponsesStream(res, body) {
 async function handleAnthropic(payload, req, res, signal) {
   const normalized = normalizeAnthropic(payload);
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
-  const requestClass = normalized.autoMode
-    ? 'auto-mode'
-    : /^claude-haiku(?:-|$)/i.test(normalized.model || '') ? 'helper-agent' : 'main';
+  const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
   console.log(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
@@ -641,7 +714,7 @@ async function handleAnthropic(payload, req, res, signal) {
 async function handleChat(payload, req, res, signal) {
   const normalized = normalizeChat(payload);
   const model = await resolveModel(normalized.model);
-  console.log(`[Antigravity Gateway] /v1/chat/completions model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  console.log(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
@@ -664,7 +737,7 @@ async function handleResponses(payload, req, res, signal) {
   if (previous) previous.at = Date.now();
   const normalized = normalizeResponses(payload, previous);
   const model = await resolveModel(normalized.model);
-  console.log(`[Antigravity Gateway] /v1/responses model=${model} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  console.log(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
     const customTools = (payload.tools || []).filter((tool) => tool?.type === 'custom');
     if (customTools.length) console.log(`[Antigravity Gateway Debug] custom-tools=${JSON.stringify(customTools).slice(0, 4000)}`);
@@ -729,9 +802,11 @@ async function requestHandler(req, res) {
         listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: versionCache },
         transport: usesDirectTransport() ? 'direct' : 'agy',
         auth: usesDirectTransport() ? directAuthDescription() : 'official-agy-keyring-session',
+        credential_source: credentialSourceDescription(),
         codex_model_catalog: codexCatalogPath(),
-        default_model: await resolveModel(DEFAULT_MODEL),
-        fast_model: await resolveModel('claude-haiku-internal', { preferFast: true }),
+        claude_model_config: claudeConfigPath(),
+        default_model: DEFAULT_MODEL,
+        fast_model: preferredFastModel(models),
         models: models.length,
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
         capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), credentials_read_by_gateway: usesDirectTransport() }
@@ -742,8 +817,8 @@ async function requestHandler(req, res) {
       const models = await availableModels(true);
       sendJson(res, 200, {
         ...codexCatalogBody(models),
-        default_model: await resolveModel(DEFAULT_MODEL),
-        fast_model: await resolveModel('claude-haiku-internal', { preferFast: true })
+        default_model: DEFAULT_MODEL,
+        fast_model: preferredFastModel(models)
       });
       return;
     }
@@ -788,6 +863,16 @@ if (require.main === module) {
   if (CLI_ARGS.help) { printHelp(); return; }
   if (CLI_ARGS.version) { console.log(GATEWAY_VERSION); return; }
   if (CLI_ARGS.codexCatalogPath) { console.log(codexCatalogPath()); return; }
+  if (CLI_ARGS.claudeConfigPath) { console.log(claudeConfigPath()); return; }
+  if (CLI_ARGS.models || CLI_ARGS.claudeConfig) {
+    void availableModels(true).then((models) => {
+      console.log(CLI_ARGS.models ? models.join('\n') : JSON.stringify(claudeConfigBody(models), null, 2));
+    }).catch((error) => {
+      console.error(`[Antigravity Gateway Error] ${error.message}`);
+      process.exitCode = 1;
+    });
+    return;
+  }
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
     console.error('[Antigravity Gateway Error] 端口必须是 1-65535 的整数。');
     process.exitCode = 1;
@@ -803,35 +888,22 @@ if (require.main === module) {
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
-    let modelInfo = '待首次请求检测';
-    let agyVersion = 'unknown';
-    let catalogInfo = codexCatalogPath();
+    let models = [];
+    let modelError = '';
     try {
-      const models = await availableModels(true);
-      modelInfo = `${models.length} 个模型，默认 ${await resolveModel(DEFAULT_MODEL)}，辅助 ${await resolveModel('claude-haiku-internal', { preferFast: true })}`;
-      try { catalogInfo = writeCodexCatalog(models); }
-      catch (error) { catalogInfo = `写入失败：${error.message}`; }
+      models = await availableModels(true);
+      try { writeCodexCatalog(models); }
+      catch (error) { console.warn(`[Antigravity Gateway] Codex 模型目录写入失败：${error.message}`); }
+      try { writeClaudeConfig(models); }
+      catch (error) { console.warn(`[Antigravity Gateway] Claude Code 模型配置写入失败：${error.message}`); }
       // Version detection is read-only and works for both the subprocess and
       // direct transports. Showing the real Windows CLI version is valuable
       // diagnostics even though direct mode does not invoke it per request.
-      agyVersion = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
-      versionCache = agyVersion;
+      versionCache = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
     } catch (error) {
-      modelInfo = `检测失败：${error.message}`;
+      modelError = error.message;
     }
-    console.log('=================================================================');
-    console.log(' 🚀 Antigravity Gateway 已启动');
-    console.log('-----------------------------------------------------------------');
-    console.log(` 网关版本: v${GATEWAY_VERSION}`);
-    console.log(` 监听地址: http://${HOST}:${PORT}`);
-    console.log(` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`);
-    console.log(` Antigravity CLI: ${AGY_PATH} (${agyVersion})`);
-    console.log(` 模型配置: ${modelInfo}`);
-    console.log(` Codex 模型目录: ${catalogInfo}`);
-    console.log(` 登录方式: ${usesDirectTransport() ? directAuthDescription() : '官方 agy 系统 Keyring（网关不读取令牌）'}`);
-    console.log(' 客户端接口: Claude Code / Codex CLI / OpenAI Chat Completions');
-    console.log(' 工具桥: 实验性结构化投影；工具由客户端执行');
-    console.log('=================================================================');
+    console.log(startupBanner({ models, modelError }));
   });
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') console.error(`[Antigravity Gateway Error] ${HOST}:${PORT} 已被占用，请关闭旧进程或设置 ANTIGRAVITY_GATEWAY_PORT。`);
@@ -848,6 +920,8 @@ if (require.main === module) {
 
 module.exports = {
   availableModels,
+  claudeConfigBody,
+  claudeConfigPath,
   codexCatalogBody,
   codexCatalogPath,
   codexModelInfo,
@@ -855,6 +929,8 @@ module.exports = {
   emitAnthropicStream,
   emitChatStream,
   emitResponsesStream,
+  featuredModels,
   resolveModel,
-  runTurn
+  runTurn,
+  startupBanner
 };

@@ -26,7 +26,12 @@ function makeWorker(t, overrides = {}) {
 }
 
 test('listModels filters output and getVersion reads the CLI', async () => {
-  assert.deepEqual(await listModels({ agyPath: process.execPath, prefixArgs: [fakeAgy] }), ['gemini-test-high', 'gemini-test-low']);
+  assert.deepEqual(await listModels({ agyPath: process.execPath, prefixArgs: [fakeAgy] }), [
+    'gemini-test-high',
+    'gemini-test-low',
+    'claude-opus-4-6-thinking',
+    'claude-sonnet-4-6'
+  ]);
   assert.equal(await getVersion({ agyPath: process.execPath, prefixArgs: [fakeAgy] }), '9.9.9-test');
 });
 

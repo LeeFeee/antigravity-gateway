@@ -4,7 +4,7 @@
 const readline = require('node:readline');
 
 if (process.argv.includes('models')) {
-  process.stdout.write('Fetching available models...\ngemini-test-high\tGemini Test High\ngemini-test-low\nnot a model\n');
+  process.stdout.write('Fetching available models...\ngemini-test-high\tGemini Test High\ngemini-test-low\nclaude-opus-4-6-thinking\nclaude-sonnet-4-6\nnot a model\n');
   process.exit(0);
 }
 if (process.argv.includes('--version')) {

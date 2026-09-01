@@ -10,7 +10,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.2.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前发布版本：`v0.3.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -83,7 +83,7 @@ npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeF
 
 ```bash
 antigravity-gateway --version
-# 0.2.1
+# 0.3.0
 ```
 
 安装后，无论终端当前位于哪个目录，都可以直接启动：
@@ -205,6 +205,7 @@ npm uninstall --global antigravity-gateway
 ```bash
 curl http://127.0.0.1:9897/
 curl http://127.0.0.1:9897/v1/models
+antigravity-gateway --models
 ```
 
 ### 客户端接口
@@ -227,8 +228,10 @@ export NO_PROXY=127.0.0.1,localhost
 
 ```bash
 export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
-export ANTHROPIC_AUTH_TOKEN=change-me
-export ANTHROPIC_API_KEY=change-me
+export ANTHROPIC_AUTH_TOKEN=antigravity-gateway
+export ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6-thinking
+export ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.7-flash-low
 export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
 claude --model 'gemini-3.7-flash-high[1m]'
 ```
@@ -237,8 +240,10 @@ Windows PowerShell：
 
 ```powershell
 $env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
-$env:ANTHROPIC_AUTH_TOKEN = "change-me"
-$env:ANTHROPIC_API_KEY = "change-me"
+$env:ANTHROPIC_AUTH_TOKEN = "antigravity-gateway"
+$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "claude-opus-4-6-thinking"
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-4-6"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.7-flash-low"
 $env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
 claude --model "gemini-3.7-flash-high[1m]"
 ```
@@ -247,12 +252,30 @@ Cloud Code 当前为 Gemini 3.7 Flash 返回 `1,048,576` 输入 tokens 和 `65,5
 
 如果 `settings.json` 里启用了 `CLAUDE_CODE_USE_BEDROCK`、`CLAUDE_CODE_USE_VERTEX` 或 `CLAUDE_CODE_USE_FOUNDRY`，Claude Code 会优先走对应云 provider，而不是 `ANTHROPIC_BASE_URL`。使用本地网关时请移除这些开关；这类请求不会到达网关日志。
 
-Claude Code 的内置 `Claude Code Guide`、Explore 等辅助 Agent 会指定 Haiku，Auto mode 也会产生独立的分类请求。网关默认把 Haiku 和已识别的 Auto mode 请求路由到当前账号可用的低延迟模型，避免和主会话争用高档模型容量；其他 `claude-*` 别名仍映射到 `ANTIGRAVITY_DEFAULT_MODEL`。可显式指定辅助模型或精确别名：
+Claude Code 2.1.242 及以上支持自定义 `modelPicker`。网关启动时会把当前账号发现的全部模型写入独立设置文件，使 `/model` 不再只显示 Claude 内置选项。
+
+macOS/Linux：
+
+```bash
+claude --settings "$(antigravity-gateway --claude-config-path)"
+```
+
+Windows PowerShell：
+
+```powershell
+claude --settings (antigravity-gateway --claude-config-path)
+```
+
+也可以运行 `antigravity-gateway --claude-config`，把输出中的 `modelPicker` 合并进 `~/.claude/settings.json`，以后直接运行 `claude` 即可。Claude Code 的网关自动发现目前会过滤非 Claude/Anthropic 名称，因此网关使用正式的 `modelPicker` 配置暴露 Gemini ID，而不是伪造 Claude 别名。
+
+普通请求严格使用客户端发送的模型 ID：只有请求没有 `model` 时才使用 `ANTIGRAVITY_DEFAULT_MODEL`。Auto Mode 分类请求是唯一例外，它单独使用 `ANTIGRAVITY_FAST_MODEL`，不会改变主会话模型。内置 Guide、Explore 等辅助 Agent 不是 Auto Mode；请通过上面的 `ANTHROPIC_DEFAULT_HAIKU_MODEL` 明确指定它们实际使用的模型。需要时也可以配置用户主动选择的精确别名：
 
 ```bash
 export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
 export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.7-flash-high"}'
 ```
+
+请求目录中不存在的模型会收到明确的 `model_not_found`，不会静默回退到默认 Gemini。显式别名只匹配 JSON 中完全相同的键，不存在任何默认 Claude/GPT 前缀替换。
 
 直连上游返回暂时性的 `429 RESOURCE_EXHAUSTED` 时，网关会先切换备用 Cloud Code 端点，再做一次有限指数退避。它不会压缩或删除客户端上下文；持续 429 仍会按真实错误返回。
 
@@ -311,6 +334,7 @@ Codex 的标准函数工具与 `apply_patch` 自由格式工具均会保持原�
 可用模型取决于用户自己的 Antigravity 账号、套餐、地区及 CLI 版本，项目不内置或承诺固定模型清单。`agy` 回退模式读取 `agy models`；直连模式优先调用 Cloud Code 的 `fetchAvailableModels`，失败时才使用保守默认 ID。也可以用 `ANTIGRAVITY_DIRECT_MODELS` 固定目录。启动网关后请查询当前网关目录：
 
 ```bash
+antigravity-gateway --models
 curl http://127.0.0.1:9897/v1/models
 ```
 
@@ -400,10 +424,10 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | 监听端口 |
 | `ANTIGRAVITY_GATEWAY_API_KEY` | 空 | 本地接口密码；非本机监听时必填 |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | 操作系统临时目录 | 隔离工作区和临时日志所在目录 |
-| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | 持久化 Codex 模型目录所在位置 |
-| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | 默认模型与 Claude 别名目标 |
-| `ANTIGRAVITY_FAST_MODEL` | 自动选择账号中的低延迟模型 | Haiku 辅助 Agent 与 Auto mode 分类请求目标 |
-| `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON 模型别名表 |
+| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | 持久化 Codex 模型目录和 Claude Code 模型配置的位置 |
+| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | 仅在客户端没有发送 `model` 时使用 |
+| `ANTIGRAVITY_FAST_MODEL` | 自动选择账号中的低延迟模型 | 仅用于已识别的 Auto Mode 分类请求 |
+| `ANTIGRAVITY_MODEL_ALIASES` | `{}` | 用户主动配置的精确 JSON 模型映射；默认不改写任何 ID |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | 429/5xx 在备用端点失败后的额外重试轮数 |
 | `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | 直连瞬时错误的初始退避毫秒数 |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单轮超时 |
@@ -430,7 +454,7 @@ Claude Code connectivity probes are handled locally. Its telemetry batch endpoin
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.2.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current release: `v0.3.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -488,7 +512,7 @@ Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.2.1
+# 0.3.0
 ```
 
 Start from any directory with one command:
@@ -575,8 +599,10 @@ Cloning the repository and using `npm test` or `npm start` is only necessary for
 ```bash
 export NO_PROXY=127.0.0.1,localhost
 export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
-export ANTHROPIC_AUTH_TOKEN=change-me
-export ANTHROPIC_API_KEY=change-me
+export ANTHROPIC_AUTH_TOKEN=antigravity-gateway
+export ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6-thinking
+export ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.7-flash-low
 export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
 claude --model 'gemini-3.7-flash-high[1m]'
 ```
@@ -585,8 +611,10 @@ PowerShell:
 
 ```powershell
 $env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
-$env:ANTHROPIC_AUTH_TOKEN = "change-me"
-$env:ANTHROPIC_API_KEY = "change-me"
+$env:ANTHROPIC_AUTH_TOKEN = "antigravity-gateway"
+$env:ANTHROPIC_DEFAULT_OPUS_MODEL = "claude-opus-4-6-thinking"
+$env:ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-4-6"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.7-flash-low"
 $env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
 claude --model "gemini-3.7-flash-high[1m]"
 ```
@@ -595,12 +623,30 @@ Cloud Code currently reports a 1,048,576-token input window and 65,536 maximum o
 
 Remove `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, or `CLAUDE_CODE_USE_FOUNDRY` when using the local gateway. Those provider switches take precedence over `ANTHROPIC_BASE_URL`, so such requests never reach the gateway.
 
-Claude Code built-in helper agents such as Claude Code Guide and Explore request Haiku, while Auto mode sends separate classifier turns. The gateway routes Haiku aliases and detected Auto mode classifiers to an available low-latency model so they do not compete with the main high-tier route. Override the auxiliary model or an exact alias when needed:
+Claude Code 2.1.242 and later support a custom `modelPicker`. At startup, the gateway writes every model discovered for the current account to a separate settings file, so `/model` is no longer limited to Claude's built-in choices.
+
+macOS/Linux:
+
+```bash
+claude --settings "$(antigravity-gateway --claude-config-path)"
+```
+
+Windows PowerShell:
+
+```powershell
+claude --settings (antigravity-gateway --claude-config-path)
+```
+
+Alternatively, run `antigravity-gateway --claude-config` and merge the returned `modelPicker` object into `~/.claude/settings.json`. Claude Code's gateway model discovery currently filters out IDs that do not contain Claude/Anthropic, so this project uses the official picker setting to expose Gemini IDs instead of inventing Claude aliases.
+
+Normal requests preserve the exact client model ID. `ANTIGRAVITY_DEFAULT_MODEL` is used only when the request omits `model`. Detected Auto Mode classifier requests are the sole exception and use `ANTIGRAVITY_FAST_MODEL` independently without changing the main conversation model. Built-in Guide and Explore helper agents are not Auto Mode requests; use `ANTHROPIC_DEFAULT_HAIKU_MODEL` above to choose their real target explicitly. User-defined exact aliases remain available when needed:
 
 ```bash
 export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
 export ANTIGRAVITY_MODEL_ALIASES='{"claude-haiku-4-5-20251001":"gemini-3.7-flash-low"}'
 ```
+
+An unavailable model returns an explicit `model_not_found` error instead of silently falling back to Gemini. Alias keys are exact matches; no Claude/GPT prefix is rewritten by default.
 
 For transient `429 RESOURCE_EXHAUSTED` responses, direct transport tries the alternate Cloud Code endpoint and then performs one bounded exponential-backoff retry. It does not compress or discard client context; persistent quota errors remain visible to the client.
 
@@ -646,6 +692,7 @@ The catalog prevents Codex from applying fallback metadata to the third-party mo
 Available models depend on the user's Antigravity account, plan, region, and CLI version. The `agy` fallback reads `agy models`; direct mode first calls Cloud Code `fetchAvailableModels` and uses a conservative default only if discovery fails. `ANTIGRAVITY_DIRECT_MODELS` can pin the direct catalog. This project does not ship or guarantee a fixed catalog.
 
 ```bash
+antigravity-gateway --models
 curl http://127.0.0.1:9897/v1/models
 ```
 
@@ -670,10 +717,10 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | Listen port |
 | `ANTIGRAVITY_GATEWAY_API_KEY` | empty | Gateway key; required for non-loopback binding |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | OS temporary directory | Isolated workspaces and temporary logs |
-| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | Persistent generated Codex model catalog directory |
-| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | Default model and client-alias target |
-| `ANTIGRAVITY_FAST_MODEL` | auto-selected low-latency account model | Target for Haiku helper agents and Auto mode classifiers |
-| `ANTIGRAVITY_MODEL_ALIASES` | `{}` | JSON model alias map |
+| `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | Persistent generated Codex catalog and Claude Code model settings directory |
+| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | Used only when the client omits `model` |
+| `ANTIGRAVITY_FAST_MODEL` | auto-selected low-latency account model | Used only for detected Auto Mode classifier requests |
+| `ANTIGRAVITY_MODEL_ALIASES` | `{}` | User-defined exact JSON mappings; no model ID is rewritten by default |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | Additional retry rounds after both endpoints return 429/5xx |
 | `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` | `1500` | Initial direct-transport backoff in milliseconds |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Per-turn timeout |
