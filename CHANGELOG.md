@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 - 2026-09-02
+
+- Corrected the startup BaseURL label from `Antigravity` to `Anthropic`, matching the protocol served at the root URL. The OpenAI-compatible endpoint remains `/v1`.
+
 ## 0.3.0 - 2026-09-01
 
 - Preserve the exact model ID supplied by Anthropic, Responses, and Chat Completions clients. The default model is now used only when a request omits `model`.

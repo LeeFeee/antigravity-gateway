@@ -10,7 +10,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.3.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前发布版本：`v0.3.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -83,7 +83,7 @@ npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeF
 
 ```bash
 antigravity-gateway --version
-# 0.3.0
+# 0.3.1
 ```
 
 安装后，无论终端当前位于哪个目录，都可以直接启动：
@@ -454,7 +454,7 @@ Claude Code connectivity probes are handled locally. Its telemetry batch endpoin
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.3.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current release: `v0.3.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -512,7 +512,7 @@ Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.3.0
+# 0.3.1
 ```
 
 Start from any directory with one command:

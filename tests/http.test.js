@@ -63,7 +63,7 @@ test('startup banner shows only featured real IDs and client base URLs', () => {
     'claude-sonnet-4-6'
   ]);
   const banner = startupBanner({ models, credentialSource: 'test-credential-source' });
-  assert.match(banner, /BaseURL:\n    Antigravity: http:\/\/127\.0\.0\.1:9897\n    OpenAI: http:\/\/127\.0\.0\.1:9897\/v1/);
+  assert.match(banner, /BaseURL:\n    Anthropic: http:\/\/127\.0\.0\.1:9897\n    OpenAI: http:\/\/127\.0\.0\.1:9897\/v1/);
   assert.match(banner, /API Key: antigravity-gateway（任意内容）/);
   assert.match(banner, /本地密钥: test-credential-source/);
   assert.match(banner, /    gemini-3\.7-flash-low/);

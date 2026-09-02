@@ -348,7 +348,7 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
     '-----------------------------------------------------------------',
     ` 网关版本: v${GATEWAY_VERSION}`,
     ' BaseURL:',
-    `    Antigravity: ${baseUrl}`,
+    `    Anthropic: ${baseUrl}`,
     `    OpenAI: ${baseUrl}/v1`,
     ` API Key: ${apiKey}`,
     ` 本地密钥: ${credentialSource}`,
