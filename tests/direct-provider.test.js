@@ -13,6 +13,7 @@ const {
   decodeKeychainRecord,
   defaultPaths,
   discoverClientCredentials,
+  readLinuxKeyringRecord,
   readWindowsCredentialRecord,
   scanClientMetadata
 } = require('../src/local-agy-auth');
@@ -288,6 +289,18 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
   assert.equal(provider.modelInfo('missing'), null);
 });
 
+test('direct provider model-discovery fallback uses the current default family', async () => {
+  const provider = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token',
+    projectId: 'project-1',
+    baseUrl: 'https://example.test',
+    models: [],
+    fetchImpl: async () => new Response('temporarily unavailable', { status: 503 })
+  });
+  assert.deepEqual(await provider.listModels(), ['gemini-3.8-flash-high']);
+});
+
 test('direct provider returns native function calls without a gateway envelope', async () => {
   const provider = new DirectAntigravityProvider({
     localAuth: null,
@@ -369,6 +382,43 @@ test('Windows local agy auth reads the official antigravity-cli session without 
   assert.equal(defaultPaths(dir, 'win32')[0], windowsFile);
   assert.equal(defaultPaths(dir, 'darwin').includes(windowsFile), false);
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('Linux local agy auth reads the official antigravity-cli session without changing macOS paths', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-linux-auth-test-'));
+  const linuxFile = path.join(dir, '.gemini', 'antigravity-cli', 'antigravity-oauth-token');
+  fs.mkdirSync(path.dirname(linuxFile), { recursive: true });
+  fs.writeFileSync(linuxFile, JSON.stringify({ token: {
+    access_token: 'linux-local-token',
+    refresh_token: 'linux-local-refresh',
+    expiry: '2099-01-01T00:00:00Z'
+  }, auth_method: 'consumer' }));
+  const auth = new LocalAgyAuthProvider({ homeDir: dir, platform: 'linux', useKeychain: false });
+  const result = await auth.get();
+  assert.equal(result.accessToken, 'linux-local-token');
+  assert.equal(result.sourcePath, linuxFile);
+  assert.equal(defaultPaths(dir, 'linux')[0], linuxFile);
+  assert.equal(defaultPaths(dir, 'darwin').includes(linuxFile), false);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('Linux local agy auth reads Secret Service before files', async () => {
+  const encoded = `go-keyring-base64:${Buffer.from(JSON.stringify({ token: {
+    access_token: 'linux-keyring-token',
+    refresh_token: 'linux-keyring-refresh',
+    expiry: '2099-01-01T00:00:00Z'
+  }, auth_method: 'consumer' })).toString('base64')}`;
+  let command = '';
+  const result = readLinuxKeyringRecord({
+    platform: 'linux',
+    execFileSyncImpl: (file, args) => {
+      command = `${file} ${args.join(' ')}`;
+      return encoded;
+    }
+  });
+  assert.equal(result.accessToken, 'linux-keyring-token');
+  assert.equal(result.sourcePath, 'secret-service:gemini/antigravity');
+  assert.match(command, /^secret-tool lookup service gemini username antigravity$/);
 });
 
 test('Windows agy binary discovery uses LOCALAPPDATA while macOS candidates remain unchanged', () => {

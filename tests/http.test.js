@@ -9,6 +9,7 @@ process.env.ANTIGRAVITY_CLI_PATH = process.execPath;
 process.env.ANTIGRAVITY_CLI_PREFIX_ARGS = JSON.stringify([fakeAgy]);
 process.env.ANTIGRAVITY_DEFAULT_MODEL = 'gemini-test-high';
 process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
+delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
 // The developer machine may have a real local agy login. Keep protocol tests
 // deterministic and exercise the official subprocess fallback here.
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
@@ -17,6 +18,7 @@ const {
   claudeConfigBody,
   codexModelInfo,
   createServer,
+  displayModels,
   featuredModels,
   startupBanner
 } = require('../antigravity-gateway');
@@ -37,7 +39,7 @@ test('model endpoint reflects agy models', async (t) => {
   const response = await fetch(`${base}/v1/models`);
   assert.equal(response.status, 200);
   const body = await response.json();
-  const expected = ['gemini-test-high', 'gemini-test-low', 'claude-opus-4-6-thinking', 'claude-sonnet-4-6'];
+  const expected = ['claude-opus-4-6-thinking', 'claude-sonnet-4-6', 'gemini-test-high', 'gemini-test-low'];
   assert.deepEqual(body.data.map((item) => item.id), expected);
   assert.deepEqual(body.models.map((item) => item.slug), expected);
   assert.equal(body.models[0].supports_parallel_tool_calls, true);
@@ -50,17 +52,55 @@ test('Claude model picker contains every discovered model with exact IDs', () =>
   assert.deepEqual(body.modelPicker.options.map((item) => item.model), models);
 });
 
+test('model presentation follows the configured priority without mutating discovery order', () => {
+  const expected = [
+    'gemini-3.8-flash-high',
+    'gemini-3.7-flash-high',
+    'claude-opus-4-6-thinking',
+    'claude-sonnet-4-6',
+    'gemini-3.1-pro-high',
+    'gemini-3.1-flash-image',
+    'gemini-3.8-flash-medium',
+    'gemini-3.8-flash-low',
+    'gemini-3.8-flash-tiered',
+    'gemini-3.7-flash-medium',
+    'gemini-3.7-flash-low',
+    'gemini-3.7-flash',
+    'gemini-3.7-flash-tiered',
+    'gemini-3.5-flash-extra-low',
+    'gemini-3.1-pro-low',
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash-agent',
+    'gemini-3-flash',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash-thinking',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-pro-agent',
+    'chat_20706',
+    'gpt-oss-120b-medium'
+  ];
+  const discovered = [...expected].reverse();
+  const snapshot = [...discovered];
+  assert.deepEqual(displayModels(discovered), expected);
+  assert.deepEqual(discovered, snapshot);
+});
+
 test('startup banner shows only featured real IDs and client base URLs', () => {
   const models = [
     'gemini-2.5-pro',
+    'gemini-3.8-flash-high',
+    'gemini-3.8-flash-low',
     'gemini-3.7-flash-low',
     'claude-sonnet-4-6',
     'claude-opus-4-6-thinking'
   ];
   assert.deepEqual(featuredModels(models), [
-    'gemini-3.7-flash-low',
+    'gemini-3.8-flash-high',
     'claude-opus-4-6-thinking',
-    'claude-sonnet-4-6'
+    'claude-sonnet-4-6',
+    'gemini-3.8-flash-low',
+    'gemini-3.7-flash-low'
   ]);
   const banner = startupBanner({ models, credentialSource: 'test-credential-source' });
   assert.match(banner, /BaseURL:\n    Anthropic: http:\/\/127\.0\.0\.1:9897\n    OpenAI: http:\/\/127\.0\.0\.1:9897\/v1/);
@@ -71,10 +111,12 @@ test('startup banner shows only featured real IDs and client base URLs', () => {
   assert.match(banner, /更多模型: antigravity-gateway --models/);
 });
 
-test('Gemini 3.7 Flash advertises its 1M context even when discovery metadata is temporarily unavailable', () => {
-  const model = codexModelInfo('gemini-3.7-flash-high', 0);
-  assert.equal(model.context_window, 1048576);
-  assert.equal(model.max_context_window, 1048576);
+test('Gemini 3.7 and 3.8 Flash advertise their verified 1M context without discovery metadata', () => {
+  for (const slug of ['gemini-3.7-flash-high', 'gemini-3.8-flash-high']) {
+    const model = codexModelInfo(slug, 0);
+    assert.equal(model.context_window, 1048576);
+    assert.equal(model.max_context_window, 1048576);
+  }
 });
 
 test('health endpoint reports the package release version', async (t) => {

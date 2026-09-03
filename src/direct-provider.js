@@ -593,7 +593,7 @@ class DirectAntigravityProvider {
     } catch {
       // Model discovery must not prevent the local gateway from starting.
     }
-    return ['gemini-3.7-flash-high'];
+    return ['gemini-3.8-flash-high'];
   }
 
   modelInfo(model) {

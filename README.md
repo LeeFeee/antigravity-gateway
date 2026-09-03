@@ -4,13 +4,13 @@
 
 ## 中文
 
-Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antigravity/agy 已有的 macOS Keychain 登录记录或本地会话文件中读取登录态，仅在内存中使用，并通过 Cloud Code 原生请求、请求头、JSON 信封和 SSE 响应直接访问 Antigravity 上游服务。这样可以绕过 `agy` Agent 包装层注入的长系统提示词，让 Claude Code、Codex CLI 和 Trae 通过本地 HTTP 接口调用模型。
+Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antigravity/agy 已有的 macOS Keychain、Linux Secret Service、Windows Credential Manager 或本地会话文件中读取登录态，仅在内存中使用，并通过 Cloud Code 原生请求、请求头、JSON 信封和 SSE 响应直接访问 Antigravity 上游服务。这样可以绕过 `agy` Agent 包装层注入的长系统提示词，让 Claude Code、Codex CLI 和 Trae 通过本地 HTTP 接口调用模型。
 
-默认传输模式是 `direct`，不会回退到 `agy` 执行模型请求。macOS 上，网关通过系统 `security` 命令读取当前用户钥匙串中的 `gemini / antigravity` 登录记录；找不到时才检查兼容的本地会话文件。令牌不会进入日志、响应或仓库，刷新后的短期令牌也只保存在当前进程内存中。
+默认传输模式是 `direct`，不会回退到 `agy` 执行模型请求。网关优先读取操作系统的安全凭证存储，再检查官方 `~/.gemini/antigravity-cli/antigravity-oauth-token` 和兼容会话文件。令牌不会进入日志、响应或仓库，刷新后的短期令牌也只保存在当前进程内存中。
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.3.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前发布版本：`v0.4.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -35,7 +35,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 | 项目运行依赖 | 由 npm 自动安装；当前版本没有第三方运行时依赖 |
 | 操作系统与架构 | 安装时自动检查 macOS/Linux/Windows 与 ARM64/x64 支持 |
 | 临时存储 | 安装时自动验证操作系统临时目录是否可写 |
-| 官方 Antigravity CLI（`agy`） | 视为用户已经安装并登录；macOS 网关复用其系统 Keychain 登录记录，其他受支持环境可使用本地会话文件 |
+| 官方 Antigravity CLI（`agy`） | 视为用户已经安装并登录；网关复用 macOS Keychain、Linux Secret Service、Windows Credential Manager 或官方本地会话文件 |
 
 安装过程中会自动检查 Node 版本、操作系统、CPU 架构和临时目录，并由 npm 自动处理项目依赖。检查不通过时安装会停止并给出明确原因。网关会从 `PATH` 以及官方默认安装位置查找 `agy`，不依赖用户名或固定 Home 目录。
 
@@ -83,7 +83,7 @@ npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeF
 
 ```bash
 antigravity-gateway --version
-# 0.3.1
+# 0.4.0
 ```
 
 安装后，无论终端当前位于哪个目录，都可以直接启动：
@@ -174,7 +174,7 @@ export ANTIGRAVITY_LOCAL_AUTH_FILE="$HOME/.gemini/jetski-standalone-oauth-token"
 
 ```bash
 export ANTIGRAVITY_DIRECT_BASE_URL=https://cloudcode-pa.googleapis.com
-export ANTIGRAVITY_DIRECT_MODELS='gemini-3.7-flash-high,gemini-3.7-flash-low'
+export ANTIGRAVITY_DIRECT_MODELS='gemini-3.8-flash-high,gemini-3.8-flash-low'
 ```
 
 默认仅监听本机回环地址，API Key 可以为空。如需设置本地接口密码：
@@ -212,8 +212,8 @@ antigravity-gateway --models
 
 | 客户端 | Base URL | API Key | 模型 ID |
 |---|---|---|---|
-| Claude Code | `http://127.0.0.1:9897` | 任意非空值；若网关设置了 Key，必须一致 | 例如 `gemini-3.7-flash-high` |
-| Codex CLI | `http://127.0.0.1:9897/v1` | 同上 | 例如 `gemini-3.7-flash-high` |
+| Claude Code | `http://127.0.0.1:9897` | 任意非空值；若网关设置了 Key，必须一致 | 例如 `gemini-3.8-flash-high` |
+| Codex CLI | `http://127.0.0.1:9897/v1` | 同上 | 例如 `gemini-3.8-flash-high` |
 | OpenAI Chat 客户端 | `http://127.0.0.1:9897/v1` | 同上 | 以 `/v1/models` 为准 |
 
 如系统配置了代理，建议加入：
@@ -231,9 +231,9 @@ export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
 export ANTHROPIC_AUTH_TOKEN=antigravity-gateway
 export ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6-thinking
 export ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
-export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.7-flash-low
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.8-flash-low
 export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
-claude --model 'gemini-3.7-flash-high[1m]'
+claude --model 'gemini-3.8-flash-high[1m]'
 ```
 
 Windows PowerShell：
@@ -243,12 +243,12 @@ $env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
 $env:ANTHROPIC_AUTH_TOKEN = "antigravity-gateway"
 $env:ANTHROPIC_DEFAULT_OPUS_MODEL = "claude-opus-4-6-thinking"
 $env:ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-4-6"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.7-flash-low"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.8-flash-low"
 $env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
-claude --model "gemini-3.7-flash-high[1m]"
+claude --model "gemini-3.8-flash-high[1m]"
 ```
 
-Cloud Code 当前为 Gemini 3.7 Flash 返回 `1,048,576` 输入 tokens 和 `65,536` 最大输出 tokens。Claude Code 不认识第三方模型 ID 时会自行采用 200K 回退窗口；模型名后缀 `[1m]` 或 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` 用于告诉 Claude Code 真实窗口，并不会修改或压缩网关输入。网关只保留 64 MiB 的 HTTP/内存字节保护，模型 token 上限由上游判定。
+Cloud Code 当前为 Gemini 3.7/3.8 Flash 返回 `1,048,576` 输入 tokens 和 `65,536` 最大输出 tokens。Claude Code 不认识第三方模型 ID 时会自行采用 200K 回退窗口；模型名后缀 `[1m]` 或 `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` 用于告诉 Claude Code 真实窗口，并不会修改或压缩网关输入。网关只保留 64 MiB 的 HTTP/内存字节保护，模型 token 上限由上游判定。
 
 如果 `settings.json` 里启用了 `CLAUDE_CODE_USE_BEDROCK`、`CLAUDE_CODE_USE_VERTEX` 或 `CLAUDE_CODE_USE_FOUNDRY`，Claude Code 会优先走对应云 provider，而不是 `ANTHROPIC_BASE_URL`。使用本地网关时请移除这些开关；这类请求不会到达网关日志。
 
@@ -271,8 +271,8 @@ claude --settings (antigravity-gateway --claude-config-path)
 普通请求严格使用客户端发送的模型 ID：只有请求没有 `model` 时才使用 `ANTIGRAVITY_DEFAULT_MODEL`。Auto Mode 分类请求是唯一例外，它单独使用 `ANTIGRAVITY_FAST_MODEL`，不会改变主会话模型。内置 Guide、Explore 等辅助 Agent 不是 Auto Mode；请通过上面的 `ANTHROPIC_DEFAULT_HAIKU_MODEL` 明确指定它们实际使用的模型。需要时也可以配置用户主动选择的精确别名：
 
 ```bash
-export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
-export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.7-flash-high"}'
+export ANTIGRAVITY_FAST_MODEL=gemini-3.8-flash-low
+export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.8-flash-high"}'
 ```
 
 请求目录中不存在的模型会收到明确的 `model_not_found`，不会静默回退到默认 Gemini。显式别名只匹配 JSON 中完全相同的键，不存在任何默认 Claude/GPT 前缀替换。
@@ -294,7 +294,7 @@ antigravity-gateway --codex-catalog-path
 在 `~/.codex/config.toml` 中添加一个 provider：
 
 ```toml
-model = "gemini-3.7-flash-high"
+model = "gemini-3.8-flash-high"
 model_provider = "antigravity"
 model_catalog_json = "/ABSOLUTE/PATH/.antigravity-gateway/codex-models.json"
 
@@ -338,7 +338,9 @@ antigravity-gateway --models
 curl http://127.0.0.1:9897/v1/models
 ```
 
-把返回结果中的 `id` 填入 Claude Code、Codex CLI 或其他客户端的模型配置。README 中出现的 `gemini-3.7-flash-high` 仅为配置格式示例；如果你的目录里没有该 ID，请替换为实际返回值。
+把返回结果中的 `id` 填入 Claude Code、Codex CLI 或其他客户端的模型配置。README 中出现的 `gemini-3.8-flash-high` 仅为配置格式示例；如果你的目录里没有该 ID，请替换为实际返回值。
+
+模型目录按固定的展示优先级排列，未列入优先级的新模型会继续显示在后面。该顺序只影响启动信息、`--models`、`/v1/models` 及生成的 Claude Code/Codex 模型目录，不参与请求路由，也不会替换客户端实际选择的模型 ID。
 
 ### 技术原理
 
@@ -347,7 +349,7 @@ Claude Code / Codex CLI
           │ Anthropic / Responses / Chat Completions
           ▼
 Antigravity Gateway（协议转换、校验、SSE、会话上下文）
-          │ macOS Keychain / 本地会话（仅内存）
+          │ 系统安全凭证存储 / 本地会话（仅内存）
           │ Cloud Code JSON/SSE 直连
           ▼
      Antigravity 服务
@@ -411,7 +413,7 @@ agy --input-format stream-json \
 |---|---:|---|
 | `ANTIGRAVITY_CLI_PATH` | `agy` | `agy` 命令或绝对路径；默认从 `PATH` 查找 |
 | `ANTIGRAVITY_GATEWAY_TRANSPORT` | `direct` | 默认直连；`auto`、`agy` 仅作为显式兼容选项 |
-| `ANTIGRAVITY_LOCAL_AUTH_FILE` | Keychain，其次本地会话文件 | 可选；设置后覆盖自动登录态发现并只读取指定文件 |
+| `ANTIGRAVITY_LOCAL_AUTH_FILE` | 系统凭证存储，其次本地会话文件 | 可选；设置后覆盖自动登录态发现并只读取指定文件 |
 | `ANTIGRAVITY_AUTH_FILE` | 空 | 外部 Antigravity OAuth JSON 路径（手动兜底） |
 | `ANTIGRAVITY_ACCESS_TOKEN` | 空 | 直连模式的 OAuth access token |
 | `ANTIGRAVITY_REFRESH_TOKEN` | 空 | 直连模式的 OAuth refresh token |
@@ -425,7 +427,7 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_GATEWAY_API_KEY` | 空 | 本地接口密码；非本机监听时必填 |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | 操作系统临时目录 | 隔离工作区和临时日志所在目录 |
 | `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | 持久化 Codex 模型目录和 Claude Code 模型配置的位置 |
-| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | 仅在客户端没有发送 `model` 时使用 |
+| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.8-flash-high` | 仅在客户端没有发送 `model` 时使用 |
 | `ANTIGRAVITY_FAST_MODEL` | 自动选择账号中的低延迟模型 | 仅用于已识别的 Auto Mode 分类请求 |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | 用户主动配置的精确 JSON 模型映射；默认不改写任何 ID |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | 429/5xx 在备用端点失败后的额外重试轮数 |
@@ -446,15 +448,15 @@ agy --input-format stream-json \
 
 ## English
 
-Antigravity Gateway is an experimental local compatibility gateway. It reads the official Antigravity/agy login state from the current user's macOS Keychain or compatible local session files, keeps credentials in memory, and uses the native Cloud Code request envelope, headers, and SSE response shape. This lets Claude Code, Codex CLI, and Trae call Antigravity through local Anthropic/OpenAI-compatible endpoints without the long `agy` Agent wrapper prompt.
+Antigravity Gateway is an experimental local compatibility gateway. It reads the official Antigravity/agy login state from macOS Keychain, Linux Secret Service, Windows Credential Manager, or compatible local session files, keeps credentials in memory, and uses the native Cloud Code request envelope, headers, and SSE response shape. This lets Claude Code, Codex CLI, and Trae call Antigravity through local Anthropic/OpenAI-compatible endpoints without the long `agy` Agent wrapper prompt.
 
-The default transport is `direct`; model requests never silently fall back to the agy Agent. On macOS, the gateway uses the system `security` command to read the `gemini / antigravity` Keychain record in memory. Tokens are never logged, returned to clients, committed, or written back to plaintext files.
+The default transport is `direct`; model requests never silently fall back to the agy Agent. The gateway checks the operating system's secure credential store first, followed by the official `~/.gemini/antigravity-cli/antigravity-oauth-token` and compatible session files. Tokens are never logged, returned to clients, committed, or written back to plaintext files.
 
 Claude Code connectivity probes are handled locally. Its telemetry batch endpoint is acknowledged with HTTP 204 and is never forwarded upstream.
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.3.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current release: `v0.4.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -464,7 +466,7 @@ Current release: `v0.3.1`. Every release updates `package.json`, the startup ban
 | Project runtime dependencies | Installed automatically by npm; the current release has no third-party runtime dependencies |
 | Operating system and architecture | macOS/Linux/Windows and ARM64/x64 support are checked during installation |
 | Temporary storage | The operating system's temporary directory is checked for write access |
-| Official Antigravity CLI (`agy`) | Assumed to be installed and signed in; the gateway reuses agy's local session state and does not manage installation or accounts |
+| Official Antigravity CLI (`agy`) | Assumed to be installed and signed in; the gateway reuses macOS Keychain, Linux Secret Service, Windows Credential Manager, or official local session state |
 
 The install process validates Node, the operating system, CPU architecture, and temporary storage. npm handles project dependencies automatically. Installation stops with a clear error when an environment check fails. The gateway searches both `PATH` and the official default `agy` install location.
 
@@ -512,7 +514,7 @@ Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.3.1
+# 0.4.0
 ```
 
 Start from any directory with one command:
@@ -525,7 +527,7 @@ There is no need to enter the installation directory or run `npm start`. The pac
 
 ### Fast direct transport
 
-The default `ANTIGRAVITY_GATEWAY_TRANSPORT=direct` reads the official `gemini / antigravity` record from the current user's macOS Keychain, then checks `~/.gemini/jetski-standalone-oauth-token` and `~/.gemini/oauth_creds.json` as compatibility fallbacks. The gateway calls the Cloud Code `v1internal` endpoints directly and skips the `agy` Agent wrapper prompt. If no login state is found, it returns 401 instead of silently switching transports.
+The default `ANTIGRAVITY_GATEWAY_TRANSPORT=direct` checks macOS Keychain, Linux Secret Service, or Windows Credential Manager, then the official `~/.gemini/antigravity-cli/antigravity-oauth-token`, `~/.gemini/jetski-standalone-oauth-token`, and `~/.gemini/oauth_creds.json` compatibility files where applicable. The gateway calls the Cloud Code `v1internal` endpoints directly and skips the `agy` Agent wrapper prompt. If no login state is found, it returns 401 instead of silently switching transports.
 
 You do not need a second OAuth setup. Sign in once through agy/Antigravity, then run:
 
@@ -602,9 +604,9 @@ export ANTHROPIC_BASE_URL=http://127.0.0.1:9897
 export ANTHROPIC_AUTH_TOKEN=antigravity-gateway
 export ANTHROPIC_DEFAULT_OPUS_MODEL=claude-opus-4-6-thinking
 export ANTHROPIC_DEFAULT_SONNET_MODEL=claude-sonnet-4-6
-export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.7-flash-low
+export ANTHROPIC_DEFAULT_HAIKU_MODEL=gemini-3.8-flash-low
 export CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576
-claude --model 'gemini-3.7-flash-high[1m]'
+claude --model 'gemini-3.8-flash-high[1m]'
 ```
 
 PowerShell:
@@ -614,12 +616,12 @@ $env:ANTHROPIC_BASE_URL = "http://127.0.0.1:9897"
 $env:ANTHROPIC_AUTH_TOKEN = "antigravity-gateway"
 $env:ANTHROPIC_DEFAULT_OPUS_MODEL = "claude-opus-4-6-thinking"
 $env:ANTHROPIC_DEFAULT_SONNET_MODEL = "claude-sonnet-4-6"
-$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.7-flash-low"
+$env:ANTHROPIC_DEFAULT_HAIKU_MODEL = "gemini-3.8-flash-low"
 $env:CLAUDE_CODE_MAX_CONTEXT_TOKENS = "1048576"
-claude --model "gemini-3.7-flash-high[1m]"
+claude --model "gemini-3.8-flash-high[1m]"
 ```
 
-Cloud Code currently reports a 1,048,576-token input window and 65,536 maximum output tokens for Gemini 3.7 Flash. Claude Code falls back to 200K for an unknown third-party model ID; `[1m]` or `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` tells the client the real window. The gateway does not compress the conversation.
+Cloud Code currently reports a 1,048,576-token input window and 65,536 maximum output tokens for Gemini 3.7/3.8 Flash. Claude Code falls back to 200K for an unknown third-party model ID; `[1m]` or `CLAUDE_CODE_MAX_CONTEXT_TOKENS=1048576` tells the client the real window. The gateway does not compress the conversation.
 
 Remove `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX`, or `CLAUDE_CODE_USE_FOUNDRY` when using the local gateway. Those provider switches take precedence over `ANTHROPIC_BASE_URL`, so such requests never reach the gateway.
 
@@ -642,8 +644,8 @@ Alternatively, run `antigravity-gateway --claude-config` and merge the returned 
 Normal requests preserve the exact client model ID. `ANTIGRAVITY_DEFAULT_MODEL` is used only when the request omits `model`. Detected Auto Mode classifier requests are the sole exception and use `ANTIGRAVITY_FAST_MODEL` independently without changing the main conversation model. Built-in Guide and Explore helper agents are not Auto Mode requests; use `ANTHROPIC_DEFAULT_HAIKU_MODEL` above to choose their real target explicitly. User-defined exact aliases remain available when needed:
 
 ```bash
-export ANTIGRAVITY_FAST_MODEL=gemini-3.7-flash-low
-export ANTIGRAVITY_MODEL_ALIASES='{"claude-haiku-4-5-20251001":"gemini-3.7-flash-low"}'
+export ANTIGRAVITY_FAST_MODEL=gemini-3.8-flash-low
+export ANTIGRAVITY_MODEL_ALIASES='{"claude-haiku-4-5-20251001":"gemini-3.8-flash-low"}'
 ```
 
 An unavailable model returns an explicit `model_not_found` error instead of silently falling back to Gemini. Alias keys are exact matches; no Claude/GPT prefix is rewritten by default.
@@ -661,7 +663,7 @@ antigravity-gateway --codex-catalog-path
 ```
 
 ```toml
-model = "gemini-3.7-flash-high"
+model = "gemini-3.8-flash-high"
 model_provider = "antigravity"
 model_catalog_json = "/ABSOLUTE/PATH/.antigravity-gateway/codex-models.json"
 
@@ -698,13 +700,15 @@ curl http://127.0.0.1:9897/v1/models
 
 Use an `id` returned by this endpoint in the client configuration. Model IDs shown elsewhere in this README are examples only.
 
+The catalog uses a deterministic presentation priority, with newly discovered models that are not in the preferred list kept visible afterward. This order affects only the startup banner, `--models`, `/v1/models`, and generated Claude Code/Codex catalogs. It is never used for request routing and never replaces the model ID selected by the client.
+
 ### Configuration
 
 | Environment variable | Default | Purpose |
 |---|---|---|
 | `ANTIGRAVITY_CLI_PATH` | `agy` | CLI command or absolute path; resolved from `PATH` by default |
 | `ANTIGRAVITY_GATEWAY_TRANSPORT` | `direct` | Direct by default; `auto` and `agy` remain explicit compatibility options |
-| `ANTIGRAVITY_LOCAL_AUTH_FILE` | Keychain, then local session files | Optional override; when set, only the specified file is read |
+| `ANTIGRAVITY_LOCAL_AUTH_FILE` | OS credential store, then local session files | Optional override; when set, only the specified file is read |
 | `ANTIGRAVITY_AUTH_FILE` | empty | External Antigravity OAuth JSON path (manual fallback) |
 | `ANTIGRAVITY_ACCESS_TOKEN` | empty | OAuth access token for direct transport |
 | `ANTIGRAVITY_REFRESH_TOKEN` | empty | OAuth refresh token for direct transport |
@@ -718,7 +722,7 @@ Use an `id` returned by this endpoint in the client configuration. Model IDs sho
 | `ANTIGRAVITY_GATEWAY_API_KEY` | empty | Gateway key; required for non-loopback binding |
 | `ANTIGRAVITY_GATEWAY_RUNTIME_DIR` | OS temporary directory | Isolated workspaces and temporary logs |
 | `ANTIGRAVITY_GATEWAY_CONFIG_DIR` | `~/.antigravity-gateway` | Persistent generated Codex catalog and Claude Code model settings directory |
-| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.7-flash-high` | Used only when the client omits `model` |
+| `ANTIGRAVITY_DEFAULT_MODEL` | `gemini-3.8-flash-high` | Used only when the client omits `model` |
 | `ANTIGRAVITY_FAST_MODEL` | auto-selected low-latency account model | Used only for detected Auto Mode classifier requests |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | User-defined exact JSON mappings; no model ID is rewritten by default |
 | `ANTIGRAVITY_DIRECT_MAX_RETRIES` | `1` | Additional retry rounds after both endpoints return 429/5xx |

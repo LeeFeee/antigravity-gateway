@@ -63,11 +63,11 @@ const AGY_PREFIX_ARGS = (() => {
     return Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : [];
   } catch { return []; }
 })();
-const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-3.7-flash-high';
+const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-3.8-flash-high';
 const FAST_MODEL = String(process.env.ANTIGRAVITY_FAST_MODEL || '').trim();
 const API_KEY = process.env.ANTIGRAVITY_GATEWAY_API_KEY || '';
 // These are transport/memory guards measured in bytes, not model context
-// windows measured in tokens. Keep them comfortably above Gemini 3.7 Flash's
+// windows measured in tokens. Keep them comfortably above Gemini 3.8 Flash's
 // 1,048,576-token input window and let Cloud Code perform the authoritative
 // token accounting.
 const REQUEST_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_BODY_LIMIT || 64 * 1024 * 1024);
@@ -150,7 +150,14 @@ function usesDirectTransport() {
 }
 
 function directAuthDescription() {
-  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return `${process.platform === 'darwin' ? 'macOS Keychain / ' : ''}local agy session（只读；刷新结果仅保存在内存）`;
+  const secureStore = process.platform === 'darwin'
+    ? 'macOS Keychain / '
+    : process.platform === 'linux'
+      ? 'Linux Secret Service / '
+      : process.platform === 'win32'
+        ? 'Windows Credential Manager / '
+        : '';
+  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return `${secureStore}local agy session（只读；刷新结果仅保存在内存）`;
   if (DIRECT_PROVIDER.isConfigured()) return 'explicit OAuth env/auth file (manual fallback)';
   return 'unavailable';
 }
@@ -173,6 +180,7 @@ async function availableModels(force = false) {
 function preferredFastModel(models) {
   if (FAST_MODEL) return FAST_MODEL;
   const priorities = [
+    /^gemini-3\.8-flash-low$/i,
     /^gemini-3\.7-flash-low$/i,
     /^gemini-3\.6-flash-low$/i,
     /^gemini-3\.5-flash-(?:extra-)?low$/i,
@@ -206,11 +214,11 @@ async function resolveModel(requested, { preferFast = false } = {}) {
 
 function codexModelInfo(slug, priority) {
   const upstream = usesDirectTransport() ? DIRECT_PROVIDER.modelInfo(slug) : null;
-  // Cloud Code currently reports 1,048,576 input tokens for Gemini 3.7
-  // Flash. Keep that known fallback even when a transient discovery request
+  // Cloud Code currently reports 1,048,576 input tokens for Gemini 3.7/3.8
+  // Flash. Keep that verified fallback even when a transient discovery request
   // fails; otherwise the client would compact a healthy 1M context at 200K.
   const contextWindow = upstream?.maxTokens
-    || (/^gemini-3\.7-flash(?:[.-]|$)/i.test(slug) ? 1048576 : 200000);
+    || (/^gemini-3\.[78]-flash(?:[.-]|$)/i.test(slug) ? 1048576 : 200000);
   return {
     slug,
     display_name: upstream?.displayName || slug,
@@ -271,11 +279,59 @@ function claudeConfigPath() {
   return path.join(CONFIG_DIR, 'claude-models.json');
 }
 
+// Presentation order only. Request routing always uses the untouched model ID
+// supplied by the client and never depends on this list.
+const MODEL_DISPLAY_PRIORITY = [
+  'gemini-3.8-flash-high',
+  'gemini-3.7-flash-high',
+  'claude-opus-4-6-thinking',
+  'claude-sonnet-4-6',
+  'gemini-3.1-pro-high',
+  'gemini-3.1-flash-image',
+  'gemini-3.8-flash-medium',
+  'gemini-3.8-flash-low',
+  'gemini-3.8-flash-tiered',
+  'gemini-3.7-flash-medium',
+  'gemini-3.7-flash-low',
+  'gemini-3.7-flash',
+  'gemini-3.7-flash-tiered',
+  'gemini-3.5-flash-extra-low',
+  'gemini-3.1-pro-low',
+  'gemini-3.1-flash-lite',
+  'gemini-3-flash-agent',
+  'gemini-3-flash',
+  'gemini-2.5-pro',
+  'gemini-2.5-flash-thinking',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-pro-agent'
+];
+
+const MODEL_DISPLAY_RANK = new Map(MODEL_DISPLAY_PRIORITY.map((model, index) => [model, index]));
+
+function displayModels(models) {
+  return [...models].sort((left, right) => {
+    const leftRank = MODEL_DISPLAY_RANK.get(left);
+    const rightRank = MODEL_DISPLAY_RANK.get(right);
+    if (leftRank !== undefined || rightRank !== undefined) {
+      if (leftRank === undefined) return 1;
+      if (rightRank === undefined) return -1;
+      return leftRank - rightRank;
+    }
+    const leftKey = left.toLowerCase();
+    const rightKey = right.toLowerCase();
+    if (leftKey < rightKey) return -1;
+    if (leftKey > rightKey) return 1;
+    return left < right ? -1 : left > right ? 1 : 0;
+  });
+}
+
 function codexCatalogBody(models) {
+  const ordered = displayModels(models);
   return {
     object: 'list',
-    data: models.map((id) => ({ id, object: 'model', created: 0, owned_by: 'antigravity', display_name: id })),
-    models: models.map((id, index) => codexModelInfo(id, index))
+    data: ordered.map((id) => ({ id, object: 'model', created: 0, owned_by: 'antigravity', display_name: id })),
+    models: ordered.map((id, index) => codexModelInfo(id, index))
   };
 }
 
@@ -289,10 +345,11 @@ function writeCodexCatalog(models) {
 }
 
 function claudeConfigBody(models) {
+  const ordered = displayModels(models);
   return {
     $schema: 'https://json.schemastore.org/claude-code-settings.json',
     modelPicker: {
-      options: models.map((model) => ({
+      options: ordered.map((model) => ({
         model,
         label: model,
         description: 'Antigravity Gateway'
@@ -312,21 +369,11 @@ function writeClaudeConfig(models) {
 }
 
 function featuredModels(models) {
-  const available = new Set(models);
-  const priorities = [
-    'gemini-3.7-flash-high',
-    'gemini-3.7-flash-medium',
-    'gemini-3.7-flash-low',
-    'gemini-3.7-flash-tiered'
-  ];
-  const selected = priorities.filter((model) => available.has(model));
-  for (const model of [...models].sort()) {
-    if (/^gemini-3\.7(?:[.-]|$)/i.test(model) && !selected.includes(model)) selected.push(model);
-  }
-  for (const model of ['claude-opus-4-6-thinking', 'claude-sonnet-4-6']) {
-    if (available.has(model)) selected.push(model);
-  }
-  return selected;
+  return displayModels(models).filter((model) => (
+    /^gemini-3\.[78](?:[.-]|$)/i.test(model)
+    || model === 'claude-opus-4-6-thinking'
+    || model === 'claude-sonnet-4-6'
+  ));
 }
 
 function credentialSourceDescription() {
@@ -866,7 +913,7 @@ if (require.main === module) {
   if (CLI_ARGS.claudeConfigPath) { console.log(claudeConfigPath()); return; }
   if (CLI_ARGS.models || CLI_ARGS.claudeConfig) {
     void availableModels(true).then((models) => {
-      console.log(CLI_ARGS.models ? models.join('\n') : JSON.stringify(claudeConfigBody(models), null, 2));
+      console.log(CLI_ARGS.models ? displayModels(models).join('\n') : JSON.stringify(claudeConfigBody(models), null, 2));
     }).catch((error) => {
       console.error(`[Antigravity Gateway Error] ${error.message}`);
       process.exitCode = 1;
@@ -926,6 +973,7 @@ module.exports = {
   codexCatalogPath,
   codexModelInfo,
   createServer,
+  displayModels,
   emitAnthropicStream,
   emitChatStream,
   emitResponsesStream,

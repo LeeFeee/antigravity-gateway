@@ -46,7 +46,7 @@ function safeChildEnv(source = process.env, platform = process.platform) {
   const portable = [
     'HOME', 'USER', 'LOGNAME', 'PATH', 'SHELL', 'TMPDIR',
     'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'COLORTERM', 'NO_COLOR',
-    'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME'
+    'XDG_CONFIG_HOME', 'XDG_CACHE_HOME', 'XDG_DATA_HOME', 'DBUS_SESSION_BUS_ADDRESS'
   ];
   const windows = [
     'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'PROGRAMDATA',

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 - 2026-09-03
+
+- Added one deterministic, presentation-only model order for the startup banner, `--models`, `/v1/models`, and generated Claude Code/Codex catalogs. Models not named in the preferred list remain visible after it, while request routing and the client-selected model ID remain unchanged.
+- Added native Linux local-session discovery through the official `~/.gemini/antigravity-cli/antigravity-oauth-token` file and Secret Service, while preserving macOS Keychain and Windows Credential Manager behavior.
+- Preserved `DBUS_SESSION_BUS_ADDRESS` in the isolated Linux agy child environment so Secret Service remains reachable without exposing unrelated credentials.
+- Placed `gemini-3.8-flash-high` first in model presentation and grouped the remaining Gemini 3.8 Flash variants after `gemini-3.1-flash-image`; made 3.8 High the missing-model-field default and preferred 3.8 Low for Auto Mode classifiers.
+- Recorded the verified Gemini 3.8 Flash 1,048,576-token input and 65,536-token output metadata as the catalog fallback.
+
 ## 0.3.1 - 2026-09-02
 
 - Corrected the startup BaseURL label from `Antigravity` to `Anthropic`, matching the protocol served at the root URL. The OpenAI-compatible endpoint remains `/v1`.

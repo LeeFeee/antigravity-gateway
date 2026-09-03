@@ -93,6 +93,17 @@ test('child environment excludes unrelated credentials', () => {
   assert.deepEqual(env, { HOME: '/tmp/home', PATH: '/bin' });
 });
 
+test('Linux child environment preserves the D-Bus session used by Secret Service', () => {
+  const env = safeChildEnv({
+    HOME: '/home/test',
+    PATH: '/usr/bin',
+    DBUS_SESSION_BUS_ADDRESS: 'unix:path=/run/user/1000/bus',
+    OPENAI_API_KEY: 'secret'
+  }, 'linux');
+  assert.equal(env.DBUS_SESSION_BUS_ADDRESS, 'unix:path=/run/user/1000/bus');
+  assert.equal(env.OPENAI_API_KEY, undefined);
+});
+
 test('Windows child environment preserves OS and agy profile paths but excludes credentials', () => {
   const env = safeChildEnv({
     PATH: 'C:\\Windows',

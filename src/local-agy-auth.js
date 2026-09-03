@@ -67,6 +67,9 @@ function defaultPaths(homeDir = os.homedir(), platform = process.platform) {
     // The Windows agy CLI owns this file. Read it in place and never write a
     // refreshed token back; the official CLI remains the credential owner.
     paths.unshift(path.join(homeDir, '.gemini', 'antigravity-cli', 'antigravity-oauth-token'));
+  } else if (platform === 'linux') {
+    // The Linux agy CLI uses the same official session-file location.
+    paths.unshift(path.join(homeDir, '.gemini', 'antigravity-cli', 'antigravity-oauth-token'));
   }
   return paths;
 }
@@ -144,6 +147,32 @@ function readMacKeychainRecord({
   } catch {
     return null;
   }
+}
+
+function readLinuxKeyringRecord({
+  platform = process.platform,
+  service = DEFAULT_KEYCHAIN_SERVICE,
+  account = DEFAULT_KEYCHAIN_ACCOUNT,
+  execFileSyncImpl = execFileSync
+} = {}) {
+  if (platform !== 'linux') return null;
+  for (const accountAttribute of ['username', 'account']) {
+    try {
+      const secret = execFileSyncImpl('secret-tool', [
+        'lookup', 'service', service, accountAttribute, account
+      ], {
+        encoding: 'utf8',
+        timeout: 5000,
+        maxBuffer: 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'ignore']
+      });
+      const record = decodeKeychainRecord(secret, `secret-service:${service}/${account}`);
+      if (record) return record;
+    } catch {
+      // secret-tool may be unavailable or the requested record may not exist.
+    }
+  }
+  return null;
 }
 
 function newestRecord(first, second) {
@@ -262,12 +291,19 @@ class LocalAgyAuthProvider {
           target: process.env.ANTIGRAVITY_WINDOWS_CREDENTIAL_TARGET || DEFAULT_WINDOWS_CREDENTIAL_TARGET,
           execFileSyncImpl: this.execFileSyncImpl
         })
-        : readMacKeychainRecord({
-          platform: this.platform,
-          service: this.keychainService,
-          account: this.keychainAccount,
-          execFileSyncImpl: this.execFileSyncImpl
-        });
+        : this.platform === 'darwin'
+          ? readMacKeychainRecord({
+            platform: this.platform,
+            service: this.keychainService,
+            account: this.keychainAccount,
+            execFileSyncImpl: this.execFileSyncImpl
+          })
+          : readLinuxKeyringRecord({
+            platform: this.platform,
+            service: this.keychainService,
+            account: this.keychainAccount,
+            execFileSyncImpl: this.execFileSyncImpl
+          });
       if (keychain) return keychain;
     }
     for (const file of this.paths) {
@@ -350,6 +386,7 @@ module.exports = {
   discoverClientCredentials,
   defaultPaths,
   normalizeRecord,
+  readLinuxKeyringRecord,
   readMacKeychainRecord,
   readWindowsCredentialRecord,
   scanClientMetadata
