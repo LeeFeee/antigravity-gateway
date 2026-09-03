@@ -9,6 +9,7 @@ const path = require('node:path');
 
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { manageService } = require('./src/service-manager');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
@@ -48,6 +49,10 @@ function parseArgs(argv) {
     else if (arg === '--claude-config-path') result.claudeConfigPath = true;
     else if (arg === '--claude-config') result.claudeConfig = true;
     else if (arg === '--models') result.models = true;
+    else if (arg === 'service') {
+      result.serviceRequested = true;
+      result.serviceAction = argv[++index] || '';
+    }
     else if (require.main === module) throw new Error(`未知选项: ${arg}`);
   }
   return result;
@@ -416,6 +421,7 @@ function printHelp() {
 
 用法:
   antigravity-gateway [选项]
+  antigravity-gateway service <start|status|restart|stop|logs|uninstall>
 
 选项:
   -h, --help, -help       显示帮助
@@ -429,9 +435,17 @@ function printHelp() {
   --claude-config-path    显示自动生成的 Claude Code 模型配置路径
   --claude-config         输出 Claude Code modelPicker 配置 JSON
 
+后台保活:
+  service start           自动注册开机/登录自启并立即后台启动；重复执行会更新并重启
+  service status          显示配置与运行状态
+  service restart         重启已配置的后台服务
+  service stop            停止后台服务但保留自启配置
+  service logs            显示最近的后台日志
+  service uninstall       停止并移除后台服务（保留历史日志）
+
 传输模式:
   ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
-  默认 direct：从系统 Keychain（macOS）或本地 agy 会话文件读取登录态并直连 Cloud Code。
+  默认 direct：从系统安全凭证存储或本地 agy 会话文件读取登录态并直连 Cloud Code。
   auto/agy 仅为显式兼容选项；手动凭据兜底可用 ANTIGRAVITY_AUTH_FILE。
 
 接口:
@@ -909,6 +923,17 @@ function createServer() {
 if (require.main === module) {
   if (CLI_ARGS.help) { printHelp(); return; }
   if (CLI_ARGS.version) { console.log(GATEWAY_VERSION); return; }
+  if (CLI_ARGS.serviceRequested) {
+    void manageService(CLI_ARGS.serviceAction, {
+      configDir: CONFIG_DIR,
+      gatewayFile: __filename
+    }).then((message) => console.log(message)).catch((error) => {
+      const details = error.details ? `\n${error.details}` : '';
+      console.error(`[Antigravity Gateway Error] ${error.message}${details}`);
+      process.exitCode = 1;
+    });
+    return;
+  }
   if (CLI_ARGS.codexCatalogPath) { console.log(codexCatalogPath()); return; }
   if (CLI_ARGS.claudeConfigPath) { console.log(claudeConfigPath()); return; }
   if (CLI_ARGS.models || CLI_ARGS.claudeConfig) {

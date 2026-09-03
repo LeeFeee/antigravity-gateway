@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Experimental local Anthropic/OpenAI compatibility gateway that reuses the official local Antigravity login state with native Cloud Code transport.",
   "license": "MIT",
   "type": "commonjs",
@@ -19,7 +19,7 @@
   "scripts": {
     "start": "node antigravity-gateway.js",
     "postinstall": "node scripts/check-environment.js",
-    "check": "node --check antigravity-gateway.js && node --check src/agy-worker.js && node --check src/direct-provider.js && node --check src/local-agy-auth.js && node --check src/protocol.js",
+    "check": "node --check antigravity-gateway.js && node --check src/agy-worker.js && node --check src/direct-provider.js && node --check src/local-agy-auth.js && node --check src/protocol.js && node --check src/service-manager.js && node --check src/service-runner.js",
     "test": "node --test tests/*.test.js"
   },
   "engines": {

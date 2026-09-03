@@ -42,6 +42,8 @@ function main() {
 
   console.log(`[Antigravity Gateway] Environment ready: Node ${process.versions.node}, ${process.platform}/${process.arch}`);
   console.log('[Antigravity Gateway] Runtime dependencies are managed automatically by npm.');
+  console.log('[Antigravity Gateway] 前台模式：antigravity-gateway');
+  console.log('[Antigravity Gateway] 后台保活模式：antigravity-gateway service start');
 }
 
 main();

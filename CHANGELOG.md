@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 - 2026-09-03
+
+- Added `antigravity-gateway service start` as the cross-platform background keepalive entry point while preserving the existing foreground `antigravity-gateway` command.
+- Added service lifecycle commands for status, restart, stop, logs, and uninstall. Re-running `service start` refreshes the saved gateway environment and restarts the existing service without creating duplicates.
+- Added native per-user integration with macOS LaunchAgents, Linux systemd user services with linger enablement, and Windows Task Scheduler using S4U plus startup/login triggers.
+- Added a platform-independent supervisor that restarts a failed gateway process after three seconds, with operating-system supervision retained for supervisor failures.
+- Added private environment snapshots, 10 MiB rotating service logs, install-time foreground/background command guidance, and automated service-definition coverage.
+- Verified foreground compatibility and the complete background lifecycle on macOS ARM64, Debian Linux, and Windows 11 x64, including real direct requests and forced child-process recovery.
+
 ## 0.4.0 - 2026-09-03
 
 - Added one deterministic, presentation-only model order for the startup banner, `--models`, `/v1/models`, and generated Claude Code/Codex catalogs. Models not named in the preferred list remain visible after it, while request routing and the client-selected model ID remain unchanged.

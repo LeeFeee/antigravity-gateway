@@ -10,7 +10,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.4.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前发布版本：`v0.5.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -26,6 +26,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 - 实验性客户端工具调用桥
 - 模型别名映射、传输字节保护、真实模型上下文元数据、并发队列、超时与取消
 - 子进程环境变量隔离、日志清理和进程组清理
+- macOS、Linux、Windows 后台保活、自启动与统一服务管理命令
 
 ### 运行条件
 
@@ -69,30 +70,52 @@ winget install --exact --id OpenJS.NodeJS.LTS
 
 ### 安装与启动
 
-> **结论：新版本仍然是一条命令安装、一条命令启动。** 安装完成后不需要进入安装目录，也不需要手动处理项目依赖。
+> **结论：仍然是一条命令安装。安装后可用一条命令选择前台模式，或用另一条命令选择后台保活模式。** 不需要进入安装目录，也不需要手动处理项目依赖。
 
 全局安装，只需一条命令：
 
 ```bash
-npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --foreground-scripts --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
-安装过程中会自动完成环境检查并安装项目依赖。npm 11 会限制未授权的生命周期脚本，因此命令显式允许本项目自己的 `postinstall` 环境检查；不要使用 `--ignore-scripts`。
+安装过程中会自动完成环境检查并安装项目依赖。`--foreground-scripts` 用于让安装完成后的两条启动指引直接显示在终端；`--allow-scripts` 授权本项目自己的 `postinstall` 环境检查。部分 npm 11 版本仍可能输出 `allow-scripts` 提示，这是 npm 对 GitHub 压缩包全局安装的已知提示，不代表安装失败。不要使用 `--ignore-scripts`。
 
 检查安装版本：
 
 ```bash
 antigravity-gateway --version
-# 0.4.0
+# 0.5.0
 ```
 
-安装后，无论终端当前位于哪个目录，都可以直接启动：
+安装完成时会直接显示下面两种运行方式。无论终端当前位于哪个目录，都可以使用。
+
+前台模式，关闭终端或按 `Ctrl+C` 后停止：
 
 ```bash
 antigravity-gateway
 ```
 
-不需要进入安装目录，也不需要执行 `npm start`。项目没有第三方运行时依赖。网关的临时工作区和日志默认位于操作系统临时目录，退出请求后会自动清理。
+后台保活模式，立即在后台启动，并在进程异常退出后自动拉起：
+
+```bash
+antigravity-gateway service start
+```
+
+`service start` 会自动识别系统：macOS 使用当前用户的 LaunchAgent，Linux 使用 systemd 用户服务并尝试启用 linger，Windows 使用不保存密码的 S4U 计划任务并注册开机与登录触发器。macOS 的安全登录态依赖用户会话，因此重启后在用户登录时启动；Linux 成功启用 linger 后可随系统启动；Windows 可在系统启动或用户登录时启动。
+
+重复运行 `service start` 不会创建重复服务，而是更新当前环境配置并重启。常用管理命令：
+
+```bash
+antigravity-gateway service status
+antigravity-gateway service restart
+antigravity-gateway service stop
+antigravity-gateway service logs
+antigravity-gateway service uninstall
+```
+
+后台模式会把启动时的 `ANTIGRAVITY_*` 配置和必要的系统环境保存到当前用户私有配置文件中，方便重启后恢复；不会收集其他 API Key。日志位于 `~/.antigravity-gateway/logs/`，单个日志达到 10 MiB 时轮换为 `.1`。`service uninstall` 会移除自启动配置和私有环境快照，但保留历史日志。
+
+不需要进入安装目录，也不需要执行 `npm start`。项目没有第三方运行时依赖。前台模式的临时工作区和请求日志默认位于操作系统临时目录，退出请求后会自动清理。
 
 默认监听：
 
@@ -192,11 +215,11 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 更新与卸载：
 
 ```bash
-npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --foreground-scripts --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 
-更新安装不会替换已经运行在内存中的旧进程。更新后请先在旧网关终端按 `Ctrl+C`，再运行 `antigravity-gateway`；启动横幅中的 `网关版本` 应显示当前版本。
+更新安装不会替换已经运行在内存中的旧进程。前台模式更新后，请在旧网关终端按 `Ctrl+C`，再运行 `antigravity-gateway`。后台模式更新后，重新运行 `antigravity-gateway service start`，它会刷新程序路径和环境并重启服务。启动横幅中的 `网关版本` 应显示当前版本。
 
 只有参与项目开发时才需要克隆源码，然后在项目根目录运行 `npm test` 或 `npm start`；普通用户直接使用上面的全局安装和 `antigravity-gateway` 启动命令即可。
 
@@ -456,7 +479,7 @@ Claude Code connectivity probes are handled locally. Its telemetry batch endpoin
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.4.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current release: `v0.5.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -498,32 +521,52 @@ winget install --exact --id OpenJS.NodeJS.LTS
 
 Verify with `node --version` and `npm --version`, or install an LTS release from the [official Node.js download page](https://nodejs.org/en/download/).
 
-### Install and start
+### Install and run
 
-> **Summary: the new release still uses one command to install and one command to start.** After installation, users do not need to enter the package directory or manage project dependencies manually.
+> **Summary: installation remains one command. Afterward, choose either one foreground command or one background-keepalive command.** There is no need to enter the package directory or manage dependencies manually.
 
 Install globally with one command:
 
 ```bash
-npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --foreground-scripts --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 ```
 
-The environment is checked and project dependencies are installed automatically. npm 11 restricts unapproved lifecycle scripts, so the command explicitly allows this package's own `postinstall` check. Do not use `--ignore-scripts`.
+The environment is checked and project dependencies are installed automatically. `--foreground-scripts` makes the two run-mode hints visible after installation, while `--allow-scripts` authorizes this package's own `postinstall` check. Some npm 11 releases may still print an `allow-scripts` advisory for a global GitHub tarball install; it does not mean the installation failed. Do not use `--ignore-scripts`.
 
 Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.4.0
+# 0.5.0
 ```
 
-Start from any directory with one command:
+The installer prints both run choices. Foreground mode stops when its terminal closes or receives `Ctrl+C`:
 
 ```bash
 antigravity-gateway
 ```
 
-There is no need to enter the installation directory or run `npm start`. The package has no third-party runtime dependencies. The default address is `http://127.0.0.1:9897`. Isolated workspaces and temporary logs are stored under the operating system's temporary directory and are cleaned up after each request.
+Background keepalive mode starts immediately, survives terminal closure, and restarts a failed gateway process:
+
+```bash
+antigravity-gateway service start
+```
+
+The command selects a per-user native mechanism automatically: a macOS LaunchAgent, a Linux systemd user service with a best-effort linger setup, or a Windows S4U Scheduled Task with startup and logon triggers. macOS starts after user login because its secure credential state belongs to that user session; Linux starts at boot when linger is enabled; Windows starts at system startup or user login without storing the user's password.
+
+Running `service start` again updates the saved environment and restarts the same service instead of creating a duplicate. Management commands are:
+
+```bash
+antigravity-gateway service status
+antigravity-gateway service restart
+antigravity-gateway service stop
+antigravity-gateway service logs
+antigravity-gateway service uninstall
+```
+
+Background mode stores `ANTIGRAVITY_*` settings and the minimum required system environment in a private per-user configuration file; unrelated API keys are excluded. Logs are written under `~/.antigravity-gateway/logs/` and rotate to `.1` at 10 MiB. `service uninstall` removes the autostart definition and private environment snapshot while retaining historical logs.
+
+There is no need to enter the installation directory or run `npm start`. The package has no third-party runtime dependencies. The default address is `http://127.0.0.1:9897`. Foreground-mode workspaces and request logs use the operating system's temporary directory and are cleaned up after each request.
 
 ### Fast direct transport
 
@@ -579,11 +622,11 @@ $env:ANTIGRAVITY_GATEWAY_API_KEY = "change-me"; antigravity-gateway
 Update or uninstall:
 
 ```bash
-npm install --global --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
+npm install --global --foreground-scripts --allow-scripts=antigravity-gateway https://github.com/LeeFeee/antigravity-gateway/archive/refs/heads/main.tar.gz
 npm uninstall --global antigravity-gateway
 ```
 
-Updating the package does not replace an already-running process in memory. Stop the old gateway with `Ctrl+C`, start `antigravity-gateway` again, and confirm the `Gateway version` line in the startup banner.
+Updating the package does not replace an already-running process in memory. For foreground mode, stop the old gateway with `Ctrl+C` and start `antigravity-gateway` again. For background mode, run `antigravity-gateway service start` again to refresh the executable path and saved environment, then restart. Confirm the `Gateway version` line in the startup banner.
 
 Cloning the repository and using `npm test` or `npm start` is only necessary for contributors. Regular users should use the global install command and run `antigravity-gateway` from any directory.
 
