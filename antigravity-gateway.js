@@ -202,19 +202,45 @@ function preferredFastModel(models) {
 }
 
 async function resolveModel(requested, { preferFast = false } = {}) {
-  const models = await availableModels();
   const aliases = configuredAliases();
   const original = requested || DEFAULT_MODEL;
   // Normal requests preserve the exact client model ID. Aliases are opt-in,
   // exact mappings only. Auto Mode classifiers are the sole requests allowed
   // to use the independent low-latency route.
-  const chosen = preferFast
-    ? preferredFastModel(models)
-    : (Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original);
-  if (!models.includes(chosen)) {
-    throw new GatewayError(`Antigravity 当前账号没有模型: ${chosen}`, { code: 'model_not_found', status: 400 });
+  if (!preferFast) {
+    return Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original;
   }
-  return chosen;
+  try {
+    return preferredFastModel(await availableModels());
+  } catch {
+    // Model discovery is advisory. Even an Auto Mode classifier must still be
+    // allowed to reach the upstream service when the local catalog is stale or
+    // temporarily unavailable.
+    return FAST_MODEL || DEFAULT_MODEL;
+  }
+}
+
+async function upstreamModelDiagnostic(error, model) {
+  if (!['direct_upstream_error', 'agy_upstream_error'].includes(error?.code)) return error;
+
+  const detail = String(error.details || '').trim();
+  if (error.code === 'agy_upstream_error' && detail && !String(error.message || '').includes(detail)) {
+    error.message = `Antigravity 上游请求失败：${detail}`;
+  } else {
+    error.message = String(error.message || 'Antigravity 上游请求失败。')
+      .replace(/^Antigravity 直连请求失败/, 'Antigravity 上游请求失败');
+  }
+
+  let models;
+  try {
+    models = await availableModels();
+  } catch {
+    return error;
+  }
+  if (models.includes(model)) return error;
+
+  error.message += `\n\n网关诊断：\n请求模型 ${model} 未出现在当前发现的 Antigravity 模型目录中，可能是客户端模型配置错误、模型尚未向当前账号开放，或模型目录暂未刷新。\n请输入 /model 更换可用模型。`;
+  return error;
 }
 
 function codexModelInfo(slug, priority) {
@@ -603,6 +629,14 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   }
 }
 
+async function runTurnWithModelDiagnostic(normalized, model, signal, options) {
+  try {
+    return await runTurn(normalized, model, signal, options);
+  } catch (error) {
+    throw await upstreamModelDiagnostic(error, model);
+  }
+}
+
 function beginSse(res) {
   if (!res.headersSent) {
     res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
@@ -766,7 +800,7 @@ async function handleAnthropic(payload, req, res, signal) {
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -779,7 +813,7 @@ async function handleChat(payload, req, res, signal) {
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = chatResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -805,7 +839,7 @@ async function handleResponses(payload, req, res, signal) {
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   let result;
-  try { result = await runTurn(normalized, model, signal, { sessionId: scope }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: scope }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
   responseStore.set(responseId, {

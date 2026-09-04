@@ -10,7 +10,7 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.5.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前发布版本：`v0.6.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
 
 ### 已实现
 
@@ -84,7 +84,7 @@ npm install --global --foreground-scripts --allow-scripts=antigravity-gateway ht
 
 ```bash
 antigravity-gateway --version
-# 0.5.0
+# 0.6.0
 ```
 
 安装完成时会直接显示下面两种运行方式。无论终端当前位于哪个目录，都可以使用。
@@ -298,7 +298,7 @@ export ANTIGRAVITY_FAST_MODEL=gemini-3.8-flash-low
 export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.8-flash-high"}'
 ```
 
-请求目录中不存在的模型会收到明确的 `model_not_found`，不会静默回退到默认 Gemini。显式别名只匹配 JSON 中完全相同的键，不存在任何默认 Claude/GPT 前缀替换。
+本地模型目录只用于展示和失败诊断，不参与请求裁决。即使客户端指定的模型不在目录中，网关也会保持模型 ID 原样并发送给 Antigravity 上游；上游成功则正常返回，上游失败则保留真实错误，并在模型不在当前目录时附加配置、账号开放状态或目录刷新方面的排查提示。显式别名只匹配 JSON 中完全相同的键，不存在任何默认 Claude/GPT 前缀替换。
 
 直连上游返回暂时性的 `429 RESOURCE_EXHAUSTED` 时，网关会先切换备用 Cloud Code 端点，再做一次有限指数退避。它不会压缩或删除客户端上下文；持续 429 仍会按真实错误返回。
 
@@ -479,7 +479,7 @@ Claude Code connectivity probes are handled locally. Its telemetry batch endpoin
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.5.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current release: `v0.6.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
 
 ### Requirements
 
@@ -537,7 +537,7 @@ Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.5.0
+# 0.6.0
 ```
 
 The installer prints both run choices. Foreground mode stops when its terminal closes or receives `Ctrl+C`:
@@ -691,7 +691,7 @@ export ANTIGRAVITY_FAST_MODEL=gemini-3.8-flash-low
 export ANTIGRAVITY_MODEL_ALIASES='{"claude-haiku-4-5-20251001":"gemini-3.8-flash-low"}'
 ```
 
-An unavailable model returns an explicit `model_not_found` error instead of silently falling back to Gemini. Alias keys are exact matches; no Claude/GPT prefix is rewritten by default.
+The local model catalog is advisory only and never blocks a request. The gateway preserves the exact client model ID and sends it upstream even when discovery does not list it. A successful upstream response is returned normally; an upstream failure is preserved, with an additional configuration/account/catalog diagnostic only when the requested model is absent from the current catalog. Alias keys are exact matches; no Claude/GPT prefix is rewritten by default.
 
 For transient `429 RESOURCE_EXHAUSTED` responses, direct transport tries the alternate Cloud Code endpoint and then performs one bounded exponential-backoff retry. It does not compress or discard client context; persistent quota errors remain visible to the client.
 

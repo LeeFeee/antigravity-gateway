@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 - 2026-09-04
+
+- Replaced the top-level-only tool-schema cleanup with a recursive compatibility normalizer for `properties`, `items`, `prefixItems`, `anyOf`, `oneOf`, and `allOf`, fixing Claude Code 2.1.259/2.1.260 `Artifact` tool requests rejected by Cloud Code for missing nested array `items`.
+- Removed the local model catalog as a request gate. Normal client requests now preserve the exact model ID and always reach Antigravity upstream, even when discovery does not list that model.
+- Preserve upstream failures and append a non-blocking gateway diagnosis only when the requested model is absent from the currently discovered catalog. Auto Mode retains its separate fast-model route.
+
 ## 0.5.0 - 2026-09-03
 
 - Added `antigravity-gateway service start` as the cross-platform background keepalive entry point while preserving the existing foreground `antigravity-gateway` command.
@@ -24,7 +30,7 @@
 ## 0.3.0 - 2026-09-01
 
 - Preserve the exact model ID supplied by Anthropic, Responses, and Chat Completions clients. The default model is now used only when a request omits `model`.
-- Removed automatic Claude/GPT/Haiku alias rewriting. Unknown models now return `model_not_found`; `ANTIGRAVITY_MODEL_ALIASES` remains available only for user-defined exact mappings.
+- Removed automatic Claude/GPT/Haiku alias rewriting. Unknown models are sent upstream unchanged; `ANTIGRAVITY_MODEL_ALIASES` remains available only for user-defined exact mappings.
 - Restrict the auxiliary fast-model route to detected Claude Code Auto Mode classifier requests, without changing the model used by the main conversation.
 - Added a concise startup banner with protocol-specific BaseURLs, API-key guidance, the active local credential source, and selected Gemini 3.7/Claude model IDs.
 - Added `--models`, `--claude-config`, and `--claude-config-path`. The generated Claude Code `modelPicker` settings expose every model discovered for the current account without inventing aliases.

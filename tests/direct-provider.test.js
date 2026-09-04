@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
+const { DirectAntigravityProvider, buildDirectRequest, cleanToolSchema } = require('../src/direct-provider');
 const {
   LocalAgyAuthProvider,
   agyBinaryPaths,
@@ -66,6 +66,93 @@ test('direct request normalizes nullable union schema types for Cloud Code', () 
   const pathSchema = request.request.tools[0].functionDeclarations[0].parameters.properties.path;
   assert.equal(pathSchema.type, 'string');
   assert.equal(pathSchema.nullable, true);
+});
+
+test('tool schema repair keeps Claude Code Artifact tuples and supplies required array items', () => {
+  const schema = cleanToolSchema({
+    type: 'object',
+    properties: {
+      query: {
+        type: 'object',
+        properties: {
+          where: {
+            type: 'array',
+            maxItems: 10,
+            items: {
+              type: 'array',
+              prefixItems: [
+                { type: 'string' },
+                { type: 'string', enum: ['eq', 'ne', 'in'] },
+                {}
+              ]
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const where = schema.properties.query.properties.where;
+  assert.deepEqual(where.items.items, { type: 'string' });
+  assert.equal(where.items.prefixItems.length, 3);
+  assert.deepEqual(where.items.prefixItems[0], { type: 'string' });
+  assert.deepEqual(where.items.prefixItems[1], { type: 'string', enum: ['eq', 'ne', 'in'] });
+  assert.deepEqual(where.items.prefixItems[2], {});
+  assert.equal(where.maxItems, undefined);
+});
+
+test('tool schema repair recursively normalizes properties, tuples, unions, and intersections', () => {
+  const schema = cleanToolSchema({
+    allOf: [
+      {
+        type: 'object',
+        properties: {
+          filters: {
+            type: ['array', 'null'],
+            prefixItems: [
+              { anyOf: [{ type: 'string' }, { type: 'null' }] },
+              { oneOf: [{ type: 'number' }, { type: 'string' }] }
+            ]
+          }
+        },
+        required: ['filters']
+      },
+      {
+        type: 'object',
+        properties: {
+          options: {
+            allOf: [
+              { type: 'object', properties: { enabled: { type: 'boolean' } } },
+              { type: 'object', properties: { tags: { type: 'array' } }, required: ['tags'] }
+            ]
+          }
+        }
+      }
+    ]
+  });
+
+  assert.equal(schema.type, 'object');
+  assert.deepEqual(schema.required, ['filters']);
+  assert.equal(schema.properties.filters.type, 'array');
+  assert.equal(schema.properties.filters.nullable, true);
+  assert.deepEqual(schema.properties.filters.items, { type: 'string' });
+  assert.equal(schema.properties.filters.prefixItems[0].type, 'string');
+  assert.equal(schema.properties.filters.prefixItems[0].nullable, true);
+  assert.equal(schema.properties.filters.prefixItems[1].type, 'number');
+  assert.equal(schema.properties.options.type, 'object');
+  assert.equal(schema.properties.options.properties.enabled.type, 'boolean');
+  assert.deepEqual(schema.properties.options.properties.tags.items, { type: 'string' });
+  assert.deepEqual(schema.properties.options.required, ['tags']);
+});
+
+test('tool schema repair preserves an existing array item schema', () => {
+  const schema = cleanToolSchema({
+    type: 'array',
+    items: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] }
+  });
+  assert.deepEqual(schema.items, {
+    type: 'object', properties: { id: { type: 'integer' } }, required: ['id']
+  });
 });
 
 test('direct request maps tool IDs inside native Gemini function calls', () => {

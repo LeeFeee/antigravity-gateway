@@ -309,19 +309,50 @@ test('Chat Completions and Responses preserve exact client model IDs', async (t)
   assert.equal(responses.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
 });
 
-test('missing models return model_not_found instead of the default model', async (t) => {
+test('models missing from the local catalog are still sent upstream unchanged', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/messages`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+      model: 'gpt-5.6-sol',
       messages: [{ role: 'user', content: 'normal request' }]
     })
   });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'gpt-5.6-sol');
+});
+
+test('upstream model failures keep the provider error and add an advisory catalog diagnosis', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gpt-5.6-sol',
+      messages: [{ role: 'user', content: 'FAIL' }]
+    })
+  });
   const body = await response.json();
-  assert.equal(response.status, 400);
-  assert.equal(body.error.type, 'model_not_found');
-  assert.match(body.error.message, /claude-haiku-4-5-20251001/);
+  assert.equal(response.status, 502);
+  assert.equal(body.error.type, 'agy_upstream_error');
+  assert.match(body.error.message, /^Antigravity 上游请求失败：simulated failure/);
+  assert.match(body.error.message, /网关诊断：/);
+  assert.match(body.error.message, /请求模型 gpt-5\.6-sol 未出现在当前发现的 Antigravity 模型目录中/);
+  assert.match(body.error.message, /请输入 \/model 更换可用模型/);
+});
+
+test('upstream failures for catalog models are returned without a false model diagnosis', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gemini-test-high',
+      messages: [{ role: 'user', content: 'FAIL' }]
+    })
+  });
+  const body = await response.json();
+  assert.equal(response.status, 502);
+  assert.match(body.error.message, /^Antigravity 上游请求失败：simulated failure/);
+  assert.doesNotMatch(body.error.message, /网关诊断：/);
 });
 
 test('a missing client model field uses the configured default only', async (t) => {
