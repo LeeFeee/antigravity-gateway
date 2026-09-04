@@ -443,7 +443,7 @@ agy --input-format stream-json \
 | `ANTIGRAVITY_PROJECT_ID` | 空 | Cloud Code project；未设置时尝试 `loadCodeAssist` |
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | 直连上游地址 |
 | `ANTIGRAVITY_DIRECT_MODELS` | 空（自动探测） | 可选；固定直连 `/v1/models` 展示的逗号分隔模型列表 |
-| `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | 直连上游模型目录探测超时；失败时使用保守默认模型 |
+| `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `8000` | 直连上游模型目录探测超时；失败时使用保守默认模型 |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | 自动生成 `antigravity/cli/... (aidev_client; ...)` | 直连请求 User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | 监听地址 |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | 监听端口 |
@@ -758,7 +758,7 @@ The catalog uses a deterministic presentation priority, with newly discovered mo
 | `ANTIGRAVITY_PROJECT_ID` | empty | Cloud Code project ID; otherwise `loadCodeAssist` is attempted |
 | `ANTIGRAVITY_DIRECT_BASE_URL` | `https://cloudcode-pa.googleapis.com` | Direct upstream base URL |
 | `ANTIGRAVITY_DIRECT_MODELS` | empty (auto-discover) | Optional comma-separated models shown by direct `/v1/models` |
-| `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `3000` | Direct upstream model discovery timeout; falls back to a conservative default |
+| `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `8000` | Direct upstream model discovery timeout; falls back to a conservative default |
 | `ANTIGRAVITY_DIRECT_USER_AGENT` | generated `antigravity/cli/... (aidev_client; ...)` | Direct upstream User-Agent |
 | `ANTIGRAVITY_GATEWAY_HOST` | `127.0.0.1` | Listen address |
 | `ANTIGRAVITY_GATEWAY_PORT` | `9897` | Listen port |

@@ -13,7 +13,7 @@ const LOAD_CODE_ASSIST_PATH = '/v1internal:loadCodeAssist';
 const GENERATE_PATH = '/v1internal:generateContent';
 const STREAM_PATH = '/v1internal:streamGenerateContent';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
-const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 3000);
+const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 8000);
 const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MAX_RETRIES || 1));
 const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
 const DEFAULT_USER_AGENT = `antigravity/cli/${process.env.ANTIGRAVITY_CLI_VERSION || '1.1.18'} (aidev_client; os_type=${process.platform}; arch=${process.arch}; auth_method=consumer)`;

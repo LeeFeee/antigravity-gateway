@@ -5,6 +5,7 @@
 - Replaced the top-level-only tool-schema cleanup with a recursive compatibility normalizer for `properties`, `items`, `prefixItems`, `anyOf`, `oneOf`, and `allOf`, fixing Claude Code 2.1.259/2.1.260 `Artifact` tool requests rejected by Cloud Code for missing nested array `items`.
 - Removed the local model catalog as a request gate. Normal client requests now preserve the exact model ID and always reach Antigravity upstream, even when discovery does not list that model.
 - Preserve upstream failures and append a non-blocking gateway diagnosis only when the requested model is absent from the currently discovered catalog. Auto Mode retains its separate fast-model route.
+- Raised the default direct model-catalog discovery timeout from three to eight seconds after real macOS requests were observed completing in about five seconds; the environment override remains available.
 
 ## 0.5.0 - 2026-09-03
 
