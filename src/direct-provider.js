@@ -21,6 +21,10 @@ const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 const THOUGHT_SIGNATURE_SENTINEL = 'skip_thought_signature_validator';
 const thoughtSignatureSessions = new Map();
 const THOUGHT_SIGNATURE_TTL_MS = 60 * 60 * 1000;
+setInterval(() => {
+  const cutoff = Date.now() - THOUGHT_SIGNATURE_TTL_MS;
+  for (const [id, entry] of thoughtSignatureSessions) if (entry.at < cutoff) thoughtSignatureSessions.delete(id);
+}, 60_000).unref();
 
 class DirectProviderError extends Error {
   constructor(message, { code = 'direct_provider_error', status = 502, details, cause } = {}) {
@@ -626,9 +630,15 @@ class DirectAntigravityProvider {
     return this.projectId;
   }
 
-  async listModels(signal) {
+  async listModels(signal, { force = false } = {}) {
     if (this.modelList.length) return [...this.modelList];
-    if (this.discoveredModels.length) return [...this.discoveredModels];
+    if (!force && this.discoveredModels.length && Date.now() - this.modelsDiscoveredAt < 60_000) return [...this.discoveredModels];
+    if (this.modelDiscovery) return this.modelDiscovery;
+    this.modelDiscovery = this.discoverModels(signal);
+    try { return await this.modelDiscovery; } finally { this.modelDiscovery = null; }
+  }
+
+  async discoverModels(signal) {
     try {
       const token = await this.access(signal);
       for (const base of this.baseUrls()) {
@@ -637,7 +647,7 @@ class DirectAntigravityProvider {
             method: 'POST',
             headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: '*/*', 'user-agent': this.userAgent },
             body: '{}',
-            signal: signal || AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
+            signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
           });
           const text = await readBody(response);
           if (!response.ok) continue;
@@ -651,6 +661,7 @@ class DirectAntigravityProvider {
           const models = entries.map(([id]) => id).filter(Boolean);
           if (models.length) {
             this.discoveredModels = [...new Set(models)];
+            this.modelsDiscoveredAt = Date.now();
             this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
               const metadata = value && typeof value === 'object' ? value : {};
               return [id, {
@@ -670,7 +681,7 @@ class DirectAntigravityProvider {
     } catch {
       // Model discovery must not prevent the local gateway from starting.
     }
-    return ['gemini-3.8-flash-high'];
+    return this.discoveredModels.length ? [...this.discoveredModels] : ['gemini-3.8-flash-high'];
   }
 
   modelInfo(model) {
@@ -753,6 +764,7 @@ class DirectAntigravityProvider {
       if (!reader) return this._parseJson(await readBody(response), state, onDelta);
       const decoder = new TextDecoder();
       let buffer = '';
+      try {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -766,6 +778,11 @@ class DirectAntigravityProvider {
       }
       const tail = jsonFromSseLine(buffer);
       if (tail) consumeUpstreamValue(tail, state, onDelta);
+      } finally {
+        // Release the upstream body on parser errors and downstream cancellation.
+        await reader.cancel().catch(() => {});
+        reader.releaseLock();
+      }
     } else {
       this._parseJson(await readBody(response), state, onDelta);
     }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.1 - 2026-09-07
+
+- Reject invalid Host headers safely and deny unapproved browser origins while preserving origin-free CLI access.
+- Enforce request deadlines and bound uploads before body parsing; reject ambiguous Auto Mode XML instead of choosing an allow verdict.
+- Validate nested JSON Schema combinators and tuples; preserve model IDs, full input, and client-side tool execution.
+- Refresh model catalogs with concurrent probe deduplication and stale-catalog fallback; coalesce local OAuth refreshes and honor custom agy paths.
+- Rotate background logs during execution, bound log-tail reads, restart existing Linux services after configuration updates, and use USERPROFILE on Windows when HOME is absent.
+- Refuse to persist explicit OAuth token/client-secret environment variables in background snapshots; foreground usage and local agy login remain unchanged.
+
 ## 0.6.0 - 2026-09-04
 
 - Replaced the top-level-only tool-schema cleanup with a recursive compatibility normalizer for `properties`, `items`, `prefixItems`, `anyOf`, `oneOf`, and `allOf`, fixing Claude Code 2.1.259/2.1.260 `Artifact` tool requests rejected by Cloud Code for missing nested array `items`.

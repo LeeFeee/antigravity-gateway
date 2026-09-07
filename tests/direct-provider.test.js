@@ -376,6 +376,44 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
   assert.equal(provider.modelInfo('missing'), null);
 });
 
+test('forced catalog refresh is deduplicated and preserves stale catalog on failure', async () => {
+  let count = 0;
+  let fail = false;
+  const provider = new DirectAntigravityProvider({ localAuth: null, accessToken: 'test', projectId: 'test', baseUrl: 'https://example.test', models: [],
+    fetchImpl: async () => {
+      count++;
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return new Response(JSON.stringify({ models: { [`gemini-test-${count}`]: {} } }), { status: fail ? 503 : 200 });
+    }
+  });
+  assert.deepEqual(await provider.listModels(), ['gemini-test-1']);
+  assert.deepEqual(await provider.listModels(), ['gemini-test-1']);
+  const results = await Promise.all([provider.listModels(undefined, { force: true }), provider.listModels(undefined, { force: true })]);
+  assert.deepEqual(results, [['gemini-test-2'], ['gemini-test-2']]);
+  assert.equal(count, 2);
+  fail = true;
+  assert.deepEqual(await provider.listModels(undefined, { force: true }), ['gemini-test-2']);
+});
+
+test('concurrent local refreshes share one exchange and caller cancellation stays local', async () => {
+  let count = 0;
+  const provider = new LocalAgyAuthProvider({ useKeychain: false });
+  provider.last = { accessToken: 'expired', refreshToken: 'refresh', expiry: new Date(0) };
+  provider.find = () => null;
+  provider.refresh = async () => {
+    count++;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return { accessToken: 'fresh' };
+  };
+  const controller = new AbortController();
+  const first = provider.get(controller.signal);
+  const second = provider.get();
+  controller.abort(new Error('cancelled'));
+  await assert.rejects(first, /cancelled/);
+  assert.equal((await second).accessToken, 'fresh');
+  assert.equal(count, 1);
+});
+
 test('direct provider model-discovery fallback uses the current default family', async () => {
   const provider = new DirectAntigravityProvider({
     localAuth: null,

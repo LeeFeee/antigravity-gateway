@@ -34,6 +34,27 @@ async function withServer(t) {
   return `http://127.0.0.1:${server.address().port}`;
 }
 
+test('malformed Host is rejected without terminating the server', async (t) => {
+  const base = await withServer(t);
+  const status = await new Promise((resolve, reject) => {
+    require('node:http').get(`${base}/api/hello`, { headers: { Host: '[' } }, (res) => {
+      res.resume(); resolve(res.statusCode);
+    }).on('error', reject);
+  });
+  assert.equal(status, 400);
+  assert.equal((await fetch(`${base}/api/hello`)).status, 200);
+});
+
+test('untrusted browser origins are rejected including text/plain and preflight', async (t) => {
+  const base = await withServer(t);
+  for (const method of ['POST', 'OPTIONS']) {
+    const response = await fetch(`${base}/api/hello`, { method, headers: { origin: 'https://untrusted.example', 'content-type': 'text/plain' } });
+    assert.equal(response.status, 403);
+    assert.equal(response.headers.get('access-control-allow-origin'), null);
+  }
+  assert.equal((await fetch(`${base}/api/hello`, { headers: { origin: base } })).status, 200);
+});
+
 test('model endpoint reflects agy models', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/models`);

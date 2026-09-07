@@ -87,6 +87,7 @@ const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE |
 const MODEL_CACHE_MS = 60000;
 const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
 const DIRECT_PROVIDER = new DirectAntigravityProvider();
+DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 
 const responseStore = new Map();
 const activeWorkers = new Set();
@@ -102,6 +103,7 @@ class Semaphore {
   }
 
   acquire(signal) {
+    if (signal?.aborted) return Promise.reject(signal.reason || new GatewayError('请求已取消。', { code: 'request_aborted', status: 499 }));
     if (this.active < this.limit) {
       this.active += 1;
       return Promise.resolve(() => this.release());
@@ -133,6 +135,8 @@ class Semaphore {
 }
 
 const requestSlots = new Semaphore(MAX_CONCURRENCY, MAX_QUEUE);
+// Admit uploads before allocating/normalizing complete request bodies.
+const uploadSlots = new Semaphore(MAX_CONCURRENCY, MAX_QUEUE);
 
 function isLoopbackHost(host) {
   return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(String(host).toLowerCase());
@@ -171,7 +175,7 @@ async function availableModels(force = false) {
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
     const models = usesDirectTransport()
-      ? await DIRECT_PROVIDER.listModels()
+      ? await DIRECT_PROVIDER.listModels(undefined, { force: true })
       : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
     if (!models.length) throw new GatewayError('`agy models` 没有返回可识别的模型 ID。', { code: 'empty_model_catalog', status: 503 });
     modelCache = { at: Date.now(), models, error: null };
@@ -498,10 +502,23 @@ function sendSse(res, event, data) {
   res.write(`data: ${JSON.stringify(data)}\n\n`);
 }
 
-function setCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', isLoopbackHost(HOST) ? '*' : (process.env.ANTIGRAVITY_GATEWAY_CORS_ORIGIN || 'null'));
+function setCors(req, res) {
+  const origin = req.headers.origin;
+  if (origin) {
+    const allowed = String(process.env.ANTIGRAVITY_GATEWAY_CORS_ORIGIN || '').split(',').map((value) => value.trim());
+    let sameOrigin = false;
+    try {
+      const url = new URL(origin);
+      sameOrigin = url.origin === `http://${req.headers.host}`
+        && (isLoopbackHost(url.hostname) || url.hostname === HOST);
+    } catch { /* reject malformed origins */ }
+    if (!sameOrigin && !allowed.includes(origin)) return false;
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  return true;
 }
 
 function clientScope(req) {
@@ -562,6 +579,7 @@ function cleanupResponseStore() {
   for (const [id, state] of responseStore) if (state.at < cutoff) responseStore.delete(id);
   while (responseStore.size > 1000) responseStore.delete(responseStore.keys().next().value);
 }
+setInterval(cleanupResponseStore, 60_000).unref();
 
 async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   const release = await requestSlots.acquire(signal);
@@ -585,7 +603,8 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
       release();
     }
   }
-  const prompt = buildPrompt(normalized);
+  let prompt;
+  try { prompt = buildPrompt(normalized); } catch (error) { release(); throw error; }
   if (Buffer.byteLength(prompt) > PROMPT_BYTE_LIMIT) {
     release();
     throw new GatewayError('请求编码后超过网关的字节安全上限；这不是模型上下文窗口判定。', {
@@ -597,14 +616,15 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   // agy requires a log path. Keep it inside the per-request directory so the
   // gateway can remove it with the isolated workspace after the turn.
   const logFile = path.join(workDir, 'agy.log');
-  const worker = new AgyWorker({
+  let worker;
+  try { worker = new AgyWorker({
     agyPath: AGY_PATH,
     prefixArgs: AGY_PREFIX_ARGS,
     model,
     cwd: workDir,
     logFile,
     timeoutMs: REQUEST_TIMEOUT
-  });
+  }); } catch (error) { release(); throw error; }
   activeWorkers.add(worker);
   try {
     let raw = await worker.send(prompt, { signal, onDelta });
@@ -866,15 +886,33 @@ async function handleResponses(payload, req, res, signal) {
 }
 
 async function requestHandler(req, res) {
-  setCors(res);
+  if (!setCors(req, res)) { sendJson(res, 403, { error: { type: 'origin_not_allowed', message: '浏览器来源未获授权。' } }); return; }
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-  const route = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`).pathname.replace(/\/$/, '') || '/';
+  let route;
+  try {
+    // Validate Host, but never use client-controlled Host as the URL parser base.
+    if (req.headers.host) new URL(`http://${req.headers.host}`);
+    route = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '') || '/';
+  } catch { sendJson(res, 400, { error: { type: 'invalid_url', message: '请求 URL 或 Host 无效。' } }); return; }
   if (!authorized(req)) { sendJson(res, 401, errorBody(new GatewayError('API key 无效。', { code: 'authentication_error', status: 401 }), route.includes('messages') ? 'anthropic' : 'openai')); return; }
   const controller = new AbortController();
+  let timedOut = false;
+  let releaseUpload;
+  const deadline = setTimeout(() => {
+    timedOut = true;
+    controller.abort(new GatewayError('网关请求超时。', { code: 'request_timeout', status: 504 }));
+    // Uploads may be stalled; aborting upstream alone does not end readJson.
+    if (!res.headersSent) sendJson(res, 504, errorBody(controller.signal.reason, protocol));
+    else { sendSse(res, 'error', errorBody(controller.signal.reason, protocol)); res.end(); }
+  }, REQUEST_TIMEOUT);
+  deadline.unref();
+  res.on('finish', () => { if (timedOut) req.destroy(); });
   req.on('aborted', () => controller.abort());
+  req.on('error', () => controller.abort());
   res.on('close', () => { if (!res.writableEnded) controller.abort(); });
   let protocol = route === '/v1/messages' || route === '/v1/messages/count_tokens' ? 'anthropic' : 'openai';
   try {
+    if (req.method === 'POST') releaseUpload = await uploadSlots.acquire(controller.signal);
     // Claude Code probes custom providers with this lightweight endpoint.
     // Treat it as a connectivity check instead of logging a false 404 error.
     if (route === '/api/hello' && ['GET', 'POST', 'HEAD'].includes(req.method)) {
@@ -933,7 +971,7 @@ async function requestHandler(req, res) {
     // Claude Code may cancel an in-flight classifier/tool request as soon as a
     // newer branch wins. That is normal client control flow, not a gateway
     // failure, and the socket is already gone so no error body can be sent.
-    if (controller.signal.aborted || res.destroyed) {
+    if (timedOut || controller.signal.aborted || res.destroyed) {
       if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
         console.warn(`[Antigravity Gateway] 请求已由客户端取消 (${error.code || 'request_aborted'})`);
       }
@@ -947,11 +985,19 @@ async function requestHandler(req, res) {
       else sendSse(res, null, { type: route === '/v1/responses' ? 'response.failed' : 'error', error: errorBody(error, protocol).error });
       res.end();
     }
+  } finally {
+    clearTimeout(deadline);
+    releaseUpload?.();
   }
 }
 
 function createServer() {
-  return http.createServer(requestHandler);
+  return http.createServer((req, res) => {
+    void requestHandler(req, res).catch(() => {
+      if (!res.headersSent && !res.destroyed) sendJson(res, 500, { error: { message: 'Antigravity Gateway 内部错误。' } });
+      else res.destroy();
+    });
+  });
 }
 
 if (require.main === module) {

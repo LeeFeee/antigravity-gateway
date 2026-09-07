@@ -260,6 +260,7 @@ function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '', platf
 class LocalAgyAuthProvider {
   constructor({
     homeDir = os.homedir(),
+    agyPath = '',
     authFile = process.env.ANTIGRAVITY_LOCAL_AUTH_FILE || '',
     fetchImpl = globalThis.fetch,
     tokenEndpoint = TOKEN_ENDPOINT,
@@ -275,6 +276,7 @@ class LocalAgyAuthProvider {
     this.clientCredentials = normalizeClientCredentials(clientCredentials);
     this.platform = platform;
     this.homeDir = homeDir;
+    this.agyPath = agyPath;
     this.paths = authFile ? [path.resolve(authFile)] : defaultPaths(homeDir, platform);
     this.keychainService = keychainService;
     this.keychainAccount = keychainAccount;
@@ -328,7 +330,7 @@ class LocalAgyAuthProvider {
     if (!refreshToken) throw new LocalAgyAuthError('本地 agy 登录态缺少 refresh token。', { code: 'local_agy_refresh_missing' });
     const candidates = this.clientCredentials.length
       ? this.clientCredentials
-      : discoverClientCredentials({ homeDir: this.homeDir, platform: this.platform });
+      : discoverClientCredentials({ homeDir: this.homeDir, platform: this.platform, agyPath: this.agyPath });
     if (!candidates.length) throw new LocalAgyAuthError('无法从本地 agy 安装中发现 OAuth 客户端配置。', { code: 'local_agy_client_credentials_missing' });
     let lastStatus = 401;
     let lastDetails = '';
@@ -363,6 +365,23 @@ class LocalAgyAuthProvider {
   }
 
   async get(signal, { forceRefresh = false } = {}) {
+    if (signal?.aborted) throw signal.reason;
+    if (!this.pendingGet) {
+      // One expiring session must not trigger parallel refresh-token exchanges.
+      // A cancelled caller must not cancel refresh for other callers.
+      this.pendingGet = this.getRecord(AbortSignal.timeout(30_000), { forceRefresh });
+      this.pendingGet.finally(() => { this.pendingGet = null; }).catch(() => {});
+    }
+    const pending = this.pendingGet;
+    if (!signal) return pending;
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason);
+      signal.addEventListener('abort', abort, { once: true });
+      pending.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort));
+    });
+  }
+
+  async getRecord(signal, { forceRefresh = false } = {}) {
     let record = this.last || this.load();
     if (!record) throw new LocalAgyAuthError('未找到本地 agy 登录态。请先在 agy/Antigravity 中完成登录。', { code: 'local_agy_auth_missing' });
     if (!forceRefresh && record.accessToken && (!record.expiry || record.expiry > new Date(Date.now() + 60_000))) return record;

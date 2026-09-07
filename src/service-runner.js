@@ -27,8 +27,24 @@ function rotate(file) {
 
 function appendFailure(file, error) {
   try {
+    rotate(file);
     fs.appendFileSync(file, `[${new Date().toISOString()}] ${error.stack || error.message || error}\n`, { encoding: 'utf8' });
   } catch { /* the service supervisor will still observe the non-zero exit */ }
+}
+
+function logWriter(file) {
+  let size = 0;
+  try { size = fs.statSync(file).size; } catch { /* new log */ }
+  return (chunk) => {
+    // Open per bounded chunk so Windows never renames a still-open log handle.
+    for (let offset = 0; offset < chunk.length;) {
+      if (size >= MAX_LOG_BYTES) { rotate(file); size = 0; }
+      const end = Math.min(chunk.length, offset + MAX_LOG_BYTES - size);
+      fs.appendFileSync(file, chunk.subarray(offset, end), { mode: 0o600 });
+      size += end - offset;
+      offset = end;
+    }
+  };
 }
 
 function main(argv = process.argv.slice(2)) {
@@ -51,27 +67,24 @@ function main(argv = process.argv.slice(2)) {
     return;
   }
 
-  const stdout = fs.openSync(stdoutFile, 'a');
-  const stderr = stderrFile === stdoutFile ? stdout : fs.openSync(stderrFile, 'a');
+  const stdout = logWriter(stdoutFile);
+  const stderr = stderrFile === stdoutFile ? stdout : logWriter(stderrFile);
   let stopping = false;
   let child = null;
   let restartTimer = null;
 
-  const closeLogs = () => {
-    try { fs.closeSync(stdout); } catch { /* already closed */ }
-    if (stderr !== stdout) {
-      try { fs.closeSync(stderr); } catch { /* already closed */ }
-    }
-  };
+  const closeLogs = () => {};
 
   const launch = () => {
     if (stopping) return;
     child = spawn(process.execPath, [gatewayFile], {
-      cwd: environment.HOME || process.cwd(),
+      cwd: environment.HOME || environment.USERPROFILE || process.cwd(),
       env: { ...process.env, ...environment },
-      stdio: ['ignore', stdout, stderr],
+      stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true
     });
+    child.stdout.on('data', (chunk) => { try { stdout(chunk); } catch { /* disk failure must not crash the supervisor */ } });
+    child.stderr.on('data', (chunk) => { try { stderr(chunk); } catch { /* best effort */ } });
     child.once('error', (error) => appendFailure(stderrFile, error));
     child.once('close', (code, signal) => {
       child = null;
@@ -102,4 +115,4 @@ function main(argv = process.argv.slice(2)) {
 
 if (require.main === module) main();
 
-module.exports = { MAX_LOG_BYTES, RESTART_DELAY_MS, main, readConfiguration, rotate };
+module.exports = { MAX_LOG_BYTES, RESTART_DELAY_MS, logWriter, main, readConfiguration, rotate };

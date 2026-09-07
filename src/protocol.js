@@ -376,7 +376,12 @@ function parseJson(text) {
 }
 
 function validateSchema(value, schema, depth = 0) {
-  if (!schema || typeof schema !== 'object' || depth > 12) return true;
+  if (schema === false || depth > 64) return false;
+  if (!schema || typeof schema !== 'object') return true;
+  if (schema.anyOf && !schema.anyOf.some((child) => validateSchema(value, child, depth + 1))) return false;
+  if (schema.oneOf && schema.oneOf.filter((child) => validateSchema(value, child, depth + 1)).length !== 1) return false;
+  if (schema.allOf && !schema.allOf.every((child) => validateSchema(value, child, depth + 1))) return false;
+  if (schema.not && validateSchema(value, schema.not, depth + 1)) return false;
   if (Array.isArray(schema.enum) && !schema.enum.some((item) => Object.is(item, value))) return false;
   if (schema.const !== undefined && !Object.is(schema.const, value)) return false;
   const types = Array.isArray(schema.type) ? schema.type : schema.type ? [schema.type] : [];
@@ -385,7 +390,7 @@ function validateSchema(value, schema, depth = 0) {
     if (!types.includes(actual) && !(actual === 'integer' && types.includes('number'))) return false;
   }
   if (value && typeof value === 'object' && !Array.isArray(value)) {
-    for (const key of schema.required || []) if (!(key in value)) return false;
+    for (const key of schema.required || []) if (!Object.hasOwn(value, key)) return false;
     for (const [key, child] of Object.entries(schema.properties || {})) {
       if (key in value && !validateSchema(value[key], child, depth + 1)) return false;
     }
@@ -397,7 +402,10 @@ function validateSchema(value, schema, depth = 0) {
   if (Array.isArray(value)) {
     if (schema.minItems != null && value.length < schema.minItems) return false;
     if (schema.maxItems != null && value.length > schema.maxItems) return false;
-    if (schema.items && value.some((item) => !validateSchema(item, schema.items, depth + 1))) return false;
+    const prefix = schema.prefixItems || (Array.isArray(schema.items) ? schema.items : []);
+    if (prefix.some((child, index) => index < value.length && !validateSchema(value[index], child, depth + 1))) return false;
+    const rest = Array.isArray(schema.items) ? schema.additionalItems : schema.items;
+    if (rest !== undefined && value.slice(prefix.length).some((item) => !validateSchema(item, rest, depth + 1))) return false;
   }
   return true;
 }
@@ -448,7 +456,8 @@ function parseToolCalls(text, tools) {
 function normalizeAutoMode(text, format = 'block') {
   const source = String(text || '');
   if (format === 'severity') {
-    const match = source.match(/<severity>\s*(\d+(?:\.\d+)?)\s*<\/severity>/i);
+    const matches = [...source.matchAll(/<severity>\s*(\d+(?:\.\d+)?)\s*<\/severity>/gi)];
+    const match = matches.length === 1 && (source.match(/<severity>/gi) || []).length === 1 ? matches[0] : null;
     const value = match ? Number(match[1]) : NaN;
     if (!Number.isFinite(value) || value < 0 || value > 100) {
       throw new GatewayError('Antigravity 模型未返回 Claude Code Auto mode 要求的 XML 严重度判定。', {
@@ -459,7 +468,11 @@ function normalizeAutoMode(text, format = 'block') {
     const category = source.match(/<category>[\s\S]*?<\/category>/i)?.[0] || '';
     return `<severity>${match[1]}</severity>${category}`;
   }
-  const no = source.match(/<block>\s*no\s*<\/block>/i);
+  const verdicts = [...source.matchAll(/<block>\s*(yes|no)\s*<\/block>/gi)];
+  if (verdicts.length !== 1 || (source.match(/<block>/gi) || []).length !== 1) {
+    throw new GatewayError('Auto mode XML 判定缺失、重复或冲突；需要客户端审批。', { code: 'invalid_auto_mode_classifier_output', status: 502 });
+  }
+  const no = verdicts[0][1].toLowerCase() === 'no';
   if (no) return '<block>no</block>';
   const yes = source.match(/<block>\s*yes\s*<\/block>/i);
   if (!yes) throw new GatewayError('Antigravity 模型未返回 Claude Code Auto mode 要求的 XML 判定。', {

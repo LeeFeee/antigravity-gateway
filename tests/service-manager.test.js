@@ -50,6 +50,7 @@ function fakeContext(t, platform, execute) {
 }
 
 test('service name and environment are constrained', () => {
+  assert.throws(() => serviceEnvironment({ ANTIGRAVITY_REFRESH_TOKEN: 'never-save' }), /明文快照/);
   assert.equal(serviceName('gateway_test-1.0'), 'gateway_test-1.0');
   assert.throws(() => serviceName('../outside'), /服务名称/);
   assert.deepEqual(serviceEnvironment({
@@ -112,6 +113,7 @@ test('Linux service start installs, enables, and captures only gateway environme
   assert.equal(environment.ANTIGRAVITY_GATEWAY_API_KEY, 'local-secret');
   assert.equal(environment.OPENAI_API_KEY, undefined);
   assert.equal(calls.some((call) => call.file === 'systemctl' && call.args.includes('enable') && call.args.includes('--now')), true);
+  assert.equal(calls.some((call) => call.file === 'systemctl' && call.args.includes('restart')), true);
   assert.equal(calls.some((call) => call.file === 'loginctl' && call.args[0] === 'enable-linger'), true);
 });
 
@@ -155,6 +157,17 @@ test('service logs tail rotated output without requiring the service manager', a
 
 test('runner uses a short internal restart delay', () => {
   assert.equal(RESTART_DELAY_MS, 3000);
+});
+
+test('runner rotates logs while writing without requiring a restart', (t) => {
+  const { logWriter, MAX_LOG_BYTES } = require('../src/service-runner');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gateway-log-test-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, 'live.log');
+  const write = logWriter(file);
+  write(Buffer.alloc(MAX_LOG_BYTES + 12, 120));
+  assert.equal(fs.statSync(`${file}.1`).size, MAX_LOG_BYTES);
+  assert.equal(fs.statSync(file).size, 12);
 });
 
 test('postinstall prints both foreground and background commands', () => {

@@ -32,6 +32,10 @@ function serviceName(source = process.env.ANTIGRAVITY_GATEWAY_SERVICE_NAME || DE
 }
 
 function serviceEnvironment(source = process.env) {
+  const sensitive = ['ANTIGRAVITY_ACCESS_TOKEN', 'ANTIGRAVITY_REFRESH_TOKEN', 'ANTIGRAVITY_GOOGLE_CLIENT_SECRET'];
+  if (sensitive.some((key) => source[key])) {
+    throw new ServiceError('后台服务不会把 OAuth token/client secret 环境变量写入明文快照。请使用本地 agy 登录态或受保护的 ANTIGRAVITY_AUTH_FILE，清除这些环境变量后重试；前台模式不受影响。');
+  }
   return Object.fromEntries(Object.entries(source).filter(([key, value]) => (
     typeof value === 'string'
     && (key.startsWith('ANTIGRAVITY_') || ENVIRONMENT_KEYS.has(key))
@@ -182,10 +186,15 @@ function saveConfiguration(ctx) {
 }
 
 function tail(file, lineCount = 80) {
+  let fd;
   try {
-    const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
+    fd = fs.openSync(file, 'r');
+    const size = fs.fstatSync(fd).size;
+    const buffer = Buffer.alloc(Math.min(size, 256 * 1024));
+    fs.readSync(fd, buffer, 0, buffer.length, size - buffer.length);
+    const lines = buffer.toString('utf8').split(/\r?\n/);
     return lines.slice(Math.max(0, lines.length - lineCount - 1)).join('\n').trim();
-  } catch { return ''; }
+  } catch { return ''; } finally { if (fd !== undefined) fs.closeSync(fd); }
 }
 
 function logs(ctx) {
@@ -244,6 +253,7 @@ async function linuxService(action, ctx) {
     await systemctl(['daemon-reload']);
     try {
       await systemctl(['enable', '--now', unitName]);
+      await systemctl(['restart', unitName]);
     } catch (error) {
       await systemctl(['disable', '--now', unitName], { allowFailure: true });
       throw error;

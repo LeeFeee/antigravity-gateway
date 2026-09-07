@@ -10,7 +10,9 @@ Antigravity Gateway 是一个实验性的本地兼容网关。它从官方 Antig
 
 > 非 Google 官方项目。仅用于学习、兼容性研究与个人测试。使用本项目不代表你获得额外模型权限，也不能绕过 Antigravity 的套餐、额度、地区限制或服务条款。
 
-当前发布版本：`v0.6.0`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+当前版本：`v0.6.1`。每次发布都会同步更新 `package.json`、启动横幅、`--version` 与 `CHANGELOG.md`。
+
+本地安全与稳定性：CLI 调用方式不变；浏览器仅允许同源访问，其他网页来源必须通过 `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` 明确配置（完整 Origin，多个以逗号分隔，不支持 `*`）。请求总超时包括上传、排队和上游处理；超时会取消请求，不会压缩上下文或替换模型。模型目录可刷新，探测失败优先保留上次成功结果。
 
 ### 已实现
 
@@ -84,7 +86,7 @@ npm install --global --foreground-scripts --allow-scripts=antigravity-gateway ht
 
 ```bash
 antigravity-gateway --version
-# 0.6.0
+# 0.6.1
 ```
 
 安装完成时会直接显示下面两种运行方式。无论终端当前位于哪个目录，都可以使用。
@@ -114,6 +116,10 @@ antigravity-gateway service uninstall
 ```
 
 后台模式会把启动时的 `ANTIGRAVITY_*` 配置和必要的系统环境保存到当前用户私有配置文件中，方便重启后恢复；不会收集其他 API Key。日志位于 `~/.antigravity-gateway/logs/`，单个日志达到 10 MiB 时轮换为 `.1`。`service uninstall` 会移除自启动配置和私有环境快照，但保留历史日志。
+
+后台启动会拒绝将显式 `ANTIGRAVITY_ACCESS_TOKEN`、`ANTIGRAVITY_REFRESH_TOKEN` 或 `ANTIGRAVITY_GOOGLE_CLIENT_SECRET` 保存到明文快照。使用这些环境变量的用户请改用本地 agy 登录态或受保护的 `ANTIGRAVITY_AUTH_FILE`，清除上述变量后再启动后台服务；前台仍支持这些变量。本地网关 API Key 会保存在私有服务配置中。升级不会自动删除旧快照，请自行检查曾保存的凭证。日志在运行期间持续轮转，查看日志仅读取末尾最多 256 KiB。
+
+Windows 后台 S4U 任务与交互登录的凭证访问能力可能不同，凭证仅存放在加密存储时仍应验证注销后的运行情况。升级或删除 Node 安装路径后，请重新执行 `service start` 更新服务路径。
 
 不需要进入安装目录，也不需要执行 `npm start`。项目没有第三方运行时依赖。前台模式的临时工作区和请求日志默认位于操作系统临时目录，退出请求后会自动清理。
 
@@ -479,7 +485,9 @@ Claude Code connectivity probes are handled locally. Its telemetry batch endpoin
 
 > This is not an official Google project. It is intended for learning, interoperability research, and personal testing. It does not grant additional model access or bypass plan, quota, regional, or Terms of Service restrictions.
 
-Current release: `v0.6.0`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+Current version: `v0.6.1`. Every release updates `package.json`, the startup banner, `--version`, and `CHANGELOG.md`.
+
+Local hardening preserves CLI usage. Browsers are restricted to same-origin requests unless their exact origins are listed in `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` (comma-separated; no wildcard). The request deadline includes upload, queueing, and upstream processing; it cancels requests without compressing input or replacing models. Model discovery refreshes the catalog and retains the last successful result when probing fails.
 
 ### Requirements
 
@@ -537,7 +545,7 @@ Check the installed version:
 
 ```bash
 antigravity-gateway --version
-# 0.6.0
+# 0.6.1
 ```
 
 The installer prints both run choices. Foreground mode stops when its terminal closes or receives `Ctrl+C`:
@@ -565,6 +573,10 @@ antigravity-gateway service uninstall
 ```
 
 Background mode stores `ANTIGRAVITY_*` settings and the minimum required system environment in a private per-user configuration file; unrelated API keys are excluded. Logs are written under `~/.antigravity-gateway/logs/` and rotate to `.1` at 10 MiB. `service uninstall` removes the autostart definition and private environment snapshot while retaining historical logs.
+
+Background startup refuses to persist explicit `ANTIGRAVITY_ACCESS_TOKEN`, `ANTIGRAVITY_REFRESH_TOKEN`, or `ANTIGRAVITY_GOOGLE_CLIENT_SECRET` environment variables. Use local agy authentication or a protected `ANTIGRAVITY_AUTH_FILE` and unset these variables first; foreground mode still supports them. The local gateway API key remains in the private service configuration. Upgrading does not remove existing snapshots: review any previously saved credentials. Logs rotate during execution and log viewing reads at most the last 256 KiB.
+
+Windows S4U tasks may have different credential-store access from interactive sessions; verify logged-out operation when relying on encrypted storage. Re-run `service start` after changing or removing the Node installation path.
 
 There is no need to enter the installation directory or run `npm start`. The package has no third-party runtime dependencies. The default address is `http://127.0.0.1:9897`. Foreground-mode workspaces and request logs use the operating system's temporary directory and are cleaned up after each request.
 

@@ -99,12 +99,24 @@ test('fenced single-call JSON is a controlled fallback for agy structured wrappi
 });
 
 test('Auto mode extracts XML and fails closed', () => {
+  assert.throws(() => normalizeAutoMode('<block>yes</block><block>no</block>'), /XML/);
+  assert.throws(() => normalizeAutoMode('<block>no</block><block>no</block>'), /XML/);
+  assert.throws(() => normalizeAutoMode('<severity>1</severity><severity>99</severity>', 'severity'), /XML/);
   assert.equal(normalizeAutoMode('safe\n<block>no</block>'), '<block>no</block>');
   assert.equal(
     normalizeAutoMode('<block>yes</block><category>Risk</category><reason>why</reason>'),
     '<block>yes</block><category>Risk</category><reason>why</reason>'
   );
   assert.throws(() => normalizeAutoMode('probably safe'), /XML/);
+});
+
+test('structured validator checks nested unions, intersections and tuple tails', () => {
+  assert.equal(validateSchema({ x: false }, { properties: { x: { anyOf: [{ type: 'string' }, { type: 'number' }] } } }), false);
+  assert.equal(validateSchema(1, { oneOf: [{ type: 'integer' }, { type: 'number' }] }), false);
+  assert.equal(validateSchema('x', { allOf: [{ type: 'number' }] }), false);
+  assert.equal(validateSchema(['x', 1], { prefixItems: [{ type: 'string' }], items: { type: 'number' } }), true);
+  assert.equal(validateSchema(['x', false], { prefixItems: [{ type: 'string' }], items: { type: 'number' } }), false);
+  assert.equal(validateSchema(['x', 1], { prefixItems: [{ type: 'string' }], items: false }), false);
 });
 
 test('current Claude Code Auto mode block contract is detected by grammar', () => {
