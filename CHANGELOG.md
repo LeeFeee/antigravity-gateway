@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.2 - 2026-09-18
+
+- Fixed Claude Code 2.1.276 requests being rejected by Cloud Code as `429 RESOURCE_EXHAUSTED` because Claude Code copied an `x-anthropic-billing-header` transport marker into the model-visible system text.
+- Strip only that Anthropic-specific billing pseudo-header before native Cloud Code forwarding; the complete conversation, tool schemas, system instructions, output budget, and Gemini context window remain unchanged.
+- Added regression coverage that preserves adjacent system instructions while removing the rejected transport metadata.
+
 ## 0.6.1 - 2026-09-07
 
 - Reject invalid Host headers safely and deny unapproved browser origins while preserving origin-free CLI access.

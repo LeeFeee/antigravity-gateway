@@ -21,14 +21,25 @@ const {
 test('Claude Code provider identity marker is neutralized without dropping system instructions', () => {
   const normalized = normalizeAnthropic({
     system: [
+      { type: 'text', text: 'x-anthropic-billing-header: cc_version=2.1.276.132; cc_entrypoint=sdk-cli;' },
       { type: 'text', text: "You are a Claude agent, built on Anthropic's Claude Agent SDK." },
       { type: 'text', text: 'Keep all project and permission instructions.' }
     ],
     messages: [{ role: 'user', content: 'hello' }]
   });
+  assert.doesNotMatch(normalized.system, /x-anthropic-billing-header/i);
+  assert.doesNotMatch(normalized.system, /cc_version=2\.1\.276/);
   assert.doesNotMatch(normalized.system, /Anthropic's Claude Agent SDK/);
   assert.match(normalized.system, /AI coding agent operating behind a protocol-compatible client/);
   assert.match(normalized.system, /Keep all project and permission instructions/);
+});
+
+test('Claude Code billing metadata is removed without changing adjacent system text', () => {
+  const normalized = normalizeAnthropic({
+    system: 'Before\nx-anthropic-billing-header: cc_version=2.1.276.132; cc_entrypoint=sdk-cli;\nAfter',
+    messages: [{ role: 'user', content: 'hello' }]
+  });
+  assert.equal(normalized.system, 'Before\nAfter');
 });
 
 const shellTool = {

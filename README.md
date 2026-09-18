@@ -308,7 +308,7 @@ export ANTIGRAVITY_MODEL_ALIASES='{"claude-sonnet-5":"gemini-3.8-flash-high"}'
 
 直连上游返回暂时性的 `429 RESOURCE_EXHAUSTED` 时，网关会先切换备用 Cloud Code 端点，再做一次有限指数退避。它不会压缩或删除客户端上下文；持续 429 仍会按真实错误返回。
 
-Claude Code 2.1.251 会额外注入一条 Anthropic SDK 身份声明，Cloud Code 会把该声明拒绝为 `429 RESOURCE_EXHAUSTED`。网关仅把这条供应商专属身份行替换为中性兼容身份；其余安全规则、权限约束、项目说明、用户提示和完整对话均原样保留。
+Claude Code 2.1.251 会额外注入 Anthropic SDK 身份声明，2.1.276 又会把 `x-anthropic-billing-header` 计费传输标记放进模型可见的系统文本；Cloud Code 会把这些供应商专属标记拒绝为 `429 RESOURCE_EXHAUSTED`。网关只中和身份行并移除计费伪请求头；其余安全规则、权限约束、项目说明、用户提示、工具定义和完整对话均原样保留，不会压缩上下文或降低 Gemini 的上下文窗口。
 
 #### Codex CLI
 
@@ -707,7 +707,7 @@ The local model catalog is advisory only and never blocks a request. The gateway
 
 For transient `429 RESOURCE_EXHAUSTED` responses, direct transport tries the alternate Cloud Code endpoint and then performs one bounded exponential-backoff retry. It does not compress or discard client context; persistent quota errors remain visible to the client.
 
-Claude Code 2.1.251 injects a standalone Anthropic SDK provider-identity line that Cloud Code rejects as `429 RESOURCE_EXHAUSTED`. The gateway replaces only that provider-specific identity marker with a neutral compatibility identity; all safety rules, permissions, project instructions, user prompts, and conversation content remain intact.
+Claude Code 2.1.251 injects an Anthropic SDK provider-identity line, and 2.1.276 additionally places an `x-anthropic-billing-header` transport marker in model-visible system text. Cloud Code rejects these provider-specific markers as `429 RESOURCE_EXHAUSTED`. The gateway only neutralizes the identity line and removes the billing pseudo-header; all safety rules, permissions, project instructions, user prompts, tool definitions, and conversation content remain intact. It does not compress context or reduce Gemini's context window.
 
 ### Codex CLI
 

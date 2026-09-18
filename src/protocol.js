@@ -182,10 +182,16 @@ function toolChoiceRule(choice) {
 }
 
 function sanitizeAnthropicProviderIdentity(text) {
-  return String(text || '').replace(
-    /^You are a Claude agent, built on Anthropic's Claude Agent SDK\.\s*$/gmi,
-    'You are an AI coding agent operating behind a protocol-compatible client.'
-  );
+  return String(text || '')
+    // Claude Code 2.1.276 started copying its private billing transport
+    // marker into the model-visible system text. Cloud Code rejects this
+    // Anthropic-specific pseudo-header as RESOURCE_EXHAUSTED, even in an
+    // otherwise tiny request. It is transport metadata, not an instruction.
+    .replace(/^[ \t]*x-anthropic-billing-header:[^\r\n]*(?:\r?\n|$)/gmi, '')
+    .replace(
+      /^You are a Claude agent, built on Anthropic's Claude Agent SDK\.\s*$/gmi,
+      'You are an AI coding agent operating behind a protocol-compatible client.'
+    );
 }
 
 function detectAutoModeFormat(system) {
@@ -218,10 +224,10 @@ function detectAutoModeFormat(system) {
 }
 
 function normalizeAnthropic(payload) {
-  // Claude Code 2.1.251 adds a standalone Anthropic-provider identity line.
-  // Cloud Code rejects that exact line with RESOURCE_EXHAUSTED even when sent
-  // by itself, while the rest of the same client system prompt is accepted.
-  // Replace only this provider-specific transport marker; preserve every
+  // Claude Code can add Anthropic-provider identity/billing transport markers
+  // to the model-visible system text. Cloud Code rejects those exact markers
+  // with RESOURCE_EXHAUSTED even when the account has quota. Remove or
+  // neutralize only those provider-specific markers; preserve every
   // behavioral, safety, permission, project, and user instruction verbatim.
   const system = sanitizeAnthropicProviderIdentity(textFromContent(payload.system, 'anthropic'));
   const messages = (payload.messages || []).map((message) => ({
