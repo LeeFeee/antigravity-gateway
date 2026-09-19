@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.7.0 - 2026-09-19
+
+- Added persistent multi-account OAuth login from the running foreground gateway: type `add` at `gateway>`, with both automatic browser opening and the complete copyable authorization URL.
+- Complete first-login authorization through the official Antigravity OAuth client, `loadCodeAssist` tier discovery, asynchronous `onboardUser` project initialization, and post-onboarding project re-discovery before persisting an account; pasted localhost callback URLs are accepted while authorization is active and receive a clear stale-flow message afterward.
+- Added plain per-account JSON persistence under `~/.antigravity-gateway/accounts/`. Managed access/refresh tokens survive gateway restarts and refreshed values are written back atomically; no encryption, ACL, or custom file-permission layer is imposed.
+- Added sticky client-session routing, smooth weighted account rotation, one-attempt-per-account failover, model-specific quota cooldowns, authentication cooldowns, and request-error classification while preserving every client model ID unchanged.
+- Added asynchronous per-account, per-model quota snapshots from the real model catalog and low-overhead exact usage accounting from upstream metadata, separating client requests from upstream attempts and tracking input, output, thinking, cached, and total tokens.
+- Persist usage only when dirty every five minutes, refresh the 24-hour histogram hourly, and refresh the historical dashboard total every 24 hours.
+- Added the foreground terminal console with `add`, `acc`, `models`, `status`, `usage`, `reload`, `config`, `logs`, `clear`, `version`, `help`, and `quit` commands. Background service behavior and existing client endpoints remain unchanged.
+- The gateway now imports a newly detected official local agy account into the managed pool on startup without overwriting an existing matching account, and request routing logs identify the account actually selected for each upstream attempt.
+- Added regression tests for account persistence, sticky rotation, quota failover, request-error handling, usage persistence, hourly buckets, OAuth callback parsing, and terminal charts.
+
 ## 0.6.2 - 2026-09-18
 
 - Fixed Claude Code 2.1.276 requests being rejected by Cloud Code as `429 RESOURCE_EXHAUSTED` because Claude Code copied an `x-anthropic-billing-header` transport marker into the model-visible system text.

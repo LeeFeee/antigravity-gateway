@@ -1,4 +1,7 @@
 .runtime/
+.antigravity-gateway/
+antigravity-oauth-token
+jetski-standalone-oauth-token
+oauth_creds.json
 *.log
 .DS_Store
-

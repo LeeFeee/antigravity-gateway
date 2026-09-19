@@ -694,7 +694,7 @@ class DirectAntigravityProvider {
     return [DAILY_BASE_URL, DEFAULT_BASE_URL];
   }
 
-  async send(normalized, model, { signal, sessionId, repairInstruction = '', onDelta } = {}) {
+  async send(normalized, model, { signal, sessionId, repairInstruction = '', onDelta, onUpstreamAttempt } = {}) {
     let token = await this.access(signal);
     let project = await this.project(signal, token);
     const thoughtSignatures = thoughtSignaturesForSession(sessionId);
@@ -707,11 +707,19 @@ class DirectAntigravityProvider {
       }
       const stream = Boolean(normalized.stream);
       const url = `${base}${stream ? STREAM_PATH : GENERATE_PATH}${stream ? '?alt=sse' : ''}`;
-      return this.fetchImpl(url, {
-        method: 'POST', signal,
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: stream ? 'text/event-stream' : 'application/json', 'user-agent': this.userAgent },
-        body: JSON.stringify(requestBody)
-      });
+      onUpstreamAttempt?.({ phase: 'start', base, model });
+      try {
+        const response = await this.fetchImpl(url, {
+          method: 'POST', signal,
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: stream ? 'text/event-stream' : 'application/json', 'user-agent': this.userAgent },
+          body: JSON.stringify(requestBody)
+        });
+        onUpstreamAttempt?.({ phase: 'response', base, model, status: response.status, success: response.ok });
+        return response;
+      } catch (error) {
+        onUpstreamAttempt?.({ phase: 'response', base, model, status: 0, success: false });
+        throw error;
+      }
     };
     let response;
     let lastFailure;

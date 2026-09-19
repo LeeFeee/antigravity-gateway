@@ -16,6 +16,7 @@ process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 
 const {
   claudeConfigBody,
+  clientSessionScope,
   codexModelInfo,
   createServer,
   displayModels,
@@ -43,6 +44,16 @@ test('malformed Host is rejected without terminating the server', async (t) => {
   });
   assert.equal(status, 400);
   assert.equal((await fetch(`${base}/api/hello`)).status, 200);
+});
+
+test('account routing session identity distinguishes client metadata and honors parent sessions', () => {
+  const req = { headers: { authorization: 'Bearer local-key' }, socket: { remoteAddress: '127.0.0.1' } };
+  const normalized = { model: 'gemini-test-high', messages: [{ role: 'user', text: 'same prompt' }] };
+  const first = clientSessionScope(req, { metadata: { user_id: 'session-a' } }, normalized);
+  const second = clientSessionScope(req, { metadata: { user_id: 'session-b' } }, normalized);
+  const child = clientSessionScope(req, { metadata: { user_id: 'child', parent_session_id: 'session-a' } }, normalized);
+  assert.notEqual(first, second);
+  assert.equal(first, child);
 });
 
 test('untrusted browser origins are rejected including text/plain and preflight', async (t) => {

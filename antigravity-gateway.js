@@ -8,8 +8,15 @@ const os = require('node:os');
 const path = require('node:path');
 
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
+const { AccountPool } = require('./src/account-pool');
+const { AccountStore } = require('./src/account-store');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { LocalAccountImporter } = require('./src/local-account-importer');
+const { OAuthFlow } = require('./src/oauth-flow');
+const { QuotaManager } = require('./src/quota-manager');
 const { manageService } = require('./src/service-manager');
+const { TerminalConsole } = require('./src/terminal-console');
+const { UsageStore } = require('./src/usage-store');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
@@ -88,6 +95,27 @@ const MODEL_CACHE_MS = 60000;
 const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
 const DIRECT_PROVIDER = new DirectAntigravityProvider();
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
+const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
+const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
+const ACCOUNT_POOL = new AccountPool({
+  store: ACCOUNT_STORE,
+  fallbackProvider: DIRECT_PROVIDER,
+  usageStore: USAGE_STORE,
+  agyPath: AGY_PATH
+});
+const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
+ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
+const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
+const LOCAL_ACCOUNT_IMPORTER = new LocalAccountImporter({
+  provider: DIRECT_PROVIDER,
+  store: ACCOUNT_STORE,
+  accountPool: ACCOUNT_POOL
+});
+let TERMINAL = null;
+
+function gatewayLog(message) { return TERMINAL ? TERMINAL.log(message) : console.log(message); }
+function gatewayWarn(message) { return TERMINAL ? TERMINAL.log(message, 'warn') : console.warn(message); }
+function gatewayError(message) { return TERMINAL ? TERMINAL.log(message, 'error') : console.error(message); }
 
 const responseStore = new Map();
 const activeWorkers = new Set();
@@ -159,6 +187,7 @@ function usesDirectTransport() {
 }
 
 function directAuthDescription() {
+  if (ACCOUNT_POOL.hasManagedAccounts()) return `gateway account pool（${ACCOUNT_POOL.status().length} 个本地账号）`;
   const secureStore = process.platform === 'darwin'
     ? 'macOS Keychain / '
     : process.platform === 'linux'
@@ -175,7 +204,7 @@ async function availableModels(force = false) {
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
     const models = usesDirectTransport()
-      ? await DIRECT_PROVIDER.listModels(undefined, { force: true })
+      ? await ACCOUNT_POOL.listModels(undefined, { force: true })
       : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
     if (!models.length) throw new GatewayError('`agy models` 没有返回可识别的模型 ID。', { code: 'empty_model_catalog', status: 503 });
     modelCache = { at: Date.now(), models, error: null };
@@ -248,7 +277,7 @@ async function upstreamModelDiagnostic(error, model) {
 }
 
 function codexModelInfo(slug, priority) {
-  const upstream = usesDirectTransport() ? DIRECT_PROVIDER.modelInfo(slug) : null;
+  const upstream = usesDirectTransport() ? ACCOUNT_POOL.modelInfo(slug) : null;
   // Cloud Code currently reports 1,048,576 input tokens for Gemini 3.7/3.8
   // Flash. Keep that verified fallback even when a transient discovery request
   // fails; otherwise the client would compact a healthy 1M context at 200K.
@@ -413,6 +442,7 @@ function featuredModels(models) {
 
 function credentialSourceDescription() {
   if (!usesDirectTransport()) return '官方 agy 系统 Keyring（由 agy 管理）';
+  if (ACCOUNT_POOL.hasManagedAccounts()) return `${ACCOUNT_STORE.directory}（${ACCOUNT_POOL.status().length} 个账号）`;
   if (DIRECT_PROVIDER.localAuth?.last?.sourcePath) return DIRECT_PROVIDER.localAuth.last.sourcePath;
   if (DIRECT_PROVIDER.authFile) return DIRECT_PROVIDER.authFile;
   if (process.env.ANTIGRAVITY_ACCESS_TOKEN || process.env.ANTIGRAVITY_REFRESH_TOKEN) return '环境变量（值不显示）';
@@ -530,6 +560,34 @@ function clientScope(req) {
   return crypto.createHash('sha256').update(material).digest('hex');
 }
 
+function clientSessionScope(req, payload = {}, normalized = {}) {
+  const headers = req.headers || {};
+  const explicit = [
+    headers['x-session-id'],
+    headers['x-claude-session-id'],
+    headers['x-codex-session-id'],
+    headers['x-client-session-id'],
+    headers['session-id'],
+    payload?.metadata?.parent_session_id,
+    payload?.metadata?.session_id,
+    payload?.metadata?.user_id,
+    payload?.prompt_cache_key,
+    payload?.session_id,
+    payload?.conversation_id,
+    payload?.user
+  ].find((value) => typeof value === 'string' && value.trim());
+  const firstMessage = normalized.messages?.find((message) => message?.role === 'user') || normalized.messages?.[0] || {};
+  const fallback = JSON.stringify({
+    model: normalized.model || payload.model || '',
+    role: firstMessage.role || '',
+    text: String(firstMessage.text || '').slice(0, 4096),
+    parts: Array.isArray(firstMessage.parts) ? firstMessage.parts.slice(0, 4) : []
+  });
+  return crypto.createHash('sha256')
+    .update(`${clientScope(req)}\0${explicit || fallback}`)
+    .digest('hex');
+}
+
 function authorized(req) {
   if (!API_KEY) return true;
   const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
@@ -585,16 +643,19 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   const release = await requestSlots.acquire(signal);
   if (usesDirectTransport()) {
     try {
-      let raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, onDelta });
+      const onAccountSelected = ({ accountId, email, source, attempt }) => {
+        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${model} attempt=${attempt}`);
+      };
+      let raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onDelta, onAccountSelected });
       try {
         return finalizeModelResult(normalized, raw);
       } catch (error) {
         if (error.code === 'invalid_auto_mode_classifier_output') {
-          raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+          raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
           return finalizeModelResult(normalized, raw);
         }
         if (error.code === 'invalid_structured_output') {
-          raw = await DIRECT_PROVIDER.send(normalized, model, { signal, sessionId, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+          raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
           return finalizeModelResult(normalized, raw);
         }
         throw error;
@@ -627,16 +688,26 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   }); } catch (error) { release(); throw error; }
   activeWorkers.add(worker);
   try {
-    let raw = await worker.send(prompt, { signal, onDelta });
+    const trackedSend = async (input, sendOptions) => {
+      try {
+        const output = await worker.send(input, sendOptions);
+        USAGE_STORE.recordUpstream({ accountId: 'agy-cli', model, usage: output.usage, success: true });
+        return output;
+      } catch (error) {
+        USAGE_STORE.recordUpstream({ accountId: 'agy-cli', model, success: false });
+        throw error;
+      }
+    };
+    let raw = await trackedSend(prompt, { signal, onDelta });
     try {
       return finalizeModelResult(normalized, raw);
     } catch (error) {
       if (error.code === 'invalid_auto_mode_classifier_output') {
-        raw = await worker.send('AUTO_MODE_XML_REPAIR: Return only the XML verdict required by the original system contract. No prose or Markdown.', { signal, onDelta });
+        raw = await trackedSend('AUTO_MODE_XML_REPAIR: Return only the XML verdict required by the original system contract. No prose or Markdown.', { signal, onDelta });
         return finalizeModelResult(normalized, raw);
       }
       if (error.code === 'invalid_structured_output') {
-        raw = await worker.send(`STRUCTURED_OUTPUT_REPAIR: Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}`, { signal, onDelta });
+        raw = await trackedSend(`STRUCTURED_OUTPUT_REPAIR: Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}`, { signal, onDelta });
         return finalizeModelResult(normalized, raw);
       }
       throw error;
@@ -813,33 +884,36 @@ function emitResponsesStream(res, body) {
 }
 
 async function handleAnthropic(payload, req, res, signal) {
+  USAGE_STORE.recordClientRequest();
   const normalized = normalizeAnthropic(payload);
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
   const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
-  console.log(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream}`);
+  gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleChat(payload, req, res, signal) {
+  USAGE_STORE.recordClientRequest();
   const normalized = normalizeChat(payload);
   const model = await resolveModel(normalized.model);
-  console.log(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientScope(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = chatResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleResponses(payload, req, res, signal) {
+  USAGE_STORE.recordClientRequest();
   cleanupResponseStore();
   const previous = payload.previous_response_id ? responseStore.get(payload.previous_response_id) : null;
   if (payload.previous_response_id && !previous) {
@@ -852,14 +926,14 @@ async function handleResponses(payload, req, res, signal) {
   if (previous) previous.at = Date.now();
   const normalized = normalizeResponses(payload, previous);
   const model = await resolveModel(normalized.model);
-  console.log(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
   if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
     const customTools = (payload.tools || []).filter((tool) => tool?.type === 'custom');
-    if (customTools.length) console.log(`[Antigravity Gateway Debug] custom-tools=${JSON.stringify(customTools).slice(0, 4000)}`);
+    if (customTools.length) gatewayLog(`[Antigravity Gateway Debug] custom-tools=${JSON.stringify(customTools).slice(0, 4000)}`);
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: scope }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized) }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
   responseStore.set(responseId, {
@@ -942,7 +1016,9 @@ async function requestHandler(req, res) {
         fast_model: preferredFastModel(models),
         models: models.length,
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), credentials_read_by_gateway: usesDirectTransport() }
+        account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
+        usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
       });
       return;
     }
@@ -973,12 +1049,12 @@ async function requestHandler(req, res) {
     // failure, and the socket is already gone so no error body can be sent.
     if (timedOut || controller.signal.aborted || res.destroyed) {
       if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
-        console.warn(`[Antigravity Gateway] 请求已由客户端取消 (${error.code || 'request_aborted'})`);
+        gatewayWarn(`[Antigravity Gateway] 请求已由客户端取消 (${error.code || 'request_aborted'})`);
       }
       return;
     }
     const diagnostic = process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1' && error.details ? ` (${error.details})` : '';
-    console.error(`[Antigravity Gateway Error] ${error.message}${diagnostic}`);
+    gatewayError(`[Antigravity Gateway Error] ${error.message}${diagnostic}`);
     if (!res.headersSent) sendJson(res, error.status || 500, errorBody(error, protocol));
     else {
       if (protocol === 'anthropic') sendSse(res, 'error', errorBody(error, protocol));
@@ -1037,17 +1113,59 @@ if (require.main === module) {
   }
   fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
   const server = createServer();
+  let shuttingDown = false;
+  const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    TERMINAL?.stop();
+    QUOTA_MANAGER.stop();
+    USAGE_STORE.stop();
+    await new Promise((resolve) => server.close(resolve));
+    await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
+  };
+  TERMINAL = new TerminalConsole({
+    usageStore: USAGE_STORE,
+    accountPool: ACCOUNT_POOL,
+    quotaManager: QUOTA_MANAGER,
+    oauthFlow: OAUTH_FLOW,
+    accountStore: ACCOUNT_STORE,
+    commands: {
+      models: async () => displayModels(await availableModels(true)),
+      status: async () => gatewayLog(`网关运行中：${HOST}:${PORT}，账号 ${ACCOUNT_POOL.status().length || '本地 agy'}，并发 ${requestSlots.active}/${MAX_CONCURRENCY}`),
+      config: async () => [
+        `Anthropic: http://${HOST}:${PORT}`,
+        `OpenAI: http://${HOST}:${PORT}/v1`,
+        `API Key: ${API_KEY ? '使用 ANTIGRAVITY_GATEWAY_API_KEY 的值' : 'antigravity-gateway（任意内容）'}`,
+        `Claude Code 模型配置: ${claudeConfigPath()}`,
+        `Codex 模型目录: ${codexCatalogPath()}`
+      ].join('\n'),
+      logs: async () => `后台日志目录：${path.join(CONFIG_DIR, 'logs')}`,
+      version: async () => `Antigravity Gateway v${GATEWAY_VERSION}`,
+      quit: async () => { await shutdown(); process.exit(0); }
+    }
+  });
+  USAGE_STORE.start();
+  QUOTA_MANAGER.start();
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
     let models = [];
     let modelError = '';
+    let localAccountImport = null;
+    if (usesDirectTransport()) {
+      try {
+        localAccountImport = await LOCAL_ACCOUNT_IMPORTER.importIfNew();
+        if (localAccountImport.status === 'imported') void QUOTA_MANAGER.refresh().catch(() => {});
+      } catch (error) {
+        localAccountImport = { status: 'error', message: error.message };
+      }
+    }
     try {
       models = await availableModels(true);
       try { writeCodexCatalog(models); }
-      catch (error) { console.warn(`[Antigravity Gateway] Codex 模型目录写入失败：${error.message}`); }
+      catch (error) { gatewayWarn(`[Antigravity Gateway] Codex 模型目录写入失败：${error.message}`); }
       try { writeClaudeConfig(models); }
-      catch (error) { console.warn(`[Antigravity Gateway] Claude Code 模型配置写入失败：${error.message}`); }
+      catch (error) { gatewayWarn(`[Antigravity Gateway] Claude Code 模型配置写入失败：${error.message}`); }
       // Version detection is read-only and works for both the subprocess and
       // direct transports. Showing the real Windows CLI version is valuable
       // diagnostics even though direct mode does not invoke it per request.
@@ -1055,17 +1173,24 @@ if (require.main === module) {
     } catch (error) {
       modelError = error.message;
     }
-    console.log(startupBanner({ models, modelError }));
+    gatewayLog(startupBanner({ models, modelError }));
+    if (localAccountImport?.status === 'imported') {
+      gatewayLog(`[Antigravity Gateway] ✅ 已将本地 agy 新账号加入账号池：${localAccountImport.account.email || localAccountImport.account.id}`);
+    } else if (localAccountImport?.status === 'existing') {
+      gatewayLog(`[Antigravity Gateway] 本地 agy 账号已在账号池，未重复导入：${localAccountImport.account.email || localAccountImport.account.id}`);
+    } else if (localAccountImport?.status === 'error') {
+      gatewayWarn(`[Antigravity Gateway] 本地 agy 账号自动导入未完成：${localAccountImport.message}（不影响已有账号池和原有登录态）`);
+    }
+    TERMINAL.showDashboard();
+    TERMINAL.start();
   });
   server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') console.error(`[Antigravity Gateway Error] ${HOST}:${PORT} 已被占用，请关闭旧进程或设置 ANTIGRAVITY_GATEWAY_PORT。`);
-    else console.error(`[Antigravity Gateway Error] ${error.message}`);
+    if (error.code === 'EADDRINUSE') gatewayError(`[Antigravity Gateway Error] ${HOST}:${PORT} 已被占用，请关闭旧进程或设置 ANTIGRAVITY_GATEWAY_PORT。`);
+    else gatewayError(`[Antigravity Gateway Error] ${error.message}`);
+    QUOTA_MANAGER.stop();
+    USAGE_STORE.stop();
     process.exitCode = 1;
   });
-  const shutdown = async () => {
-    server.close();
-    await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
-  };
   process.once('SIGINT', () => { void shutdown().finally(() => process.exit(0)); });
   process.once('SIGTERM', () => { void shutdown().finally(() => process.exit(0)); });
 }
@@ -1074,6 +1199,7 @@ module.exports = {
   availableModels,
   claudeConfigBody,
   claudeConfigPath,
+  clientSessionScope,
   codexCatalogBody,
   codexCatalogPath,
   codexModelInfo,
