@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 - 2026-09-20
+
+- Added a lightweight dark Token dashboard at `/dashboard`, opened with `antigravity-gateway stats` while either foreground or background mode is active and served by the existing gateway process without another web service.
+- Added 1/3/7/30-day and account filters with lifetime KPIs, account quota cards, hourly heatmaps, model trends, and daily Token composition.
+- Extended the persistent aggregate model with hourly account, model, and account-model dimensions while remaining backward compatible with existing usage files and continuing to store no prompts or responses.
+- Added dashboard endpoint, data-shape, persistence-dimension, self-contained asset, and regression coverage.
+
 ## 0.7.0 - 2026-09-19
 
 - Added persistent multi-account OAuth login from the running foreground gateway: type `add` at `gateway>`, with both automatic browser opening and the complete copyable authorization URL.

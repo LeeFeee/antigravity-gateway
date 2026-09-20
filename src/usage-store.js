@@ -27,11 +27,15 @@ function hourKey(timestamp) {
 function normalizedState(raw = {}) {
   const now = Date.now();
   return {
-    version: 1,
+    version: 2,
     lifetime: add(zeroCounters(), raw.lifetime || {}),
     hourly: raw.hourly && typeof raw.hourly === 'object' ? raw.hourly : {},
     byModel: raw.byModel && typeof raw.byModel === 'object' ? raw.byModel : {},
     byAccount: raw.byAccount && typeof raw.byAccount === 'object' ? raw.byAccount : {},
+    hourlyByAccount: raw.hourlyByAccount && typeof raw.hourlyByAccount === 'object' ? raw.hourlyByAccount : {},
+    hourlyByModel: raw.hourlyByModel && typeof raw.hourlyByModel === 'object' ? raw.hourlyByModel : {},
+    hourlyByAccountModel: raw.hourlyByAccountModel && typeof raw.hourlyByAccountModel === 'object' ? raw.hourlyByAccountModel : {},
+    byAccountModel: raw.byAccountModel && typeof raw.byAccountModel === 'object' ? raw.byAccountModel : {},
     dashboard: {
       lifetime: add(zeroCounters(), raw.dashboard?.lifetime || raw.lifetime || {}),
       hourly: raw.dashboard?.hourly && typeof raw.dashboard.hourly === 'object' ? raw.dashboard.hourly : {},
@@ -92,9 +96,25 @@ class UsageStore {
     };
     if (!values.totalTokens) values.totalTokens = values.inputTokens + values.outputTokens + values.thinkingTokens;
     add(this.state.lifetime, values);
-    add(this.bucket(), values);
+    const hour = hourKey(this.now());
+    add((this.state.hourly[hour] ||= zeroCounters()), values);
     if (model) add((this.state.byModel[model] ||= zeroCounters()), values);
     if (accountId) add((this.state.byAccount[accountId] ||= zeroCounters()), values);
+    if (accountId) {
+      const accounts = (this.state.hourlyByAccount[hour] ||= {});
+      add((accounts[accountId] ||= zeroCounters()), values);
+    }
+    if (model) {
+      const models = (this.state.hourlyByModel[hour] ||= {});
+      add((models[model] ||= zeroCounters()), values);
+    }
+    if (accountId && model) {
+      const models = (this.state.byAccountModel[accountId] ||= {});
+      add((models[model] ||= zeroCounters()), values);
+      const accountModels = (this.state.hourlyByAccountModel[hour] ||= {});
+      const hourlyModels = (accountModels[accountId] ||= {});
+      add((hourlyModels[model] ||= zeroCounters()), values);
+    }
     this.dirty = true;
   }
 
@@ -132,7 +152,9 @@ class UsageStore {
 
   prune() {
     const cutoff = this.now() - 31 * 24 * HOUR_MS;
-    for (const key of Object.keys(this.state.hourly)) if (Date.parse(key) < cutoff) delete this.state.hourly[key];
+    for (const collection of [this.state.hourly, this.state.hourlyByAccount, this.state.hourlyByModel, this.state.hourlyByAccountModel]) {
+      for (const key of Object.keys(collection)) if (Date.parse(key) < cutoff) delete collection[key];
+    }
   }
 
   tick() {
@@ -149,7 +171,7 @@ class UsageStore {
     this.dirty = false;
   }
 
-  summary({ live = false } = {}) {
+  summary({ live = false, detailed = false } = {}) {
     const lifetime = live ? this.state.lifetime : this.state.dashboard.lifetime;
     const hourly = live ? this.last24Hours() : this.state.dashboard.hourly;
     return {
@@ -159,7 +181,14 @@ class UsageStore {
       hourlyUpdatedAt: this.state.dashboard.hourlyUpdatedAt,
       savedAt: this.state.savedAt,
       byModel: live ? this.state.byModel : undefined,
-      byAccount: live ? this.state.byAccount : undefined
+      byAccount: live ? this.state.byAccount : undefined,
+      ...(detailed ? {
+        history: Object.entries(this.state.hourly).map(([at, values]) => ({ at, ...add(zeroCounters(), values) })),
+        hourlyByAccount: this.state.hourlyByAccount,
+        hourlyByModel: this.state.hourlyByModel,
+        hourlyByAccountModel: this.state.hourlyByAccountModel,
+        byAccountModel: this.state.byAccountModel
+      } : {})
     };
   }
 }

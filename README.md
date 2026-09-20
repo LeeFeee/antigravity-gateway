@@ -109,6 +109,14 @@ antigravity-gateway service uninstall
 
 重复执行 `service start` 会更新配置并重启现有服务，不会创建重复服务。后台模式没有交互输入框；需要添加账号时，先停止后台服务并以前台模式启动，添加完成后再执行 `service start`。
 
+打开 Token 用量看板：
+
+```bash
+antigravity-gateway stats
+```
+
+网关启动后，无论使用前台模式还是后台保活模式，都可以另开一个终端执行这条命令。看板复用网关现有的 `9897` 端口，不会启动第二个后台服务；也可以直接访问 `http://127.0.0.1:9897/dashboard`。
+
 如果 `agy` 不在默认位置：
 
 ```bash
@@ -166,6 +174,7 @@ acc
 | `models` | 查看当前发现的模型 |
 | `status` | 重新显示网关和统计状态 |
 | `usage` | 查看实时详细用量 |
+| `stats` | 在默认浏览器打开 Token 用量看板 |
 | `reload` | 重新加载账号与额度信息 |
 | `config` | 查看客户端连接配置 |
 | `logs` | 查看日志说明或位置 |
@@ -298,6 +307,14 @@ curl http://127.0.0.1:9897/v1/models
 - 最近24小时每小时用量图。
 
 输入 `usage` 查看实时明细，输入 `status` 刷新展示。用量每5分钟保存一次，24小时图表每小时更新，历史总量展示每24小时更新。额度快照约每30分钟刷新；上游实时返回始终是最终依据。
+
+网关以前台或后台模式运行时，都可以另开终端执行下面的命令查看完整图形看板：
+
+```bash
+antigravity-gateway stats
+```
+
+看板提供历史与所选时段 Token、请求和上游调用、输入/输出/思考/缓存、失败率、账号额度、小时热力图、模型趋势和每日构成；支持最近1天、3天、7天、30天及按账号筛选。网页每分钟读取一次本地聚合数据，关闭页面后不会继续轮询，也不保存提示词或模型回复。旧版总量和小时总量会继续保留，账号与模型的小时细分从 v0.8.0 起累计。
 
 ```text
 ~/.antigravity-gateway/state/quota.json
@@ -474,6 +491,14 @@ Background keepalive and autostart:
 antigravity-gateway service start
 ```
 
+Open the local Token dashboard while either foreground or background mode is running:
+
+```bash
+antigravity-gateway stats
+```
+
+Once the gateway is running in either foreground or background mode, run this command from another terminal. The dashboard reuses the gateway process and port `9897`; it does not start another persistent web service. The direct URL is `http://127.0.0.1:9897/dashboard`.
+
 Service management:
 
 ```bash
@@ -507,6 +532,7 @@ Run the gateway in foreground mode and type `add` to authorize another account. 
 | `models` | Show discovered models |
 | `status` | Refresh gateway and dashboard status |
 | `usage` | Show live detailed usage |
+| `stats` | Open the local Token dashboard |
 | `reload` | Reload accounts and quota snapshots |
 | `config` | Show client configuration |
 | `logs` | Show log information |
@@ -607,7 +633,7 @@ curl http://127.0.0.1:9897/v1/models
 
 ### Usage, update, and troubleshooting
 
-The dashboard shows account state, request totals, upstream calls, input/output/cache tokens, cache hit rate, and a 24-hour chart. Type `usage` for live details or `status` to redraw the dashboard. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
+The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and daily composition. It supports 1/3/7/30-day windows and account filtering. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Existing totals and aggregate hourly history are preserved; hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
 
 Update:
 

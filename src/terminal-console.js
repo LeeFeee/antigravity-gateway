@@ -60,7 +60,7 @@ class TerminalConsole {
     this.rl.setPrompt('gateway> ');
     this.rl.on('line', (line) => { void this.handle(line); });
     this.rl.on('SIGINT', () => { void this.commands.quit?.(); });
-    this.output.write('\n终端命令：输入 add 添加账号，输入 help 查看帮助\n\n');
+    this.output.write('\n终端命令：输入 add 添加账号，输入 stats 打开看板，输入 help 查看帮助\n\n');
     this.rl.prompt();
     this.dashboardTimer = setInterval(() => this.showDashboard(), 60 * 60_000);
     this.dashboardTimer.unref?.();
@@ -122,6 +122,7 @@ class TerminalConsole {
         case 'models': this.log((await this.commands.models?.() || []).join('\n')); break;
         case 'status': await this.commands.status?.(); this.showDashboard(); break;
         case 'usage': this.showUsage(); break;
+        case 'stats': this.log(await this.commands.stats?.() || ''); break;
         case 'reload':
           this.accountPool.reload();
           await this.quotaManager?.refresh().catch(() => {});
@@ -205,6 +206,7 @@ class TerminalConsole {
   models     查看当前发现的模型
   status     查看网关及统计状态
   usage      查看实时详细用量
+  stats      在默认浏览器打开 Token 用量看板
   reload     重新加载账号和额度
   config     查看客户端配置
   logs       查看日志说明

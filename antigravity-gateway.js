@@ -11,6 +11,7 @@ const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = requi
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { checkDashboard, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { QuotaManager } = require('./src/quota-manager');
@@ -56,6 +57,7 @@ function parseArgs(argv) {
     else if (arg === '--claude-config-path') result.claudeConfigPath = true;
     else if (arg === '--claude-config') result.claudeConfig = true;
     else if (arg === '--models') result.models = true;
+    else if (arg === 'stats') result.stats = true;
     else if (arg === 'service') {
       result.serviceRequested = true;
       result.serviceAction = argv[++index] || '';
@@ -168,6 +170,16 @@ const uploadSlots = new Semaphore(MAX_CONCURRENCY, MAX_QUEUE);
 
 function isLoopbackHost(host) {
   return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(String(host).toLowerCase());
+}
+
+function isLoopbackAddress(address) {
+  const value = String(address || '').toLowerCase();
+  return value === '127.0.0.1' || value === '::1' || value === '::ffff:127.0.0.1';
+}
+
+function dashboardUrl() {
+  const host = isLoopbackHost(HOST) ? (HOST === '::1' ? '[::1]' : HOST) : '127.0.0.1';
+  return `http://${host}:${PORT}/dashboard`;
 }
 
 function configuredAliases() {
@@ -472,6 +484,7 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
   else lines.push(`    ${modelError ? `检测失败：${modelError}` : '未发现精选模型'}`);
   lines.push(' 更多模型: antigravity-gateway --models');
   lines.push(' Claude Code 模型配置: antigravity-gateway --claude-config-path');
+  lines.push(' Token 看板: antigravity-gateway stats');
   lines.push('=================================================================');
   return lines.join('\n');
 }
@@ -481,6 +494,7 @@ function printHelp() {
 
 用法:
   antigravity-gateway [选项]
+  antigravity-gateway stats
   antigravity-gateway service <start|status|restart|stop|logs|uninstall>
 
 选项:
@@ -494,6 +508,7 @@ function printHelp() {
   --codex-catalog-path    显示自动生成的 Codex 模型目录绝对路径
   --claude-config-path    显示自动生成的 Claude Code 模型配置路径
   --claude-config         输出 Claude Code modelPicker 配置 JSON
+  stats                   在默认浏览器打开本地 Token 用量看板
 
 后台保活:
   service start           自动注册开机/登录自启并立即后台启动；重复执行会更新并重启
@@ -510,6 +525,8 @@ function printHelp() {
 
 接口:
   GET  /
+  GET  /dashboard
+  GET  /dashboard/data
   GET  /v1/models
   POST /v1/messages
   POST /v1/messages/count_tokens
@@ -968,6 +985,39 @@ async function requestHandler(req, res) {
     if (req.headers.host) new URL(`http://${req.headers.host}`);
     route = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '') || '/';
   } catch { sendJson(res, 400, { error: { type: 'invalid_url', message: '请求 URL 或 Host 无效。' } }); return; }
+  if (req.method === 'GET' && route === '/favicon.ico') {
+    res.writeHead(204, { 'Cache-Control': 'public, max-age=86400' });
+    res.end();
+    return;
+  }
+  if (route === '/dashboard' || route === '/dashboard/data') {
+    if (!isLoopbackAddress(req.socket?.remoteAddress)) {
+      sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备访问。' } });
+      return;
+    }
+    if (req.method === 'GET' && route === '/dashboard') {
+      const body = dashboardHtml();
+      res.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Length': Buffer.byteLength(body),
+        'Cache-Control': 'no-store',
+        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:"
+      });
+      res.end(body);
+      return;
+    }
+    if (req.method === 'GET' && route === '/dashboard/data') {
+      sendJson(res, 200, dashboardData({
+        usageStore: USAGE_STORE,
+        accountPool: ACCOUNT_POOL,
+        quotaManager: QUOTA_MANAGER,
+        version: GATEWAY_VERSION
+      }), { 'Cache-Control': 'no-store' });
+      return;
+    }
+    sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板接口只支持 GET。' } });
+    return;
+  }
   if (!authorized(req)) { sendJson(res, 401, errorBody(new GatewayError('API key 无效。', { code: 'authentication_error', status: 401 }), route.includes('messages') ? 'anthropic' : 'openai')); return; }
   const controller = new AbortController();
   let timedOut = false;
@@ -1018,7 +1068,7 @@ async function requestHandler(req, res) {
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
         account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
       });
       return;
     }
@@ -1090,6 +1140,17 @@ if (require.main === module) {
     });
     return;
   }
+  if (CLI_ARGS.stats) {
+    const url = dashboardUrl();
+    void checkDashboard(url).then(() => {
+      openBrowser(url);
+      console.log(`Antigravity Gateway Token 看板：${url}`);
+    }).catch(() => {
+      console.error(`[Antigravity Gateway Error] 网关尚未运行。请先执行 antigravity-gateway 或 antigravity-gateway service start，然后再次运行 antigravity-gateway stats。\n看板地址：${url}`);
+      process.exitCode = 1;
+    });
+    return;
+  }
   if (CLI_ARGS.codexCatalogPath) { console.log(codexCatalogPath()); return; }
   if (CLI_ARGS.claudeConfigPath) { console.log(claudeConfigPath()); return; }
   if (CLI_ARGS.models || CLI_ARGS.claudeConfig) {
@@ -1140,6 +1201,11 @@ if (require.main === module) {
         `Codex 模型目录: ${codexCatalogPath()}`
       ].join('\n'),
       logs: async () => `后台日志目录：${path.join(CONFIG_DIR, 'logs')}`,
+      stats: async () => {
+        const url = dashboardUrl();
+        openBrowser(url);
+        return `Token 看板：${url}`;
+      },
       version: async () => `Antigravity Gateway v${GATEWAY_VERSION}`,
       quit: async () => { await shutdown(); process.exit(0); }
     }

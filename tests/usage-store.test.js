@@ -30,12 +30,19 @@ test('usage store separates client requests, upstream calls, tokens and five-min
   assert.equal(live.inputTokens, 100);
   assert.equal(live.cachedTokens, 40);
   assert.equal(live.totalTokens, 125);
+  const detailed = store.summary({ live: true, detailed: true });
+  const hour = detailed.history.at(-1).at;
+  assert.equal(detailed.hourlyByAccount[hour]['account-b'].totalTokens, 125);
+  assert.equal(detailed.hourlyByModel[hour]['model-a'].upstreamCalls, 2);
+  assert.equal(detailed.hourlyByAccountModel[hour]['account-b']['model-a'].outputTokens, 20);
+  assert.equal(detailed.byAccountModel['account-b']['model-a'].inputTokens, 100);
   assert.equal(fs.existsSync(store.file), false);
   now += 5 * 60_000;
   store.tick();
   assert.equal(fs.existsSync(store.file), true);
   const restored = new UsageStore({ configDir: directory, now: () => now });
   assert.equal(restored.summary({ live: true }).lifetime.totalTokens, 125);
+  assert.equal(restored.summary({ live: true, detailed: true }).byAccountModel['account-b']['model-a'].totalTokens, 125);
 });
 
 test('usage store rolls the displayed histogram only when the hour changes', (t) => {

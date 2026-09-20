@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Antigravity Gateway · Token 看板</title>
+  <style>
+    :root{--bg:#071012;--panel:#111817;--panel2:#151d1b;--line:#263431;--muted:#86928f;--text:#edf7f3;--cyan:#78d7ff;--cyan2:#2e8fc6;--green:#70d6ad;--amber:#e7b36b;--red:#ef7e78;--violet:#a89bf2;--shadow:0 24px 80px #0009}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -15%,#17484d 0,#0a1b1d 28%,var(--bg) 65%);color:var(--text);font:14px/1.45 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+    body{padding:30px}.shell{max-width:1580px;margin:auto;border:1px solid #65cfff88;border-radius:20px;padding:18px;background:linear-gradient(145deg,#111713f5,#0e1211f8);box-shadow:0 0 0 1px #12333a,0 0 34px #42caff25,var(--shadow)}
+    .topbar{display:flex;gap:20px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}.title h1{margin:0;font-size:18px;letter-spacing:.02em}.title p{margin:4px 0 0;color:var(--muted);font-size:12px}.controls{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}.segmented,.select,.button{border:1px solid var(--line);background:#18201e;color:var(--text);border-radius:9px;padding:7px 10px}.segmented{display:flex;padding:3px}.segmented button{border:0;color:#96a5a1;background:transparent;padding:5px 11px;border-radius:6px;cursor:pointer}.segmented button.active{color:#dff6ff;background:#295d79;box-shadow:inset 0 0 0 1px #64caff55}.select{max-width:230px}.button{cursor:pointer}.button:hover{border-color:#58bce2}.live{display:inline-flex;align-items:center;gap:6px}.live:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green)}
+    .kpis{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:9px;margin-bottom:10px}.kpi{min-height:76px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(135deg,#161d1b,#121614);box-shadow:inset 0 1px #ffffff08}.kpi .label{color:#94a09d;font-size:11px}.kpi strong{display:block;margin-top:5px;font-size:20px;letter-spacing:-.03em}.kpi small{color:#64716e;font-size:10px}
+    .grid{display:grid;grid-template-columns:1.08fr 1fr;gap:10px}.panel{min-width:0;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#141a18,#101513);overflow:hidden}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #202a28}.panel-head h2{font-size:13px;margin:0}.panel-head span{font-size:10px;color:var(--muted)}.panel-body{padding:12px 14px}.span2{grid-column:1/-1}.stack{display:grid;gap:8px}
+    .account-row{display:grid;grid-template-columns:minmax(155px,1.4fr) 84px 1fr 100px;gap:12px;align-items:center;padding:10px;border-radius:8px;background:#0c1210;border:1px solid #1d2825}.account-main{min-width:0}.account-main b{display:block;overflow:hidden;text-overflow:ellipsis}.account-main small{color:var(--muted)}.status{font-size:11px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}.ok{background:var(--green)}.warn{background:var(--amber)}.bad{background:var(--red)}.quota{height:7px;background:#202a28;border-radius:8px;overflow:hidden}.quota i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cyan2),var(--cyan))}.account-number{text-align:right}.account-number b{display:block}.account-number small{color:var(--muted)}
+    .heatmap-wrap{overflow:auto}.heatmap{display:grid;grid-template-columns:74px repeat(24,minmax(11px,1fr));gap:3px;min-width:620px;align-items:center}.heat-label{font-size:10px;color:var(--muted);white-space:nowrap}.cell{height:12px;border-radius:2px;background:#18201e}.cell:hover{outline:1px solid #c9efff}.hour{font-size:9px;color:#5e6a67;text-align:center}
+    .model-table{display:grid;gap:6px}.model-row{display:grid;grid-template-columns:minmax(180px,1.15fr) 78px 86px minmax(170px,1fr);gap:10px;align-items:center;padding:7px 8px;border-radius:7px}.model-row:nth-child(odd){background:#0e1412}.model-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.model-number{text-align:right}.model-number small{display:block;color:var(--muted)}.spark{width:100%;height:35px;display:block}
+    .chart{width:100%;height:230px;display:block}.legend{display:flex;gap:12px;flex-wrap:wrap}.legend span{font-size:10px;color:var(--muted)}.legend i{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:5px}.chart-label{fill:#65716e;font-size:9px}.empty{height:160px;display:grid;place-items:center;color:var(--muted)}
+    .footer{display:flex;justify-content:space-between;gap:12px;margin-top:12px;color:#65716e;font-size:10px}.error{display:none;margin-bottom:10px;padding:10px;border:1px solid #7d3936;border-radius:8px;background:#351816;color:#ffc9c5}.error.show{display:block}
+    @media(max-width:1100px){body{padding:12px}.kpis{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:1fr}.span2{grid-column:auto}}
+    @media(max-width:680px){.shell{padding:12px;border-radius:14px}.topbar{display:block}.controls{justify-content:flex-start;margin-top:12px}.kpis{grid-template-columns:repeat(2,1fr)}.account-row{grid-template-columns:1fr 80px}.account-row .quota{grid-column:1/-1}.model-row{grid-template-columns:1fr 66px}.model-row .spark{grid-column:1/-1}.footer{display:block}}
+  </style>
+</head>
+<body>
+<main class="shell">
+  <div class="topbar">
+    <div class="title"><h1>Token 消耗看板</h1><p id="subtitle">Antigravity Gateway · 正在读取本地统计</p></div>
+    <div class="controls">
+      <div class="segmented" id="ranges"><button data-hours="24" class="active">1天</button><button data-hours="72">3天</button><button data-hours="168">近7天</button><button data-hours="720">近30天</button></div>
+      <select class="select" id="accountFilter"><option value="all">全部账号</option></select>
+      <button class="button" id="refresh"><span class="live">刷新</span></button>
+    </div>
+  </div>
+  <div class="error" id="error"></div>
+  <section class="kpis" id="kpis"></section>
+  <section class="grid">
+    <article class="panel"><div class="panel-head"><h2>账号池与额度</h2><span>额度为上游快照，实时请求结果优先</span></div><div class="panel-body stack" id="accounts"></div></article>
+    <article class="panel"><div class="panel-head"><h2>小时活跃热力图</h2><span id="heatCaption">按 Token 强度</span></div><div class="panel-body heatmap-wrap" id="heatmap"></div></article>
+    <article class="panel"><div class="panel-head"><h2>模型消耗分布</h2><span>请求 / 输入 / 输出 / 趋势</span></div><div class="panel-body model-table" id="models"></div></article>
+    <article class="panel"><div class="panel-head"><h2>按模型的小时 Token</h2><div class="legend" id="areaLegend"></div></div><div class="panel-body" id="areaChart"></div></article>
+    <article class="panel span2"><div class="panel-head"><h2>每日 Token 构成</h2><div class="legend"><span><i style="background:#66c8ef"></i>非缓存输入</span><span><i style="background:#7fd6ae"></i>输出</span><span><i style="background:#a89bf2"></i>思考</span><span><i style="background:#e7b36b"></i>缓存</span></div></div><div class="panel-body" id="dailyChart"></div></article>
+  </section>
+  <footer class="footer"><span>数据仅保存在本机，不记录提示词与模型回复；账号与模型的小时细分从 v0.8.0 起累计。</span><span id="freshness">--</span></footer>
+</main>
+<script>
+(() => {
+  'use strict';
+  const COLORS=['#66c8ef','#7fd6ae','#a89bf2','#e7b36b','#ef7e78','#65a6a0','#c0d77a','#c18ad9'];
+  const ZERO={clientRequests:0,upstreamCalls:0,successfulUpstreamCalls:0,failedUpstreamCalls:0,inputTokens:0,outputTokens:0,thinkingTokens:0,cachedTokens:0,totalTokens:0};
+  let DATA=null, hours=24, account='all';
+  const $=(id)=>document.getElementById(id);
+  const esc=(v)=>String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  const num=(v)=>new Intl.NumberFormat('zh-CN',{maximumFractionDigits:1,notation:Math.abs(Number(v)||0)>=1e7?'compact':'standard'}).format(Number(v)||0);
+  const pct=(a,b)=>b>0?((a/b)*100).toFixed(1)+'%':'--';
+  const add=(a,b)=>{for(const k of Object.keys(ZERO))a[k]=(Number(a[k])||0)+(Number(b?.[k])||0);return a};
+  const startTime=()=>Date.now()-hours*3600000;
+  const history=()=>{
+    const existing=new Map(DATA.usage.history.map((row)=>[row.at,row]));
+    const end=Math.floor(Date.now()/3600000)*3600000, output=[];
+    for(let index=hours-1;index>=0;index--){const at=new Date(end-index*3600000).toISOString();output.push(existing.get(at)||{at,...ZERO})}
+    return output;
+  };
+  const accountHourly=(at)=>account==='all'?DATA.usage.history.find((x)=>x.at===at)||ZERO:DATA.usage.hourlyByAccount?.[at]?.[account]||ZERO;
+  const modelHourly=(at,model)=>account==='all'?DATA.usage.hourlyByModel?.[at]?.[model]||ZERO:DATA.usage.hourlyByAccountModel?.[at]?.[account]?.[model]||ZERO;
+  const selectedTotals=()=>history().reduce((sum,row)=>add(sum,accountHourly(row.at)),{...ZERO});
+  const lifetimeTotals=()=>account==='all'?DATA.usage.lifetime:DATA.usage.byAccount?.[account]||ZERO;
+  const selectedModels=()=>{
+    const output={};
+    for(const row of history()){
+      const source=account==='all'?DATA.usage.hourlyByModel?.[row.at]||{}:DATA.usage.hourlyByAccountModel?.[row.at]?.[account]||{};
+      for(const [model,value] of Object.entries(source))add(output[model]||(output[model]={...ZERO}),value);
+    }
+    return output;
+  };
+  const localDate=(value)=>new Date(value).toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'});
+
+  function renderKpis(){
+    const total=lifetimeTotals(), period=selectedTotals(), failure=pct(period.failedUpstreamCalls,period.upstreamCalls);
+    const cards=[
+      ['历史总 Token',num(total.totalTokens),'所选账号累计'],['所选时段 Token',num(period.totalTokens),hours+' 小时'],
+      ['请求数',num(account==='all'?total.clientRequests:total.upstreamCalls),account==='all'?'客户端历史累计':'该账号上游累计'],['上游调用',num(period.upstreamCalls),'所选时段'],
+      ['输入 / 输出',num(period.inputTokens)+' / '+num(period.outputTokens),'所选时段'],['缓存命中率',pct(period.cachedTokens,period.inputTokens),'缓存 '+num(period.cachedTokens)],
+      ['失败率',failure,'失败 '+num(period.failedUpstreamCalls)]
+    ];
+    $('kpis').innerHTML=cards.map((x)=>'<div class="kpi"><span class="label">'+x[0]+'</span><strong>'+x[1]+'</strong><small>'+x[2]+'</small></div>').join('');
+  }
+
+  function renderAccounts(){
+    const rows=DATA.accounts||[];
+    if(!rows.length){$('accounts').innerHTML='<div class="empty">当前使用本地 agy 单账号</div>';return}
+    $('accounts').innerHTML=rows.map((a)=>{
+      const u=DATA.usage.byAccount?.[a.id]||ZERO, q=a.quota||{}, modelQs=Object.values(q.models||{}), remaining=modelQs.length?Math.max(...modelQs.map((m)=>Number(m.remainingFraction)||0)):null;
+      const state=!a.enabled?'disabled':a.state||'available', cls=state==='available'?'ok':state==='cooldown'?'warn':'bad';
+      const quotaText=remaining==null?(q.available===false?'不可用':'等待快照'):Math.round(remaining*100)+'%';
+      return '<div class="account-row"><div class="account-main"><b>'+esc(a.email||a.id)+'</b><small>'+num(u.totalTokens)+' Token · '+num(u.upstreamCalls)+' 次上游</small></div><div class="status"><i class="dot '+cls+'"></i>'+esc(state)+'</div><div class="quota" title="'+esc(quotaText)+'"><i style="width:'+(remaining==null?(q.available===false?0:35):remaining*100)+'%"></i></div><div class="account-number"><b>'+quotaText+'</b><small>最高模型余额</small></div></div>';
+    }).join('');
+  }
+
+  function renderHeatmap(){
+    const rows=history(); if(!rows.length){$('heatmap').innerHTML='<div class="empty">暂无小时数据</div>';return}
+    const days=new Map(); for(const row of rows){const key=localDate(row.at); if(!days.has(key))days.set(key,Array(24).fill(0));days.get(key)[new Date(row.at).getHours()]=accountHourly(row.at).totalTokens||0}
+    const values=[...days.values()].flat(), max=Math.max(...values,1); let html='<div class="heatmap"><span></span>';
+    for(let h=0;h<24;h++)html+='<span class="hour">'+String(h).padStart(2,'0')+'</span>';
+    for(const [day,v] of days){html+='<span class="heat-label">'+day+'</span>';for(let h=0;h<24;h++){const n=v[h],alpha=n?(.16+.84*Math.sqrt(n/max)):0;html+='<i class="cell" title="'+day+' '+h+':00 · '+num(n)+' Token" style="background:rgba(102,200,239,'+alpha+')"></i>'}}
+    $('heatmap').innerHTML=html+'</div>';
+  }
+
+  function sparkline(values,color){
+    const w=240,h=35,max=Math.max(...values,1),step=w/Math.max(values.length-1,1);const pts=values.map((v,i)=>(i*step).toFixed(1)+','+(h-3-(v/max)*(h-7)).toFixed(1)).join(' ');
+    return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><defs><linearGradient id="g'+color.slice(1)+'" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+color+'" stop-opacity=".38"/><stop offset="1" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs><polygon points="0,'+h+' '+pts+' '+w+','+h+'" fill="url(#g'+color.slice(1)+')"/><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5"/></svg>';
+  }
+
+  function renderModels(){
+    const source=selectedModels(), list=Object.entries(source).sort((a,b)=>(b[1].totalTokens||0)-(a[1].totalTokens||0)).slice(0,10);
+    if(!list.length){$('models').innerHTML='<div class="empty">暂无模型用量</div>';return}
+    const timeline=history(); $('models').innerHTML=list.map(([model,u],i)=>{
+      const values=timeline.map((row)=>modelHourly(row.at,model).totalTokens||0);
+      return '<div class="model-row"><div class="model-name" title="'+esc(model)+'">'+esc(model)+'</div><div class="model-number">'+num(u.upstreamCalls)+'<small>调用</small></div><div class="model-number">'+num(u.totalTokens)+'<small>Token</small></div>'+sparkline(values,COLORS[i%COLORS.length])+'</div>';
+    }).join('');
+  }
+
+  function areaSvg(){
+    const timeline=history(), modelList=Object.entries(selectedModels()).sort((a,b)=>(b[1].totalTokens||0)-(a[1].totalTokens||0)).slice(0,6).map((x)=>x[0]);
+    if(!timeline.length||!modelList.length)return '<div class="empty">暂无趋势数据</div>';
+    const W=720,H=220,L=38,R=8,T=8,B=22,plotW=W-L-R,plotH=H-T-B,series=modelList.map((m)=>timeline.map((r)=>modelHourly(r.at,m).totalTokens||0));
+    const totals=timeline.map((_,i)=>series.reduce((s,row)=>s+row[i],0)),max=Math.max(...totals,1);let lower=Array(timeline.length).fill(0),paths='';
+    series.forEach((values,si)=>{const upper=values.map((v,i)=>lower[i]+v),points=[];for(let i=0;i<upper.length;i++)points.push((L+i*plotW/Math.max(upper.length-1,1)).toFixed(1)+','+(T+plotH-upper[i]/max*plotH).toFixed(1));for(let i=lower.length-1;i>=0;i--)points.push((L+i*plotW/Math.max(lower.length-1,1)).toFixed(1)+','+(T+plotH-lower[i]/max*plotH).toFixed(1));paths+='<polygon points="'+points.join(' ')+'" fill="'+COLORS[si%COLORS.length]+'" fill-opacity=".32" stroke="'+COLORS[si%COLORS.length]+'" stroke-width="1"/>';lower=upper});
+    let grid='';for(let i=0;i<5;i++){const y=T+i*plotH/4;grid+='<line x1="'+L+'" y1="'+y+'" x2="'+(W-R)+'" y2="'+y+'" stroke="#26302e"/><text x="'+(L-5)+'" y="'+(y+3)+'" text-anchor="end" class="chart-label">'+num(max*(1-i/4))+'</text>'}
+    $('areaLegend').innerHTML=modelList.map((m,i)=>'<span><i style="background:'+COLORS[i%COLORS.length]+'"></i>'+esc(m)+'</span>').join('');
+    return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none">'+grid+paths+'</svg>';
+  }
+
+  function dailySvg(){
+    const daily=new Map();for(const row of history()){const day=localDate(row.at),v=daily.get(day)||{...ZERO};add(v,accountHourly(row.at));daily.set(day,v)}
+    if(!daily.size)return '<div class="empty">暂无每日数据</div>';const list=[...daily],W=1100,H=220,L=42,R=10,T=8,B=28,plotW=W-L-R,plotH=H-T-B,max=Math.max(...list.map(([,v])=>Math.max(0,v.inputTokens-v.cachedTokens)+v.outputTokens+v.thinkingTokens+v.cachedTokens),1),bar=Math.min(48,plotW/list.length*.58);let shapes='';
+    list.forEach(([day,v],i)=>{const x=L+(i+.5)*plotW/list.length;let y=T+plotH;const parts=[[Math.max(0,v.inputTokens-v.cachedTokens),'#66c8ef'],[v.outputTokens,'#7fd6ae'],[v.thinkingTokens,'#a89bf2'],[v.cachedTokens,'#e7b36b']];parts.forEach(([value,c])=>{const h=(value||0)/max*plotH;y-=h;shapes+='<rect x="'+(x-bar/2)+'" y="'+y+'" width="'+bar+'" height="'+Math.max(0,h)+'" rx="2" fill="'+c+'"/>'});shapes+='<text x="'+x+'" y="'+(H-8)+'" text-anchor="middle" class="chart-label">'+day+'</text>'});
+    return '<svg class="chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><line x1="'+L+'" y1="'+(T+plotH)+'" x2="'+(W-R)+'" y2="'+(T+plotH)+'" stroke="#2b3634"/>'+shapes+'</svg>';
+  }
+
+  function render(){
+    renderKpis();renderAccounts();renderHeatmap();renderModels();$('areaChart').innerHTML=areaSvg();$('dailyChart').innerHTML=dailySvg();
+    const label=account==='all'?'全部账号':DATA.accounts.find((a)=>a.id===account)?.email||account;
+    $('heatCaption').textContent=label+' · 最近 '+hours+' 小时';$('freshness').textContent='数据更新时间：'+new Date(DATA.generatedAt).toLocaleString('zh-CN');
+    $('subtitle').textContent='Antigravity Gateway v'+DATA.version+' · 本地实时统计 · '+label;
+  }
+
+  async function load(){
+    try{const res=await fetch('/dashboard/data',{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);DATA=await res.json();$('error').classList.remove('show');
+      const select=$('accountFilter'),value=select.value;select.innerHTML='<option value="all">全部账号</option>'+DATA.accounts.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.email||a.id)+'</option>').join('');select.value=[...select.options].some((o)=>o.value===value)?value:'all';account=select.value;render();
+    }catch(e){$('error').textContent='看板数据读取失败：'+e.message;$('error').classList.add('show')}
+  }
+  $('ranges').addEventListener('click',(e)=>{const b=e.target.closest('button');if(!b)return;hours=Number(b.dataset.hours);$('ranges').querySelectorAll('button').forEach((x)=>x.classList.toggle('active',x===b));render()});
+  $('accountFilter').addEventListener('change',(e)=>{account=e.target.value;render()});$('refresh').addEventListener('click',load);
+  load();setInterval(load,60000);
+})();
+</script>
+</body>
+</html>

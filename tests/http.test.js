@@ -160,6 +160,23 @@ test('health endpoint reports the package release version', async (t) => {
   assert.equal(body.version, packageVersion);
 });
 
+test('local dashboard and live data are served without an extra web process', async (t) => {
+  const base = await withServer(t);
+  const page = await fetch(`${base}/dashboard`);
+  assert.equal(page.status, 200);
+  assert.match(page.headers.get('content-type'), /text\/html/);
+  assert.match(await page.text(), /Token 消耗看板/);
+
+  const data = await fetch(`${base}/dashboard/data`);
+  assert.equal(data.status, 200);
+  const body = await data.json();
+  assert.equal(body.version, packageVersion);
+  assert.ok(body.usage.lifetime);
+  assert.ok(Array.isArray(body.usage.history));
+  assert.ok(Array.isArray(body.accounts));
+  assert.equal((await fetch(`${base}/favicon.ico`)).status, 204);
+});
+
 test('Claude Code provider connectivity probe does not produce a false missing-interface error', async (t) => {
   const base = await withServer(t);
   for (const method of ['GET', 'POST', 'HEAD']) {
