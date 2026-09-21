@@ -129,6 +129,8 @@ test('quota manager persists per-account per-model quota and ignores expired sna
   assert.equal(fs.existsSync(manager.file), true);
   manager.snapshots['account-1'].expiresAt = '2020-01-01T00:00:00.000Z';
   assert.equal(manager.get('account-1'), null);
+  assert.equal(manager.peek('account-1').stale, true);
+  assert.equal(manager.peek('account-1', 'gemini-3.8-flash-high').remainingFraction, 0.5);
 });
 
 test('OAuth flow prints a usable URL, accepts a pasted callback, and returns a persistent account', async () => {

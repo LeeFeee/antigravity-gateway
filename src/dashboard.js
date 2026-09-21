@@ -13,25 +13,92 @@ function dashboardHtml() {
   return htmlCache;
 }
 
-function dashboardData({ usageStore, accountPool, quotaManager, version }) {
-  const usage = usageStore.summary({ live: true, detailed: true });
-  const status = accountPool.status();
-  const accountIds = new Set([
-    ...status.map((account) => account.id),
-    ...Object.keys(usage.byAccount || {})
+const COUNTER_KEYS = [
+  'clientRequests', 'upstreamCalls', 'successfulUpstreamCalls', 'failedUpstreamCalls',
+  'inputTokens', 'outputTokens', 'thinkingTokens', 'cachedTokens', 'totalTokens'
+];
+
+function counters() {
+  return Object.fromEntries(COUNTER_KEYS.map((key) => [key, 0]));
+}
+
+function addCounters(target, source) {
+  for (const key of COUNTER_KEYS) target[key] += Number(source?.[key]) || 0;
+  return target;
+}
+
+function selectAccounts(source, accountIds) {
+  return Object.fromEntries(Object.entries(source || {}).filter(([id]) => accountIds.has(id)));
+}
+
+function accountPoolUsage(usage, accountIds) {
+  const byAccount = selectAccounts(usage.byAccount, accountIds);
+  const byAccountModel = selectAccounts(usage.byAccountModel, accountIds);
+  const hourlyByAccount = {};
+  const hourlyByAccountModel = {};
+  const hourlyByModel = {};
+  const historyByTime = new Map((usage.history || []).map((row) => [row.at, row]));
+  const timestamps = new Set([
+    ...historyByTime.keys(),
+    ...Object.keys(usage.hourlyByAccount || {}),
+    ...Object.keys(usage.hourlyByAccountModel || {})
   ]);
-  if (!accountIds.size) accountIds.add('local-agy-session');
-  const byId = new Map(status.map((account) => [account.id, account]));
-  const accounts = [...accountIds].map((id) => {
-    const current = byId.get(id) || {
-      id,
-      email: id === 'local-agy-session' ? '本地 agy 登录账号' : '',
-      enabled: true,
-      state: 'available',
-      modelCooldowns: []
-    };
-    return { ...current, quota: quotaManager?.get(id) || null };
+
+  for (const at of timestamps) {
+    const activeAccounts = selectAccounts(usage.hourlyByAccount?.[at], accountIds);
+    const activeAccountModels = selectAccounts(usage.hourlyByAccountModel?.[at], accountIds);
+    hourlyByAccount[at] = activeAccounts;
+    hourlyByAccountModel[at] = activeAccountModels;
+    const models = {};
+    for (const accountModels of Object.values(activeAccountModels)) {
+      for (const [model, values] of Object.entries(accountModels || {})) {
+        addCounters((models[model] ||= counters()), values);
+      }
+    }
+    hourlyByModel[at] = models;
+  }
+
+  const byModel = {};
+  for (const accountModels of Object.values(byAccountModel)) {
+    for (const [model, values] of Object.entries(accountModels || {})) {
+      addCounters((byModel[model] ||= counters()), values);
+    }
+  }
+
+  const lifetime = counters();
+  for (const values of Object.values(byAccount)) addCounters(lifetime, values);
+  // Client requests are recorded before an upstream account is selected, so
+  // they remain a gateway-level metric. Every account-bound metric below is
+  // derived exclusively from the current account pool.
+  lifetime.clientRequests = Number(usage.lifetime?.clientRequests) || 0;
+  const history = [...timestamps].sort().map((at) => {
+    const values = counters();
+    for (const accountValues of Object.values(hourlyByAccount[at] || {})) addCounters(values, accountValues);
+    values.clientRequests = Number(historyByTime.get(at)?.clientRequests) || 0;
+    return { at, ...values };
   });
+
+  return {
+    ...usage,
+    lifetime,
+    history,
+    byModel,
+    byAccount,
+    hourlyByAccount,
+    hourlyByModel,
+    hourlyByAccountModel,
+    byAccountModel
+  };
+}
+
+function dashboardData({ usageStore, accountPool, quotaManager, version }) {
+  const status = accountPool.status();
+  const accountIds = new Set(status.map((account) => account.id));
+  const usage = accountPoolUsage(usageStore.summary({ live: true, detailed: true }), accountIds);
+  const accounts = status.map((account) => ({
+    ...account,
+    quota: quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
+  }));
   return {
     version,
     generatedAt: new Date().toISOString(),
@@ -71,4 +138,4 @@ function checkDashboard(url, timeoutMs = 2500) {
   });
 }
 
-module.exports = { browserCommand, checkDashboard, dashboardData, dashboardHtml, openBrowser };
+module.exports = { accountPoolUsage, browserCommand, checkDashboard, dashboardData, dashboardHtml, openBrowser };

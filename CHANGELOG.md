@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.1 - 2026-09-21
+
+- Made the managed account pool the dashboard's only account source, so historical or unbound usage identifiers can no longer appear as accounts or affect account/model aggregates.
+- Replaced the single highest-model quota display with per-account details for every model actually called, including exact usage, model-specific remaining quota, reset time, and stale-snapshot state.
+- Kept the most recent expired quota snapshot visible as an explicitly marked previous snapshot while routing continues to use only fresh quota observations.
+
 ## 0.8.0 - 2026-09-20
 
 - Added a lightweight dark Token dashboard at `/dashboard`, opened with `antigravity-gateway stats` while either foreground or background mode is active and served by the existing gateway process without another web service.

@@ -314,7 +314,7 @@ curl http://127.0.0.1:9897/v1/models
 antigravity-gateway stats
 ```
 
-看板提供历史与所选时段 Token、请求和上游调用、输入/输出/思考/缓存、失败率、账号额度、小时热力图、模型趋势和每日构成；支持最近1天、3天、7天、30天及按账号筛选。网页每分钟读取一次本地聚合数据，关闭页面后不会继续轮询，也不保存提示词或模型回复。旧版总量和小时总量会继续保留，账号与模型的小时细分从 v0.8.0 起累计。
+看板提供历史与所选时段 Token、请求和上游调用、输入/输出/思考/缓存、失败率、账号额度、小时热力图、模型趋势和每日构成；支持最近1天、3天、7天、30天及按账号筛选。账号列表只来自当前账号池，每个账号只展示实际调用过的模型及其独立额度、重置时间和调用量，不用默认模型或其他模型的最高余额代替。网页每分钟读取一次本地聚合数据，关闭页面后不会继续轮询，也不保存提示词或模型回复。账号与模型的小时细分从 v0.8.0 起累计。
 
 ```text
 ~/.antigravity-gateway/state/quota.json
@@ -633,7 +633,7 @@ curl http://127.0.0.1:9897/v1/models
 
 ### Usage, update, and troubleshooting
 
-The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and daily composition. It supports 1/3/7/30-day windows and account filtering. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Existing totals and aggregate hourly history are preserved; hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
+The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and daily composition. It supports 1/3/7/30-day windows and account filtering. Accounts come exclusively from the active account pool; each account lists only models it actually called, with that model's own usage, remaining quota, reset time, and snapshot state. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
 
 Update:
 

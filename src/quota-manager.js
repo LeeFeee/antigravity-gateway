@@ -158,8 +158,23 @@ class QuotaManager {
     if (!snapshot) return null;
     const expiresAt = Date.parse(snapshot.expiresAt) || 0;
     if (expiresAt && expiresAt <= Date.now()) return null;
+    return this.snapshot(accountId, model, false);
+  }
+
+  peek(accountId, model = '') {
+    return this.snapshot(accountId, model, true);
+  }
+
+  snapshot(accountId, model = '', allowExpired = false) {
+    const snapshot = this.snapshots[accountId];
+    if (!snapshot) return null;
+    const expiresAt = Date.parse(snapshot.expiresAt) || 0;
+    const stale = Boolean(expiresAt && expiresAt <= Date.now());
+    if (stale && !allowExpired) return null;
     const modelQuota = model ? snapshot.models?.[model] : null;
-    return modelQuota ? { ...snapshot, ...modelQuota, accountAvailable: snapshot.available } : snapshot;
+    return modelQuota
+      ? { ...snapshot, ...modelQuota, accountAvailable: snapshot.available, stale }
+      : { ...snapshot, stale };
   }
 }
 
