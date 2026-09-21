@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2 - 2026-09-21
+
+- Switched dashboard quota snapshots to Antigravity's official `/usage` summary, showing the shared weekly and five-hour limits for the Gemini and Claude/GPT model groups per account.
+- Kept model-catalog quota observations for routing compatibility while model usage charts continue to reflect the exact model IDs actually called.
+
 ## 0.8.1 - 2026-09-21
 
 - Made the managed account pool the dashboard's only account source, so historical or unbound usage identifiers can no longer appear as accounts or affect account/model aggregates.

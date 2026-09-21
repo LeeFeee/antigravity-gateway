@@ -9,7 +9,7 @@ const test = require('node:test');
 
 const { HOUR_MS, UsageStore } = require('../src/usage-store');
 const { OAuthFlow, callbackInput, defaultTierId } = require('../src/oauth-flow');
-const { QuotaManager, creditSnapshot, modelQuotaSnapshot } = require('../src/quota-manager');
+const { QuotaManager, creditSnapshot, modelQuotaSnapshot, usageQuotaSnapshot } = require('../src/quota-manager');
 const { TerminalConsole, chart } = require('../src/terminal-console');
 
 test('usage store separates client requests, upstream calls, tokens and five-minute persistence', (t) => {
@@ -100,7 +100,33 @@ test('model quota snapshot reads remaining fractions and reset times from the re
   });
 });
 
-test('quota manager persists per-account per-model quota and ignores expired snapshots', async (t) => {
+test('usage quota snapshot preserves agy weekly and five-hour shared model groups', () => {
+  const groups = usageQuotaSnapshot({ groups: [{
+    displayName: 'Gemini Models', description: 'Models within this group: Gemini Flash, Gemini Pro',
+    buckets: [
+      { bucketId: 'gemini-weekly', displayName: 'Weekly Limit Remaining', window: 'weekly', remainingFraction: 0.9783292, resetTime: '2026-09-23T02:34:00Z' },
+      { bucketId: 'gemini-5h', displayName: 'Five Hour Limit Remaining', window: '5h', remainingFraction: 1, resetTime: '2026-09-21T07:41:36Z' }
+    ]
+  }, {
+    displayName: 'Claude and GPT models', description: 'Models within this group: Claude Opus, Claude Sonnet, GPT-OSS',
+    buckets: [
+      { bucketId: '3p-weekly', displayName: 'Weekly Limit Remaining', window: 'weekly', remainingFraction: 1 },
+      { bucketId: '3p-5h', displayName: 'Five Hour Limit Remaining', window: '5h', remainingFraction: 0.5 }
+    ]
+  }] });
+  assert.equal(groups.length, 2);
+  assert.deepEqual(groups[0], {
+    id: 'gemini', displayName: 'Gemini Models', description: 'Models within this group: Gemini Flash, Gemini Pro', available: true,
+    buckets: [
+      { id: 'gemini-weekly', displayName: 'Weekly Limit Remaining', window: 'weekly', remainingFraction: 0.9783292, resetTime: '2026-09-23T02:34:00Z', description: '', available: true },
+      { id: 'gemini-5h', displayName: 'Five Hour Limit Remaining', window: '5h', remainingFraction: 1, resetTime: '2026-09-21T07:41:36Z', description: '', available: true }
+    ]
+  });
+  assert.equal(groups[1].id, '3p');
+  assert.deepEqual(groups[1].buckets.map((bucket) => [bucket.window, bucket.remainingFraction]), [['weekly', 1], ['5h', 0.5]]);
+});
+
+test('quota manager persists official usage groups and keeps catalog quota for routing compatibility', async (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-quota-test-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const provider = {
@@ -114,6 +140,13 @@ test('quota manager persists per-account per-model quota and ignores expired sna
         return new Response(JSON.stringify({ paidTier: { id: 'pro' } }), { status: 200 });
       }
       assert.deepEqual(body, {});
+      if (String(url).includes('retrieveUserQuotaSummary')) return new Response(JSON.stringify({ groups: [{
+        displayName: 'Gemini Models', description: 'Models within this group: Gemini Flash, Gemini Pro',
+        buckets: [
+          { bucketId: 'gemini-weekly', window: 'weekly', remainingFraction: 0.75 },
+          { bucketId: 'gemini-5h', window: '5h', remainingFraction: 0.5 }
+        ]
+      }] }), { status: 200 });
       return new Response(JSON.stringify({ models: {
         'gemini-3.8-flash-high': { quotaInfo: { remainingFraction: 0.5, resetTime: '2026-09-20T00:00:00Z' } }
       } }), { status: 200 });
@@ -126,6 +159,8 @@ test('quota manager persists per-account per-model quota and ignores expired sna
   const manager = new QuotaManager({ configDir: directory, accountPool });
   await manager.refresh();
   assert.equal(manager.get('account-1', 'gemini-3.8-flash-high').remainingFraction, 0.5);
+  assert.equal(manager.peek('account-1').groups[0].buckets[0].window, 'weekly');
+  assert.equal(manager.peek('account-1').groups[0].buckets[1].remainingFraction, 0.5);
   assert.equal(fs.existsSync(manager.file), true);
   manager.snapshots['account-1'].expiresAt = '2020-01-01T00:00:00.000Z';
   assert.equal(manager.get('account-1'), null);

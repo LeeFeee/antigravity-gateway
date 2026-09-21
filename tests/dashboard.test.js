@@ -29,11 +29,17 @@ test('dashboard uses the account pool as the only account and usage scope', (t) 
     usageStore,
     version: '0.8.0',
     accountPool: { status: () => [{ id: 'account-1', email: 'one@example.com', enabled: true, state: 'available', modelCooldowns: [] }] },
-    quotaManager: { peek: () => ({ available: true, stale: false, models: { 'gemini-3.8-flash-high': { remainingFraction: 0.75 } } }) }
+    quotaManager: { peek: () => ({ available: true, stale: false, groups: [{
+      id: 'gemini', displayName: 'Gemini Models', description: 'Models within this group: Gemini Flash, Gemini Pro',
+      buckets: [
+        { id: 'gemini-weekly', window: 'weekly', remainingFraction: 0.75, resetTime: '2026-09-23T02:34:00Z' },
+        { id: 'gemini-5h', window: '5h', remainingFraction: 1, resetTime: '2026-09-21T07:41:36Z' }
+      ]
+    }] }) }
   });
   assert.equal(result.version, '0.8.0');
   assert.equal(result.accounts[0].email, 'one@example.com');
-  assert.equal(result.accounts[0].quota.models['gemini-3.8-flash-high'].remainingFraction, 0.75);
+  assert.equal(result.accounts[0].quota.groups[0].buckets[0].remainingFraction, 0.75);
   assert.equal(result.usage.byAccountModel['account-1']['gemini-3.8-flash-high'].totalTokens, 100);
   assert.equal(result.usage.lifetime.totalTokens, 100);
   assert.equal(result.usage.byAccount['local-agy-session'], undefined);
@@ -53,7 +59,10 @@ test('dashboard HTML is self-contained and contains the required monitoring surf
   assert.match(html, /模型消耗分布/);
   assert.match(html, /每日 Token 构成/);
   assert.doesNotMatch(html, /最高模型余额/);
-  assert.match(html, /DATA\.usage\.byAccountModel/);
+  assert.match(html, /每周剩余额度/);
+  assert.match(html, /5 小时剩余额度/);
+  assert.match(html, /agy \/usage/);
+  assert.match(html, /hourlyByAccountModel/);
   assert.match(html, /fetch\('\/dashboard\/data'/);
   assert.doesNotMatch(html, /https?:\/\/[^'" ]+\.(?:js|css)/);
 });

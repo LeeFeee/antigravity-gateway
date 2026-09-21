@@ -7,6 +7,7 @@ const path = require('node:path');
 const REFRESH_INTERVAL_MS = 30 * 60_000;
 const LOAD_PATH = '/v1internal:loadCodeAssist';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
+const USAGE_PATH = '/v1internal:retrieveUserQuotaSummary';
 
 function creditSnapshot(body) {
   const paidTier = body?.paidTier && typeof body.paidTier === 'object' ? body.paidTier : {};
@@ -43,6 +44,32 @@ function modelQuotaSnapshot(body) {
     };
   }
   return models;
+}
+
+function usageQuotaSnapshot(body) {
+  const groups = Array.isArray(body?.groups) ? body.groups : [];
+  return groups.map((group, groupIndex) => {
+    const buckets = (Array.isArray(group?.buckets) ? group.buckets : []).flatMap((bucket, bucketIndex) => {
+      const remaining = Number(bucket?.remainingFraction ?? bucket?.remaining_fraction);
+      if (!Number.isFinite(remaining)) return [];
+      return [{
+        id: String(bucket?.bucketId || bucket?.bucket_id || `${groupIndex}-${bucketIndex}`),
+        displayName: String(bucket?.displayName || bucket?.display_name || bucket?.window || ''),
+        window: String(bucket?.window || ''),
+        remainingFraction: Math.max(0, Math.min(1, remaining)),
+        resetTime: String(bucket?.resetTime || bucket?.reset_time || ''),
+        description: String(bucket?.description || ''),
+        available: remaining > 0
+      }];
+    });
+    return {
+      id: String(group?.groupId || group?.group_id || buckets[0]?.id?.replace(/-(?:weekly|5h)$/i, '') || `group-${groupIndex}`),
+      displayName: String(group?.displayName || group?.display_name || `Group ${groupIndex + 1}`),
+      description: String(group?.description || ''),
+      buckets,
+      available: buckets.length ? buckets.every((bucket) => bucket.available) : null
+    };
+  }).filter((group) => group.buckets.length);
 }
 
 async function fetchJson(provider, token, path, body) {
@@ -115,17 +142,21 @@ class QuotaManager {
     }
     const results = await Promise.allSettled(entries.map(async (entry) => {
       const token = await entry.provider.access(AbortSignal.timeout(30_000));
-      const [loadResult, modelsResult] = await Promise.allSettled([
+      const [loadResult, modelsResult, usageResult] = await Promise.allSettled([
         fetchJson(entry.provider, token, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
-        fetchJson(entry.provider, token, MODELS_PATH, {})
+        fetchJson(entry.provider, token, MODELS_PATH, {}),
+        fetchJson(entry.provider, token, USAGE_PATH, {})
       ]);
-      if (loadResult.status === 'rejected' && modelsResult.status === 'rejected') {
-        throw new Error(`${loadResult.reason?.message || '套餐读取失败'}；${modelsResult.reason?.message || '模型额度读取失败'}`);
+      if (loadResult.status === 'rejected' && modelsResult.status === 'rejected' && usageResult.status === 'rejected') {
+        throw new Error(`${loadResult.reason?.message || '套餐读取失败'}；${modelsResult.reason?.message || '模型目录读取失败'}；${usageResult.reason?.message || '用量额度读取失败'}`);
       }
       const credits = loadResult.status === 'fulfilled' ? creditSnapshot(loadResult.value) : creditSnapshot({});
       const models = modelsResult.status === 'fulfilled' ? modelQuotaSnapshot(modelsResult.value) : {};
+      const groups = usageResult.status === 'fulfilled' ? usageQuotaSnapshot(usageResult.value) : [];
       const values = Object.values(models);
-      const available = values.length ? values.some((item) => item.available) : credits.available;
+      const available = groups.length
+        ? groups.some((group) => group.available)
+        : values.length ? values.some((item) => item.available) : credits.available;
       return [entry.account.id, {
         accountId: entry.account.id,
         email: entry.account.email,
@@ -133,6 +164,7 @@ class QuotaManager {
         expiresAt: new Date(Date.now() + this.intervalMs).toISOString(),
         ...credits,
         available,
+        groups,
         models
       }];
     }));
@@ -178,4 +210,4 @@ class QuotaManager {
   }
 }
 
-module.exports = { QuotaManager, REFRESH_INTERVAL_MS, creditSnapshot, modelQuotaSnapshot };
+module.exports = { QuotaManager, REFRESH_INTERVAL_MS, creditSnapshot, modelQuotaSnapshot, usageQuotaSnapshot };
