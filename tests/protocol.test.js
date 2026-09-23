@@ -5,6 +5,7 @@ const test = require('node:test');
 
 const {
   anthropicResponse,
+  chatResponse,
   buildPrompt,
   detectAutoModeFormat,
   finalizeModelResult,
@@ -226,6 +227,33 @@ test('Responses custom tools round-trip as custom_tool_call instead of function_
   assert.equal(continued.messages[0].parts[0].kind, 'custom');
   assert.equal(continued.messages[0].parts[0].arguments.input, '*** Begin Patch\n*** End Patch');
   assert.equal(continued.messages[1].parts[0].type, 'tool_result');
+});
+
+test('Anthropic usage excludes cache reads from input_tokens', () => {
+  // Gemini promptTokenCount (input_tokens here) includes the cached prefix.
+  const body = anthropicResponse('gemini-test-high', {
+    text: 'ok', toolCalls: [],
+    usage: { input_tokens: 50000, output_tokens: 20, cache_read_tokens: 48000, total_tokens: 50020 }
+  });
+  assert.deepEqual(body.usage, {
+    input_tokens: 2000, output_tokens: 20, cache_creation_input_tokens: 0, cache_read_input_tokens: 48000
+  });
+  const uncached = anthropicResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 10, output_tokens: 2 } });
+  assert.equal(uncached.usage.input_tokens, 10);
+  assert.equal(uncached.usage.cache_read_input_tokens, 0);
+  // A malformed upstream report must never produce negative input.
+  const odd = anthropicResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 5, cache_read_tokens: 9 } });
+  assert.deepEqual([odd.usage.input_tokens, odd.usage.cache_read_input_tokens], [0, 5]);
+  // OpenAI prompt_tokens stays inclusive of the cached prefix.
+  assert.equal(chatResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 50000, cache_read_tokens: 48000 } }).usage.prompt_tokens, 50000);
+});
+
+test('billed output includes hidden reasoning tokens on every protocol', () => {
+  const result = { text: 'ok', toolCalls: [], usage: { input_tokens: 100, output_tokens: 7, thinking_tokens: 300, total_tokens: 407 } };
+  assert.equal(anthropicResponse('gemini-test-high', result).usage.output_tokens, 307);
+  assert.equal(chatResponse('gemini-test-high', result).usage.completion_tokens, 307);
+  assert.equal(responsesResponse('gemini-test-high', result, 'resp_1').usage.output_tokens, 307);
+  assert.equal(chatResponse('gemini-test-high', result).usage.total_tokens, 407);
 });
 
 test('Anthropic response exposes external tools in native format', () => {

@@ -526,6 +526,30 @@ function finalizeModelResult(normalized, agyResult) {
   return { ...agyResult, text, toolCalls };
 }
 
+// Gemini reports hidden reasoning (thoughtsTokenCount) separately from
+// candidatesTokenCount, but Anthropic output_tokens and OpenAI
+// completion/output tokens are billed inclusive of reasoning.
+function billedOutputTokens(usage = {}) {
+  return Math.max(0, Number(usage.output_tokens) || 0) + Math.max(0, Number(usage.thinking_tokens) || 0);
+}
+
+function anthropicUsage(usage = {}) {
+  // Gemini's promptTokenCount already includes cachedContentTokenCount, while
+  // Anthropic's input_tokens excludes cache reads (total prompt = input +
+  // cache_read + cache_creation). Passing promptTokenCount through unchanged
+  // makes clients bill every cached token twice: once as full-price input and
+  // again as a cache read. OpenAI protocols keep the inclusive count because
+  // their prompt_tokens contract is inclusive too.
+  const prompt = Math.max(0, Number(usage.input_tokens) || 0);
+  const cacheRead = Math.min(prompt, Math.max(0, Number(usage.cache_read_tokens) || 0));
+  return {
+    input_tokens: prompt - cacheRead,
+    output_tokens: billedOutputTokens(usage),
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: cacheRead
+  };
+}
+
 function anthropicResponse(model, result) {
   const content = [];
   // Keep the provider signature carrier before any visible assistant output.
@@ -543,12 +567,7 @@ function anthropicResponse(model, result) {
     content,
     stop_reason: result.toolCalls.length ? 'tool_use' : 'end_turn',
     stop_sequence: null,
-    usage: {
-      input_tokens: result.usage.input_tokens || 0,
-      output_tokens: result.usage.output_tokens || 0,
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: result.usage.cache_read_tokens || 0
-    }
+    usage: anthropicUsage(result.usage)
   };
 }
 
@@ -563,7 +582,7 @@ function chatResponse(model, result) {
     choices: [{ index: 0, message, finish_reason: result.toolCalls.length ? 'tool_calls' : 'stop' }],
     usage: {
       prompt_tokens: result.usage.input_tokens || 0,
-      completion_tokens: result.usage.output_tokens || 0,
+      completion_tokens: billedOutputTokens(result.usage),
       total_tokens: result.usage.total_tokens || 0
     }
   };
@@ -596,7 +615,7 @@ function responsesResponse(model, result, responseId) {
     output,
     usage: {
       input_tokens: result.usage.input_tokens || 0,
-      output_tokens: result.usage.output_tokens || 0,
+      output_tokens: billedOutputTokens(result.usage),
       total_tokens: result.usage.total_tokens || 0
     }
   };
