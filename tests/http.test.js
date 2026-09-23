@@ -225,6 +225,12 @@ test('Anthropic non-stream and stream responses are protocol-shaped', async (t) 
   assert.match(text, /event: message_stop/);
   assert.match(text, /"text":"hel"/);
   assert.match(text, /"text":"lo-1"/);
+  // Live text streaming sends message_start before usage exists, so the
+  // cumulative message_delta must carry input and cache counts as well.
+  // fake-agy turn 1: prompt 100 (incl. cache 3), output 10 + thinking 2.
+  assert.deepEqual(body.usage, { input_tokens: 97, output_tokens: 12, cache_creation_input_tokens: 0, cache_read_input_tokens: 3 });
+  const delta = text.split('\n\n').find((frame) => frame.startsWith('event: message_delta'));
+  assert.deepEqual(JSON.parse(delta.split('data: ')[1]).usage, body.usage);
 });
 
 test('Anthropic tools are returned to the client and never executed by gateway', async (t) => {
@@ -243,6 +249,25 @@ test('Anthropic tools are returned to the client and never executed by gateway',
   const toolUse = body.content.find((block) => block.type === 'tool_use');
   assert.equal(toolUse.name, 'shell');
   assert.deepEqual(toolUse.input, { command: 'pwd' });
+});
+
+test('buffered tool streams repeat the complete cumulative usage in message_delta', async (t) => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: 'gemini-test-high', stream: true,
+      messages: [{ role: 'user', content: 'RETURN_TOOL' }],
+      tools: [{ name: 'shell', description: 'run', input_schema: { type: 'object', required: ['command'], properties: { command: { type: 'string' } }, additionalProperties: false } }]
+    })
+  });
+  const frames = (await response.text()).split('\n\n');
+  const data = (event) => JSON.parse(frames.find((frame) => frame.startsWith(`event: ${event}`)).split('data: ')[1]);
+  assert.equal(data('message_delta').delta.stop_reason, 'tool_use');
+  // fake-agy turn 1: prompt 100 (incl. cache 3), output 10 + thinking 2.
+  const expected = { input_tokens: 97, output_tokens: 12, cache_creation_input_tokens: 0, cache_read_input_tokens: 3 };
+  assert.deepEqual(data('message_start').message.usage, expected);
+  assert.deepEqual(data('message_delta').usage, expected);
 });
 
 test('Responses supports previous_response_id and function call shape', async (t) => {

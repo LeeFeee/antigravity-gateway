@@ -797,7 +797,8 @@ function createAnthropicTextEmitter(res, model) {
       if (finalText && !emittedText) emitText(finalText);
       else if (finalText.startsWith(emittedText)) emitText(finalText.slice(emittedText.length));
       if (blockStarted) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: 0 });
-      sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: { output_tokens: body.usage.output_tokens || 0 } });
+      // message_start went out before upstream usage existed; message_delta usage is cumulative per the Messages API.
+      sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: body.usage });
       sendSse(res, 'message_stop', { type: 'message_stop' });
       res.end();
     }
@@ -860,7 +861,7 @@ function emitAnthropicStream(res, body) {
     }
     sendSse(res, 'content_block_stop', { type: 'content_block_stop', index });
   });
-  sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: { output_tokens: body.usage.output_tokens } });
+  sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: body.usage });
   sendSse(res, 'message_stop', { type: 'message_stop' });
   res.end();
 }
