@@ -395,8 +395,27 @@ export NO_PROXY=127.0.0.1,localhost
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 最大排队请求数 |
 | `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` | 空 | 允许访问本地网关的浏览器 Origin |
 | `ANTIGRAVITY_GATEWAY_DEBUG` | 空 | 设置为 `1` 输出更多诊断信息 |
+| `ANTIGRAVITY_GATEWAY_TOOL_NARRATION` | 空（关闭） | 设置为 `1` 后，要求模型在每次调用工具前先用一句话说明它要做什么 |
 
 非必要情况下不建议手动设置 access token、refresh token、project ID 或上游地址。普通用户使用本地 agy 登录态和账号池即可。
+
+#### 工具调用前的进度说明（`ANTIGRAVITY_GATEWAY_TOOL_NARRATION`）
+
+Agent 客户端只渲染模型写出来的内容。有些模型（例如 Cloud Code 背后的 Gemini）在默认情况下会沉默地直接发起工具调用，于是界面从提问到整轮结束之间一直是静止的，看起来像"卡住了"；另一些模型（例如 DeepSeek）则会主动补一句过渡说明。
+
+把这个开关设为 `1` 后，网关会在上游系统指令末尾追加一段约定，要求**所有**模型在每次工具调用前先用一句话说明将要做什么，并在工具返回后简述结果或下一步，从而让任何模型在任何 agent 客户端里都有可见的过程输出。
+
+- 默认关闭，行为与之前完全一致。
+- 只作用于**带工具**的请求；没有工具就没有需要说明的动作。
+- **不会**影响 Claude Code Auto mode 分类请求（必须只返回一段 XML）和结构化输出请求（必须只返回一个 JSON 值）——给这两类请求追加正文会破坏客户端契约。
+- 仅 `direct` 传输支持；`agy` CLI 回退路径要求工具调用信封前后不能有正文。
+
+```sh
+export ANTIGRAVITY_GATEWAY_TOOL_NARRATION=1
+antigravity-gateway service restart
+```
+
+当前是否生效可以从健康接口读取：`curl -s http://127.0.0.1:9897/ | grep -o '"tool_narration":[a-z]*'`。
 
 ### 接口
 

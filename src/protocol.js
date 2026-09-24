@@ -181,6 +181,48 @@ function toolChoiceRule(choice) {
   return { mode: 'auto' };
 }
 
+/**
+ * Contract that asks a model to say what it is about to do before every tool
+ * call.
+ *
+ * Agent clients render only what the model writes, so a model that jumps
+ * straight to a tool call leaves the caller staring at a still screen until the
+ * whole turn settles. Upstream behavior differs by model family: some
+ * volunteer a short commentary sentence on their own, while others (Gemini
+ * behind Cloud Code, for one) stay silent unless asked. This contract asks
+ * every model for the same visible progress.
+ */
+const TOOL_NARRATION_INSTRUCTION = [
+  'TOOL_CALL_NARRATION',
+  'Before every tool call, first write one short sentence, in the language the user is writing in, stating what you are about to do.',
+  'Never call a tool silently.',
+  'After a tool result, briefly state what it showed or what you will do next.',
+  'Keep each sentence under 30 words, factual, and free of filler.'
+].join('\n');
+
+/** Whether the operator opted into the tool-narration contract. Off by default. */
+function toolNarrationEnabled() {
+  const value = String(process.env.ANTIGRAVITY_GATEWAY_TOOL_NARRATION || '').trim().toLowerCase();
+  return ['1', 'true', 'on', 'yes', 'enabled'].includes(value);
+}
+
+/**
+ * The narration contract to append to the upstream system instruction.
+ *
+ * Sent only where extra prose is harmless: a request that offers no tools has
+ * nothing to narrate, the Claude Code Auto mode classifier must answer with one
+ * XML verdict, and a structured request must answer with one JSON value — for
+ * those two the surrounding prose would break the client contract.
+ * @param normalized - protocol-normalized request.
+ * @returns the contract text, or '' when it must not be sent.
+ */
+function toolNarrationInstruction(normalized = {}) {
+  if (!toolNarrationEnabled()) return '';
+  if (!normalized.tools?.length) return '';
+  if (normalized.autoMode || normalized.structuredSchema) return '';
+  return TOOL_NARRATION_INSTRUCTION;
+}
+
 function sanitizeAnthropicProviderIdentity(text) {
   return String(text || '')
     // Claude Code 2.1.276 started copying its private billing transport
@@ -623,6 +665,7 @@ function responsesResponse(model, result, responseId) {
 
 module.exports = {
   GatewayError,
+  TOOL_NARRATION_INSTRUCTION,
   anthropicResponse,
   buildPrompt,
   chatResponse,
@@ -640,5 +683,7 @@ module.exports = {
   responsesResponse,
   textFromContent,
   toolChoiceRule,
+  toolNarrationEnabled,
+  toolNarrationInstruction,
   validateSchema
 };
