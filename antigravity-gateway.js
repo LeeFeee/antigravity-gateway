@@ -11,7 +11,7 @@ const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = requi
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
-const { checkDashboard, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
+const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { QuotaManager } = require('./src/quota-manager');
@@ -1004,7 +1004,7 @@ async function requestHandler(req, res) {
     res.end();
     return;
   }
-  if (route === '/dashboard' || route === '/dashboard/data') {
+  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/')) {
     if (!isLoopbackAddress(req.socket?.remoteAddress)) {
       sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备访问。' } });
       return;
@@ -1027,6 +1027,25 @@ async function requestHandler(req, res) {
         quotaManager: QUOTA_MANAGER,
         version: GATEWAY_VERSION
       }), { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (route.startsWith('/dashboard/assets/')) {
+      if (req.method !== 'GET') {
+        sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板资源只支持 GET。' } });
+        return;
+      }
+      const asset = dashboardAsset(route.slice('/dashboard/assets/'.length));
+      if (!asset) {
+        sendJson(res, 404, { error: { type: 'not_found', message: '看板资源不存在。' } });
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': asset.contentType,
+        'Content-Length': asset.body.length,
+        'Cache-Control': 'private, max-age=86400',
+        'X-Content-Type-Options': 'nosniff'
+      });
+      res.end(asset.body);
       return;
     }
     sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板接口只支持 GET。' } });

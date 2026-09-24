@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { dashboardData, dashboardHtml } = require('../src/dashboard');
+const { dashboardAsset, dashboardData, dashboardHtml } = require('../src/dashboard');
 const { UsageStore } = require('../src/usage-store');
 
 test('dashboard uses the account pool as the only account and usage scope', (t) => {
@@ -51,18 +51,36 @@ test('dashboard uses the account pool as the only account and usage scope', (t) 
   assert.equal(JSON.stringify(result).includes('refreshToken'), false);
 });
 
-test('dashboard HTML is self-contained and contains the required monitoring surfaces', () => {
+test('dashboard HTML contains the required monitoring surfaces and bundled assets', () => {
   const html = dashboardHtml();
   assert.match(html, /Token 消耗看板/);
   assert.match(html, /账号池与额度/);
   assert.match(html, /小时活跃热力图/);
-  assert.match(html, /模型消耗分布/);
-  assert.match(html, /每日 Token 构成/);
+  assert.match(html, /模型消耗占比/);
+  assert.match(html, /\/dashboard\/assets\/community-qr\.png/);
+  assert.match(html, /\/dashboard\/assets\/community-poster\.png/);
+  assert.match(html, /生成图片/);
+  assert.match(html, /id="saveOverlay"/);
+  assert.match(html, /长按下方图片/);
+  assert.match(html, /foreignObjectRendering/);
+  assert.match(html, /onclone/);
+  assert.match(html, /canvasLooksRendered/);
+  assert.match(html, /shareImageSources/);
+  assert.match(html, /options\.x=-documentLeft/);
+  assert.match(html, /options\.y=-documentTop/);
+  assert.doesNotMatch(html, /cloneNode\(true\)/);
+  assert.doesNotMatch(html, /left:-100000px/);
+  assert.doesNotMatch(html, /navigator\.(?:canShare|share)\b/);
   assert.doesNotMatch(html, /最高模型余额/);
+  assert.doesNotMatch(html, /每日 Token 构成/);
   assert.match(html, /每周剩余额度/);
   assert.match(html, /5 小时剩余额度/);
   assert.match(html, /agy \/usage/);
   assert.match(html, /hourlyByAccountModel/);
   assert.match(html, /fetch\('\/dashboard\/data'/);
   assert.doesNotMatch(html, /https?:\/\/[^'" ]+\.(?:js|css)/);
+
+  const qr = dashboardAsset('community-qr.png');
+  assert.equal(qr.contentType, 'image/png');
+  assert.deepEqual([...qr.body.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
 });
