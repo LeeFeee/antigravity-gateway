@@ -16,6 +16,9 @@
   "bin": {
     "antigravity-gateway": "antigravity-gateway.js"
   },
+  "dependencies": {
+    "html2canvas": "1.4.1"
+  },
   "scripts": {
     "start": "node antigravity-gateway.js",
     "postinstall": "node scripts/check-environment.js",
