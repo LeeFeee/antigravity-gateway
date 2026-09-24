@@ -6,11 +6,28 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 
 const DASHBOARD_FILE = path.join(__dirname, 'dashboard.html');
+const DASHBOARD_ASSETS = Object.freeze({
+  'community-qr.png': { file: 'community-qr.png', contentType: 'image/png' },
+  'community-poster.png': { file: 'community-poster.png', contentType: 'image/png' },
+  'html2canvas.min.js': {
+    absolutePath: require.resolve('html2canvas/dist/html2canvas.min.js'),
+    contentType: 'text/javascript; charset=utf-8'
+  }
+});
 let htmlCache = '';
+const assetCache = new Map();
 
 function dashboardHtml() {
   if (!htmlCache) htmlCache = fs.readFileSync(DASHBOARD_FILE, 'utf8');
   return htmlCache;
+}
+
+function dashboardAsset(name) {
+  const asset = DASHBOARD_ASSETS[name];
+  if (!asset) return null;
+  const filename = asset.absolutePath || path.join(__dirname, 'assets', asset.file);
+  if (!assetCache.has(name)) assetCache.set(name, fs.readFileSync(filename));
+  return { body: assetCache.get(name), contentType: asset.contentType };
 }
 
 const COUNTER_KEYS = [
@@ -138,4 +155,4 @@ function checkDashboard(url, timeoutMs = 2500) {
   });
 }
 
-module.exports = { accountPoolUsage, browserCommand, checkDashboard, dashboardData, dashboardHtml, openBrowser };
+module.exports = { accountPoolUsage, browserCommand, checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser };

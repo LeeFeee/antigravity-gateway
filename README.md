@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v0.7.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v0.8.3`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -319,7 +319,7 @@ curl http://127.0.0.1:9897/v1/models
 antigravity-gateway stats
 ```
 
-看板提供历史与所选时段 Token、请求和上游调用、输入/输出/思考/缓存、失败率、账号额度、小时热力图、模型趋势和每日构成；支持最近1天、3天、7天、30天及按账号筛选。账号列表只来自当前账号池；额度与 agy `/usage` 保持一致，按账号分别展示 Gemini 模型组、Claude/GPT 模型组共享的每周额度和 5 小时额度。具体模型的调用次数与 Token 只按真实请求的模型 ID 统计，不再把模型目录中的单项余额误写成账号总额度。网页每分钟读取一次本地聚合数据，关闭页面后不会继续轮询，也不保存提示词或模型回复。账号与模型的小时细分从 v0.8.0 起累计。
+看板提供历史与所选时段 Token、请求和上游调用、输入/输出/思考/缓存、失败率、账号额度、小时热力图、模型趋势和模型消耗占比；支持最近1天、3天、7天、30天及按账号筛选。账号列表只来自当前账号池；额度与 agy `/usage` 保持一致，按账号分别展示 Gemini 模型组、Claude/GPT 模型组共享的每周额度和 5 小时额度。具体模型的调用次数与 Token 只按真实请求的模型 ID 统计，不再把模型目录中的单项余额误写成账号总额度。点击“生成图片”会在浏览器本地生成账号脱敏的高清 PNG，桌面端直接下载，移动端提供长按保存预览；该过程不依赖第三方服务，也不会增加网关后端截图负担。网页每分钟读取一次本地聚合数据，关闭页面后不会继续轮询，也不保存提示词或模型回复。账号与模型的小时细分从 v0.8.0 起累计。
 
 ```text
 ~/.antigravity-gateway/state/quota.json
@@ -439,7 +439,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v0.7.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v0.8.3`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -643,7 +643,7 @@ Token usage and cache accounting:
 - **Anthropic Messages**: `input_tokens` excludes cache reads (`prompt - cache_read`) to avoid double-billing; cache reads are reported under `cache_read_input_tokens`.
 - **OpenAI Chat Completions**: `prompt_tokens` remains inclusive of the cached prefix, with cache hits reported under standard `prompt_tokens_details.cached_tokens` and reasoning tokens under `completion_tokens_details.reasoning_tokens`. This fully supports cache-hit and usage breakdowns in clients such as DeepSeek Harness (DSH) and Cursor.
 
-The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and daily composition. It supports 1/3/7/30-day windows and account filtering. Accounts come exclusively from the active account pool. Quota cards mirror agy `/usage`: each account shows the shared weekly and five-hour limits for the Gemini group and the Claude/GPT group. Per-model request and Token charts use the exact model IDs actually called instead of treating a model-catalog balance as the account's total quota. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
+The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and model consumption share. It supports 1/3/7/30-day windows and account filtering. Accounts come exclusively from the active account pool. Quota cards mirror agy `/usage`: each account shows the shared weekly and five-hour limits for the Gemini group and the Claude/GPT group. Per-model request and Token charts use the exact model IDs actually called instead of treating a model-catalog balance as the account's total quota. The Generate Image action creates an account-masked, high-resolution PNG entirely in the browser: desktop browsers download it directly, while mobile browsers show a long-press save preview. No third-party screenshot service or extra gateway-side rendering process is used. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
 
 Update:
 
