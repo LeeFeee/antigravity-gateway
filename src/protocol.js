@@ -182,7 +182,7 @@ function toolChoiceRule(choice) {
 }
 
 /**
- * Contract that asks a model to report one goal at a time.
+ * Contract for brief progress at meaningful work-stage boundaries.
  *
  * Agent clients render only what the model writes, so a model that jumps
  * straight to a run of tool calls leaves the caller staring at a still screen
@@ -192,19 +192,21 @@ function toolChoiceRule(choice) {
  *
  * Narrating before *every* tool does not work — a single goal routinely takes
  * several calls, and a line per call is noise (a four-tool goal produced four
- * near-identical sentences in review). So the contract groups work into goals:
- * state the goal, issue every call that goal needs back to back, then say what
- * changed before starting the next one.
+ * near-identical sentences in review). But one whole-task goal can also hide
+ * every intermediate update. Group related calls within work stages and report
+ * meaningful transitions, such as investigation to verification.
  */
 const TOOL_NARRATION_INSTRUCTION = [
   'TOOL_CALL_NARRATION',
-  'Group work by meaningful user-facing objectives, not individual tool operations or files.',
-  'Before starting a new objective, write one short sentence in the user\'s language describing the outcome you intend to achieve, not the next tool you will invoke.',
-  'An objective may require multiple parallel calls AND multiple sequential tool-result rounds. Continue all of them without further commentary while pursuing the same objective.',
-  'After receiving tool results, consult the conversation history: if the objective was already announced and is still in progress, issue the next needed tool calls silently. A tool result or a new assistant turn is NOT an objective boundary.',
-  'For example, locating a release version by reading an index, following a manifest path, and reading a release file is ONE objective: announce the lookup once, silently perform all dependent reads across turns, then report the version.',
-  'Speak again only when the objective is complete, the objective materially changes, or a blocker requires user input. Combine the completed outcome and next objective in one brief update when appropriate.',
-  'Keep progress updates under 30 words, factual, and free of filler. When the request is complete, provide the requested final answer without this progress-update length limit.'
+  'Keep the user informed at meaningful WORK-STAGE boundaries, not before every tool call and not only at the start and end of the entire task.',
+  'A task can contain several stages toward the SAME overall objective: investigation, implementation when requested, and verification. Do not collapse these into one silent objective or invent stages for simple tasks.',
+  'Before the first tool call, write one short sentence in the user\'s language describing the initial stage and intended outcome, not a list of tools.',
+  'Within a stage, group related tool calls without repeated commentary, including parallel calls and dependent calls across multiple tool-result rounds. Reading another file or receiving a tool result does not by itself start a new stage.',
+  'When evidence is sufficient to move to the next stage, you MUST write a brief transition BEFORE its tool calls: state the concrete finding from the previous stage and what you will verify or change next. For example, explain the established code behavior before moving from tracing source to checking and running tests, even though the overall objective is unchanged.',
+  'During a long stage, give a brief intermediate update when a substantial finding narrows the remaining work or an unexpected result materially changes the approach. Do not wait for full completion to share useful progress; do not narrate every finding, routine retry, or fixed number of calls.',
+  'Use conversation history to avoid repeating an already announced stage or finding. A plan/todo tool update is not a substitute for a short user-facing text transition. Do not invent progress, claim tests passed before results, or claim elapsed time you cannot observe.',
+  'A short lookup that follows several file references can stay in one stage: announce once, follow the references silently, then answer. A source audit followed by test execution needs an investigation-to-verification transition in between.',
+  'Keep each progress update to one concise sentence under 30 words, factual and free of filler. Report blockers needing user input promptly. When finished, provide the requested final answer without this progress-update length limit.'
 ].join('\n');
 
 /** Whether the operator opted into the tool-narration contract. Off by default. */

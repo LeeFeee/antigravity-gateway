@@ -47,6 +47,16 @@ function systemTextOf(request) {
   return (built.request.systemInstruction?.parts ?? []).map((part) => part.text).join('\n\n');
 }
 
+// These guard prompt content, not probabilistic model compliance.
+test('the contract requires stage transitions without narrating every tool', () => {
+  assert.match(TOOL_NARRATION_INSTRUCTION, /SAME overall objective/);
+  assert.match(TOOL_NARRATION_INSTRUCTION, /MUST write a brief transition BEFORE its tool calls/);
+  assert.match(TOOL_NARRATION_INSTRUCTION, /dependent calls across multiple tool-result rounds/);
+  assert.match(TOOL_NARRATION_INSTRUCTION, /not a substitute for a short user-facing text transition/);
+  assert.match(TOOL_NARRATION_INSTRUCTION, /During a long stage/);
+  assert.doesNotMatch(TOOL_NARRATION_INSTRUCTION, /Speak again only when the objective is complete|Never call a tool silently/);
+});
+
 test('the narration switch is off unless explicitly enabled', () => {
   const enabled = [];
   const disabled = [];
