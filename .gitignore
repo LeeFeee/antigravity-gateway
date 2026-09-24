@@ -1,4 +1,5 @@
 .runtime/
+node_modules/
 .antigravity-gateway/
 antigravity-oauth-token
 jetski-standalone-oauth-token
