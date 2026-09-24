@@ -198,12 +198,13 @@ function toolChoiceRule(choice) {
  */
 const TOOL_NARRATION_INSTRUCTION = [
   'TOOL_CALL_NARRATION',
-  'Work through the request one goal at a time.',
-  'Before acting on a goal, write one short sentence, in the language the user is writing in, saying what that goal is about to accomplish.',
-  'Within that goal, issue the tool calls it needs back to back and without further commentary — one goal may need several.',
-  'Once they come back, write one short sentence saying what you learned or what the next goal is, then act on it.',
-  'Stop once the request is complete.',
-  'Keep each sentence under 30 words, factual, and free of filler.'
+  'Group work by meaningful user-facing objectives, not individual tool operations or files.',
+  'Before starting a new objective, write one short sentence in the user\'s language describing the outcome you intend to achieve, not the next tool you will invoke.',
+  'An objective may require multiple parallel calls AND multiple sequential tool-result rounds. Continue all of them without further commentary while pursuing the same objective.',
+  'After receiving tool results, consult the conversation history: if the objective was already announced and is still in progress, issue the next needed tool calls silently. A tool result or a new assistant turn is NOT an objective boundary.',
+  'For example, locating a release version by reading an index, following a manifest path, and reading a release file is ONE objective: announce the lookup once, silently perform all dependent reads across turns, then report the version.',
+  'Speak again only when the objective is complete, the objective materially changes, or a blocker requires user input. Combine the completed outcome and next objective in one brief update when appropriate.',
+  'Keep progress updates under 30 words, factual, and free of filler. When the request is complete, provide the requested final answer without this progress-update length limit.'
 ].join('\n');
 
 /** Whether the operator opted into the tool-narration contract. Off by default. */
