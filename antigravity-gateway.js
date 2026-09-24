@@ -649,12 +649,26 @@ function mapAgyError(error) {
   });
 }
 
+const RESPONSE_STORE_MAX = 1000;
+
 function cleanupResponseStore() {
   const cutoff = Date.now() - 60 * 60 * 1000;
   for (const [id, state] of responseStore) if (state.at < cutoff) responseStore.delete(id);
-  while (responseStore.size > 1000) responseStore.delete(responseStore.keys().next().value);
+  const excess = responseStore.size - RESPONSE_STORE_MAX;
+  if (excess > 0) {
+    let i = 0;
+    for (const id of responseStore.keys()) {
+      if (i++ >= excess) break;
+      responseStore.delete(id);
+    }
+  }
 }
-setInterval(cleanupResponseStore, 60_000).unref();
+setInterval(cleanupResponseStore, 5_000).unref();
+
+function enforceResponseStoreCap() {
+  if (responseStore.size <= RESPONSE_STORE_MAX) return;
+  responseStore.delete(responseStore.keys().next().value);
+}
 
 async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
   const release = await requestSlots.acquire(signal);
@@ -954,6 +968,7 @@ async function handleResponses(payload, req, res, signal) {
   try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized) }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
+  enforceResponseStoreCap();
   responseStore.set(responseId, {
     at: Date.now(),
     scope,
