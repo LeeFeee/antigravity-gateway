@@ -182,21 +182,27 @@ function toolChoiceRule(choice) {
 }
 
 /**
- * Contract that asks a model to say what it is about to do before every tool
- * call.
+ * Contract that asks a model to report one goal at a time.
  *
  * Agent clients render only what the model writes, so a model that jumps
- * straight to a tool call leaves the caller staring at a still screen until the
- * whole turn settles. Upstream behavior differs by model family: some
- * volunteer a short commentary sentence on their own, while others (Gemini
- * behind Cloud Code, for one) stay silent unless asked. This contract asks
- * every model for the same visible progress.
+ * straight to a run of tool calls leaves the caller staring at a still screen
+ * until the whole turn settles. Upstream behavior differs by model family: some
+ * volunteer commentary on their own, while others (Gemini behind Cloud Code,
+ * for one) stay silent unless asked.
+ *
+ * Narrating before *every* tool does not work — a single goal routinely takes
+ * several calls, and a line per call is noise (a four-tool goal produced four
+ * near-identical sentences in review). So the contract groups work into goals:
+ * state the goal, issue every call that goal needs back to back, then say what
+ * changed before starting the next one.
  */
 const TOOL_NARRATION_INSTRUCTION = [
   'TOOL_CALL_NARRATION',
-  'Before every tool call, first write one short sentence, in the language the user is writing in, stating what you are about to do.',
-  'Never call a tool silently.',
-  'After a tool result, briefly state what it showed or what you will do next.',
+  'Work through the request one goal at a time.',
+  'Before acting on a goal, write one short sentence, in the language the user is writing in, saying what that goal is about to accomplish.',
+  'Within that goal, issue the tool calls it needs back to back and without further commentary — one goal may need several.',
+  'Once they come back, write one short sentence saying what you learned or what the next goal is, then act on it.',
+  'Stop once the request is complete.',
   'Keep each sentence under 30 words, factual, and free of filler.'
 ].join('\n');
 
