@@ -394,6 +394,7 @@ export NO_PROXY=127.0.0.1,localhost
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 最大并发请求数 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 最大排队请求数 |
 | `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` | 空 | 允许访问本地网关的浏览器 Origin |
+| `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | 空 | 额外允许访问 `/dashboard` 的来源，逗号分隔的 IP/CIDR 或 `*`；空表示仅本机。按 TCP 来源地址判定，看板不校验 API Key。需配合非回环的 `ANTIGRAVITY_GATEWAY_HOST` 才有意义 |
 | `ANTIGRAVITY_GATEWAY_DEBUG` | 空 | 设置为 `1` 输出更多诊断信息 |
 
 非必要情况下不建议手动设置 access token、refresh token、project ID 或上游地址。普通用户使用本地 agy 登录态和账号池即可。
@@ -666,6 +667,7 @@ Common failures:
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Request timeout in milliseconds |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | Maximum concurrent requests |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | Maximum queued requests |
+| `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | empty | Extra sources allowed to open `/dashboard`: comma-separated IPs/CIDRs or `*`; empty means local only. Matched on the TCP peer address; the dashboard does not check the API key. Only meaningful with a non-loopback `ANTIGRAVITY_GATEWAY_HOST` |
 
 ### How it works
 
