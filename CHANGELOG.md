@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.3 - 2026-09-24
+
+- Refined the Token dashboard into a responsive chroma-bento layout with smooth model trends, period-aware hourly heatmaps, model consumption share, larger tutorial QR presentation, and resilient account-pool sizing.
+- Added fully local account-masked PNG generation: desktop browsers download the result directly, while mobile browsers receive a long-press save preview without invoking system sharing or a server-side screenshot process.
+- Preserved the live page's responsive geometry during export, embedded local image assets, retained a compatibility renderer, and fixed html2canvas foreign-object coordinate drift that cropped the left and top edges.
+
 ## 0.8.2 - 2026-09-21
 
 - Switched dashboard quota snapshots to Antigravity's official `/usage` summary, showing the shared weekly and five-hour limits for the Gemini and Claude/GPT model groups per account.

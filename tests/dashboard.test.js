@@ -59,6 +59,18 @@ test('dashboard HTML contains the required monitoring surfaces and bundled asset
   assert.match(html, /模型消耗占比/);
   assert.match(html, /\/dashboard\/assets\/community-qr\.png/);
   assert.match(html, /\/dashboard\/assets\/community-poster\.png/);
+  assert.match(html, /生成图片/);
+  assert.match(html, /id="saveOverlay"/);
+  assert.match(html, /长按下方图片/);
+  assert.match(html, /foreignObjectRendering/);
+  assert.match(html, /onclone/);
+  assert.match(html, /canvasLooksRendered/);
+  assert.match(html, /shareImageSources/);
+  assert.match(html, /options\.x=-documentLeft/);
+  assert.match(html, /options\.y=-documentTop/);
+  assert.doesNotMatch(html, /cloneNode\(true\)/);
+  assert.doesNotMatch(html, /left:-100000px/);
+  assert.doesNotMatch(html, /navigator\.(?:canShare|share)\b/);
   assert.doesNotMatch(html, /最高模型余额/);
   assert.doesNotMatch(html, /每日 Token 构成/);
   assert.match(html, /每周剩余额度/);
