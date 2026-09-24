@@ -6,6 +6,7 @@ const test = require('node:test');
 const {
   anthropicResponse,
   chatResponse,
+  chatUsage,
   buildPrompt,
   detectAutoModeFormat,
   finalizeModelResult,
@@ -244,8 +245,45 @@ test('Anthropic usage excludes cache reads from input_tokens', () => {
   // A malformed upstream report must never produce negative input.
   const odd = anthropicResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 5, cache_read_tokens: 9 } });
   assert.deepEqual([odd.usage.input_tokens, odd.usage.cache_read_input_tokens], [0, 5]);
-  // OpenAI prompt_tokens stays inclusive of the cached prefix.
-  assert.equal(chatResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 50000, cache_read_tokens: 48000 } }).usage.prompt_tokens, 50000);
+  // OpenAI prompt_tokens stays inclusive of the cached prefix, and cached
+  // tokens are reported under prompt_tokens_details.cached_tokens.
+  const chat = chatResponse('gemini-test-high', { text: 'ok', toolCalls: [], usage: { input_tokens: 50000, cache_read_tokens: 48000 } });
+  assert.equal(chat.usage.prompt_tokens, 50000);
+  assert.deepEqual(chat.usage.prompt_tokens_details, { cached_tokens: 48000 });
+});
+
+test('chatUsage reports prompt cache details and reasoning tokens', () => {
+  const usage = chatUsage({
+    input_tokens: 1000,
+    output_tokens: 50,
+    thinking_tokens: 200,
+    cache_read_tokens: 800,
+    total_tokens: 1250
+  });
+  assert.deepEqual(usage, {
+    prompt_tokens: 1000,
+    completion_tokens: 250,
+    total_tokens: 1250,
+    prompt_tokens_details: {
+      cached_tokens: 800
+    },
+    completion_tokens_details: {
+      reasoning_tokens: 200
+    }
+  });
+
+  const empty = chatUsage({});
+  assert.deepEqual(empty, {
+    prompt_tokens: 0,
+    completion_tokens: 0,
+    total_tokens: 0,
+    prompt_tokens_details: {
+      cached_tokens: 0
+    },
+    completion_tokens_details: {
+      reasoning_tokens: 0
+    }
+  });
 });
 
 test('billed output includes hidden reasoning tokens on every protocol', () => {

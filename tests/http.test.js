@@ -371,6 +371,19 @@ test('Chat Completions and Responses preserve exact client model IDs', async (t)
   });
   assert.equal(chat.status, 200);
   assert.equal(chat.headers.get('x-antigravity-model'), 'claude-sonnet-4-6');
+  const chatBody = await chat.json();
+  // fake-agy turn 1: prompt 100, output 10, thinking 2, cache_read 3, total 112
+  assert.deepEqual(chatBody.usage, {
+    prompt_tokens: 100,
+    completion_tokens: 12,
+    total_tokens: 112,
+    prompt_tokens_details: {
+      cached_tokens: 3
+    },
+    completion_tokens_details: {
+      reasoning_tokens: 2
+    }
+  });
 
   const responses = await fetch(`${base}/v1/responses`, {
     method: 'POST', headers: { 'content-type': 'application/json' },

@@ -306,6 +306,11 @@ curl http://127.0.0.1:9897/v1/models
 - 历史请求数、上游调用数、输入/输出 Token、缓存 Token 与命中率。
 - 最近24小时每小时用量图。
 
+协议用量字段与缓存兼容性：
+
+- **Anthropic 协议**：`input_tokens` 自动扣除缓存读取量（`prompt - cache_read`），避免客户端双重计费；缓存读取量通过 `cache_read_input_tokens` 上报。
+- **OpenAI 协议（Chat Completions）**：`prompt_tokens` 保持包含缓存的前缀总数，并通过标准 `prompt_tokens_details.cached_tokens` 上报缓存读取量，通过 `completion_tokens_details.reasoning_tokens` 上报思考/推理 Token，完美兼容 DeepSeek Harness (DSH)、Cursor、OpenRouter 等下游客户端的缓存命中与统计展示。
+
 输入 `usage` 查看实时明细，输入 `status` 刷新展示。用量每5分钟保存一次，24小时图表每小时更新，历史总量展示每24小时更新。额度快照约每30分钟刷新；上游实时返回始终是最终依据。
 
 网关以前台或后台模式运行时，都可以另开终端执行下面的命令查看完整图形看板：
@@ -632,6 +637,11 @@ curl http://127.0.0.1:9897/v1/models
 ```
 
 ### Usage, update, and troubleshooting
+
+Token usage and cache accounting:
+
+- **Anthropic Messages**: `input_tokens` excludes cache reads (`prompt - cache_read`) to avoid double-billing; cache reads are reported under `cache_read_input_tokens`.
+- **OpenAI Chat Completions**: `prompt_tokens` remains inclusive of the cached prefix, with cache hits reported under standard `prompt_tokens_details.cached_tokens` and reasoning tokens under `completion_tokens_details.reasoning_tokens`. This fully supports cache-hit and usage breakdowns in clients such as DeepSeek Harness (DSH) and Cursor.
 
 The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and daily composition. It supports 1/3/7/30-day windows and account filtering. Accounts come exclusively from the active account pool. Quota cards mirror agy `/usage`: each account shows the shared weekly and five-hour limits for the Gemini group and the Claude/GPT group. Per-model request and Token charts use the exact model IDs actually called instead of treating a model-catalog balance as the account's total quota. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
 
