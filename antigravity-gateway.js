@@ -28,7 +28,8 @@ const {
   normalizeAnthropic,
   normalizeChat,
   normalizeResponses,
-  responsesResponse
+  responsesResponse,
+  toolNarrationEnabled
 } = require('./src/protocol');
 
 const RUNTIME_USER = typeof process.getuid === 'function'
@@ -522,6 +523,15 @@ function printHelp() {
   ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
   默认 direct：从系统安全凭证存储或本地 agy 会话文件读取登录态并直连 Cloud Code。
   auto/agy 仅为显式兼容选项；手动凭据兜底可用 ANTIGRAVITY_AUTH_FILE。
+
+行为开关:
+  ANTIGRAVITY_GATEWAY_TOOL_NARRATION=1
+  让模型按目的报告进度：每个目的一句话，同一目的下的多个工具连续调用、不再逐个插话
+  （默认关闭，行为保持原样）。
+  部分模型（例如 Cloud Code 背后的 Gemini）默认沉默地直接调用工具，界面在整轮
+  结束前都没有输出；开启后所有模型都会被要求先给出一句进度说明。
+  仅作用于带工具的请求；Claude Code Auto mode 分类器与结构化输出请求不受影响。
+  仅 direct 传输支持：agy CLI 回退路径要求工具调用信封前后无正文。
 
 接口:
   GET  /
@@ -1088,7 +1098,7 @@ async function requestHandler(req, res) {
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
         account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport(), tool_narration: toolNarrationEnabled() }
       });
       return;
     }

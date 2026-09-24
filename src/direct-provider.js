@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { LocalAgyAuthProvider, LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
+const { toolNarrationInstruction } = require('./protocol');
 
 const DEFAULT_BASE_URL = 'https://cloudcode-pa.googleapis.com';
 const DAILY_BASE_URL = 'https://daily-cloudcode-pa.googleapis.com';
@@ -403,11 +404,17 @@ function buildDirectRequest(normalized, model, projectId, sessionId, repairInstr
     generationConfig ||= {};
     generationConfig.maxOutputTokens = Math.max(Number(generationConfig.maxOutputTokens) || 0, 8192);
   }
+  // The narration contract goes last so it stays the most recent system-level
+  // instruction the model reads, and it can create the system instruction on a
+  // request that carries none.
+  const systemText = [normalized.system, repairInstruction, toolNarrationInstruction(normalized)]
+    .filter(Boolean)
+    .join('\n\n');
   const request = {
     contents: contentsFromNormalized(normalized, thoughtSignatures, model),
     ...(generationConfig ? { generationConfig } : {}),
-    ...(normalized.system || repairInstruction ? {
-      systemInstruction: { role: 'user', parts: [{ text: [normalized.system, repairInstruction].filter(Boolean).join('\n\n') }] }
+    ...(systemText ? {
+      systemInstruction: { role: 'user', parts: [{ text: systemText }] }
     } : {})
   };
   if (normalized.tools?.length) {

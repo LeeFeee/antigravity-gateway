@@ -181,6 +181,57 @@ function toolChoiceRule(choice) {
   return { mode: 'auto' };
 }
 
+/**
+ * Contract for brief progress at meaningful work-stage boundaries.
+ *
+ * Agent clients render only what the model writes, so a model that jumps
+ * straight to a run of tool calls leaves the caller staring at a still screen
+ * until the whole turn settles. Upstream behavior differs by model family: some
+ * volunteer commentary on their own, while others (Gemini behind Cloud Code,
+ * for one) stay silent unless asked.
+ *
+ * Narrating before *every* tool does not work — a single goal routinely takes
+ * several calls, and a line per call is noise (a four-tool goal produced four
+ * near-identical sentences in review). But one whole-task goal can also hide
+ * every intermediate update. Group related calls within work stages and report
+ * meaningful transitions, such as investigation to verification.
+ */
+const TOOL_NARRATION_INSTRUCTION = [
+  'TOOL_CALL_NARRATION',
+  'Keep the user informed at meaningful WORK-STAGE boundaries, not before every tool call and not only at the start and end of the entire task.',
+  'A task can contain several stages toward the SAME overall objective: investigation, implementation when requested, and verification. Do not collapse these into one silent objective or invent stages for simple tasks.',
+  'Before the first tool call, write one short sentence in the user\'s language describing the initial stage and intended outcome, not a list of tools.',
+  'Within a stage, group related tool calls without repeated commentary, including parallel calls and dependent calls across multiple tool-result rounds. Reading another file or receiving a tool result does not by itself start a new stage.',
+  'When evidence is sufficient to move to the next stage, you MUST write a brief transition BEFORE its tool calls: state the concrete finding from the previous stage and what you will verify or change next. For example, explain the established code behavior before moving from tracing source to checking and running tests, even though the overall objective is unchanged.',
+  'During a long stage, give a brief intermediate update when a substantial finding narrows the remaining work or an unexpected result materially changes the approach. Do not wait for full completion to share useful progress; do not narrate every finding, routine retry, or fixed number of calls.',
+  'Use conversation history to avoid repeating an already announced stage or finding. A plan/todo tool update is not a substitute for a short user-facing text transition. Do not invent progress, claim tests passed before results, or claim elapsed time you cannot observe.',
+  'A short lookup that follows several file references can stay in one stage: announce once, follow the references silently, then answer. A source audit followed by test execution needs an investigation-to-verification transition in between.',
+  'Keep each progress update to one concise sentence under 30 words, factual and free of filler. Report blockers needing user input promptly. When finished, provide the requested final answer without this progress-update length limit.'
+].join('\n');
+
+/** Whether the operator opted into the tool-narration contract. Off by default. */
+function toolNarrationEnabled() {
+  const value = String(process.env.ANTIGRAVITY_GATEWAY_TOOL_NARRATION || '').trim().toLowerCase();
+  return ['1', 'true', 'on', 'yes', 'enabled'].includes(value);
+}
+
+/**
+ * The narration contract to append to the upstream system instruction.
+ *
+ * Sent only where extra prose is harmless: a request that offers no tools has
+ * nothing to narrate, the Claude Code Auto mode classifier must answer with one
+ * XML verdict, and a structured request must answer with one JSON value — for
+ * those two the surrounding prose would break the client contract.
+ * @param normalized - protocol-normalized request.
+ * @returns the contract text, or '' when it must not be sent.
+ */
+function toolNarrationInstruction(normalized = {}) {
+  if (!toolNarrationEnabled()) return '';
+  if (!normalized.tools?.length) return '';
+  if (normalized.autoMode || normalized.structuredSchema) return '';
+  return TOOL_NARRATION_INSTRUCTION;
+}
+
 function sanitizeAnthropicProviderIdentity(text) {
   return String(text || '')
     // Claude Code 2.1.276 started copying its private billing transport
@@ -623,6 +674,7 @@ function responsesResponse(model, result, responseId) {
 
 module.exports = {
   GatewayError,
+  TOOL_NARRATION_INSTRUCTION,
   anthropicResponse,
   buildPrompt,
   chatResponse,
@@ -640,5 +692,7 @@ module.exports = {
   responsesResponse,
   textFromContent,
   toolChoiceRule,
+  toolNarrationEnabled,
+  toolNarrationInstruction,
   validateSchema
 };
