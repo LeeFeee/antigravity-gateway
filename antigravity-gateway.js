@@ -760,7 +760,7 @@ function beginSse(res) {
 
 function textStreamingAllowed(normalized) {
   return Boolean(normalized.stream)
-    && normalized.tools.length === 0
+    && (normalized.protocol === 'chat' || normalized.tools.length === 0)
     && !normalized.structuredSchema
     && !normalized.autoMode;
 }
@@ -825,15 +825,25 @@ function createChatTextEmitter(res, model) {
     },
     finish: (body) => {
       start();
-      const finalText = body.choices?.[0]?.message?.content || '';
-      if (finalText && !emittedText) {
-        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: finalText }, finish_reason: null }] })}\n\n`);
-      } else if (finalText.startsWith(emittedText) && finalText.length > emittedText.length) {
-        const remainder = finalText.slice(emittedText.length);
+      const firstChoice = body.choices?.[0];
+      // `onDelta` already forwarded every text delta the upstream produced, so
+      // only the tail the client has not seen is written here. The tool-call
+      // branch appends its calls as their own delta instead of replaying the
+      // whole message, which duplicated every already-streamed character.
+      const finalText = firstChoice?.message?.content || '';
+      const remainder = finalText.startsWith(emittedText) ? finalText.slice(emittedText.length) : '';
+      if (remainder) {
         res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: remainder }, finish_reason: null }] })}\n\n`);
       }
-      const finishReason = body.choices?.[0]?.finish_reason || 'stop';
-      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] })}\n\n`);
+      const toolCalls = firstChoice?.message?.tool_calls;
+      if (toolCalls?.length) {
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { tool_calls: toolCalls.map((call, index) => ({ index, ...call })) }, finish_reason: null }] })}\n\n`);
+      }
+      const finishReason = firstChoice?.finish_reason || 'stop';
+      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: {}, finish_reason: finishReason }], ...(body.usage ? { usage: body.usage } : {}) })}\n\n`);
+      if (body.usage) {
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [], usage: body.usage })}\n\n`);
+      }
       res.write('data: [DONE]\n\n');
       res.end();
     }
@@ -873,7 +883,10 @@ function emitChatStream(res, body) {
   if (choice.message.content) first.content = choice.message.content;
   if (choice.message.tool_calls) first.tool_calls = choice.message.tool_calls.map((call, index) => ({ index, ...call }));
   res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: first, finish_reason: null }] })}\n\n`);
-  res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason }] })}\n\n`);
+  res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason }], ...(body.usage ? { usage: body.usage } : {}) })}\n\n`);
+  if (body.usage) {
+    res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [], usage: body.usage })}\n\n`);
+  }
   res.write('data: [DONE]\n\n');
   res.end();
 }
@@ -1289,6 +1302,7 @@ module.exports = {
   codexCatalogBody,
   codexCatalogPath,
   codexModelInfo,
+  createChatTextEmitter,
   createServer,
   displayModels,
   emitAnthropicStream,
