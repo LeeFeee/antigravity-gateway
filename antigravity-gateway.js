@@ -4,6 +4,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const http = require('node:http');
+const net = require('node:net');
 const os = require('node:os');
 const path = require('node:path');
 
@@ -175,6 +176,41 @@ function isLoopbackHost(host) {
 function isLoopbackAddress(address) {
   const value = String(address || '').toLowerCase();
   return value === '127.0.0.1' || value === '::1' || value === '::ffff:127.0.0.1';
+}
+
+// Extra dashboard sources beyond loopback: comma-separated IPs/CIDRs, or `*`
+// for any source. Empty (default) keeps the dashboard local-only. Invalid
+// entries are skipped with a warning so a typo never widens access.
+const DASHBOARD_ALLOW = (() => {
+  const entries = String(process.env.ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW || '')
+    .split(',').map((item) => item.trim()).filter(Boolean);
+  const list = new net.BlockList();
+  const accepted = [];
+  let any = false;
+  for (const entry of entries) {
+    if (entry === '*') { any = true; accepted.push(entry); continue; }
+    const [address, prefix, extra] = entry.split('/');
+    const family = net.isIP(address);
+    const bits = prefix === undefined ? null : Number(prefix);
+    const maxBits = family === 6 ? 128 : 32;
+    if (!family || extra !== undefined || (bits !== null && (!/^\d+$/.test(prefix) || bits > maxBits))) {
+      console.error(`[Antigravity Gateway Warning] ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 忽略无效项：${entry}`);
+      continue;
+    }
+    const type = family === 6 ? 'ipv6' : 'ipv4';
+    if (bits === null) list.addAddress(address, type); else list.addSubnet(address, bits, type);
+    accepted.push(entry);
+  }
+  return { any, list, accepted };
+})();
+
+function isDashboardAllowed(address) {
+  if (isLoopbackAddress(address) || DASHBOARD_ALLOW.any) return true;
+  let value = String(address || '');
+  if (/^::ffff:\d+\.\d+\.\d+\.\d+$/i.test(value)) value = value.slice(7);
+  const family = net.isIP(value);
+  if (!family) return false;
+  return DASHBOARD_ALLOW.list.check(value, family === 6 ? 'ipv6' : 'ipv4');
 }
 
 function dashboardUrl() {
@@ -992,8 +1028,8 @@ async function requestHandler(req, res) {
     return;
   }
   if (route === '/dashboard' || route === '/dashboard/data') {
-    if (!isLoopbackAddress(req.socket?.remoteAddress)) {
-      sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备访问。' } });
+    if (!isDashboardAllowed(req.socket?.remoteAddress)) {
+      sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备或 ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 所列来源访问。' } });
       return;
     }
     if (req.method === 'GET' && route === '/dashboard') {
@@ -1216,6 +1252,7 @@ if (require.main === module) {
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
+    gatewayLog(`[Antigravity Gateway] 看板来源：本机${DASHBOARD_ALLOW.accepted.length ? ` + ${DASHBOARD_ALLOW.accepted.join(', ')}` : ''}`);
     let models = [];
     let modelError = '';
     let localAccountImport = null;
