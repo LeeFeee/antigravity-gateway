@@ -174,7 +174,8 @@ class AccountPool {
       return result;
     }
 
-    const candidates = this.orderedCandidates(model, options.sessionId);
+    const routingKey = options.routingKey || options.sessionId;
+    const candidates = this.orderedCandidates(model, routingKey);
     if (!candidates.length) {
       throw new DirectProviderError(`当前没有可用于模型 ${model} 的 Antigravity 账号。`, {
         code: 'account_pool_unavailable', status: 429
@@ -202,7 +203,7 @@ class AccountPool {
         this.usageStore?.recordUpstream({ accountId: entry.account.id, model, usage: result.usage, success: true, count: false });
         entry.lastSuccessAt = new Date().toISOString();
         entry.lastError = '';
-        if (options.sessionId) this.sessions.set(options.sessionId, { accountId: entry.account.id, at: Date.now() });
+        if (routingKey && options.bindRouting !== false) this.sessions.set(routingKey, { accountId: entry.account.id, at: Date.now() });
         return { ...result, accountId: entry.account.id };
       } catch (error) {
         lastError = error;
@@ -217,7 +218,7 @@ class AccountPool {
         }
         else if (category === 'auth') entry.cooldownUntil = Date.now() + 5 * 60_000;
         else entry.cooldownUntil = Date.now() + 15_000;
-        if (options.sessionId) this.sessions.delete(options.sessionId);
+        if (routingKey) this.sessions.delete(routingKey);
       }
     }
     throw lastError;
@@ -242,10 +243,11 @@ class AccountPool {
       return { ...result, accountId: 'local-agy-session' };
     }
 
+    const routingKey = options.routingKey || options.sessionId;
     const preferred = options.accountId ? this.entries.get(options.accountId) : null;
     const candidates = preferred && preferred.account.enabled !== false
-      ? [preferred, ...this.orderedCandidates(model, options.sessionId).filter((entry) => entry !== preferred)]
-      : this.orderedCandidates(model, options.sessionId);
+      ? [preferred, ...this.orderedCandidates(model, routingKey).filter((entry) => entry !== preferred)]
+      : this.orderedCandidates(model, routingKey);
     if (!candidates.length) throw new DirectProviderError('当前没有可用于生图的 Antigravity 账号。', { code: 'account_pool_unavailable', status: 429 });
 
     let lastError;
@@ -265,7 +267,7 @@ class AccountPool {
         this.usageStore?.recordUpstream({ accountId: entry.account.id, model, usage: result.usage, success: true, count: false });
         entry.lastSuccessAt = new Date().toISOString();
         entry.lastError = '';
-        if (options.sessionId) this.sessions.set(options.sessionId, { accountId: entry.account.id, at: Date.now() });
+        if (routingKey && options.bindRouting !== false) this.sessions.set(routingKey, { accountId: entry.account.id, at: Date.now() });
         return { ...result, accountId: entry.account.id };
       } catch (error) {
         lastError = error;

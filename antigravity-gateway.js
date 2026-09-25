@@ -579,7 +579,7 @@ function setCors(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
-  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, x-claude-session-id, x-codex-session-id, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, DELETE, OPTIONS');
   return true;
 }
@@ -590,6 +590,15 @@ function clientScope(req) {
 
 function clientSessionScope(req, payload = {}, normalized = {}, previous = null) {
   return SESSION_MANAGER.resolve(req, payload, normalized, previous);
+}
+
+function clientSessionIdentity(req, payload = {}, normalized = {}, previous = null) {
+  return SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous);
+}
+
+function identityTrace(identity = {}) {
+  const short = (value) => String(value || '-').slice(0, 10);
+  return `request=${short(identity.requestId)} client=${identity.clientLabel || short(identity.clientId)} session=${short(identity.sessionId)} affinity=${short(identity.routingKey)}`;
 }
 
 function authorized(req) {
@@ -699,16 +708,17 @@ function artifactUrl(base, id) {
   return base ? `${String(base).replace(/\/$/, '')}/v1/files/${encodeURIComponent(id)}/content` : '';
 }
 
-async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaScope = '', publicBaseUrl = '' } = {}) {
+async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, onDelta, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
   if (usesDirectTransport()) {
     try {
       const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
       const prepared = prepareNativeMultimodal(resolved);
+      const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
       const onAccountSelected = ({ accountId, email, source, attempt }) => {
-        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${model} attempt=${attempt}`);
+        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${model} attempt=${attempt} ${trace}`);
       };
-      let raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onDelta, onAccountSelected });
+      let raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onDelta, onAccountSelected });
       const initialUsage = raw.usage;
       const internalCalls = prepared.imageToolInjected
         ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
@@ -737,9 +747,11 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaSco
         }, {
           signal,
           sessionId,
+          routingKey,
+          bindRouting: false,
           accountId: raw.accountId,
           onAccountSelected: ({ accountId, email, source, attempt }) => {
-            gatewayLog(`[Antigravity Gateway] 生图账号=${email || accountId} source=${source} model=gemini-3.1-flash-image attempt=${attempt}`);
+            gatewayLog(`[Antigravity Gateway] 生图账号=${email || accountId} source=${source} model=gemini-3.1-flash-image attempt=${attempt} ${trace}`);
           }
         });
         const saved = MEDIA_STORE.save(Buffer.from(generated.data, 'base64'), {
@@ -773,7 +785,7 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaSco
             }] }
           ]
         };
-        raw = await ACCOUNT_POOL.send(continuation, model, { signal, sessionId, onAccountSelected });
+        raw = await ACCOUNT_POOL.send(continuation, model, { signal, sessionId, routingKey, onAccountSelected });
         const final = finalizeModelResult(normalized, raw);
         return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
       }
@@ -781,11 +793,11 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaSco
         return finalizeModelResult(normalized, raw);
       } catch (error) {
         if (error.code === 'invalid_auto_mode_classifier_output') {
-          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
           return finalizeModelResult(normalized, raw);
         }
         if (error.code === 'invalid_structured_output') {
-          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
           return finalizeModelResult(normalized, raw);
         }
         throw error;
@@ -1046,7 +1058,8 @@ async function generateImages(payload, req, signal, references = []) {
   const prompt = String(payload.prompt || '').trim();
   if (!prompt) throw new GatewayError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
   const scope = clientScope(req);
-  const sessionId = clientSessionScope(req, payload, { model: payload.model, messages: [{ role: 'user', text: prompt, parts: references }] });
+  const identity = clientSessionIdentity(req, payload, { model: payload.model, messages: [{ role: 'user', text: prompt, parts: references }] });
+  const trace = identityTrace(identity);
   const images = [];
   let accountId = '';
   for (let index = 0; index < count; index += 1) {
@@ -1055,9 +1068,9 @@ async function generateImages(payload, req, signal, references = []) {
       aspectRatio: payload.aspect_ratio || aspectRatioFromSize(payload.size),
       images: references
     }, {
-      signal, sessionId, accountId,
+      signal, sessionId: identity.sessionId, routingKey: identity.routingKey, accountId,
       onAccountSelected: ({ accountId: selected, email, source, attempt }) => {
-        gatewayLog(`[Antigravity Gateway] 生图账号=${email || selected} source=${source} model=gemini-3.1-flash-image attempt=${attempt}`);
+        gatewayLog(`[Antigravity Gateway] 生图账号=${email || selected} source=${source} model=gemini-3.1-flash-image attempt=${attempt} ${trace}`);
       }
     });
     accountId = result.accountId;
@@ -1147,11 +1160,12 @@ async function handleAnthropic(payload, req, res, signal) {
   const normalized = normalizeAnthropic(payload);
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
   const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
-  gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream}`);
+  const identity = clientSessionIdentity(req, payload, normalized);
+  gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -1161,11 +1175,12 @@ async function handleChat(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   const normalized = normalizeChat(payload);
   const model = await resolveModel(normalized.model);
-  gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  const identity = clientSessionIdentity(req, payload, normalized);
+  gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = chatResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -1174,25 +1189,27 @@ async function handleChat(payload, req, res, signal) {
 async function handleResponses(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   cleanupResponseStore();
-  const previous = payload.previous_response_id ? SESSION_MANAGER.getResponse(payload.previous_response_id, req) : null;
+  const previous = payload.previous_response_id ? SESSION_MANAGER.getResponse(payload.previous_response_id, req, payload) : null;
   if (payload.previous_response_id && !previous) {
     throw new GatewayError('previous_response_id 不属于当前客户端会话。', { code: 'previous_response_not_found', status: 400 });
   }
   const normalized = normalizeResponses(payload, previous);
   const model = await resolveModel(normalized.model);
-  gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
+  const identity = clientSessionIdentity(req, payload, normalized, previous);
+  gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
   if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
     const customTools = (payload.tools || []).filter((tool) => tool?.type === 'custom');
     if (customTools.length) gatewayLog(`[Antigravity Gateway Debug] custom-tools=${JSON.stringify(customTools).slice(0, 4000)}`);
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   let result;
-  const sessionId = clientSessionScope(req, payload, normalized, previous);
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req) }); } finally { stopHeartbeat?.(); }
+  const sessionId = identity.sessionId;
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req) }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
   SESSION_MANAGER.bindResponse(responseId, req, {
     sessionId,
+    routingKey: identity.routingKey,
     system: normalized.system,
     messages: [...normalized.messages, {
       role: 'assistant',
@@ -1209,7 +1226,7 @@ async function handleResponses(payload, req, res, signal) {
         }))
       ]
     }]
-  });
+  }, payload);
   if (normalized.stream) emitResponsesStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
@@ -1551,6 +1568,7 @@ module.exports = {
   claudeConfigBody,
   claudeConfigPath,
   clientSessionScope,
+  clientSessionIdentity,
   codexCatalogBody,
   codexCatalogPath,
   codexModelInfo,

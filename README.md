@@ -343,7 +343,7 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
   --prompt "分析这段视频并回答我的问题"
 ```
 
-显式 `x-session-id`、Claude/Codex 会话头和 Responses 的 `previous_response_id` 会生成稳定会话标识：同一会话优先使用同一账号，响应历史按客户端会话隔离，并设置容量和一小时过期清理。
+网关分别管理客户端身份、独立对话和账号黏性：同一对话及其工具调用优先使用同一账号；子 Agent 使用独立会话状态，但通过父会话继承账号黏性；账号认证、额度或网络异常时仍会自动故障转移。支持客户端显式发送 `x-client-id`/`x-agent-id`、`x-session-id`/`x-conversation-id`、`x-parent-session-id` 和 `x-routing-affinity-id`；未提供时继续兼容现有 Claude、Codex、OpenAI 和 Anthropic 客户端字段。所有原始标识仅用于本地路由，提交上游的会话值是不可逆哈希，不会写入模型提示词。日志中的 request、client、session 和 affinity 短标识可用于区分并发链路；映射设置容量和一小时过期清理。
 
 ### 用量和额度
 
@@ -714,7 +714,7 @@ curl http://127.0.0.1:9897/v1/files \
   -F 'purpose=assistants'
 ```
 
-Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. Explicit Claude/Codex/session headers and Responses `previous_response_id` chains produce stable, scoped session IDs and account affinity.
+Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata.
 
 Generated-image responses include a readable text receipt, Markdown, an accessible URL, the absolute path on the gateway host, and structured `artifacts` metadata for each protocol. Clients that ignore extension fields can still obtain the delivery address from the assistant text. File content supports both `GET` and `HEAD`.
 

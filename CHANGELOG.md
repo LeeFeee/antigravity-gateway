@@ -4,6 +4,7 @@
 
 - Added unified generated-image delivery receipts across Anthropic, Chat Completions, Responses, and Images, including structured artifact metadata, Markdown, URL, gateway-local path, and `HEAD` support.
 - Bundled a cross-agent video-understanding Skill and dependency-free Python helper that uploads local videos through Files and submits native `input_video` requests without adding another gateway CLI.
+- Separated client identity, conversation state, parent-child relationships, request tracing, and account affinity so different agents remain isolated while tool calls and child agents can prefer the parent account without sharing conversation state.
 
 ## 0.9.0 - 2026-09-25
 
