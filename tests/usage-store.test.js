@@ -191,6 +191,8 @@ test('OAuth flow prints a usable URL, accepts a pasted callback, and returns a p
   assert.equal(account.email, 'person@example.com');
   assert.equal(account.refreshToken, 'refresh');
   assert.equal(account.projectId, 'project-1');
+  assert.equal(account.clientId, 'client-id');
+  assert.equal(account.clientSecret, 'client-secret');
   assert.equal(requests.length, 3);
   assert.deepEqual(JSON.parse(requests.at(-1).body), { metadata: { ideType: 'ANTIGRAVITY' } });
 });

@@ -31,6 +31,8 @@ function normalizeAccount(raw) {
     refreshToken,
     expiresAt,
     projectId: firstString(raw.projectId, raw.project_id),
+    clientId: firstString(raw.clientId, raw.client_id),
+    clientSecret: firstString(raw.clientSecret, raw.client_secret),
     authMethod: firstString(raw.authMethod, raw.auth_method) || 'consumer',
     source: firstString(raw.source),
     enabled: raw.enabled !== false,

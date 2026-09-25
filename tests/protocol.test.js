@@ -69,7 +69,7 @@ test('Anthropic content and tools become an isolated inference prompt', () => {
   assert.match(prompt, /CLIENT_SYSTEM_BEGIN/);
   assert.match(prompt, /CLIENT_TOOL_RESULT id=old/);
   assert.match(prompt, /Do not use Antigravity built-in tools/);
-  assert.match(prompt, /ANTIGRAVITY_GATEWAY_TOOL_CALLS/);
+  assert.match(prompt, /ANTIGRAVITY_TOOL_CALLS/);
 });
 
 test('tool envelope is parsed only against the client whitelist and schema', () => {

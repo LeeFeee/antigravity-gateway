@@ -13,11 +13,13 @@ const { AccountStore } = require('./src/account-store');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
+const { MediaStore, MultimediaError, mediaParts, normalizeMime } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { QuotaManager } = require('./src/quota-manager');
 const { manageService } = require('./src/service-manager');
 const { TerminalConsole } = require('./src/terminal-console');
 const { UsageStore } = require('./src/usage-store');
+const { SessionManager, credentialScope } = require('./src/session-manager');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
@@ -28,6 +30,8 @@ const {
   normalizeAnthropic,
   normalizeChat,
   normalizeResponses,
+  NATIVE_IMAGE_TOOL_NAME,
+  prepareNativeMultimodal,
   responsesResponse
 } = require('./src/protocol');
 
@@ -113,13 +117,14 @@ const LOCAL_ACCOUNT_IMPORTER = new LocalAccountImporter({
   store: ACCOUNT_STORE,
   accountPool: ACCOUNT_POOL
 });
+const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media') });
+const SESSION_MANAGER = new SessionManager();
 let TERMINAL = null;
 
 function gatewayLog(message) { return TERMINAL ? TERMINAL.log(message) : console.log(message); }
 function gatewayWarn(message) { return TERMINAL ? TERMINAL.log(message, 'warn') : console.warn(message); }
 function gatewayError(message) { return TERMINAL ? TERMINAL.log(message, 'error') : console.error(message); }
 
-const responseStore = new Map();
 const activeWorkers = new Set();
 let modelCache = { at: 0, models: [], error: null };
 let versionCache = null;
@@ -180,6 +185,12 @@ function isLoopbackAddress(address) {
 function dashboardUrl() {
   const host = isLoopbackHost(HOST) ? (HOST === '::1' ? '[::1]' : HOST) : '127.0.0.1';
   return `http://${host}:${PORT}/dashboard`;
+}
+
+function requestBaseUrl(req) {
+  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const protocol = forwarded === 'https' ? 'https' : req.socket?.encrypted ? 'https' : 'http';
+  return `${protocol}://${req.headers.host || `${HOST}:${PORT}`}`;
 }
 
 function configuredAliases() {
@@ -304,8 +315,8 @@ function codexModelInfo(slug, priority) {
     default_verbosity: 'low',
     apply_patch_tool_type: 'freeform',
     web_search_tool_type: 'text_and_image',
-    input_modalities: ['text'],
-    supports_image_detail_original: false,
+    input_modalities: ['text', 'image'],
+    supports_image_detail_original: true,
     truncation_policy: { mode: 'tokens', limit: 10000 },
     supports_parallel_tool_calls: true,
     tool_mode: 'direct',
@@ -528,6 +539,10 @@ function printHelp() {
   GET  /dashboard
   GET  /dashboard/data
   GET  /v1/models
+  POST /v1/files
+  GET  /v1/files/:id/content
+  POST /v1/images/generations
+  POST /v1/images/edits
   POST /v1/messages
   POST /v1/messages/count_tokens
   POST /v1/responses
@@ -564,45 +579,16 @@ function setCors(req, res) {
     res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   return true;
 }
 
 function clientScope(req) {
-  const material = [
-    req.headers['x-session-id'] || '',
-    req.headers.authorization || req.headers['x-api-key'] || '',
-    req.socket?.remoteAddress || ''
-  ].join('\0');
-  return crypto.createHash('sha256').update(material).digest('hex');
+  return credentialScope(req);
 }
 
-function clientSessionScope(req, payload = {}, normalized = {}) {
-  const headers = req.headers || {};
-  const explicit = [
-    headers['x-session-id'],
-    headers['x-claude-session-id'],
-    headers['x-codex-session-id'],
-    headers['x-client-session-id'],
-    headers['session-id'],
-    payload?.metadata?.parent_session_id,
-    payload?.metadata?.session_id,
-    payload?.metadata?.user_id,
-    payload?.prompt_cache_key,
-    payload?.session_id,
-    payload?.conversation_id,
-    payload?.user
-  ].find((value) => typeof value === 'string' && value.trim());
-  const firstMessage = normalized.messages?.find((message) => message?.role === 'user') || normalized.messages?.[0] || {};
-  const fallback = JSON.stringify({
-    model: normalized.model || payload.model || '',
-    role: firstMessage.role || '',
-    text: String(firstMessage.text || '').slice(0, 4096),
-    parts: Array.isArray(firstMessage.parts) ? firstMessage.parts.slice(0, 4) : []
-  });
-  return crypto.createHash('sha256')
-    .update(`${clientScope(req)}\0${explicit || fallback}`)
-    .digest('hex');
+function clientSessionScope(req, payload = {}, normalized = {}, previous = null) {
+  return SESSION_MANAGER.resolve(req, payload, normalized, previous);
 }
 
 function authorized(req) {
@@ -615,7 +601,7 @@ function authorized(req) {
     && crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 }
 
-async function readJson(req) {
+async function readBuffer(req) {
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
@@ -623,11 +609,48 @@ async function readJson(req) {
     if (size > REQUEST_LIMIT) throw new GatewayError('请求体过大。', { code: 'request_too_large', status: 413 });
     chunks.push(chunk);
   }
+  return Buffer.concat(chunks);
+}
+
+async function readJson(req) {
+  const buffer = await readBuffer(req);
   try {
-    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+    return JSON.parse(buffer.toString('utf8') || '{}');
   } catch {
     throw new GatewayError('请求体不是有效 JSON。', { code: 'invalid_json', status: 400 });
   }
+}
+
+function parseMultipart(buffer, contentType) {
+  const boundaryValue = String(contentType || '').match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
+  const boundary = boundaryValue?.[1] || boundaryValue?.[2];
+  if (!boundary) throw new GatewayError('multipart/form-data 缺少 boundary。', { code: 'invalid_multipart', status: 400 });
+  const marker = Buffer.from(`--${boundary}`);
+  const fields = {};
+  const files = [];
+  let cursor = 0;
+  while (true) {
+    const start = buffer.indexOf(marker, cursor);
+    if (start < 0) break;
+    const next = buffer.indexOf(marker, start + marker.length);
+    if (next < 0) break;
+    let part = buffer.subarray(start + marker.length, next);
+    if (part.subarray(0, 2).toString() === '\r\n') part = part.subarray(2);
+    if (part.subarray(-2).toString() === '\r\n') part = part.subarray(0, -2);
+    const headerEnd = part.indexOf(Buffer.from('\r\n\r\n'));
+    if (headerEnd > 0) {
+      const headers = part.subarray(0, headerEnd).toString('utf8');
+      const body = part.subarray(headerEnd + 4);
+      const disposition = headers.match(/content-disposition:\s*form-data;([^\r\n]+)/i)?.[1] || '';
+      const name = disposition.match(/name="([^"]+)"/i)?.[1] || '';
+      const filename = disposition.match(/filename="([^"]*)"/i)?.[1];
+      const mediaType = headers.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim() || '';
+      if (name && filename !== undefined) files.push({ name, filename, mediaType: normalizeMime(mediaType, filename), buffer: body });
+      else if (name) fields[name] = body.toString('utf8');
+    }
+    cursor = next;
+  }
+  return { fields, files };
 }
 
 function errorBody(error, protocol) {
@@ -638,7 +661,7 @@ function errorBody(error, protocol) {
 }
 
 function mapAgyError(error) {
-  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError) return error;
+  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError || error instanceof MultimediaError) return error;
   if (error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || /request aborted/i.test(String(error?.message || ''))) {
     return new GatewayError('客户端已取消请求。', { code: 'request_aborted', status: 499 });
   }
@@ -650,29 +673,116 @@ function mapAgyError(error) {
 }
 
 function cleanupResponseStore() {
-  const cutoff = Date.now() - 60 * 60 * 1000;
-  for (const [id, state] of responseStore) if (state.at < cutoff) responseStore.delete(id);
-  while (responseStore.size > 1000) responseStore.delete(responseStore.keys().next().value);
+  SESSION_MANAGER.cleanup();
 }
 setInterval(cleanupResponseStore, 60_000).unref();
 
-async function runTurn(normalized, model, signal, { sessionId, onDelta } = {}) {
+function combinedUsage(...values) {
+  return values.reduce((total, value) => ({
+    input_tokens: total.input_tokens + (Number(value?.input_tokens) || 0),
+    output_tokens: total.output_tokens + (Number(value?.output_tokens) || 0),
+    total_tokens: total.total_tokens + (Number(value?.total_tokens) || 0),
+    thinking_tokens: total.thinking_tokens + (Number(value?.thinking_tokens) || 0),
+    cache_read_tokens: total.cache_read_tokens + (Number(value?.cache_read_tokens) || 0)
+  }), { input_tokens: 0, output_tokens: 0, total_tokens: 0, thinking_tokens: 0, cache_read_tokens: 0 });
+}
+
+function imageReferences(normalized, requested = []) {
+  const images = mediaParts(normalized, (part) => String(part.mediaType || '').startsWith('image/'));
+  if (!Array.isArray(requested) || !requested.length) return [];
+  const wanted = new Set(requested.map(String));
+  return images.filter((part) => wanted.has(String(part.id)) || wanted.has(String(part.fileId)) || wanted.has(String(part.filename))).slice(0, 3);
+}
+
+function artifactUrl(base, id) {
+  return base ? `${String(base).replace(/\/$/, '')}/v1/files/${encodeURIComponent(id)}/content` : '';
+}
+
+async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
   if (usesDirectTransport()) {
     try {
+      const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
+      const prepared = prepareNativeMultimodal(resolved);
       const onAccountSelected = ({ accountId, email, source, attempt }) => {
         gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${model} attempt=${attempt}`);
       };
-      let raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onDelta, onAccountSelected });
+      let raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onDelta, onAccountSelected });
+      const initialUsage = raw.usage;
+      const internalCalls = prepared.imageToolInjected
+        ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
+        : [];
+      if (internalCalls.length) {
+        if (internalCalls.length > 1 || (raw.toolCalls || []).some((call) => call.name !== NATIVE_IMAGE_TOOL_NAME)) {
+          throw new GatewayError('原生生图工具必须单独调用且每轮只能调用一次。', { code: 'invalid_native_image_call', status: 502 });
+        }
+        const call = internalCalls[0];
+        const args = call.arguments || {};
+        const references = imageReferences(resolved, args.ImagePaths);
+        if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
+          gatewayLog(`[Antigravity Gateway Debug] native-image-call=${JSON.stringify({
+            prompt: String(args.Prompt || '').slice(0, 120),
+            requestedReferences: args.ImagePaths || [],
+            availableReferences: mediaParts(resolved, (part) => String(part.mediaType || '').startsWith('image/')).map((part) => ({ id: part.id, fileId: part.fileId, filename: part.filename }))
+          })}`);
+        }
+        if ((args.ImagePaths || []).length !== references.length) {
+          throw new GatewayError('生图工具引用了不存在或非图片类型的附件。', { code: 'invalid_image_reference', status: 400 });
+        }
+        const generated = await ACCOUNT_POOL.generateImage({
+          prompt: args.Prompt,
+          aspectRatio: args.AspectRatio || '1:1',
+          images: references
+        }, {
+          signal,
+          sessionId,
+          accountId: raw.accountId,
+          onAccountSelected: ({ accountId, email, source, attempt }) => {
+            gatewayLog(`[Antigravity Gateway] 生图账号=${email || accountId} source=${source} model=gemini-3.1-flash-image attempt=${attempt}`);
+          }
+        });
+        const saved = MEDIA_STORE.save(Buffer.from(generated.data, 'base64'), {
+          mediaType: generated.mimeType,
+          filename: `${String(args.ImageName || 'generated_image').replace(/[^a-z0-9_-]+/gi, '_')}.jpg`,
+          purpose: 'generated',
+          scope: mediaScope
+        });
+        const image = {
+          id: saved.id,
+          mimeType: generated.mimeType,
+          data: generated.data,
+          url: artifactUrl(publicBaseUrl, saved.id),
+          prompt: args.Prompt,
+          name: args.ImageName || 'generated_image'
+        };
+        const continuation = {
+          ...prepared.normalized,
+          stream: false,
+          messages: [
+            ...prepared.normalized.messages,
+            { role: 'assistant', text: '', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }] },
+            { role: 'user', text: '', parts: [{
+              type: 'tool_result', id: call.id, name: call.name,
+              content: `Generated image artifact: ${saved.id}`,
+              response: { output: `Generated image artifact: ${saved.id}` },
+              media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
+            }] }
+          ]
+        };
+        raw = await ACCOUNT_POOL.send(continuation, model, { signal, sessionId, onAccountSelected });
+        const link = image.url ? `![Generated image](${image.url})` : `Generated image artifact: ${image.id}`;
+        const final = finalizeModelResult(normalized, { ...raw, text: [raw.text, link].filter(Boolean).join('\n\n') });
+        return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
+      }
       try {
         return finalizeModelResult(normalized, raw);
       } catch (error) {
         if (error.code === 'invalid_auto_mode_classifier_output') {
-          raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
           return finalizeModelResult(normalized, raw);
         }
         if (error.code === 'invalid_structured_output') {
-          raw = await ACCOUNT_POOL.send(normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
           return finalizeModelResult(normalized, raw);
         }
         throw error;
@@ -901,6 +1011,109 @@ function emitResponsesStream(res, body) {
   res.end();
 }
 
+function aspectRatioFromSize(size, fallback = '1:1') {
+  const match = String(size || '').match(/^(\d+)x(\d+)$/i);
+  if (!match) return fallback;
+  const ratio = Number(match[1]) / Number(match[2]);
+  const supported = [['1:1', 1], ['2:3', 2 / 3], ['3:2', 3 / 2], ['3:4', 3 / 4], ['4:3', 4 / 3], ['9:16', 9 / 16], ['16:9', 16 / 9]];
+  return supported.sort((left, right) => Math.abs(left[1] - ratio) - Math.abs(right[1] - ratio))[0][0];
+}
+
+async function generateImages(payload, req, signal, references = []) {
+  const count = Math.max(1, Math.min(4, Number(payload.n) || 1));
+  const prompt = String(payload.prompt || '').trim();
+  if (!prompt) throw new GatewayError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
+  const scope = clientScope(req);
+  const sessionId = clientSessionScope(req, payload, { model: payload.model, messages: [{ role: 'user', text: prompt, parts: references }] });
+  const images = [];
+  let accountId = '';
+  for (let index = 0; index < count; index += 1) {
+    const result = await ACCOUNT_POOL.generateImage({
+      prompt,
+      aspectRatio: payload.aspect_ratio || aspectRatioFromSize(payload.size),
+      images: references
+    }, {
+      signal, sessionId, accountId,
+      onAccountSelected: ({ accountId: selected, email, source, attempt }) => {
+        gatewayLog(`[Antigravity Gateway] 生图账号=${email || selected} source=${source} model=gemini-3.1-flash-image attempt=${attempt}`);
+      }
+    });
+    accountId = result.accountId;
+    const saved = MEDIA_STORE.save(Buffer.from(result.data, 'base64'), {
+      mediaType: result.mimeType,
+      filename: `generated_${Date.now()}_${index + 1}.jpg`, purpose: 'generated', scope
+    });
+    images.push({
+      id: saved.id,
+      mimeType: result.mimeType,
+      data: result.data,
+      url: artifactUrl(requestBaseUrl(req), saved.id)
+    });
+  }
+  return images;
+}
+
+function imagesResponse(images, payload) {
+  const format = payload.response_format || 'url';
+  return {
+    created: Math.floor(Date.now() / 1000),
+    data: images.map((image) => format === 'b64_json'
+      ? { b64_json: image.data, revised_prompt: payload.prompt }
+      : { url: image.url, revised_prompt: payload.prompt })
+  };
+}
+
+async function handleImageGeneration(payload, req, res, signal) {
+  USAGE_STORE.recordClientRequest();
+  const images = await generateImages(payload, req, signal);
+  sendJson(res, 200, imagesResponse(images, payload));
+}
+
+async function handleImageEdit(req, res, signal) {
+  USAGE_STORE.recordClientRequest();
+  const contentType = String(req.headers['content-type'] || '');
+  if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
+    throw new GatewayError('图片编辑接口需要 multipart/form-data。', { code: 'invalid_multipart', status: 400 });
+  }
+  const { fields, files } = parseMultipart(await readBuffer(req), contentType);
+  const sourceFiles = files.filter((file) => ['image', 'images[]', 'reference_image'].includes(file.name));
+  if (!sourceFiles.length) throw new GatewayError('图片编辑请求缺少 image 文件。', { code: 'image_reference_missing', status: 400 });
+  if (sourceFiles.length > 3) throw new GatewayError('参考图最多 3 张。', { code: 'too_many_reference_images', status: 400 });
+  const references = sourceFiles.map((file, index) => ({
+    type: 'media', id: `upload_${index + 1}`, mediaType: file.mediaType, data: file.buffer.toString('base64'), bytes: file.buffer.length, filename: file.filename
+  }));
+  const payload = { ...fields, n: Number(fields.n) || 1 };
+  const images = await generateImages(payload, req, signal, references);
+  sendJson(res, 200, imagesResponse(images, payload));
+}
+
+async function handleFileUpload(req, res) {
+  const contentType = String(req.headers['content-type'] || '');
+  const scope = clientScope(req);
+  let buffer;
+  let filename = '';
+  let mediaType = '';
+  let purpose = 'assistants';
+  if (contentType.toLowerCase().startsWith('multipart/form-data')) {
+    const parsed = parseMultipart(await readBuffer(req), contentType);
+    const file = parsed.files.find((item) => item.name === 'file') || parsed.files[0];
+    if (!file) throw new GatewayError('文件上传请求缺少 file。', { code: 'file_missing', status: 400 });
+    ({ buffer, filename, mediaType } = file);
+    purpose = parsed.fields.purpose || purpose;
+  } else {
+    const payload = await readJson(req);
+    filename = payload.filename || '';
+    mediaType = payload.media_type || payload.mime_type || '';
+    purpose = payload.purpose || purpose;
+    const encoded = payload.data || payload.file_data || '';
+    const match = String(encoded).match(/^data:([^;,]+)?;base64,(.+)$/s);
+    buffer = Buffer.from(match ? match[2] : encoded, 'base64');
+    if (match?.[1]) mediaType = match[1];
+  }
+  const saved = MEDIA_STORE.save(buffer, { filename, mediaType, purpose, scope });
+  sendJson(res, 200, saved);
+}
+
 async function handleAnthropic(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   const normalized = normalizeAnthropic(payload);
@@ -910,7 +1123,7 @@ async function handleAnthropic(payload, req, res, signal) {
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -924,7 +1137,7 @@ async function handleChat(payload, req, res, signal) {
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized), mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
   const body = chatResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -933,15 +1146,10 @@ async function handleChat(payload, req, res, signal) {
 async function handleResponses(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   cleanupResponseStore();
-  const previous = payload.previous_response_id ? responseStore.get(payload.previous_response_id) : null;
+  const previous = payload.previous_response_id ? SESSION_MANAGER.getResponse(payload.previous_response_id, req) : null;
   if (payload.previous_response_id && !previous) {
-    throw new GatewayError(`找不到 previous_response_id: ${payload.previous_response_id}`, { code: 'previous_response_not_found', status: 400 });
-  }
-  const scope = clientScope(req);
-  if (previous && previous.scope !== scope) {
     throw new GatewayError('previous_response_id 不属于当前客户端会话。', { code: 'previous_response_not_found', status: 400 });
   }
-  if (previous) previous.at = Date.now();
   const normalized = normalizeResponses(payload, previous);
   const model = await resolveModel(normalized.model);
   gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream}`);
@@ -951,12 +1159,12 @@ async function handleResponses(payload, req, res, signal) {
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId: clientSessionScope(req, payload, normalized) }); } finally { stopHeartbeat?.(); }
+  const sessionId = clientSessionScope(req, payload, normalized, previous);
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { sessionId, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req) }); } finally { stopHeartbeat?.(); }
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
   const body = responsesResponse(normalized.model || model, result, responseId);
-  responseStore.set(responseId, {
-    at: Date.now(),
-    scope,
+  SESSION_MANAGER.bindResponse(responseId, req, {
+    sessionId,
     system: normalized.system,
     messages: [...normalized.messages, {
       role: 'assistant',
@@ -1038,6 +1246,20 @@ async function requestHandler(req, res) {
     sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板接口只支持 GET。' } });
     return;
   }
+  const publicFileMatch = route.match(/^\/v1\/files\/(file_[a-f0-9]{32})\/content$/);
+  if (req.method === 'GET' && publicFileMatch) {
+    const item = MEDIA_STORE.get(publicFileMatch[1], { allowPublic: true });
+    if (!item) { sendJson(res, 404, { error: { type: 'file_not_found', message: '文件不存在。' } }); return; }
+    res.writeHead(200, {
+      'Content-Type': item.metadata.mediaType || 'application/octet-stream',
+      'Content-Length': item.buffer.length,
+      'Content-Disposition': `inline; filename="${String(item.metadata.filename || item.metadata.id).replace(/["\r\n]/g, '_')}"`,
+      'Cache-Control': 'private, max-age=3600',
+      'X-Content-Type-Options': 'nosniff'
+    });
+    res.end(item.buffer);
+    return;
+  }
   if (!authorized(req)) { sendJson(res, 401, errorBody(new GatewayError('API key 无效。', { code: 'authentication_error', status: 401 }), route.includes('messages') ? 'anthropic' : 'openai')); return; }
   const controller = new AbortController();
   let timedOut = false;
@@ -1088,7 +1310,7 @@ async function requestHandler(req, res) {
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
         account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
       });
       return;
     }
@@ -1101,6 +1323,20 @@ async function requestHandler(req, res) {
       });
       return;
     }
+    if (req.method === 'POST' && route === '/v1/files') return await handleFileUpload(req, res);
+    const fileMatch = route.match(/^\/v1\/files\/(file_[a-f0-9]{32})$/);
+    if (req.method === 'GET' && fileMatch) {
+      const item = MEDIA_STORE.get(fileMatch[1], { scope: clientScope(req) });
+      if (!item) throw new GatewayError('文件不存在。', { code: 'file_not_found', status: 404 });
+      sendJson(res, 200, item.metadata);
+      return;
+    }
+    if (req.method === 'DELETE' && fileMatch) {
+      if (!MEDIA_STORE.delete(fileMatch[1], { scope: clientScope(req) })) throw new GatewayError('文件不存在。', { code: 'file_not_found', status: 404 });
+      sendJson(res, 200, { id: fileMatch[1], object: 'file', deleted: true });
+      return;
+    }
+    if (req.method === 'POST' && route === '/v1/images/edits') return await handleImageEdit(req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/messages/count_tokens') {
       const payload = await readJson(req);
       const text = JSON.stringify(payload.system || '') + JSON.stringify(payload.messages || []) + JSON.stringify(payload.tools || []);
@@ -1108,6 +1344,7 @@ async function requestHandler(req, res) {
       return;
     }
     const payload = await readJson(req);
+    if (req.method === 'POST' && route === '/v1/images/generations') return await handleImageGeneration(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/messages') return await handleAnthropic(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/responses') return await handleResponses(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/chat/completions') return await handleChat(payload, req, res, controller.signal);

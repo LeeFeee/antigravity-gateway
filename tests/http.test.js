@@ -299,6 +299,28 @@ test('Responses previous_response_id is bound to the client session scope', asyn
   assert.equal((await response.json()).error.code, 'previous_response_not_found');
 });
 
+test('Files API keeps uploads reusable across sessions while metadata remains credential scoped', async (t) => {
+  const base = await withServer(t);
+  const uploaded = await fetch(`${base}/v1/files`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-session-id': 'upload-session' },
+    body: JSON.stringify({ filename: 'sample.png', media_type: 'image/png', data: Buffer.from('png-bytes').toString('base64') })
+  }).then((response) => response.json());
+  assert.match(uploaded.id, /^file_[a-f0-9]{32}$/);
+
+  const metadata = await fetch(`${base}/v1/files/${uploaded.id}`, { headers: { 'x-session-id': 'different-session' } });
+  assert.equal(metadata.status, 200);
+  assert.equal((await metadata.json()).mediaType, 'image/png');
+
+  const content = await fetch(`${base}/v1/files/${uploaded.id}/content`);
+  assert.equal(content.status, 200);
+  assert.equal(Buffer.from(await content.arrayBuffer()).toString(), 'png-bytes');
+
+  const removed = await fetch(`${base}/v1/files/${uploaded.id}`, { method: 'DELETE', headers: { 'x-session-id': 'different-session' } });
+  assert.equal(removed.status, 200);
+  assert.equal((await fetch(`${base}/v1/files/${uploaded.id}/content`)).status, 404);
+});
+
 test('Responses exposes projected client tools as function_call items', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/responses`, {

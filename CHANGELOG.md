@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0 - 2026-09-25
+
+- Added native image generation and reference-image editing through the same private Antigravity image request used by agy, without launching the local CLI for each request.
+- Added image, video, audio, PDF, and file understanding across Anthropic Messages, OpenAI Chat Completions, and Responses, including a local Files API for remote clients.
+- Let the requested Gemini model decide semantically whether an attachment is context or an image-generation reference through a private native tool; there is no keyword intent router, and client tool contracts remain unchanged.
+- Added OpenAI-compatible `/v1/images/generations` and `/v1/images/edits`, persistent generated artifacts, scoped file access, and direct URL/Base64 responses.
+- Added bounded, session-aware response state and stable account affinity for explicit client session IDs and `previous_response_id` chains.
+- Persisted the OAuth desktop client metadata with newly authorized `add` accounts so their refresh tokens remain usable after moving the account pool to a host without a local agy installation.
+
 ## 0.8.3 - 2026-09-24
 
 - Refined the Token dashboard into a responsive chroma-bento layout with smooth model trends, period-aware hourly heatmaps, model consumption share, larger tutorial QR presentation, and resilient account-pool sizing.

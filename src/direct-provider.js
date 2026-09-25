@@ -13,6 +13,8 @@ const LOAD_CODE_ASSIST_PATH = '/v1internal:loadCodeAssist';
 const GENERATE_PATH = '/v1internal:generateContent';
 const STREAM_PATH = '/v1internal:streamGenerateContent';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
+const IMAGE_MODEL = String(process.env.ANTIGRAVITY_IMAGE_MODEL || 'gemini-3.1-flash-image').trim();
+const IMAGE_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9']);
 const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 8000);
 const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MAX_RETRIES || 1));
 const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
@@ -370,11 +372,20 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
           nativeParts.push({ text: `[CLIENT_TOOL_RESULT id=${id}]\n${typeof result === 'string' ? result : compact(result)}` });
           continue;
         }
+        const media = (part.media || []).filter((item) => item?.data).map((item) => ({
+          inlineData: { mimeType: item.mediaType || item.mimeType || 'application/octet-stream', data: item.data }
+        }));
         nativeParts.push({ functionResponse: {
           ...(id ? { id } : {}),
           name,
-          response: { result }
+          response: part.response && typeof part.response === 'object' ? part.response : { result },
+          ...(media.length ? { parts: media } : {})
         } });
+        continue;
+      }
+      if (part?.type === 'media' && part.data) {
+        nativeParts.push({ text: `<attached_media id="${String(part.id || '')}" mime_type="${String(part.mediaType || 'application/octet-stream')}" filename="${String(part.filename || '')}">` });
+        nativeParts.push({ inlineData: { mimeType: part.mediaType || 'application/octet-stream', data: String(part.data) } });
         continue;
       }
       if (part?.type === 'text' && String(part.text || '')) nativeParts.push({ text: String(part.text) });
@@ -459,6 +470,21 @@ function partsFrom(value) {
   const root = value?.response || value;
   const candidate = root?.candidates?.[0] || value?.candidates?.[0];
   return candidate?.content?.parts || root?.content?.parts || [];
+}
+
+function imageFromResponse(value) {
+  const parts = partsFrom(value);
+  const image = parts.find((part) => part?.inlineData?.data || part?.inline_data?.data);
+  const inline = image?.inlineData || image?.inline_data;
+  if (!inline?.data) return null;
+  return {
+    mimeType: firstString(inline.mimeType, inline.mime_type) || 'image/jpeg',
+    data: String(inline.data),
+    usage: usageFrom(value),
+    model: firstString(value?.response?.modelVersion, value?.modelVersion) || IMAGE_MODEL,
+    responseId: firstString(value?.response?.responseId, value?.responseId),
+    thoughtSignature: firstString(image.thoughtSignature, image.thought_signature)
+  };
 }
 
 function consumeUpstreamValue(value, state, onDelta) {
@@ -694,6 +720,88 @@ class DirectAntigravityProvider {
     return [DAILY_BASE_URL, DEFAULT_BASE_URL];
   }
 
+  async generateImage({ prompt, aspectRatio = '1:1', images = [] } = {}, { signal, onUpstreamAttempt } = {}) {
+    const instruction = String(prompt || '').trim();
+    if (!instruction) throw new DirectProviderError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
+    const ratio = IMAGE_ASPECT_RATIOS.has(String(aspectRatio || '')) ? String(aspectRatio) : '1:1';
+    if (!Array.isArray(images) || images.length > 3) {
+      throw new DirectProviderError('参考图最多 3 张。', { code: 'too_many_reference_images', status: 400 });
+    }
+    let token = await this.access(signal);
+    let project = await this.project(signal, token);
+    const requestBody = {
+      project,
+      requestId: `image_gen/${Date.now()}/${crypto.randomUUID()}/1`,
+      request: {
+        contents: [{ role: 'user', parts: [
+          { text: instruction },
+          ...images.map((image) => ({ inlineData: {
+            mimeType: firstString(image?.mimeType, image?.mediaType) || 'image/jpeg',
+            data: String(image?.data || '')
+          } }))
+        ] }],
+        generationConfig: { candidateCount: 1, imageConfig: { aspectRatio: ratio } }
+      },
+      model: IMAGE_MODEL,
+      userAgent: 'antigravity',
+      requestType: 'image_gen'
+    };
+    let lastFailure;
+    const attempt = async (base, forceRefresh = false) => {
+      if (forceRefresh) {
+        token = await this.access(signal, true);
+        project = await this.project(signal, token);
+        requestBody.project = project;
+      }
+      onUpstreamAttempt?.({ phase: 'start', base, model: IMAGE_MODEL });
+      try {
+        const response = await this.fetchImpl(`${base}${GENERATE_PATH}`, {
+          method: 'POST', signal,
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json', 'user-agent': this.userAgent },
+          body: JSON.stringify(requestBody)
+        });
+        onUpstreamAttempt?.({ phase: 'response', base, model: IMAGE_MODEL, status: response.status, success: response.ok });
+        return response;
+      } catch (error) {
+        onUpstreamAttempt?.({ phase: 'response', base, model: IMAGE_MODEL, status: 0, success: false });
+        throw error;
+      }
+    };
+    for (let retry = 0; retry <= this.maxRetries; retry += 1) {
+      for (const base of this.baseUrls()) {
+        let response;
+        try {
+          response = await attempt(base);
+          if (response.status === 401) response = await attempt(base, true);
+        } catch (error) {
+          lastFailure = { error };
+          continue;
+        }
+        const text = await readBody(response);
+        if (response.ok) {
+          let body;
+          try { body = JSON.parse(text || '{}'); }
+          catch (error) { throw new DirectProviderError('Antigravity 生图响应不是 JSON。', { code: 'image_response_invalid', status: 502, details: redact(text), cause: error }); }
+          const image = imageFromResponse(body);
+          if (!image) throw new DirectProviderError('Antigravity 生图响应没有图片数据。', { code: 'image_response_missing', status: 502 });
+          return image;
+        }
+        const detail = upstreamErrorMessage(text);
+        lastFailure = { response, status: response.status, detail, diagnostic: redact(text) };
+        if (response.status !== 429 && response.status < 500) {
+          throw new DirectProviderError(detail ? `Antigravity 上游生图失败：${detail}` : 'Antigravity 上游生图失败。', {
+            code: 'direct_image_upstream_error', status: response.status, details: detail
+          });
+        }
+      }
+      if (retry < this.maxRetries) await waitForRetry(retryAfterMs(lastFailure?.response, retry, this.retryBaseMs), signal);
+    }
+    if (lastFailure?.error) throw lastFailure.error;
+    throw new DirectProviderError(lastFailure?.detail ? `Antigravity 上游生图失败：${lastFailure.detail}` : 'Antigravity 上游生图失败。', {
+      code: 'direct_image_upstream_error', status: lastFailure?.status || 502, details: lastFailure?.diagnostic || lastFailure?.detail
+    });
+  }
+
   async send(normalized, model, { signal, sessionId, repairInstruction = '', onDelta, onUpstreamAttempt } = {}) {
     let token = await this.access(signal);
     let project = await this.project(signal, token);
@@ -821,6 +929,7 @@ module.exports = {
   DEFAULT_BASE_URL,
   DirectAntigravityProvider,
   DirectProviderError,
+  IMAGE_MODEL,
   MODEL_SLUG,
   buildDirectRequest,
   cleanToolSchema,

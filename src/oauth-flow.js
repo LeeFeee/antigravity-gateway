@@ -175,6 +175,7 @@ class OAuthFlow {
 
   async _exchange(code, redirectUri, credentials, signal) {
     let token;
+    let tokenCredential;
     let lastError;
     for (const credential of credentials) {
       try {
@@ -187,6 +188,7 @@ class OAuthFlow {
           })
         });
         token = await responseJson(tokenResponse, 'OAuth token 交换');
+        tokenCredential = credential;
         break;
       } catch (error) { lastError = error; }
     }
@@ -238,6 +240,8 @@ class OAuthFlow {
     }
     return {
       email, subjectId, accessToken, refreshToken, projectId,
+      clientId: tokenCredential.clientId,
+      clientSecret: tokenCredential.clientSecret,
       expiresAt: token.expires_in ? new Date(Date.now() + Number(token.expires_in) * 1000).toISOString() : '',
       authMethod: 'consumer', source: 'manual-oauth', enabled: true, weight: 1
     };

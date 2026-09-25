@@ -20,6 +20,9 @@ class ManagedAccountAuthProvider {
     this.provider = new LocalAgyAuthProvider({
       fetchImpl,
       agyPath,
+      clientCredentials: account.clientId && account.clientSecret
+        ? [{ clientId: account.clientId, clientSecret: account.clientSecret }]
+        : [],
       useKeychain: false,
       authFile: '__managed_account__'
     });
@@ -41,6 +44,8 @@ class ManagedAccountAuthProvider {
         refreshToken: record.refreshToken,
         expiresAt: record.expiry instanceof Date ? record.expiry.toISOString() : '',
         projectId: record.projectId || this.account.projectId,
+        clientId: this.account.clientId,
+        clientSecret: this.account.clientSecret,
         authMethod: record.authMethod || this.account.authMethod
       });
     }

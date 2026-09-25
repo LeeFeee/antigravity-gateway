@@ -33,17 +33,24 @@ test('account store persists ordinary JSON and replaces refreshed credentials', 
 
 test('managed account refresh writes the new tokens back to its JSON record', async (t) => {
   const store = tempStore(t);
-  const saved = store.save({ ...account('refresh@example.com'), expiresAt: '2020-01-01T00:00:00.000Z' });
+  const saved = store.save({
+    ...account('refresh@example.com'),
+    expiresAt: '2020-01-01T00:00:00.000Z',
+    clientId: 'client',
+    clientSecret: 'secret'
+  });
   const auth = new ManagedAccountAuthProvider({
     account: saved,
     store,
     fetchImpl: async () => new Response(JSON.stringify({ access_token: 'access-new', refresh_token: 'refresh-new', expires_in: 3600 }), { status: 200 })
   });
-  auth.provider.clientCredentials = [{ clientId: 'client', clientSecret: 'secret' }];
+  assert.deepEqual(auth.provider.clientCredentials, [{ clientId: 'client', clientSecret: 'secret' }]);
   const record = await auth.get();
   assert.equal(record.accessToken, 'access-new');
   assert.equal(store.list()[0].accessToken, 'access-new');
   assert.equal(store.list()[0].refreshToken, 'refresh-new');
+  assert.equal(store.list()[0].clientId, 'client');
+  assert.equal(store.list()[0].clientSecret, 'secret');
 });
 
 test('account pool rotates new sessions but keeps one session on one account', async (t) => {
