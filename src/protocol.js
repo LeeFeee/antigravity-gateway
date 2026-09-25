@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { deliveryText, imageArtifact, imageArtifacts } = require('./artifacts');
 const { mediaPartFromBlock, mediaParts } = require('./multimedia');
 
 const NATIVE_IMAGE_TOOL_NAME = 'generate_image';
@@ -610,16 +611,17 @@ function anthropicUsage(usage = {}) {
 
 function anthropicResponse(model, result) {
   const content = [];
+  const text = deliveryText(result);
   // Keep the provider signature carrier before any visible assistant output.
   // Claude Code can then preserve it as part of the assistant tool turn.
   for (const call of result.toolCalls) {
     if (call.thoughtSignature) content.push({ type: 'thinking', thinking: '', signature: call.thoughtSignature });
   }
-  if (result.text) content.push({ type: 'text', text: result.text });
+  if (text) content.push({ type: 'text', text });
   for (const call of result.toolCalls) {
     content.push({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments });
   }
-  return {
+  const response = {
     id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
     type: 'message', role: 'assistant', model,
     content,
@@ -627,10 +629,13 @@ function anthropicResponse(model, result) {
     stop_sequence: null,
     usage: anthropicUsage(result.usage)
   };
+  if (result.images?.length) response.artifacts = imageArtifacts(result.images);
+  return response;
 }
 
 function chatResponse(model, result) {
-  const message = { role: 'assistant', content: result.text || null };
+  const text = deliveryText(result);
+  const message = { role: 'assistant', content: text || null };
   if (result.toolCalls.length) message.tool_calls = result.toolCalls.map((call) => ({
     id: call.id, type: 'function', function: { name: call.name, arguments: compactJson(call.arguments) }
   }));
@@ -639,6 +644,7 @@ function chatResponse(model, result) {
     type: 'image_url',
     image_url: { url: image.url || `data:${image.mimeType};base64,${image.data}` }
   }));
+  if (result.images?.length) message.artifacts = imageArtifacts(result.images);
   return {
     id: `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`,
     object: 'chat.completion', created: Math.floor(Date.now() / 1000), model,
@@ -653,11 +659,12 @@ function chatResponse(model, result) {
 
 function responsesResponse(model, result, responseId) {
   const output = [];
-  if (result.text) {
+  const text = deliveryText(result);
+  if (text) {
     output.push({
       id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
       type: 'message', status: 'completed', role: 'assistant',
-      content: [{ type: 'output_text', text: result.text, annotations: [] }]
+      content: [{ type: 'output_text', text, annotations: [] }]
     });
   }
   for (const call of result.toolCalls) {
@@ -678,10 +685,11 @@ function responsesResponse(model, result, responseId) {
       type: 'image_generation_call',
       status: 'completed',
       result: image.data,
+      artifact: imageArtifact(image),
       ...(image.url ? { revised_prompt: image.prompt || null, url: image.url } : {})
     });
   }
-  return {
+  const response = {
     id: responseId, object: 'response', created_at: Math.floor(Date.now() / 1000),
     status: 'completed', error: null, incomplete_details: null, model,
     output,
@@ -691,6 +699,8 @@ function responsesResponse(model, result, responseId) {
       total_tokens: result.usage.total_tokens || 0
     }
   };
+  if (result.images?.length) response.artifacts = imageArtifacts(result.images);
+  return response;
 }
 
 module.exports = {

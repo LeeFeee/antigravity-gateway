@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.1 - 2026-09-25
+
+- Added unified generated-image delivery receipts across Anthropic, Chat Completions, Responses, and Images, including structured artifact metadata, Markdown, URL, gateway-local path, and `HEAD` support.
+- Bundled a cross-agent video-understanding Skill and dependency-free Python helper that uploads local videos through Files and submits native `input_video` requests without adding another gateway CLI.
+
 ## 0.9.0 - 2026-09-25
 
 - Added native image generation and reference-image editing through the same private Antigravity image request used by agy, without launching the local CLI for each request.

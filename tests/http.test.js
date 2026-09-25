@@ -316,6 +316,12 @@ test('Files API keeps uploads reusable across sessions while metadata remains cr
   assert.equal(content.status, 200);
   assert.equal(Buffer.from(await content.arrayBuffer()).toString(), 'png-bytes');
 
+  const head = await fetch(`${base}/v1/files/${uploaded.id}/content`, { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('content-type'), 'image/png');
+  assert.equal(head.headers.get('content-length'), String(Buffer.byteLength('png-bytes')));
+  assert.equal((await head.arrayBuffer()).byteLength, 0);
+
   const removed = await fetch(`${base}/v1/files/${uploaded.id}`, { method: 'DELETE', headers: { 'x-session-id': 'different-session' } });
   assert.equal(removed.status, 200);
   assert.equal((await fetch(`${base}/v1/files/${uploaded.id}/content`)).status, 404);

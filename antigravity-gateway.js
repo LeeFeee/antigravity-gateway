@@ -10,6 +10,7 @@ const path = require('node:path');
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
+const { imageArtifact, imageArtifacts } = require('./src/artifacts');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
@@ -579,7 +580,7 @@ function setCors(req, res) {
     res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, DELETE, OPTIONS');
   return true;
 }
 
@@ -751,6 +752,9 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaSco
           id: saved.id,
           mimeType: generated.mimeType,
           data: generated.data,
+          filename: saved.filename,
+          bytes: saved.bytes,
+          gatewayLocalPath: MEDIA_STORE.contentPath(saved.id),
           url: artifactUrl(publicBaseUrl, saved.id),
           prompt: args.Prompt,
           name: args.ImageName || 'generated_image'
@@ -770,8 +774,7 @@ async function runTurn(normalized, model, signal, { sessionId, onDelta, mediaSco
           ]
         };
         raw = await ACCOUNT_POOL.send(continuation, model, { signal, sessionId, onAccountSelected });
-        const link = image.url ? `![Generated image](${image.url})` : `Generated image artifact: ${image.id}`;
-        const final = finalizeModelResult(normalized, { ...raw, text: [raw.text, link].filter(Boolean).join('\n\n') });
+        const final = finalizeModelResult(normalized, raw);
         return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
       }
       try {
@@ -908,7 +911,12 @@ function createAnthropicTextEmitter(res, model) {
       else if (finalText.startsWith(emittedText)) emitText(finalText.slice(emittedText.length));
       if (blockStarted) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: 0 });
       // message_start went out before upstream usage existed; message_delta usage is cumulative per the Messages API.
-      sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: body.usage });
+      sendSse(res, 'message_delta', {
+        type: 'message_delta',
+        delta: { stop_reason: body.stop_reason, stop_sequence: null },
+        usage: body.usage,
+        ...(body.artifacts ? { artifacts: body.artifacts } : {})
+      });
       sendSse(res, 'message_stop', { type: 'message_stop' });
       res.end();
     }
@@ -942,6 +950,13 @@ function createChatTextEmitter(res, model) {
         const remainder = finalText.slice(emittedText.length);
         res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: remainder }, finish_reason: null }] })}\n\n`);
       }
+      const finalMessage = body.choices?.[0]?.message || {};
+      if (finalMessage.images || finalMessage.artifacts) {
+        const delta = {};
+        if (finalMessage.images) delta.images = finalMessage.images;
+        if (finalMessage.artifacts) delta.artifacts = finalMessage.artifacts;
+        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta, finish_reason: null }] })}\n\n`);
+      }
       const finishReason = body.choices?.[0]?.finish_reason || 'stop';
       res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] })}\n\n`);
       res.write('data: [DONE]\n\n');
@@ -971,7 +986,12 @@ function emitAnthropicStream(res, body) {
     }
     sendSse(res, 'content_block_stop', { type: 'content_block_stop', index });
   });
-  sendSse(res, 'message_delta', { type: 'message_delta', delta: { stop_reason: body.stop_reason, stop_sequence: null }, usage: body.usage });
+  sendSse(res, 'message_delta', {
+    type: 'message_delta',
+    delta: { stop_reason: body.stop_reason, stop_sequence: null },
+    usage: body.usage,
+    ...(body.artifacts ? { artifacts: body.artifacts } : {})
+  });
   sendSse(res, 'message_stop', { type: 'message_stop' });
   res.end();
 }
@@ -982,6 +1002,8 @@ function emitChatStream(res, body) {
   const first = { role: 'assistant' };
   if (choice.message.content) first.content = choice.message.content;
   if (choice.message.tool_calls) first.tool_calls = choice.message.tool_calls.map((call, index) => ({ index, ...call }));
+  if (choice.message.images) first.images = choice.message.images;
+  if (choice.message.artifacts) first.artifacts = choice.message.artifacts;
   res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: first, finish_reason: null }] })}\n\n`);
   res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason }] })}\n\n`);
   res.write('data: [DONE]\n\n');
@@ -1047,6 +1069,9 @@ async function generateImages(payload, req, signal, references = []) {
       id: saved.id,
       mimeType: result.mimeType,
       data: result.data,
+      filename: saved.filename,
+      bytes: saved.bytes,
+      gatewayLocalPath: MEDIA_STORE.contentPath(saved.id),
       url: artifactUrl(requestBaseUrl(req), saved.id)
     });
   }
@@ -1057,9 +1082,12 @@ function imagesResponse(images, payload) {
   const format = payload.response_format || 'url';
   return {
     created: Math.floor(Date.now() / 1000),
-    data: images.map((image) => format === 'b64_json'
-      ? { b64_json: image.data, revised_prompt: payload.prompt }
-      : { url: image.url, revised_prompt: payload.prompt })
+    data: images.map((image) => ({
+      ...(format === 'b64_json' ? { b64_json: image.data } : { url: image.url }),
+      revised_prompt: payload.prompt,
+      artifact: imageArtifact(image)
+    })),
+    artifacts: imageArtifacts(images)
   };
 }
 
@@ -1247,7 +1275,7 @@ async function requestHandler(req, res) {
     return;
   }
   const publicFileMatch = route.match(/^\/v1\/files\/(file_[a-f0-9]{32})\/content$/);
-  if (req.method === 'GET' && publicFileMatch) {
+  if (['GET', 'HEAD'].includes(req.method) && publicFileMatch) {
     const item = MEDIA_STORE.get(publicFileMatch[1], { allowPublic: true });
     if (!item) { sendJson(res, 404, { error: { type: 'file_not_found', message: '文件不存在。' } }); return; }
     res.writeHead(200, {
@@ -1257,7 +1285,7 @@ async function requestHandler(req, res) {
       'Cache-Control': 'private, max-age=3600',
       'X-Content-Type-Options': 'nosniff'
     });
-    res.end(item.buffer);
+    res.end(req.method === 'HEAD' ? undefined : item.buffer);
     return;
   }
   if (!authorized(req)) { sendJson(res, 401, errorBody(new GatewayError('API key 无效。', { code: 'authentication_error', status: 401 }), route.includes('messages') ? 'anthropic' : 'openai')); return; }
@@ -1532,6 +1560,7 @@ module.exports = {
   emitChatStream,
   emitResponsesStream,
   featuredModels,
+  imagesResponse,
   resolveModel,
   runTurn,
   startupBanner

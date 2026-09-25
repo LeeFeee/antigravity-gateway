@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v0.9.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v0.9.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -333,6 +333,16 @@ curl http://127.0.0.1:9897/v1/files \
 
 返回的 `file_...` 可放进 Anthropic `source.file_id`、Chat Completions 的 `file_id`/`input_image`/`input_video`，或 Responses 的 `input_file`/`input_image`/`input_video`。协议转换器也接受 Base64/Data URL、HTTP(S) URL 和网关本机绝对路径；生成图片的 URL 可以直接作为后续参考图再次使用。上传与生成文件保存在 `~/.antigravity-gateway/media/`。
 
+生图响应会同时提供普通文本回执、Markdown、可访问 URL、网关主机上的绝对路径，以及各协议中的 `artifacts` 结构化元数据；不识别扩展字段的客户端仍可从正文取得交付地址。文件内容接口同时支持 `GET` 和 `HEAD`。
+
+如果 Agent 本身不会把本地视频转换成多媒体请求，可以使用随包附带的 `skills/antigravity-video-understanding`。该 Skill 的 Python 脚本会通过现有 Files API 上传本地视频，再以原生 `input_video` 调用 Chat Completions；本地或远程网关均使用同一流程：
+
+```bash
+python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
+  "/absolute/path/recording.mp4" \
+  --prompt "分析这段视频并回答我的问题"
+```
+
 显式 `x-session-id`、Claude/Codex 会话头和 Responses 的 `previous_response_id` 会生成稳定会话标识：同一会话优先使用同一账号，响应历史按客户端会话隔离，并设置容量和一小时过期清理。
 
 ### 用量和额度
@@ -481,7 +491,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v0.9.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v0.9.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -705,6 +715,16 @@ curl http://127.0.0.1:9897/v1/files \
 ```
 
 Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. Explicit Claude/Codex/session headers and Responses `previous_response_id` chains produce stable, scoped session IDs and account affinity.
+
+Generated-image responses include a readable text receipt, Markdown, an accessible URL, the absolute path on the gateway host, and structured `artifacts` metadata for each protocol. Clients that ignore extension fields can still obtain the delivery address from the assistant text. File content supports both `GET` and `HEAD`.
+
+For agents that cannot construct video inputs themselves, the bundled `skills/antigravity-video-understanding` package uploads a local video through the existing Files API and submits it as native `input_video` through Chat Completions:
+
+```bash
+python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
+  "/absolute/path/recording.mp4" \
+  --prompt "Analyze this video and answer my question."
+```
 
 ### Usage, update, and troubleshooting
 
