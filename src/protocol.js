@@ -629,6 +629,30 @@ function anthropicResponse(model, result) {
   };
 }
 
+function chatUsage(usage = {}) {
+  // OpenAI prompt_tokens stays inclusive of the cached prefix, and
+  // completion_tokens includes reasoning tokens. Cached tokens and reasoning
+  // tokens are reported under standard details objects so clients (like DSH,
+  // Cursor, or OpenRouter-compatible parsers) can display cache hit rates and
+  // reasoning output breakdowns.
+  const prompt = Math.max(0, Number(usage.input_tokens) || 0);
+  const cacheRead = Math.min(prompt, Math.max(0, Number(usage.cache_read_tokens) || 0));
+  const completion = billedOutputTokens(usage);
+  const reasoning = Math.max(0, Number(usage.thinking_tokens) || 0);
+  const total = Math.max(0, Number(usage.total_tokens) || 0) || (prompt + completion);
+  return {
+    prompt_tokens: prompt,
+    completion_tokens: completion,
+    total_tokens: total,
+    prompt_tokens_details: {
+      cached_tokens: cacheRead
+    },
+    completion_tokens_details: {
+      reasoning_tokens: reasoning
+    }
+  };
+}
+
 function chatResponse(model, result) {
   const message = { role: 'assistant', content: result.text || null };
   if (result.toolCalls.length) message.tool_calls = result.toolCalls.map((call) => ({
@@ -643,11 +667,7 @@ function chatResponse(model, result) {
     id: `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`,
     object: 'chat.completion', created: Math.floor(Date.now() / 1000), model,
     choices: [{ index: 0, message, finish_reason: result.toolCalls.length ? 'tool_calls' : 'stop' }],
-    usage: {
-      prompt_tokens: result.usage.input_tokens || 0,
-      completion_tokens: billedOutputTokens(result.usage),
-      total_tokens: result.usage.total_tokens || 0
-    }
+    usage: chatUsage(result.usage)
   };
 }
 
@@ -698,6 +718,7 @@ module.exports = {
   anthropicResponse,
   buildPrompt,
   chatResponse,
+  chatUsage,
   detectAutoModeFormat,
   finalizeModelResult,
   normalizeAnthropic,
