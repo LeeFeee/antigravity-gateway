@@ -10,7 +10,7 @@ const path = require('node:path');
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
-const { imageArtifact, imageArtifacts } = require('./src/artifacts');
+const { artifactReceipt, imageArtifact, imageArtifacts, streamTextRemainder } = require('./src/artifacts');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
@@ -774,13 +774,14 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
         const continuation = {
           ...prepared.normalized,
           stream: false,
+          toolChoice: 'none',
           messages: [
             ...prepared.normalized.messages,
             { role: 'assistant', text: '', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }] },
             { role: 'user', text: '', parts: [{
               type: 'tool_result', id: call.id, name: call.name,
-              content: `Generated image artifact: ${saved.id}`,
-              response: { output: `Generated image artifact: ${saved.id}` },
+              content: `${artifactReceipt([image])}\nThe image is already saved and available at this URL. Deliver it directly; do not search for the file ID or generate it again.`,
+              response: { output: `${artifactReceipt([image])}\nThe image is already saved and available at this URL. Deliver it directly; do not search for the file ID or generate it again.` },
               media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
             }] }
           ]
@@ -919,8 +920,7 @@ function createAnthropicTextEmitter(res, model) {
     finish: (body) => {
       start();
       const finalText = body.content?.find((block) => block.type === 'text')?.text || '';
-      if (finalText && !emittedText) emitText(finalText);
-      else if (finalText.startsWith(emittedText)) emitText(finalText.slice(emittedText.length));
+      emitText(streamTextRemainder(emittedText, finalText));
       if (blockStarted) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: 0 });
       // message_start went out before upstream usage existed; message_delta usage is cumulative per the Messages API.
       sendSse(res, 'message_delta', {
@@ -956,10 +956,8 @@ function createChatTextEmitter(res, model) {
     finish: (body) => {
       start();
       const finalText = body.choices?.[0]?.message?.content || '';
-      if (finalText && !emittedText) {
-        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: finalText }, finish_reason: null }] })}\n\n`);
-      } else if (finalText.startsWith(emittedText) && finalText.length > emittedText.length) {
-        const remainder = finalText.slice(emittedText.length);
+      const remainder = streamTextRemainder(emittedText, finalText);
+      if (remainder) {
         res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: remainder }, finish_reason: null }] })}\n\n`);
       }
       const finalMessage = body.choices?.[0]?.message || {};
@@ -1573,6 +1571,8 @@ module.exports = {
   codexCatalogPath,
   codexModelInfo,
   createServer,
+  createChatTextEmitter,
+  createAnthropicTextEmitter,
   displayModels,
   emitAnthropicStream,
   emitChatStream,
