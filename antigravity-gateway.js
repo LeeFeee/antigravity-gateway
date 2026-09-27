@@ -774,7 +774,10 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
         const continuation = {
           ...prepared.normalized,
           stream: false,
-          toolChoice: 'none',
+          // Keep the caller's tools available for legitimate follow-up work;
+          // only the gateway's private image tool is removed after generation.
+          tools: resolved.tools,
+          toolChoice: resolved.toolChoice,
           messages: [
             ...prepared.normalized.messages,
             { role: 'assistant', text: '', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }] },

@@ -11,24 +11,25 @@ const { AccountPool } = require('../src/account-pool');
 const { runTurn } = require('../antigravity-gateway');
 const { normalizeChat } = require('../src/protocol');
 const { buildDirectRequest } = require('../src/direct-provider');
-test('native image continuation gets usable delivery addresses and disables further tools', async (t) => {
+test('native image continuation gets usable delivery addresses and preserves client tools', async (t) => {
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   let calls = 0;
   t.mock.method(AccountPool.prototype, 'send', async (request) => {
     calls++;
     if (calls === 1) return { text: 'Generating.', toolCalls: [{ id: 'call_image', name: 'generate_image', arguments: { Prompt: 'blue circle', ImageName: 'blue_circle' } }], usage: {} };
-    assert.equal(request.toolChoice, 'none');
+    assert.equal(request.toolChoice, 'auto');
+    assert.deepEqual(request.tools.map(t => t.name), ['save_image']);
     const result = request.messages.at(-1).parts[0];
     assert.match(result.content, /URL: http:\/\/localhost:9897\/v1\/files\/file_.*\/content/);
     assert.match(result.content, /Gateway local path:/);
     assert.match(result.content, /already saved/);
     assert.equal(result.response.output, result.content);
     const wire = buildDirectRequest(request, 'gemini-test', 'project', 'session');
-    assert.equal(wire.request.toolConfig.functionCallingConfig.mode, 'NONE');
+    assert.equal(wire.request.toolConfig.functionCallingConfig.mode, 'AUTO');
     return { text: 'Done.', toolCalls: [], usage: {} };
   });
   t.mock.method(AccountPool.prototype, 'generateImage', async () => ({ data: Buffer.from('image-fixture').toString('base64'), mimeType: 'image/jpeg', usage: {} }));
-  const result = await runTurn(normalizeChat({ model: 'gemini-test', messages: [{ role: 'user', content: 'Draw a blue circle' }] }), 'gemini-test', new AbortController().signal, { sessionId: 'test', publicBaseUrl: 'http://localhost:9897' });
+  const result = await runTurn(normalizeChat({ model: 'gemini-test', tool_choice: 'auto', tools: [{ type: 'function', function: { name: 'save_image', description: 'Save a delivered image', parameters: { type: 'object', properties: {} } } }], messages: [{ role: 'user', content: 'Draw a blue circle' }] }), 'gemini-test', new AbortController().signal, { sessionId: 'test', publicBaseUrl: 'http://localhost:9897' });
   assert.equal(calls, 2);
   assert.equal(result.images.length, 1);
   assert.equal(result.text, 'Done.');
