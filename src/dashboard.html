@@ -138,6 +138,17 @@
   async function shareImageSources(original){return Promise.all([...original.querySelectorAll('img')].map(async(image)=>{const source=image.currentSrc||image.src;if(!source||source.startsWith('data:'))return source;try{const response=await fetch(source,{cache:'force-cache'});if(!response.ok)throw new Error('HTTP '+response.status);return await blobDataUrl(await response.blob())}catch{return source}}))}
   function canvasLooksRendered(canvas){if(!canvas?.width||!canvas?.height)return false;try{const probe=document.createElement('canvas');probe.width=16;probe.height=16;const context=probe.getContext('2d',{willReadFrequently:true});context.drawImage(canvas,0,0,16,16);const pixels=context.getImageData(0,0,16,16).data,colors=new Set();let visible=0;for(let index=0;index<pixels.length;index+=4){if(pixels[index+3]>8)visible++;colors.add((pixels[index]>>4)+','+(pixels[index+1]>>4)+','+(pixels[index+2]>>4)+','+(pixels[index+3]>>4))}return visible>32&&colors.size>3}catch{return true}}
   async function captureDashboard(original,{foreignObjectRendering,imageSources}){const bounds=original.getBoundingClientRect(),width=Math.ceil(Math.max(bounds.width,original.scrollWidth)),height=Math.ceil(original.scrollHeight),scale=Math.max(1,Math.min(3,16000/width,16000/height,Math.sqrt(48000000/(width*height)))),documentLeft=bounds.left+window.scrollX,documentTop=bounds.top+window.scrollY,options={backgroundColor:'#0e100f',scale,useCORS:true,logging:false,width,height,scrollX:0,scrollY:0,foreignObjectRendering,onclone:async(doc)=>{prepareShareDocument(doc,{fallback:!foreignObjectRendering,imageSources});await Promise.all([...doc.querySelectorAll('.shell img')].map((image)=>image.decode?.().catch(()=>{})))}};if(foreignObjectRendering){options.x=-documentLeft;options.y=-documentTop}return html2canvas(original,options)}
+  // Nested images can disappear from an otherwise valid foreignObject snapshot.
+  // Paint the QR from its decoded source so a partial render cannot silently omit it.
+  async function drawShareQr(canvas,original,imageSources){
+    const images=[...original.querySelectorAll('img')],qr=original.querySelector('.qr-image');if(!qr)return;
+    const image=new Image();image.src=imageSources[images.indexOf(qr)];
+    try{await image.decode();if(!image.naturalWidth||!image.naturalHeight)throw new Error('empty image')}catch{throw new Error('二维码加载失败，请刷新页面后重试')}
+    const bounds=original.getBoundingClientRect(),rect=qr.getBoundingClientRect(),width=Math.ceil(Math.max(bounds.width,original.scrollWidth)),height=Math.ceil(original.scrollHeight),context=canvas.getContext('2d');
+    const fit=Math.min(rect.width/image.naturalWidth,rect.height/image.naturalHeight),w=image.naturalWidth*fit,h=image.naturalHeight*fit;
+    context.save();context.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);context.imageSmoothingEnabled=false;
+    context.drawImage(image,rect.left-bounds.left+(rect.width-w)/2,rect.top-bounds.top+(rect.height-h)/2,w,h);context.restore();
+  }
   async function dashboardPng(){
     await document.fonts?.ready;
     if(typeof html2canvas!=='function')throw new Error('截图组件加载失败');
@@ -145,6 +156,7 @@
     await Promise.all([...original.querySelectorAll('img')].map((image)=>image.complete?Promise.resolve():image.decode?.().catch(()=>{})));const imageSources=await shareImageSources(original);
     let canvas;
     try{canvas=await captureDashboard(original,{foreignObjectRendering:true,imageSources});if(!canvasLooksRendered(canvas))throw new Error('浏览器原生渲染结果为空')}catch{canvas=await captureDashboard(original,{foreignObjectRendering:false,imageSources})}
+    await drawShareQr(canvas,original,imageSources);
     return await new Promise((resolve,reject)=>canvas.toBlob((blob)=>blob?resolve(blob):reject(new Error('图片导出失败')),'image/png'));
   }
   function showToast(message){const node=$('toast');node.textContent=message;node.classList.add('show');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>node.classList.remove('show'),3600)}
