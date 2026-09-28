@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2 - 2026-09-28
+
+- Added an opt-in IP/CIDR allowlist for viewing the complete Token dashboard from other devices while keeping the default local-only behavior.
+
 ## 0.9.1 - 2026-09-25
 
 - Added unified generated-image delivery receipts across Anthropic, Chat Completions, Responses, and Images, including structured artifact metadata, Markdown, URL, gateway-local path, and `HEAD` support.

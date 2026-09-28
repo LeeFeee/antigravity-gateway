@@ -11,6 +11,7 @@ const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = requi
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
 const { artifactReceipt, imageArtifact, imageArtifacts, streamTextRemainder } = require('./src/artifacts');
+const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
@@ -126,6 +127,11 @@ function gatewayLog(message) { return TERMINAL ? TERMINAL.log(message) : console
 function gatewayWarn(message) { return TERMINAL ? TERMINAL.log(message, 'warn') : console.warn(message); }
 function gatewayError(message) { return TERMINAL ? TERMINAL.log(message, 'error') : console.error(message); }
 
+const DASHBOARD_ACCESS = createDashboardAccessPolicy(
+  process.env.ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW,
+  { warn: (message) => gatewayWarn(`[Antigravity Gateway Warning] ${message}`) }
+);
+
 const activeWorkers = new Set();
 let modelCache = { at: 0, models: [], error: null };
 let versionCache = null;
@@ -176,11 +182,6 @@ const uploadSlots = new Semaphore(MAX_CONCURRENCY, MAX_QUEUE);
 
 function isLoopbackHost(host) {
   return ['127.0.0.1', 'localhost', '::1', '[::1]'].includes(String(host).toLowerCase());
-}
-
-function isLoopbackAddress(address) {
-  const value = String(address || '').toLowerCase();
-  return value === '127.0.0.1' || value === '::1' || value === '::ffff:127.0.0.1';
 }
 
 function dashboardUrl() {
@@ -1246,8 +1247,8 @@ async function requestHandler(req, res) {
     return;
   }
   if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/')) {
-    if (!isLoopbackAddress(req.socket?.remoteAddress)) {
-      sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备访问。' } });
+    if (!DASHBOARD_ACCESS.allows(req.socket?.remoteAddress)) {
+      sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备或 ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 所列来源访问。' } });
       return;
     }
     if (req.method === 'GET' && route === '/dashboard') {
@@ -1518,6 +1519,7 @@ if (require.main === module) {
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
+    gatewayLog(`[Antigravity Gateway] 看板来源：${DASHBOARD_ACCESS.description}`);
     let models = [];
     let modelError = '';
     let localAccountImport = null;

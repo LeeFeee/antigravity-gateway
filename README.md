@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v0.9.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v0.9.2`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -441,12 +441,24 @@ export NO_PROXY=127.0.0.1,localhost
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 最大并发请求数 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 最大排队请求数 |
 | `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` | 空 | 允许访问本地网关的浏览器 Origin |
+| `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | 空 | 额外允许访问看板的 IP、CIDR 或 `*`，逗号分隔；默认仅本机 |
 | `ANTIGRAVITY_GATEWAY_DEBUG` | 空 | 设置为 `1` 输出更多诊断信息 |
 | `ANTIGRAVITY_IMAGE_MODEL` | `gemini-3.1-flash-image` | 原生图片请求使用的 Antigravity 图片模型 |
 | `ANTIGRAVITY_GATEWAY_MEDIA_LIMIT` | `100663296` | 单个多媒体文件内存/解析上限，单位字节 |
 | `ANTIGRAVITY_GATEWAY_TOTAL_MEDIA_LIMIT` | `201326592` | 单次对话解析的多媒体总上限，单位字节 |
 
 非必要情况下不建议手动设置 access token、refresh token、project ID 或上游地址。普通用户使用本地 agy 登录态和账号池即可。
+
+跨设备查看看板时，需要同时把监听地址改为非回环地址并设置 API Key。例如只允许局域网 `192.168.1.0/24`：
+
+```bash
+export ANTIGRAVITY_GATEWAY_HOST=0.0.0.0
+export ANTIGRAVITY_GATEWAY_API_KEY=请设置自己的密钥
+export ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW=192.168.1.0/24
+antigravity-gateway
+```
+
+看板本身不校验 API Key，白名单来源可以看到账号邮箱、额度和用量；不建议在公网环境中使用 `*`。来源按真实 TCP 对端地址判断，不信任 `X-Forwarded-For`。使用后台模式时重新执行 `antigravity-gateway service start`，即可保存配置并重启服务。
 
 ### 接口
 
@@ -491,7 +503,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v0.9.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v0.9.2`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -761,9 +773,12 @@ Common failures:
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Request timeout in milliseconds |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | Maximum concurrent requests |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | Maximum queued requests |
+| `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | empty | Extra IPs, CIDRs, or `*` allowed to open the dashboard; comma-separated and local-only by default |
 | `ANTIGRAVITY_IMAGE_MODEL` | `gemini-3.1-flash-image` | Native Antigravity image model |
 | `ANTIGRAVITY_GATEWAY_MEDIA_LIMIT` | `100663296` | Maximum bytes per media item |
 | `ANTIGRAVITY_GATEWAY_TOTAL_MEDIA_LIMIT` | `201326592` | Maximum resolved media bytes per request |
+
+For remote dashboard access, bind the gateway to a non-loopback address, configure an API key, and allow only the required LAN address or CIDR. The dashboard itself does not validate the API key, so allowed sources can see account emails, quotas, and usage; avoid `*` on public networks. Matching uses the TCP peer address and does not trust `X-Forwarded-For`. Re-run `antigravity-gateway service start` to persist changed environment settings in background mode.
 
 ### How it works
 
