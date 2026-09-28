@@ -45,7 +45,17 @@ function deliveryText(result = {}) {
   return text ? `${text}\n\n${receipt}` : receipt;
 }
 
+// Native image generation has a second model turn. Its answer need not start
+// with the commentary already streamed before the image tool ran. SSE cannot
+// retract that commentary, so append the new phase instead of dropping it.
+function streamTextRemainder(emitted, finalText) {
+  if (!finalText || emitted === finalText) return '';
+  if (finalText.startsWith(emitted)) return finalText.slice(emitted.length);
+  return `${emitted ? '\n\n' : ''}${finalText}`;
+}
+
 module.exports = {
+  streamTextRemainder,
   artifactReceipt,
   deliveryText,
   imageArtifact,
