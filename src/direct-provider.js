@@ -664,6 +664,59 @@ class DirectAntigravityProvider {
     try { return await this.modelDiscovery; } finally { this.modelDiscovery = null; }
   }
 
+  async probeAuthentication(signal) {
+    let token = await this.access(signal);
+    let lastError;
+    let accountError;
+    for (const base of this.baseUrls()) {
+      for (let refresh = 0; refresh < 2; refresh += 1) {
+        let response;
+        let text = '';
+        try {
+          response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: '*/*', 'user-agent': this.userAgent },
+            body: '{}',
+            signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
+          });
+          text = await readBody(response);
+        } catch (cause) {
+          lastError = new DirectProviderError('Antigravity 账号检测请求失败。', {
+            code: 'direct_auth_probe_failed', status: 502, details: redact(cause.message), cause
+          });
+          break;
+        }
+        if (response.ok) {
+          try { JSON.parse(text || '{}'); }
+          catch (cause) {
+            lastError = new DirectProviderError('Antigravity 账号检测响应不是有效 JSON。', {
+              code: 'direct_auth_probe_invalid', status: 502, details: redact(cause.message), cause
+            });
+            break;
+          }
+          return { ok: true, status: response.status };
+        }
+        if (response.status === 401 && refresh === 0) {
+          try {
+            token = await this.access(signal, true);
+            continue;
+          } catch (error) {
+            lastError = error;
+            if (error?.status === 401 || error?.status === 403) accountError ||= error;
+            break;
+          }
+        }
+        const details = upstreamErrorMessage(text) || redact(text);
+        lastError = new DirectProviderError(details ? `Antigravity 账号检测失败：${details}` : 'Antigravity 账号检测失败。', {
+          code: 'direct_auth_probe_rejected', status: response.status, details
+        });
+        if (response.status === 401 || response.status === 403) accountError ||= lastError;
+        break;
+      }
+    }
+    throw accountError || lastError || new DirectProviderError('Antigravity 账号检测失败。', { code: 'direct_auth_probe_failed', status: 502 });
+  }
+
   async discoverModels(signal) {
     try {
       const token = await this.access(signal);

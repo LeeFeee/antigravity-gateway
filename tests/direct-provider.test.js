@@ -376,6 +376,51 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
   assert.equal(provider.modelInfo('missing'), null);
 });
 
+test('lightweight authentication probe preserves upstream rejection instead of using the fallback catalog', async () => {
+  const rejected = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token',
+    projectId: 'project-1',
+    baseUrl: 'https://example.test',
+    models: [],
+    fetchImpl: async () => new Response(JSON.stringify({ error: { message: 'Verify your account to continue' } }), { status: 403 })
+  });
+  await assert.rejects(rejected.probeAuthentication(), (error) => {
+    assert.equal(error.status, 403);
+    assert.match(error.message, /Verify your account/);
+    return true;
+  });
+
+  const accepted = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token',
+    projectId: 'project-1',
+    baseUrl: 'https://example.test',
+    models: [],
+    fetchImpl: async () => new Response('{"models":{}}', { status: 200 })
+  });
+  assert.deepEqual(await accepted.probeAuthentication(), { ok: true, status: 200 });
+});
+
+test('authentication probe accepts either official Cloud Code endpoint without generating content', async () => {
+  const calls = [];
+  const provider = new DirectAntigravityProvider({
+    localAuth: null,
+    accessToken: 'token',
+    projectId: 'project-1',
+    models: [],
+    fetchImpl: async (url) => {
+      calls.push(url);
+      return url.startsWith('https://daily-cloudcode-pa.googleapis.com')
+        ? new Response('{"error":{"message":"temporary daily denial"}}', { status: 403 })
+        : new Response('{"models":{}}', { status: 200 });
+    }
+  });
+  assert.deepEqual(await provider.probeAuthentication(), { ok: true, status: 200 });
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((url) => url.endsWith('/v1internal:fetchAvailableModels')));
+});
+
 test('forced catalog refresh is deduplicated and preserves stale catalog on failure', async () => {
   let count = 0;
   let fail = false;

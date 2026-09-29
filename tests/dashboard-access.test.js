@@ -24,9 +24,9 @@ function subnet24(address) {
   return `${address.split('.').slice(0, 3).join('.')}.0/24`;
 }
 
-function request({ port, host, localAddress, route, headers = {} }) {
+function request({ port, host, localAddress, route, headers = {}, method = 'GET' }) {
   return new Promise((resolve, reject) => {
-    const req = http.request({ host, port, localAddress, path: route, headers, agent: false }, (res) => {
+    const req = http.request({ host, port, localAddress, path: route, headers, method, agent: false }, (res) => {
       const chunks = [];
       res.on('data', (chunk) => chunks.push(chunk));
       res.on('end', () => resolve({
@@ -116,6 +116,8 @@ test('remote dashboard allowlist gates page, data, and every bundled asset toget
   for (const route of routes) {
     assert.equal((await request({ port: denied.port, host: address, localAddress: address, route })).status, 403);
   }
+  assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/accounts/example/recheck', method: 'POST' })).status, 403);
+  assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/accounts/example', method: 'DELETE' })).status, 403);
 
   const allowed = await startGateway(t, subnet24(address));
   assert.equal((await request({ port: allowed.port, host: address, localAddress: address, route: '/dashboard' })).status, 200);
@@ -126,6 +128,8 @@ test('remote dashboard allowlist gates page, data, and every bundled asset toget
   assert.ok(asset.body.length > 1000);
   assert.equal((await request({ port: allowed.port, host: address, localAddress: address, route: '/dashboard/assets/community-poster.png' })).status, 200);
   assert.equal((await request({ port: allowed.port, host: address, localAddress: address, route: '/dashboard/assets/html2canvas.min.js' })).status, 200);
+  assert.equal((await request({ port: allowed.port, host: address, localAddress: address, route: '/dashboard/accounts/missing-test/recheck', method: 'POST' })).status, 404);
+  assert.equal((await request({ port: allowed.port, host: address, localAddress: address, route: '/dashboard/accounts/missing-test', method: 'DELETE' })).status, 404);
 });
 
 test('forwarded headers cannot bypass the TCP dashboard source check', async (t) => {

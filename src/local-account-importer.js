@@ -39,6 +39,7 @@ class LocalAccountImporter {
 
     const existing = this.store.list().find((account) => sameIdentity(account, identity));
     if (existing) return { status: 'existing', account: existing };
+    if (this.accountPool?.isRemovedIdentity?.(identity)) return { status: 'removed', identity };
 
     const projectId = await this.provider.project(signal, accessToken);
     if (!projectId) throw new Error('本地 agy 登录态没有可用的 Antigravity project ID。');

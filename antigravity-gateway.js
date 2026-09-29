@@ -1247,7 +1247,7 @@ async function requestHandler(req, res) {
     res.end();
     return;
   }
-  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/')) {
+  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/') || route.startsWith('/dashboard/accounts/')) {
     if (!DASHBOARD_ACCESS.allows(req.socket?.remoteAddress)) {
       sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备或 ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 所列来源访问。' } });
       return;
@@ -1272,6 +1272,31 @@ async function requestHandler(req, res) {
       }), { 'Cache-Control': 'no-store' });
       return;
     }
+    const accountRecheckMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/recheck$/);
+    const accountDeleteMatch = route.match(/^\/dashboard\/accounts\/([^/]+)$/);
+    if (req.method === 'POST' && accountRecheckMatch) {
+      try {
+        const accountId = decodeURIComponent(accountRecheckMatch[1]);
+        const result = await ACCOUNT_POOL.recheckAccount(accountId, { signal: AbortSignal.timeout(15_000) });
+        sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
+      } catch (error) {
+        sendJson(res, Number(error?.status) || 502, {
+          error: { type: error?.code || 'account_recheck_failed', message: error?.message || '账号重新检测失败。' }
+        }, { 'Cache-Control': 'no-store' });
+      }
+      return;
+    }
+    if (req.method === 'DELETE' && accountDeleteMatch) {
+      try {
+        const accountId = decodeURIComponent(accountDeleteMatch[1]);
+        sendJson(res, 200, ACCOUNT_POOL.removeAccount(accountId), { 'Cache-Control': 'no-store' });
+      } catch (error) {
+        sendJson(res, Number(error?.status) || 500, {
+          error: { type: error?.code || 'account_delete_failed', message: error?.message || '账号删除失败。' }
+        }, { 'Cache-Control': 'no-store' });
+      }
+      return;
+    }
     if (route.startsWith('/dashboard/assets/')) {
       if (req.method !== 'GET') {
         sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板资源只支持 GET。' } });
@@ -1291,7 +1316,7 @@ async function requestHandler(req, res) {
       res.end(asset.body);
       return;
     }
-    sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板接口只支持 GET。' } });
+    sendJson(res, 405, { error: { type: 'method_not_allowed', message: '看板请求方法不受支持。' } });
     return;
   }
   const publicFileMatch = route.match(/^\/v1\/files\/(file_[a-f0-9]{32})\/content$/);
@@ -1486,6 +1511,7 @@ if (require.main === module) {
     TERMINAL?.stop();
     QUOTA_MANAGER.stop();
     USAGE_STORE.stop();
+    ACCOUNT_POOL.stop();
     await new Promise((resolve) => server.close(resolve));
     await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
   };
@@ -1550,6 +1576,8 @@ if (require.main === module) {
       gatewayLog(`[Antigravity Gateway] ✅ 已将本地 agy 新账号加入账号池：${localAccountImport.account.email || localAccountImport.account.id}`);
     } else if (localAccountImport?.status === 'existing') {
       gatewayLog(`[Antigravity Gateway] 本地 agy 账号已在账号池，未重复导入：${localAccountImport.account.email || localAccountImport.account.id}`);
+    } else if (localAccountImport?.status === 'removed') {
+      gatewayLog(`[Antigravity Gateway] 本地 agy 账号已按用户删除设置从账号池排除：${localAccountImport.identity.email || localAccountImport.identity.subjectId}`);
     } else if (localAccountImport?.status === 'error') {
       gatewayWarn(`[Antigravity Gateway] 本地 agy 账号自动导入未完成：${localAccountImport.message}（不影响已有账号池和原有登录态）`);
     }
@@ -1561,6 +1589,7 @@ if (require.main === module) {
     else gatewayError(`[Antigravity Gateway Error] ${error.message}`);
     QUOTA_MANAGER.stop();
     USAGE_STORE.stop();
+    ACCOUNT_POOL.stop();
     process.exitCode = 1;
   });
   process.once('SIGINT', () => { void shutdown().finally(() => process.exit(0)); });

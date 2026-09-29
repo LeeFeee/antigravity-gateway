@@ -87,11 +87,16 @@ async function fetchJson(provider, token, path, body) {
         body: JSON.stringify(body)
       });
       const text = await response.text();
-      if (!response.ok) { lastError = `HTTP ${response.status}`; continue; }
+      if (!response.ok) {
+        const error = new Error(text || `HTTP ${response.status}`);
+        error.status = response.status;
+        lastError = error;
+        continue;
+      }
       return JSON.parse(text || '{}');
-    } catch (error) { lastError = error.message; }
+    } catch (error) { lastError = error; }
   }
-  throw new Error(lastError || `${path} 读取失败`);
+  throw lastError || new Error(`${path} 读取失败`);
 }
 
 class QuotaManager {
@@ -132,10 +137,18 @@ class QuotaManager {
   }
 
   async _refresh() {
-    const entries = this.accountPool.hasManagedAccounts()
+    const managedEntries = this.accountPool.hasManagedAccounts()
       ? [...this.accountPool.entries.values()]
-      : [{ account: { id: 'local-agy-session', email: '' }, provider: this.accountPool.fallbackProvider }];
-    const activeIds = new Set(entries.map((entry) => entry.account.id));
+      : [];
+    const allEntries = managedEntries.length
+      ? managedEntries
+      : (this.accountPool.canUseFallback?.() ?? true)
+          ? [{ account: { id: 'local-agy-session', email: '' }, provider: this.accountPool.fallbackProvider }]
+          : [];
+    const entries = managedEntries.length
+      ? managedEntries.filter((entry) => entry.account.enabled !== false && (this.accountPool.isAccountHealthy?.(entry) ?? true))
+      : allEntries;
+    const activeIds = new Set(allEntries.map((entry) => entry.account.id));
     let changed = false;
     for (const id of Object.keys(this.snapshots)) {
       if (!activeIds.has(id)) { delete this.snapshots[id]; changed = true; }
@@ -148,6 +161,9 @@ class QuotaManager {
         fetchJson(entry.provider, token, USAGE_PATH, {})
       ]);
       if (loadResult.status === 'rejected' && modelsResult.status === 'rejected' && usageResult.status === 'rejected') {
+        for (const result of [loadResult, modelsResult, usageResult]) {
+          if (this.accountPool.observeAccountFailure?.(entry, result.reason)) break;
+        }
         throw new Error(`${loadResult.reason?.message || '套餐读取失败'}；${modelsResult.reason?.message || '模型目录读取失败'}；${usageResult.reason?.message || '用量额度读取失败'}`);
       }
       const credits = loadResult.status === 'fulfilled' ? creditSnapshot(loadResult.value) : creditSnapshot({});
@@ -183,6 +199,13 @@ class QuotaManager {
     const temporary = `${this.file}.${process.pid}.${crypto.randomUUID()}.tmp`;
     this.fs.writeFileSync(temporary, `${JSON.stringify(this.snapshots, null, 2)}\n`);
     this.fs.renameSync(temporary, this.file);
+  }
+
+  remove(accountId) {
+    if (!Object.prototype.hasOwnProperty.call(this.snapshots, accountId)) return false;
+    delete this.snapshots[accountId];
+    this.save();
+    return true;
   }
 
   get(accountId, model = '') {

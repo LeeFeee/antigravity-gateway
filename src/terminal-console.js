@@ -175,6 +175,7 @@ class TerminalConsole {
       const quota = this.quotaManager?.get(account.id);
       lines.push(`${index + 1}. ${account.email || account.id}`);
       lines.push(`   状态：${account.enabled ? account.state : 'disabled'}${quota?.available === false ? '，当前模型额度均不可用' : ''}`);
+      if (account.healthMessage) lines.push(`   账号提醒：${account.healthMessage}`);
       if (account.modelCooldowns.length) lines.push(`   模型冷却：${account.modelCooldowns.map((item) => item.model).join(', ')}`);
       if (account.lastSuccessAt) lines.push(`   最后成功：${account.lastSuccessAt}`);
       if (account.lastError) lines.push(`   最近错误：${account.lastError}`);

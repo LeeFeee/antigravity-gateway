@@ -106,6 +106,27 @@ class AccountStore {
     if (!current) throw new Error(`找不到账号: ${id}`);
     return this.save({ ...current, ...updates, id: current.id, createdAt: current.createdAt });
   }
+
+  delete(id) {
+    this.ensureDirectory();
+    let removed = null;
+    for (const name of this.fs.readdirSync(this.directory)) {
+      if (!name.endsWith('.json')) continue;
+      const file = path.join(this.directory, name);
+      let account;
+      try {
+        account = normalizeAccount(JSON.parse(this.fs.readFileSync(file, 'utf8')));
+      } catch {
+        // Never delete an unreadable or unrelated user file based only on its
+        // filename. Account deletion is matched against the stored account ID.
+        continue;
+      }
+      if (account?.id !== id) continue;
+      this.fs.unlinkSync(file);
+      removed ||= account;
+    }
+    return removed;
+  }
 }
 
 module.exports = { AccountStore, accountId, normalizeAccount };

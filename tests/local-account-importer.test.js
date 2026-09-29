@@ -90,6 +90,15 @@ test('local account detection stays inactive when the official agy login is unav
   assert.equal(value.reloads(), 0);
 });
 
+test('an explicitly deleted local identity is not imported again on restart', async (t) => {
+  const value = fixture(t);
+  value.importer.accountPool.isRemovedIdentity = (identity) => identity.email === 'local@example.com';
+  const result = await value.importer.importIfNew();
+  assert.equal(result.status, 'removed');
+  assert.equal(value.store.list().length, 0);
+  assert.equal(value.reloads(), 0);
+});
+
 test('a local session without a refresh token is not persisted as a dead pool account', async (t) => {
   const value = fixture(t);
   value.state.refreshToken = '';

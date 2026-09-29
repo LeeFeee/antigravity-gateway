@@ -168,6 +168,58 @@ test('quota manager persists official usage groups and keeps catalog quota for r
   assert.equal(manager.peek('account-1', 'gemini-3.8-flash-high').remainingFraction, 0.5);
 });
 
+test('quota refresh does not probe accounts already marked unhealthy', async (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-quota-health-test-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const calls = [];
+  const provider = (id) => ({
+    access: async () => { calls.push(id); return `token-${id}`; },
+    baseUrls: () => ['https://example.invalid'],
+    userAgent: 'test',
+    fetchImpl: async () => new Response('{}', { status: 200 })
+  });
+  const unhealthy = { account: { id: 'unhealthy', email: 'bad@example.com' }, provider: provider('unhealthy'), healthState: 'verification_required' };
+  const healthy = { account: { id: 'healthy', email: 'ok@example.com' }, provider: provider('healthy'), healthState: 'available' };
+  const accountPool = {
+    hasManagedAccounts: () => true,
+    entries: new Map([['unhealthy', unhealthy], ['healthy', healthy]]),
+    isAccountHealthy: (entry) => entry.healthState === 'available'
+  };
+  const manager = new QuotaManager({ configDir: directory, accountPool });
+  await manager.refresh();
+  assert.deepEqual(calls, ['healthy']);
+});
+
+test('quota refresh reports a Google verification challenge to account health', async (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-quota-verification-test-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const entry = {
+    account: { id: 'challenged', email: 'verify@example.com' },
+    healthState: 'available',
+    provider: {
+      access: async () => 'token',
+      baseUrls: () => ['https://example.invalid'],
+      userAgent: 'test',
+      fetchImpl: async () => new Response('{"error":{"message":"Verify your account to continue"}}', { status: 403 })
+    }
+  };
+  let observed;
+  const accountPool = {
+    hasManagedAccounts: () => true,
+    entries: new Map([['challenged', entry]]),
+    isAccountHealthy: () => true,
+    observeAccountFailure: (failedEntry, error) => {
+      observed = { failedEntry, error };
+      return true;
+    }
+  };
+  const manager = new QuotaManager({ configDir: directory, accountPool });
+  await manager.refresh();
+  assert.equal(observed.failedEntry, entry);
+  assert.equal(observed.error.status, 403);
+  assert.match(observed.error.message, /Verify your account/);
+});
+
 test('OAuth flow prints a usable URL, accepts a pasted callback, and returns a persistent account', async () => {
   const requests = [];
   const fetchImpl = async (url, options = {}) => {

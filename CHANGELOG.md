@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 - 2026-09-29
+
+- Persisted soft account affinity for 72 hours across restarts, while preserving immediate failover for unavailable accounts.
+- Prioritized new and failover account selection by the nearest Gemini five-hour quota reset to reduce unused quota.
+- Distinguished transient network failures from account authentication, access-denial, and Google verification challenges; unhealthy accounts are excluded from text, image, model-catalog, and quota traffic and surfaced in the dashboard.
+- Added persistent dashboard controls for quota overview/detail display and the selected 1/3/7/30-day statistics range.
+- Added dashboard actions to recheck an unhealthy account with a token-free authentication probe and to permanently remove an account together with its credentials, health state, quota snapshot, affinity bindings, and automatic local re-import fallback.
+
 ## 0.9.3 - 2026-09-29
 
 - Kept native image-generation continuations and client tools intact while separating the internal structured tool result from the single gateway-owned client receipt, with idempotent delivery across Anthropic Messages, Chat Completions, and Responses.

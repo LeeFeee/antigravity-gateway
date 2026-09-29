@@ -17,6 +17,7 @@ class ManagedAccountAuthProvider {
   constructor({ account, store, fetchImpl = globalThis.fetch, agyPath = '' }) {
     this.account = account;
     this.store = store;
+    this.disabled = false;
     this.provider = new LocalAgyAuthProvider({
       fetchImpl,
       agyPath,
@@ -32,11 +33,15 @@ class ManagedAccountAuthProvider {
 
   isConfigured() { return true; }
 
+  disable() { this.disabled = true; }
+
   load() { return this.provider.last; }
 
   async get(signal, options) {
+    if (this.disabled) throw new Error('账号已从账号池删除。');
     const before = this.provider.last;
     const record = await this.provider.get(signal, options);
+    if (this.disabled) throw new Error('账号已从账号池删除。');
     if (record !== before || record.accessToken !== this.account.accessToken || record.refreshToken !== this.account.refreshToken) {
       this.account = this.store.save({
         ...this.account,
