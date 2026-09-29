@@ -10,7 +10,7 @@ const path = require('node:path');
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
-const { artifactReceipt, imageArtifact, imageArtifacts, streamTextRemainder } = require('./src/artifacts');
+const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
@@ -772,6 +772,7 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
           prompt: args.Prompt,
           name: args.ImageName || 'generated_image'
         };
+        const internalResult = internalImageToolResult(image);
         const continuation = {
           ...prepared.normalized,
           stream: false,
@@ -784,8 +785,8 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
             { role: 'assistant', text: '', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }] },
             { role: 'user', text: '', parts: [{
               type: 'tool_result', id: call.id, name: call.name,
-              content: `${artifactReceipt([image])}\nThe image is already saved and available at this URL. Deliver it directly; do not search for the file ID or generate it again.`,
-              response: { output: `${artifactReceipt([image])}\nThe image is already saved and available at this URL. Deliver it directly; do not search for the file ID or generate it again.` },
+              content: JSON.stringify(internalResult),
+              response: { output: internalResult },
               media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
             }] }
           ]

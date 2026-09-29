@@ -21,6 +21,23 @@ function imageArtifacts(images = []) {
   return Array.isArray(images) ? images.map(imageArtifact) : [];
 }
 
+// The model continuation needs machine-readable facts about the generated
+// artifact, not the client-facing receipt. Keeping those two representations
+// separate prevents the model and gateway from both presenting the same image.
+function internalImageToolResult(image = {}) {
+  const artifact = imageArtifact(image);
+  delete artifact.markdown;
+  return {
+    status: 'completed',
+    artifact,
+    delivery: {
+      handled_by: 'gateway',
+      visible_receipt: 'automatic',
+      repeat_in_assistant_text: false
+    }
+  };
+}
+
 function artifactReceipt(images = []) {
   const artifacts = imageArtifacts(images);
   if (!artifacts.length) return '';
@@ -42,7 +59,14 @@ function deliveryText(result = {}) {
   const text = String(result.text || '');
   const receipt = artifactReceipt(result.images);
   if (!receipt) return text;
-  return text ? `${text}\n\n${receipt}` : receipt;
+
+  // The gateway owns the canonical external receipt. If a model ever echoes
+  // that exact transport block (for example while an older continuation is
+  // still in flight), remove every duplicate before appending it once.
+  const narrative = text.includes(receipt)
+    ? text.split(receipt).join('').trim()
+    : text;
+  return narrative ? `${narrative}\n\n${receipt}` : receipt;
 }
 
 // Native image generation has a second model turn. Its answer need not start
@@ -59,5 +83,6 @@ module.exports = {
   artifactReceipt,
   deliveryText,
   imageArtifact,
-  imageArtifacts
+  imageArtifacts,
+  internalImageToolResult
 };

@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { artifactReceipt, imageArtifact } = require('../src/artifacts');
+const { artifactReceipt, deliveryText, imageArtifact, internalImageToolResult } = require('../src/artifacts');
 const { anthropicResponse, chatResponse, responsesResponse } = require('../src/protocol');
 const { imagesResponse } = require('../antigravity-gateway');
 
@@ -44,6 +44,42 @@ test('image artifacts expose transport-neutral delivery metadata without embeddi
   assert.match(receipt, /Markdown: !\[Generated image\]\(https:\/\/gateway\.example/);
 });
 
+test('native image continuation receives structured internal data without a visible receipt', () => {
+  const internal = internalImageToolResult(image);
+  assert.deepEqual(internal, {
+    status: 'completed',
+    artifact: {
+      id: image.id,
+      object: 'artifact',
+      type: 'image',
+      mime_type: image.mimeType,
+      filename: image.filename,
+      bytes: image.bytes,
+      gateway_path: image.gatewayLocalPath,
+      url: image.url
+    },
+    delivery: {
+      handled_by: 'gateway',
+      visible_receipt: 'automatic',
+      repeat_in_assistant_text: false
+    }
+  });
+  assert.doesNotMatch(JSON.stringify(internal), /Image artifact delivery|Markdown|base64-image/);
+});
+
+test('gateway-owned delivery receipt is idempotent when model text already contains it', () => {
+  const receipt = artifactReceipt([image]);
+  const delivered = deliveryText({
+    text: `The image is ready.\n\n${receipt}\n\n${receipt}`,
+    images: [image]
+  });
+  const deliveredAgain = deliveryText({ text: delivered, images: [image] });
+  assert.equal(delivered.split('Image artifact delivery:').length - 1, 1);
+  assert.equal(delivered.split(image.url).length - 1, 2); // URL field plus Markdown field.
+  assert.ok(delivered.startsWith('The image is ready.'));
+  assert.equal(deliveredAgain, delivered);
+});
+
 test('every conversation protocol returns a readable receipt and structured artifacts', () => {
   const anthropic = anthropicResponse('gemini-test', result);
   assert.match(anthropic.content[0].text, /The image is ready/);
@@ -60,6 +96,19 @@ test('every conversation protocol returns a readable receipt and structured arti
   assert.equal(responses.output[1].type, 'image_generation_call');
   assert.equal(responses.output[1].artifact.markdown, `![Generated image](${image.url})`);
   assert.equal(responses.artifacts[0].id, image.id);
+});
+
+test('every conversation protocol exposes exactly one receipt when the model echoes the canonical block', () => {
+  const echoed = { ...result, text: `The image is ready.\n\n${artifactReceipt([image])}` };
+  const bodies = [
+    anthropicResponse('gemini-test', echoed).content[0].text,
+    chatResponse('gemini-test', echoed).choices[0].message.content,
+    responsesResponse('gemini-test', echoed, 'resp_echo').output[0].content[0].text
+  ];
+  for (const body of bodies) {
+    assert.equal(body.split('Image artifact delivery:').length - 1, 1);
+    assert.equal(body.split('The image is ready.').length - 1, 1);
+  }
 });
 
 test('OpenAI Images responses keep the standard field and add the same artifact envelope', () => {

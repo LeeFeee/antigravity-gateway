@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3 - 2026-09-29
+
+- Kept native image-generation continuations and client tools intact while separating the internal structured tool result from the single gateway-owned client receipt, with idempotent delivery across Anthropic Messages, Chat Completions, and Responses.
+- Preserved the dashboard tutorial QR code in locally generated share images.
+
 ## 0.9.2 - 2026-09-28
 
 - Added an opt-in IP/CIDR allowlist for viewing the complete Token dashboard from other devices while keeping the default local-only behavior.

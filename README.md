@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v0.9.2`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v0.9.3`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -503,7 +503,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v0.9.2`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v0.9.3`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
