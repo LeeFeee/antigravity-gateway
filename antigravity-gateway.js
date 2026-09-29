@@ -101,6 +101,13 @@ const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_C
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
 const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
+// 账号池调度策略:round-robin(默认)/ weekly-pressure(优先消耗周额度将作废的账号)。
+// 此处只做纯解析;非法值告警与生效策略打印必须等 gatewayWarn/gatewayLog 定义之后
+// (TERMINAL 在下方才初始化,提前调用会 ReferenceError)。
+const POOL_STRATEGIES = new Set(['round-robin', 'weekly-pressure']);
+const POOL_STRATEGY_RAW = String(process.env.ANTIGRAVITY_GATEWAY_POOL_STRATEGY || 'round-robin').trim().toLowerCase();
+const POOL_STRATEGY_INVALID = !POOL_STRATEGIES.has(POOL_STRATEGY_RAW);
+const POOL_STRATEGY = POOL_STRATEGY_INVALID ? 'round-robin' : POOL_STRATEGY_RAW;
 const DIRECT_PROVIDER = new DirectAntigravityProvider();
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
@@ -109,7 +116,8 @@ const ACCOUNT_POOL = new AccountPool({
   store: ACCOUNT_STORE,
   fallbackProvider: DIRECT_PROVIDER,
   usageStore: USAGE_STORE,
-  agyPath: AGY_PATH
+  agyPath: AGY_PATH,
+  strategy: POOL_STRATEGY
 });
 const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
@@ -126,6 +134,16 @@ let TERMINAL = null;
 function gatewayLog(message) { return TERMINAL ? TERMINAL.log(message) : console.log(message); }
 function gatewayWarn(message) { return TERMINAL ? TERMINAL.log(message, 'warn') : console.warn(message); }
 function gatewayError(message) { return TERMINAL ? TERMINAL.log(message, 'error') : console.error(message); }
+
+// service 子命令(CLI)只操作 launchd 服务,这里的策略值反映的是 CLI 进程自己的环境,
+// 打出来会误导操作者以为线上策略变了——只在前台服务模式下打印;线上生效值看
+// gateway.log / 进程环境 / GET / 的 account_pool.strategy。
+if (!CLI_ARGS.serviceRequested) {
+  if (POOL_STRATEGY_INVALID) {
+    gatewayWarn(`[Antigravity Gateway Warning] 未知 ANTIGRAVITY_GATEWAY_POOL_STRATEGY="${POOL_STRATEGY_RAW}",已回落 round-robin(可选:round-robin / weekly-pressure)`);
+  }
+  gatewayLog(`账号池调度策略:${POOL_STRATEGY}`);
+}
 
 const DASHBOARD_ACCESS = createDashboardAccessPolicy(
   process.env.ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW,
@@ -1356,7 +1374,7 @@ async function requestHandler(req, res) {
         fast_model: preferredFastModel(models),
         models: models.length,
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
-        account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
+        account_pool: { strategy: POOL_STRATEGY, managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
         capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
       });

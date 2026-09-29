@@ -6,6 +6,69 @@ const { ManagedAccountAuthProvider } = require('./managed-account-auth');
 const SESSION_TTL_MS = 60 * 60_000;
 const DEFAULT_COOLDOWN_MS = 60_000;
 const MAX_COOLDOWN_MS = 7 * 24 * 60 * 60_000;
+// 账号池调度策略:round-robin(默认,平滑加权轮询)/ weekly-pressure(按"消耗压力"
+// 优先榨取周额度)。weekly-pressure 的键 = weekly 桶 remainingFraction ÷ 距重置小时数,
+// 对数分档后档间降序、档内轮询(见 weeklyPressureKey)。
+const POOL_STRATEGIES = new Set(['round-robin', 'weekly-pressure']);
+// 请求模型 → 额度组(usage summary 的 groups[].id,实测 g1-pro-tier 为 'gemini' 与 '3p')。
+// 映射不到的模型返回空串,其候选按"未知"处理,退化为档内轮询。
+const MODEL_GROUP_PREFIXES = [
+  ['gemini', 'gemini'],
+  ['claude', '3p'],
+  ['gpt', '3p']
+];
+
+function modelGroup(model) {
+  const id = String(model || '').toLowerCase().replace(/^models\//, '');
+  for (const [prefix, group] of MODEL_GROUP_PREFIXES) {
+    if (id.startsWith(prefix)) return group;
+  }
+  return '';
+}
+
+function classifyWeeklyBucket(bucket, now) {
+  const remaining = Number(bucket?.remainingFraction);
+  const resetAt = Date.parse(String(bucket?.resetTime || ''));
+  const resetValid = Number.isFinite(resetAt) && resetAt > now;
+  if (!Number.isFinite(remaining)) return { kind: 'unknown' };
+  // remaining<=0 或桶级 available=false 视为已耗尽——前提是 resetTime 仍在未来;
+  // resetTime 已过说明周窗口可能已重置,快照数值作废,按未知处理。
+  if (remaining <= 0 || bucket?.available === false) {
+    return resetValid ? { kind: 'exhausted' } : { kind: 'unknown' };
+  }
+  if (!resetValid) return { kind: 'unknown' };
+  const hours = Math.max((resetAt - now) / 3_600_000, 1 / 60);
+  const pressure = remaining / hours;
+  return { kind: 'pressure', pressure, band: Math.floor(Math.log2(pressure)) };
+}
+
+// weekly-pressure 排序键:找该号在指定额度组的 weekly 桶(同组出现多个时取压力最大者,
+// 当前上游一组一个,规则写死防上游变化)。peek 优先(get 为过期即 null 的硬判定口径,
+// 排序是 advisory,过期数值仍比没有强);没有 peek 的实现回落 get。
+function weeklyPressureKey(entry, quotaManager, group, now) {
+  // 未映射模型 group 为空串:不匹配任何组(含无 id 的组),一律按未知处理。
+  if (!group) return { kind: 'unknown' };
+  const snapshot = quotaManager
+    ? (quotaManager.peek ? quotaManager.peek(entry.account.id) : quotaManager.get(entry.account.id))
+    : null;
+  const groups = Array.isArray(snapshot?.groups) ? snapshot.groups : [];
+  const bucketGroup = groups.find((item) => String(item?.id || '').toLowerCase() === group);
+  const buckets = Array.isArray(bucketGroup?.buckets) ? bucketGroup.buckets : [];
+  const weeklyBuckets = buckets.filter((bucket) => {
+    const window = String(bucket?.window || '').toLowerCase();
+    const id = String(bucket?.id || '').toLowerCase();
+    return window === 'weekly' || id.endsWith('-weekly');
+  });
+  let best = null;
+  let exhausted = false;
+  for (const bucket of weeklyBuckets) {
+    const key = classifyWeeklyBucket(bucket, now);
+    if (key.kind === 'pressure' && (!best || key.pressure > best.pressure)) best = key;
+    if (key.kind === 'exhausted') exhausted = true;
+  }
+  if (best) return best;
+  return exhausted ? { kind: 'exhausted' } : { kind: 'unknown' };
+}
 
 function durationMs(value) {
   const source = String(value || '');
@@ -44,11 +107,12 @@ function errorCategory(error) {
 }
 
 class AccountPool {
-  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = globalThis.fetch, providerFactory } = {}) {
+  constructor({ store, fallbackProvider, usageStore, agyPath = '', strategy = 'round-robin', fetchImpl = globalThis.fetch, providerFactory } = {}) {
     this.store = store;
     this.fallbackProvider = fallbackProvider;
     this.usageStore = usageStore;
     this.agyPath = agyPath;
+    this.strategy = POOL_STRATEGIES.has(strategy) ? strategy : 'round-robin';
     this.fetchImpl = fetchImpl;
     this.providerFactory = providerFactory || ((account) => new DirectAntigravityProvider({
       fetchImpl: this.fetchImpl,
@@ -109,6 +173,18 @@ class AccountPool {
     return selected;
   }
 
+  // 把一组候选按 weightedPick 平滑轮询逐个展开,追加到 output(excluded 用于跨组去重)。
+  expandWeighted(candidates, output, excluded) {
+    const groupExcluded = new Set();
+    while (true) {
+      const next = this.weightedPick(candidates.filter((entry) => !groupExcluded.has(entry.account.id)));
+      if (!next) break;
+      output.push(next);
+      excluded.add(next.account.id);
+      groupExcluded.add(next.account.id);
+    }
+  }
+
   orderedCandidates(model, sessionId) {
     this.cleanupSessions();
     const output = [];
@@ -125,20 +201,31 @@ class AccountPool {
     // avoids wasting routine requests on a known-empty account without letting
     // a half-hourly observation overrule the live upstream response.
     const remaining = this.eligible(model, excluded);
-    const groups = [
-      remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available !== false),
-      remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available === false)
-    ];
-    for (const group of groups) {
-      const groupExcluded = new Set();
-      while (true) {
-        const next = this.weightedPick(group.filter((entry) => !groupExcluded.has(entry.account.id)));
-        if (!next) break;
-        output.push(next);
-        excluded.add(next.account.id);
-        groupExcluded.add(next.account.id);
+    const healthy = remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available !== false);
+    const depleted = remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available === false);
+    if (this.strategy === 'weekly-pressure') {
+      // 健康组按消耗压力分层:档(band)间降序先榨紧迫者,档内、未知、已耗尽各自轮询;
+      // 未知排已知之后,已耗尽排最末只作兜底(快照可能过时,真实 429 才是硬信号)。
+      const now = Date.now();
+      const lanes = { pressure: new Map(), unknown: [], exhausted: [] };
+      for (const entry of healthy) {
+        const key = weeklyPressureKey(entry, this.quotaManager, modelGroup(model), now);
+        if (key.kind === 'pressure') {
+          if (!lanes.pressure.has(key.band)) lanes.pressure.set(key.band, []);
+          lanes.pressure.get(key.band).push(entry);
+        } else {
+          lanes[key.kind].push(entry);
+        }
       }
+      for (const band of [...lanes.pressure.keys()].sort((a, b) => b - a)) {
+        this.expandWeighted(lanes.pressure.get(band), output, excluded);
+      }
+      this.expandWeighted(lanes.unknown, output, excluded);
+      this.expandWeighted(lanes.exhausted, output, excluded);
+    } else {
+      this.expandWeighted(healthy, output, excluded);
     }
+    this.expandWeighted(depleted, output, excluded);
     return output;
   }
 
@@ -320,4 +407,4 @@ class AccountPool {
   }
 }
 
-module.exports = { AccountPool, durationMs, errorCategory, retryDelay };
+module.exports = { AccountPool, durationMs, errorCategory, retryDelay, modelGroup, classifyWeeklyBucket };
