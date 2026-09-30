@@ -327,11 +327,12 @@ test('terminal add command always prints the complete fallback URL and reloads t
   output.on('data', (chunk) => { rendered += chunk; });
   let saved;
   let reloads = 0;
+  const quotaRefreshes = [];
   const terminal = new TerminalConsole({
     output,
     accountStore: { save: (account) => (saved = { id: 'id-1', ...account }) },
     accountPool: { reload: () => { reloads += 1; }, status: () => [{ id: 'id-1' }] },
-    quotaManager: { refresh: async () => {} },
+    quotaManager: { refreshAccount: async (id, options) => { quotaRefreshes.push({ id, options }); } },
     oauthFlow: {
       active: null,
       start: async ({ onReady }) => {
@@ -343,6 +344,7 @@ test('terminal add command always prints the complete fallback URL and reloads t
   await terminal.addAccount();
   assert.equal(saved.email, 'person@example.com');
   assert.equal(reloads, 1);
+  assert.deepEqual(quotaRefreshes, [{ id: 'id-1', options: { force: true, summaryOnly: false } }]);
   assert.match(rendered, /https:\/\/accounts\.google\.com\/example\?complete=yes/);
   assert.match(rendered, /如果浏览器没有自动打开网页/);
   assert.match(rendered, /完整 localhost 回调链接/);

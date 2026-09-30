@@ -13,6 +13,34 @@ const DEFAULT_COOLDOWN_MS = 60_000;
 const MAX_COOLDOWN_MS = 7 * 24 * 60 * 60_000;
 const ACCOUNT_HEALTH_STATES = new Set(['verification_required', 'authentication_error', 'access_denied']);
 
+function geminiGroup(snapshot) {
+  return (snapshot?.groups || []).find((group) => /gemini/i.test([
+    group?.id, group?.displayName, group?.description
+  ].filter(Boolean).join(' ')));
+}
+
+function geminiWeeklyPressure(snapshot, now) {
+  const bucket = geminiGroup(snapshot)?.buckets?.find((item) => (
+    String(item?.window || '').toLowerCase() === 'weekly'
+    || String(item?.id || '').toLowerCase().endsWith('-weekly')
+  ));
+  const raw = bucket?.remainingFraction;
+  const remaining = raw == null || String(raw).trim() === '' || typeof raw === 'boolean' ? NaN : Number(raw);
+  const resetAt = Date.parse(bucket?.resetTime || '');
+  if (!Number.isFinite(remaining) || !Number.isFinite(resetAt) || resetAt <= now) return { kind: 'unknown', band: 0 };
+  if (remaining <= 0 || bucket.available === false) return { kind: 'exhausted', band: 0 };
+  const hours = Math.max((resetAt - now) / 3_600_000, 1 / 60);
+  const pressure = Math.min(1, remaining) / hours;
+  return { kind: 'pressure', band: Math.floor(Math.log2(pressure)) };
+}
+
+function compareQuotaRanks(left, right) {
+  return left.depleted - right.depleted
+    || left.lane - right.lane
+    || right.band - left.band
+    || (left.resetTime === right.resetTime ? 0 : left.resetTime < right.resetTime ? -1 : 1);
+}
+
 function durationMs(value) {
   const source = String(value || '');
   let total = 0;
@@ -167,6 +195,7 @@ class AccountPool {
     const old = this.entries;
     const next = new Map();
     let stateChanged = false;
+    const changedEntries = [];
     for (const account of this.store.list()) {
       const previous = old.get(account.id);
       const persistedHealth = this.health.get(account.id);
@@ -184,6 +213,7 @@ class AccountPool {
       entry.healthMessage = activeHealth?.message || '';
       if (activeHealth?.lastError) entry.lastError = activeHealth.lastError;
       next.set(account.id, entry);
+      if (!previous || previous.provider !== entry.provider) changedEntries.push(entry);
     }
     for (const accountId of this.health.keys()) {
       if (!next.has(accountId)) { this.health.delete(accountId); stateChanged = true; }
@@ -191,6 +221,7 @@ class AccountPool {
     this.entries = next;
     if (this.cleanupSessions({ persist: false })) stateChanged = true;
     if (stateChanged) this.saveState();
+    for (const entry of changedEntries) this.refreshAccountQuota(entry, { force: true, summaryOnly: false });
     return this.status();
   }
 
@@ -292,6 +323,7 @@ class AccountPool {
       await entry.provider.probeAuthentication(signal);
       entry.lastSuccessAt = new Date(this.now()).toISOString();
       this.clearAccountIssue(entry);
+      this.refreshAccountQuota(entry, { force: true, summaryOnly: false });
       return { account: this.status().find((item) => item.id === entry.account.id), recovered: true };
     } catch (error) {
       const category = errorCategory(error);
@@ -347,32 +379,36 @@ class AccountPool {
     return selected;
   }
 
-  geminiFiveHourResetTime(entry) {
-    const snapshot = this.quotaManager?.get(entry.account.id);
-    if (!snapshot) return Infinity;
-    const group = (snapshot.groups || []).find((item) => /gemini/i.test([
-      item?.id,
-      item?.displayName,
-      item?.description
-    ].filter(Boolean).join(' ')));
-    const bucket = group?.buckets?.find((item) => String(item?.window || '').toLowerCase() === '5h');
-    const resetTime = Date.parse(bucket?.resetTime || '');
-    return Number.isFinite(resetTime) && resetTime > this.now() ? resetTime : Infinity;
+  refreshAccountQuota(entry, options = {}) {
+    // Scheduling never waits for quota I/O. QuotaManager coalesces and limits
+    // targeted refreshes; older custom managers can continue without them.
+    if (!this.quotaManager?.refreshAccount || !this.isAccountHealthy(entry)) return;
+    void this.quotaManager.refreshAccount(entry.account.id, options).catch(() => {});
   }
 
-  quotaAwareOrder(candidates) {
-    const weighted = [];
-    const excluded = new Set();
-    while (true) {
-      const next = this.weightedPick(candidates.filter((entry) => !excluded.has(entry.account.id)));
-      if (!next) break;
-      weighted.push(next);
-      excluded.add(next.account.id);
-    }
-    return weighted
-      .map((entry, index) => ({ entry, index, resetTime: this.geminiFiveHourResetTime(entry) }))
-      .sort((left, right) => left.resetTime - right.resetTime || left.index - right.index)
-      .map(({ entry }) => entry);
+  geminiFiveHourResetTime(snapshot, now) {
+    const bucket = geminiGroup(snapshot)?.buckets?.find((item) => String(item?.window || '').toLowerCase() === '5h');
+    const resetTime = Date.parse(bucket?.resetTime || '');
+    return Number.isFinite(resetTime) && resetTime > now ? resetTime : Infinity;
+  }
+
+  quotaRanks(model, candidates) {
+    const now = this.now();
+    return candidates.map((entry) => {
+      const snapshot = this.quotaManager?.getSchedulingSnapshot
+        ? this.quotaManager.getSchedulingSnapshot(entry.account.id, now)
+        : this.quotaManager?.get(entry.account.id);
+      const weekly = geminiWeeklyPressure(snapshot, now);
+      const resetTime = this.geminiFiveHourResetTime(snapshot, now);
+      if (!snapshot || weekly.kind === 'unknown' || resetTime === Infinity) this.refreshAccountQuota(entry);
+      return {
+        entry,
+        depleted: this.quotaManager?.get(entry.account.id, model)?.available === false ? 1 : 0,
+        lane: { pressure: 0, unknown: 1, exhausted: 2 }[weekly.kind],
+        band: weekly.band,
+        resetTime
+      };
+    }).sort(compareQuotaRanks);
   }
 
   orderedCandidates(model, sessionId) {
@@ -385,23 +421,24 @@ class AccountPool {
       output.push(sticky);
       excluded.add(sticky.account.id);
     }
-    // A quota snapshot is advisory rather than an authorization gate. Prefer
-    // accounts whose credit state is healthy or unknown, but retain depleted
-    // accounts as a final fallback in case the cached snapshot is stale. This
-    // avoids wasting routine requests on a known-empty account without letting
-    // a half-hourly observation overrule the live upstream response.
-    const remaining = this.eligible(model, excluded);
-    const groups = [
-      remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available !== false),
-      remaining.filter((entry) => this.quotaManager?.get(entry.account.id, model)?.available === false)
-    ];
-    for (const group of groups) {
-      for (const next of this.quotaAwareOrder(group)) {
-        output.push(next);
-        excluded.add(next.account.id);
-      }
+    // A read-only candidate order must not spend weights on unused backups.
+    return output.concat(this.quotaRanks(model, this.eligible(model, excluded)).map(({ entry }) => entry));
+  }
+
+  selectAccount(model, routingKey, excluded, { preferredAccountId = '', allowSticky = true } = {}) {
+    this.cleanupSessions();
+    const candidates = this.eligible(model, excluded);
+    if (allowSticky) {
+      const preferred = candidates.find((entry) => entry.account.id === preferredAccountId);
+      const bound = routingKey ? this.sessions.get(routingKey) : null;
+      const sticky = bound && candidates.find((entry) => entry.account.id === bound.accountId);
+      // Successful continuations neither recalculate quota pressure nor change
+      // weighted rotation; image tools retain their explicitly preferred account.
+      if (preferred || sticky) return preferred || sticky;
     }
-    return output;
+    const ranks = this.quotaRanks(model, candidates);
+    if (!ranks.length) return null;
+    return this.weightedPick(ranks.filter((rank) => compareQuotaRanks(rank, ranks[0]) === 0).map(({ entry }) => entry));
   }
 
   attemptReporter(accountId, model) {
@@ -438,20 +475,17 @@ class AccountPool {
     }
 
     const routingKey = options.routingKey || options.sessionId;
-    const candidates = this.orderedCandidates(model, routingKey);
-    if (!candidates.length) {
-      throw new DirectProviderError(`当前没有可用于模型 ${model} 的 Antigravity 账号。`, {
-        code: 'account_pool_unavailable', status: 429
-      });
-    }
+    const attempted = new Set();
     let lastError;
-    for (let index = 0; index < candidates.length; index += 1) {
-      const entry = candidates[index];
+    while (true) {
+      const entry = this.selectAccount(model, routingKey, attempted, { allowSticky: attempted.size === 0 });
+      if (!entry) break;
+      attempted.add(entry.account.id);
       options.onAccountSelected?.({
         accountId: entry.account.id,
         email: entry.account.email,
         source: entry.account.source || 'managed-account',
-        attempt: index + 1
+        attempt: attempted.size
       });
       let responseSeen = false;
       try {
@@ -477,14 +511,14 @@ class AccountPool {
         if (category === 'request') throw error;
         if (category === 'quota') {
           entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
-          void this.quotaManager?.refresh().catch(() => {});
+          this.refreshAccountQuota(entry);
         }
         else if (category === 'account') this.observeAccountFailure(entry, error);
         else entry.cooldownUntil = this.now() + 15_000;
         if (routingKey && options.bindRouting !== false) this.deleteSession(routingKey);
       }
     }
-    throw lastError;
+    throw lastError || this.noAccountError(model);
   }
 
   async generateImage(request, options = {}) {
@@ -508,17 +542,15 @@ class AccountPool {
     }
 
     const routingKey = options.routingKey || options.sessionId;
-    const preferred = options.accountId ? this.entries.get(options.accountId) : null;
-    const preferredEligible = preferred && this.eligible(model).includes(preferred);
-    const candidates = preferredEligible
-      ? [preferred, ...this.orderedCandidates(model, routingKey).filter((entry) => entry !== preferred)]
-      : this.orderedCandidates(model, routingKey);
-    if (!candidates.length) throw new DirectProviderError('当前没有可用于生图的 Antigravity 账号。', { code: 'account_pool_unavailable', status: 429 });
-
+    const attempted = new Set();
     let lastError;
-    for (let index = 0; index < candidates.length; index += 1) {
-      const entry = candidates[index];
-      options.onAccountSelected?.({ accountId: entry.account.id, email: entry.account.email, source: entry.account.source || 'managed-account', attempt: index + 1 });
+    while (true) {
+      const entry = this.selectAccount(model, routingKey, attempted, {
+        preferredAccountId: options.accountId, allowSticky: attempted.size === 0
+      });
+      if (!entry) break;
+      attempted.add(entry.account.id);
+      options.onAccountSelected?.({ accountId: entry.account.id, email: entry.account.email, source: entry.account.source || 'managed-account', attempt: attempted.size });
       let responseSeen = false;
       try {
         const result = await entry.provider.generateImage(request, {
@@ -541,13 +573,16 @@ class AccountPool {
         entry.lastError = String(error.message || error);
         const category = errorCategory(error);
         if (category === 'request') throw error;
-        if (category === 'quota') entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
+        if (category === 'quota') {
+          entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
+          this.refreshAccountQuota(entry);
+        }
         else if (category === 'account') this.observeAccountFailure(entry, error);
         else entry.cooldownUntil = this.now() + 15_000;
         if (routingKey && options.bindRouting !== false) this.deleteSession(routingKey);
       }
     }
-    throw lastError;
+    throw lastError || this.noAccountError(model);
   }
 
   async listModels(signal, options = {}) {
@@ -607,4 +642,4 @@ class AccountPool {
   }
 }
 
-module.exports = { AccountPool, SESSION_TTL_MS, accountHealth, durationMs, errorCategory, retryDelay };
+module.exports = { AccountPool, SESSION_TTL_MS, accountHealth, geminiWeeklyPressure, durationMs, errorCategory, retryDelay };

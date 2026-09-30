@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 - 2026-09-30
+
+- Added Gemini-only weekly pressure bands (`floor(log2(remainingFraction / hoursUntilReset))`) before the existing Gemini five-hour reset priority for new bindings and account failover, while retaining soft affinity for conversation and image continuations.
+- Corrected weighted rotation so only a real account selection changes weights; unused fallback candidates no longer distort load distribution.
+- Added asynchronous per-account quota-summary refreshes with five-minute throttling, request coalescing and bounded concurrency; tracked summary freshness separately from model/plan queries and rejected obsolete results after deletion or credential replacement.
+
 ## 1.0.0 - 2026-09-29
 
 - Persisted soft account affinity for 72 hours across restarts, while preserving immediate failover for unavailable accounts.

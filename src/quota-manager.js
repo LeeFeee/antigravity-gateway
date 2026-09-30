@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const REFRESH_INTERVAL_MS = 30 * 60_000;
+const TARGETED_REFRESH_MIN_INTERVAL_MS = 5 * 60_000;
 const LOAD_PATH = '/v1internal:loadCodeAssist';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const USAGE_PATH = '/v1internal:retrieveUserQuotaSummary';
@@ -50,7 +51,8 @@ function usageQuotaSnapshot(body) {
   const groups = Array.isArray(body?.groups) ? body.groups : [];
   return groups.map((group, groupIndex) => {
     const buckets = (Array.isArray(group?.buckets) ? group.buckets : []).flatMap((bucket, bucketIndex) => {
-      const remaining = Number(bucket?.remainingFraction ?? bucket?.remaining_fraction);
+      const rawRemaining = bucket?.remainingFraction ?? bucket?.remaining_fraction;
+      const remaining = rawRemaining == null || String(rawRemaining).trim() === '' || typeof rawRemaining === 'boolean' ? NaN : Number(rawRemaining);
       if (!Number.isFinite(remaining)) return [];
       return [{
         id: String(bucket?.bucketId || bucket?.bucket_id || `${groupIndex}-${bucketIndex}`),
@@ -100,15 +102,21 @@ async function fetchJson(provider, token, path, body) {
 }
 
 class QuotaManager {
-  constructor({ configDir, accountPool, fsImpl = fs, intervalMs = REFRESH_INTERVAL_MS } = {}) {
+  constructor({ configDir, accountPool, fsImpl = fs, intervalMs = REFRESH_INTERVAL_MS, now = () => Date.now(), refreshConcurrency = 2 } = {}) {
     this.accountPool = accountPool;
     this.fs = fsImpl;
     this.intervalMs = intervalMs;
+    this.now = now;
+    this.refreshConcurrency = Math.max(1, Number(refreshConcurrency) || 2);
     this.directory = path.join(configDir, 'state');
     this.file = path.join(this.directory, 'quota.json');
     this.snapshots = this.load();
     this.timer = null;
     this.refreshing = null;
+    this.refreshingAccounts = new Map();
+    this.refreshAttempts = new Map();
+    this.refreshQueue = [];
+    this.activeRefreshes = 0;
   }
 
   load() {
@@ -136,62 +144,160 @@ class QuotaManager {
     return this.refreshing;
   }
 
-  async _refresh() {
+  activeEntries() {
     const managedEntries = this.accountPool.hasManagedAccounts()
       ? [...this.accountPool.entries.values()]
       : [];
     const allEntries = managedEntries.length
       ? managedEntries
       : (this.accountPool.canUseFallback?.() ?? true)
-          ? [{ account: { id: 'local-agy-session', email: '' }, provider: this.accountPool.fallbackProvider }]
+          ? [{ account: { id: 'local-agy-session', email: '' }, provider: this.accountPool.fallbackProvider, healthState: 'available' }]
           : [];
-    const entries = managedEntries.length
-      ? managedEntries.filter((entry) => entry.account.enabled !== false && (this.accountPool.isAccountHealthy?.(entry) ?? true))
-      : allEntries;
+    return allEntries;
+  }
+
+  usableEntry(entry) {
+    return entry && entry.account.enabled !== false && (this.accountPool.isAccountHealthy?.(entry) ?? true);
+  }
+
+  currentEntry(accountId) {
+    return this.activeEntries().find((entry) => entry.account.id === accountId);
+  }
+
+  async _refresh() {
+    const allEntries = this.activeEntries();
     const activeIds = new Set(allEntries.map((entry) => entry.account.id));
     let changed = false;
     for (const id of Object.keys(this.snapshots)) {
       if (!activeIds.has(id)) { delete this.snapshots[id]; changed = true; }
     }
-    const results = await Promise.allSettled(entries.map(async (entry) => {
-      const token = await entry.provider.access(AbortSignal.timeout(30_000));
-      const [loadResult, modelsResult, usageResult] = await Promise.allSettled([
-        fetchJson(entry.provider, token, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
-        fetchJson(entry.provider, token, MODELS_PATH, {}),
-        fetchJson(entry.provider, token, USAGE_PATH, {})
-      ]);
-      if (loadResult.status === 'rejected' && modelsResult.status === 'rejected' && usageResult.status === 'rejected') {
-        for (const result of [loadResult, modelsResult, usageResult]) {
-          if (this.accountPool.observeAccountFailure?.(entry, result.reason)) break;
-        }
-        throw new Error(`${loadResult.reason?.message || '套餐读取失败'}；${modelsResult.reason?.message || '模型目录读取失败'}；${usageResult.reason?.message || '用量额度读取失败'}`);
+    const results = await Promise.allSettled(allEntries.filter((entry) => this.usableEntry(entry)).map((entry) => (
+      this.refreshAccount(entry.account.id, { force: true, summaryOnly: false })
+    )));
+    if (changed || results.some((result) => result.status === 'fulfilled' && result.value)) this.save();
+    return this.snapshots;
+  }
+
+  refreshAccount(accountId, { force = false, summaryOnly = true } = {}) {
+    const entry = this.currentEntry(accountId);
+    if (!this.usableEntry(entry)) return Promise.resolve(null);
+    const pending = this.refreshingAccounts.get(accountId);
+    if (pending) {
+      if (pending.provider !== entry.provider) {
+        return pending.promise.catch(() => null).then(() => this.refreshAccount(accountId, { force: true, summaryOnly }));
       }
-      const credits = loadResult.status === 'fulfilled' ? creditSnapshot(loadResult.value) : creditSnapshot({});
-      const models = modelsResult.status === 'fulfilled' ? modelQuotaSnapshot(modelsResult.value) : {};
-      const groups = usageResult.status === 'fulfilled' ? usageQuotaSnapshot(usageResult.value) : [];
+      // A full refresh must still fetch catalog and plan data if it followed a
+      // summary-only request. Both paths otherwise share the same per-account job.
+      if (!summaryOnly && pending.summaryOnly) {
+        return pending.promise.catch(() => null).then(() => this.refreshAccount(accountId, { force: true, summaryOnly: false }));
+      }
+      return pending.promise;
+    }
+    const last = this.refreshAttempts.get(accountId);
+    if (!force && last?.provider === entry.provider && this.now() - last.at < TARGETED_REFRESH_MIN_INTERVAL_MS) {
+      return Promise.resolve(this.snapshots[accountId] || null);
+    }
+    this.refreshAttempts.set(accountId, { at: this.now(), provider: entry.provider });
+    const job = { entry, provider: entry.provider, summaryOnly };
+    job.promise = new Promise((resolve, reject) => {
+      job.resolve = resolve;
+      job.reject = reject;
+    }).finally(() => {
+      if (this.refreshingAccounts.get(accountId) === job) this.refreshingAccounts.delete(accountId);
+    });
+    this.refreshingAccounts.set(accountId, job);
+    this.refreshQueue.push(job);
+    this.drainRefreshQueue();
+    return job.promise;
+  }
+
+  drainRefreshQueue() {
+    while (this.activeRefreshes < this.refreshConcurrency && this.refreshQueue.length) {
+      const job = this.refreshQueue.shift();
+      this.activeRefreshes += 1;
+      void Promise.resolve().then(() => this.refreshEntry(job.entry, job.summaryOnly, job.provider))
+        .then(job.resolve, job.reject).finally(() => {
+          this.activeRefreshes -= 1;
+          this.drainRefreshQueue();
+        });
+    }
+  }
+
+  async refreshEntry(entry, summaryOnly, provider) {
+    const accountId = entry.account.id;
+    const isCurrent = () => this.currentEntry(accountId)?.provider === provider;
+    if (!isCurrent() || !this.usableEntry(this.currentEntry(accountId))) return null;
+    try {
+      const token = await provider.access(AbortSignal.timeout(30_000));
+      const [loadResult, modelsResult, usageResult] = await Promise.allSettled([
+        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
+        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, MODELS_PATH, {}),
+        fetchJson(provider, token, USAGE_PATH, {})
+      ]);
+      if (!isCurrent() || !this.usableEntry(this.currentEntry(accountId))) return null;
+      if ((summaryOnly || (loadResult.status === 'rejected' && modelsResult.status === 'rejected')) && usageResult.status === 'rejected') {
+        if (summaryOnly) throw usageResult.reason;
+        let failure = usageResult.reason;
+        for (const result of [loadResult, modelsResult, usageResult]) {
+          if (result.status === 'rejected' && this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), result.reason)) {
+            failure = result.reason;
+            break;
+          }
+        }
+        throw failure;
+      }
+      const previous = this.snapshots[accountId] || {};
+      const credits = !summaryOnly && loadResult.status === 'fulfilled'
+        ? creditSnapshot(loadResult.value)
+        : { plan: previous.plan || '', creditType: previous.creditType || '', creditAmount: previous.creditAmount ?? null, minimumCreditAmountForUsage: previous.minimumCreditAmountForUsage ?? null };
+      const models = !summaryOnly && modelsResult.status === 'fulfilled' ? modelQuotaSnapshot(modelsResult.value) : previous.models || {};
+      const groups = usageResult.status === 'fulfilled' ? usageQuotaSnapshot(usageResult.value) : previous.groups || [];
+      const now = this.now();
+      const observedAt = new Date(now).toISOString();
+      const expiresAt = new Date(now + this.intervalMs).toISOString();
+      const groupsExpiresAt = usageResult.status === 'fulfilled' ? expiresAt : previous.groupsExpiresAt || previous.expiresAt || '';
+      const modelsExpiresAt = !summaryOnly && modelsResult.status === 'fulfilled' ? expiresAt : previous.modelsExpiresAt || previous.expiresAt || '';
       const values = Object.values(models);
-      const available = groups.length
+      const available = groups.length && Date.parse(groupsExpiresAt) > now
         ? groups.some((group) => group.available)
-        : values.length ? values.some((item) => item.available) : credits.available;
-      return [entry.account.id, {
-        accountId: entry.account.id,
+        : values.length && Date.parse(modelsExpiresAt) > now ? values.some((item) => item.available)
+          : !summaryOnly && loadResult.status === 'fulfilled' ? credits.available : null;
+      const snapshot = {
+        ...previous,
+        accountId,
         email: entry.account.email,
-        observedAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + this.intervalMs).toISOString(),
+        observedAt,
+        expiresAt,
+        // Each source owns its freshness. A successful plan/catalog request
+        // cannot make an old quota summary fresh, or vice versa.
+        groupsObservedAt: usageResult.status === 'fulfilled' ? observedAt : previous.groupsObservedAt || previous.observedAt || '',
+        groupsExpiresAt,
+        modelsExpiresAt,
         ...credits,
         available,
         groups,
         models
-      }];
-    }));
-    for (const result of results) {
-      if (result.status !== 'fulfilled') continue;
-      const [id, snapshot] = result.value;
-      this.snapshots[id] = snapshot;
-      changed = true;
+      };
+      this.snapshots[accountId] = snapshot;
+      // The periodic full-pool refresh persists its batch once, rather than
+      // writing the complete quota file once for every account.
+      if (!this.refreshing) this.save();
+      return snapshot;
+    } catch (error) {
+      if (isCurrent() && this.usableEntry(this.currentEntry(accountId))) {
+        const summaryDenied = summaryOnly && Number(error?.status) === 403
+          && !/verify\s*your\s*account|account.*verif|security.*challenge/i.test(String(error.message || ''));
+        if (summaryDenied) {
+          // One optional quota endpoint can deny access while generation still
+          // works. Confirm through the existing full probe before quarantining;
+          // explicit Google verification challenges remain immediate failures.
+          void this.refreshAccount(accountId, { summaryOnly: false }).catch(() => {});
+        } else {
+          this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), error);
+        }
+      }
+      throw error;
     }
-    if (changed) this.save();
-    return this.snapshots;
   }
 
   save() {
@@ -202,6 +308,7 @@ class QuotaManager {
   }
 
   remove(accountId) {
+    this.refreshAttempts.delete(accountId);
     if (!Object.prototype.hasOwnProperty.call(this.snapshots, accountId)) return false;
     delete this.snapshots[accountId];
     this.save();
@@ -212,8 +319,17 @@ class QuotaManager {
     const snapshot = this.snapshots[accountId];
     if (!snapshot) return null;
     const expiresAt = Date.parse(snapshot.expiresAt) || 0;
-    if (expiresAt && expiresAt <= Date.now()) return null;
+    if (expiresAt && expiresAt <= this.now()) return null;
+    const modelExpiresAt = Date.parse(snapshot.modelsExpiresAt || snapshot.expiresAt) || 0;
+    if (model && modelExpiresAt && modelExpiresAt <= this.now()) return null;
     return this.snapshot(accountId, model, false);
+  }
+
+  getSchedulingSnapshot(accountId, now = this.now()) {
+    const snapshot = this.snapshots[accountId];
+    if (!snapshot) return null;
+    const expiresAt = Date.parse(snapshot.groupsExpiresAt || snapshot.expiresAt);
+    return Number.isFinite(expiresAt) && expiresAt > now ? snapshot : null;
   }
 
   peek(accountId, model = '') {
@@ -224,13 +340,17 @@ class QuotaManager {
     const snapshot = this.snapshots[accountId];
     if (!snapshot) return null;
     const expiresAt = Date.parse(snapshot.expiresAt) || 0;
-    const stale = Boolean(expiresAt && expiresAt <= Date.now());
+    const stale = Boolean(expiresAt && expiresAt <= this.now());
     if (stale && !allowExpired) return null;
     const modelQuota = model ? snapshot.models?.[model] : null;
+    const sourceExpiresAt = Date.parse(model
+      ? snapshot.modelsExpiresAt || snapshot.expiresAt
+      : snapshot.groupsExpiresAt || snapshot.expiresAt) || 0;
+    const sourceStale = Boolean(sourceExpiresAt && sourceExpiresAt <= this.now());
     return modelQuota
-      ? { ...snapshot, ...modelQuota, accountAvailable: snapshot.available, stale }
-      : { ...snapshot, stale };
+      ? { ...snapshot, ...modelQuota, accountAvailable: snapshot.available, stale: stale || sourceStale }
+      : { ...snapshot, stale: stale || sourceStale };
   }
 }
 
-module.exports = { QuotaManager, REFRESH_INTERVAL_MS, creditSnapshot, modelQuotaSnapshot, usageQuotaSnapshot };
+module.exports = { QuotaManager, REFRESH_INTERVAL_MS, TARGETED_REFRESH_MIN_INTERVAL_MS, creditSnapshot, modelQuotaSnapshot, usageQuotaSnapshot };

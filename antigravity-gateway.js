@@ -1553,7 +1553,9 @@ if (require.main === module) {
     if (usesDirectTransport()) {
       try {
         localAccountImport = await LOCAL_ACCOUNT_IMPORTER.importIfNew();
-        if (localAccountImport.status === 'imported') void QUOTA_MANAGER.refresh().catch(() => {});
+        if (localAccountImport.status === 'imported') {
+          void QUOTA_MANAGER.refreshAccount(localAccountImport.account.id, { force: true, summaryOnly: false }).catch(() => {});
+        }
       } catch (error) {
         localAccountImport = { status: 'error', message: error.message };
       }

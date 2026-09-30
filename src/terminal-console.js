@@ -158,7 +158,7 @@ class TerminalConsole {
       } });
       const saved = this.accountStore.save(account);
       this.accountPool.reload();
-      void this.quotaManager?.refresh().catch(() => {});
+      void this.quotaManager?.refreshAccount?.(saved.id, { force: true, summaryOnly: false }).catch(() => {});
       this.log(`✅ 账号授权成功：${saved.email || saved.id}`);
       this.log('✅ 凭据已保存，账号池已重新加载。');
       this.log(`✅ 当前共有 ${this.accountPool.status().length} 个账号。`);
