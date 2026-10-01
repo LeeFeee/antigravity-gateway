@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 - 2026-10-01
+
+- Replaced winner-take-all quota routing with weighted distribution across healthy accounts: Gemini weekly pressure bands set the main weight, the nearest Gemini five-hour reset receives an in-band boost, and lower-ranked accounts retain traffic instead of starving.
+- Changed persisted soft affinity from a sliding 72-hour lifetime to a fixed five-hour window; healthy continuations now use an O(1) local-state fast path and quota ranking runs only for new, expired, or failed bindings.
+- Raised the default direct-transport concurrency from 4 to 12 while retaining 4 for explicit local `agy` subprocess transport; environment overrides remain supported.
+
 ## 1.0.1 - 2026-09-30
 
 - Added Gemini-only weekly pressure bands (`floor(log2(remainingFraction / hoursUntilReset))`) before the existing Gemini five-hour reset priority for new bindings and account failover, while retaining soft affinity for conversation and image continuations.

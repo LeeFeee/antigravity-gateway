@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.0.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.1.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -343,9 +343,9 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
   --prompt "分析这段视频并回答我的问题"
 ```
 
-网关分别管理客户端身份、独立对话和账号黏性：同一对话及其工具调用优先使用同一账号；子 Agent 使用独立会话状态，但通过父会话继承账号黏性。软黏性映射会在本地保存 72 小时，网关重启后仍会优先恢复最近成功账号；账号额度耗尽、网络异常、凭据失效、访问受限或 Google 要求安全核验时仍会立即故障转移，不会形成不可切换的硬绑定。认证和账号风控会把账号标记为异常并停止继续尝试；重新授权导致凭据变化时自动恢复，也可以在看板中点击“重新检测”，以不生成内容、不消耗模型 Token 的轻量鉴权确认核验结果。网络瞬态故障仍由直连传输重试，失败后只进入短暂冷却。
+网关分别管理客户端身份、独立对话和账号黏性：同一对话及其工具调用优先使用同一账号；子 Agent 使用独立会话状态，但通过父会话继承账号黏性。软黏性映射会在本地保存固定 5 小时（可通过 `ANTIGRAVITY_AFFINITY_TTL_SECONDS` 调整），网关重启后仍会优先恢复当前窗口内的账号；窗口内的后续请求只检查本地可用状态，不重复读取或排序额度。窗口到期、账号额度耗尽、网络异常、凭据失效、访问受限或 Google 要求安全核验时会重新按 Gemini 周额度压力、5 小时重置时间和账号权重加权选择，避免单一高压力账号独占全部新流量。认证和账号风控会把账号标记为异常并停止继续尝试；重新授权导致凭据变化时自动恢复，也可以在看板中点击“重新检测”，以不生成内容、不消耗模型 Token 的轻量鉴权确认核验结果。网络瞬态故障仍由直连传输重试，失败后只进入短暂冷却。
 
-首次选择账号或故障转移时，保留当前模型的可用性优先规则，然后仅参考 Gemini 模型组的周额度计算 `Pressure = remainingFraction / 距周重置小时数`，以 `floor(log2(Pressure))` 分档、档间降序；同档继续优先选择 Gemini 5 小时额度最早重置的账号，重置时间相同或未知时按账号权重轮询。无论请求使用 Gemini、Claude 还是 GPT，都不使用 Claude/GPT 周额度参与压力排序。已有可用的黏性账号及生图的优先账号直接续接，不重算压力或变更轮询权重；切号时重新读取快照，单次请求不重复尝试同一账号。
+首次选择账号或故障转移时，保留当前模型的可用性优先规则，然后仅参考 Gemini 模型组的周额度计算 `Pressure = remainingFraction / 距周重置小时数`，以 `floor(log2(Pressure))` 分档。最高压力档、相邻档和其余可用档分别获得 4、2、1 倍权重；同档中 Gemini 5 小时额度最早重置的账号再获得 2 倍权重，最后叠加账号自身权重进行平滑加权轮询。无论请求使用 Gemini、Claude 还是 GPT，都不使用 Claude/GPT 周额度参与压力排序。已有可用的黏性账号及生图的优先账号直接续接，不重算压力或变更轮询权重；切号时重新读取快照，单次请求不重复尝试同一账号。
 
 选号只读取内存中的真实上游额度快照，不等待联网查询，也不根据 Token 用量推算余额。有效的 Gemini 周压力档位优先，未知压力账号随后，已知周额度耗尽账号保留为最终兜底。快照过期、周重置已到或字段缺失时按未知处理，并异步补刷新；同档未知的 5 小时重置时间仍退回加权轮询。后台保留约 30 分钟一次的完整刷新；缺失/失效快照及实际额度失败只补查相关账号的额度汇总，普通补刷新每账号至少间隔 5 分钟，重复请求合并，最多同时刷新两个账号。新增账号、凭据变化及重新检测成功会触发该账号的完整刷新。额度汇总单独记录观测时间，套餐或模型目录查询成功不会把旧额度标记为最新。
 
@@ -445,8 +445,9 @@ export NO_PROXY=127.0.0.1,localhost
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | 用户主动设置的精确模型映射 |
 | `ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS` | `8000` | 模型目录探测超时，单位毫秒 |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单次请求总超时，单位毫秒 |
-| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | 最大并发请求数 |
+| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `12`（`agy` 模式为 `4`） | 最大并发请求数 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 最大排队请求数 |
+| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | 账号软黏性的固定窗口，单位秒；窗口内成功请求不会续期 |
 | `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` | 空 | 允许访问本地网关的浏览器 Origin |
 | `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | 空 | 额外允许访问看板的 IP、CIDR 或 `*`，逗号分隔；默认仅本机 |
 | `ANTIGRAVITY_GATEWAY_DEBUG` | 空 | 设置为 `1` 输出更多诊断信息 |
@@ -510,7 +511,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.0.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.1.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -733,9 +734,9 @@ curl http://127.0.0.1:9897/v1/files \
   -F 'purpose=assistants'
 ```
 
-Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata. Soft affinity is persisted locally for 72 hours and restored after gateway restarts, while unavailable accounts still fail over immediately. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
+Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata. Soft affinity is persisted locally for a fixed five-hour window, configurable through `ANTIGRAVITY_AFFINITY_TTL_SECONDS`, and successful requests do not extend that window. Healthy continuations use an O(1) local affinity lookup without recalculating quota ranks; expiry or failure triggers weighted selection using Gemini weekly pressure, Gemini five-hour reset time, and configured account weights without starving lower-ranked healthy accounts. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
 
-For new bindings and failover, retain current-model availability priority, then rank accounts by Gemini-only weekly pressure bands: `floor(log2(remainingFraction / hoursUntilWeeklyReset))`, with a one-minute minimum denominator. Higher bands come first; within a band the earliest Gemini five-hour reset wins, and tied/unknown reset times use weighted rotation. Claude/GPT weekly quota does not affect pressure regardless of the requested model. Healthy sticky continuations and preferred image accounts skip recalculation and do not spend rotation weights. Failover rereads snapshots and tries each account at most once per request.
+For new bindings and failover, retain current-model availability priority, then calculate Gemini-only weekly pressure bands as `floor(log2(remainingFraction / hoursUntilWeeklyReset))`, with a one-minute minimum denominator. The highest, adjacent, and remaining usable bands receive 4x, 2x, and 1x weights; the earliest Gemini five-hour reset within each band receives a further 2x boost before applying the configured account weight through smooth weighted rotation. Claude/GPT weekly quota does not affect pressure regardless of the requested model. Healthy sticky continuations and preferred image accounts skip recalculation and do not spend rotation weights. Failover rereads snapshots and tries each account at most once per request.
 
 Scheduling reads fresh in-memory quota summaries without waiting for network queries or estimating quota from Token counts. Unknown/expired weekly data follows known positive pressure, and exhausted snapshots remain advisory fallbacks. Full background refreshes remain approximately half-hourly. Missing/expired data and live quota failures trigger asynchronous per-account summary refreshes, coalesced and throttled to once per five minutes with two accounts refreshed concurrently; account additions, changed credentials and successful authentication rechecks trigger full account refreshes. Summary freshness is tracked independently, so successful plan/catalog queries cannot renew stale quota data.
 
@@ -782,8 +783,9 @@ Common failures:
 | `ANTIGRAVITY_FAST_MODEL` | auto-selected | Auto Mode classifier model |
 | `ANTIGRAVITY_MODEL_ALIASES` | `{}` | Explicit exact model aliases |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Request timeout in milliseconds |
-| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `4` | Maximum concurrent requests |
+| `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `12` (`4` in `agy` mode) | Maximum concurrent requests |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | Maximum queued requests |
+| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | Fixed account-affinity window in seconds; successful requests do not renew it |
 | `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | empty | Extra IPs, CIDRs, or `*` allowed to open the dashboard; comma-separated and local-only by default |
 | `ANTIGRAVITY_IMAGE_MODEL` | `gemini-3.1-flash-image` | Native Antigravity image model |
 | `ANTIGRAVITY_GATEWAY_MEDIA_LIMIT` | `100663296` | Maximum bytes per media item |

@@ -74,8 +74,32 @@ test('all requested model families use Gemini weekly bands then Gemini five-hour
   ]);
   for (const model of ['gemini-test', 'claude-test', 'gpt-test', 'custom-model']) {
     assert.deepEqual(pool.orderedCandidates(model, '').map((entry) => entry.account.id), [accounts[2].id, accounts[1].id, accounts[0].id]);
-    assert.equal((await pool.send({}, model)).accountId, accounts[2].id);
+    pool.weights.clear();
+    const counts = new Map(accounts.map((account) => [account.id, 0]));
+    for (let index = 0; index < 14; index++) {
+      const selected = await pool.send({}, model);
+      counts.set(selected.accountId, counts.get(selected.accountId) + 1);
+    }
+    assert.deepEqual(accounts.map((account) => counts.get(account.id)), [2, 4, 8]);
   }
+});
+
+test('better weekly pressure and five-hour reset increase share without starving healthy accounts', async (t) => {
+  const { pool, accounts } = fixture(t, [
+    { remaining: 0.8, weeklyHours: 24, fiveHours: 1 },
+    { remaining: 0.8, weeklyHours: 48, fiveHours: 2 },
+    { remaining: 0.8, weeklyHours: 120, fiveHours: 4 }
+  ]);
+  const counts = new Map(accounts.map((account) => [account.id, 0]));
+  for (let index = 0; index < 70; index++) {
+    const selected = await pool.send({}, 'gemini-test');
+    counts.set(selected.accountId, counts.get(selected.accountId) + 1);
+  }
+  const values = accounts.map((account) => counts.get(account.id));
+  assert.ok(values[0] > values[1]);
+  assert.ok(values[1] > 0);
+  assert.ok(values[2] > 0);
+  assert.equal(values.reduce((sum, value) => sum + value, 0), 70);
 });
 
 test('missing Gemini weekly data falls back to five-hour resets and never uses 3p weekly data', (t) => {

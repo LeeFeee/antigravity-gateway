@@ -90,7 +90,7 @@ test('account pool rotates new sessions but keeps one session on one account', a
   assert.deepEqual(new Set(calls.map((item) => item[0])), new Set([first.id, second.id]));
 });
 
-test('soft account affinity survives restarts for 72 hours and then expires', async (t) => {
+test('soft account affinity uses a fixed five-hour window across restarts', async (t) => {
   const store = tempStore(t);
   const first = store.save(account('one@example.com'));
   const second = store.save(account('two@example.com'));
@@ -114,6 +114,12 @@ test('soft account affinity survives restarts for 72 hours and then expires', as
   const selected = await original.send({}, 'gemini-3.8-flash-high', { routingKey: 'persistent-session' });
   const otherId = [first.id, second.id].find((id) => id !== warmup.accountId);
   assert.equal(selected.accountId, otherId);
+  const selectedAt = original.sessions.get('persistent-session').at;
+
+  now += SESSION_TTL_MS / 2;
+  const continued = await original.send({}, 'gemini-3.8-flash-high', { routingKey: 'persistent-session' });
+  assert.equal(continued.accountId, otherId);
+  assert.equal(original.sessions.get('persistent-session').at, selectedAt);
   original.stop();
 
   const restarted = createPool();
@@ -121,7 +127,7 @@ test('soft account affinity survives restarts for 72 hours and then expires', as
   assert.equal(restored.accountId, otherId);
   restarted.stop();
 
-  now += SESSION_TTL_MS + 1;
+  now = selectedAt + SESSION_TTL_MS + 1;
   const expired = createPool();
   const reassigned = await expired.send({}, 'gemini-3.8-flash-high', { routingKey: 'persistent-session' });
   assert.equal(reassigned.accountId, warmup.accountId);

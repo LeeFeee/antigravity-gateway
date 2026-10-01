@@ -6,8 +6,11 @@ const path = require('node:path');
 const { DirectAntigravityProvider, DirectProviderError } = require('./direct-provider');
 const { ManagedAccountAuthProvider } = require('./managed-account-auth');
 
-const SESSION_TTL_MS = 72 * 60 * 60_000;
-const SESSION_PERSIST_INTERVAL_MS = 5 * 60_000;
+const DEFAULT_SESSION_TTL_SECONDS = 5 * 60 * 60;
+const configuredSessionTtlSeconds = Number(process.env.ANTIGRAVITY_AFFINITY_TTL_SECONDS ?? DEFAULT_SESSION_TTL_SECONDS);
+const SESSION_TTL_MS = Math.max(0, Number.isFinite(configuredSessionTtlSeconds)
+  ? configuredSessionTtlSeconds
+  : DEFAULT_SESSION_TTL_SECONDS) * 1000;
 const SESSION_CAPACITY = 2000;
 const DEFAULT_COOLDOWN_MS = 60_000;
 const MAX_COOLDOWN_MS = 7 * 24 * 60 * 60_000;
@@ -258,8 +261,11 @@ class AccountPool {
     if (!routingKey) return;
     const previous = this.sessions.get(routingKey);
     const now = this.now();
-    this.sessions.set(routingKey, { accountId, at: now, persistedAt: previous?.persistedAt || 0 });
-    if (!previous || previous.accountId !== accountId || now - (previous.persistedAt || 0) >= SESSION_PERSIST_INTERVAL_MS) this.saveState();
+    // Affinity is a fixed window from account selection, not a sliding window
+    // renewed by every successful request. This guarantees periodic rebalance.
+    if (SESSION_TTL_MS > 0 && previous?.accountId === accountId && previous.at >= now - SESSION_TTL_MS) return;
+    this.sessions.set(routingKey, { accountId, at: now, persistedAt: now });
+    this.saveState();
   }
 
   deleteSession(routingKey) {
@@ -355,25 +361,62 @@ class AccountPool {
 
   eligible(model, excluded = new Set()) {
     const now = this.now();
-    return [...this.entries.values()].filter((entry) => (
-      entry.account.enabled !== false
+    return [...this.entries.values()].filter((entry) => this.isEntryEligible(entry, model, excluded, now));
+  }
+
+  isEntryEligible(entry, model, excluded = new Set(), now = this.now()) {
+    return Boolean(entry
+      && entry.account
+      && entry.account.enabled !== false
       && this.isAccountHealthy(entry)
       && !excluded.has(entry.account.id)
       && entry.cooldownUntil <= now
       && (entry.modelCooldowns.get(model) || 0) <= now
-    ));
+    );
   }
 
-  weightedPick(candidates) {
-    const effectiveWeight = (entry) => Math.max(1, Number(entry.account.weight) || 1);
-    const total = candidates.reduce((sum, entry) => sum + effectiveWeight(entry), 0);
+  weightedPickWithRanks(ranks) {
+    if (!ranks.length) return null;
+
+    // Exhausted/depleted accounts remain last-resort fallbacks, matching the
+    // previous behavior, but no healthy account is excluded merely because a
+    // different account has a better quota rank.
+    let candidates = ranks.filter((rank) => !rank.depleted && rank.lane !== 2);
+    if (!candidates.length) candidates = ranks.filter((rank) => !rank.depleted);
+    if (!candidates.length) candidates = ranks;
+
+    const pressureRanks = candidates.filter((rank) => rank.lane === 0);
+    const maxBand = pressureRanks.length ? Math.max(...pressureRanks.map((rank) => rank.band)) : null;
+    const nearestResetByBand = new Map();
+    for (const rank of candidates) {
+      if (!Number.isFinite(rank.resetTime)) continue;
+      const key = `${rank.lane}:${rank.band}`;
+      nearestResetByBand.set(key, Math.min(nearestResetByBand.get(key) ?? Infinity, rank.resetTime));
+    }
+
+    const effectiveWeight = (rank) => {
+      const accountWeight = Math.max(1, Number(rank.entry.account.weight) || 1);
+      let weeklyWeight = 1;
+      if (rank.lane === 0 && maxBand != null) {
+        const difference = rank.band - maxBand;
+        weeklyWeight = difference >= 0 ? 4 : difference === -1 ? 2 : 1;
+      }
+      const nearestReset = nearestResetByBand.get(`${rank.lane}:${rank.band}`);
+      const fiveHourWeight = Number.isFinite(nearestReset) && rank.resetTime === nearestReset ? 2 : 1;
+      return accountWeight * weeklyWeight * fiveHourWeight;
+    };
+
+    const total = candidates.reduce((sum, rank) => sum + effectiveWeight(rank), 0);
     let selected = null;
     let selectedWeight = -Infinity;
-    for (const entry of candidates) {
-      const id = entry.account.id;
-      const current = (this.weights.get(id) || 0) + effectiveWeight(entry);
+    for (const rank of candidates) {
+      const id = rank.entry.account.id;
+      const current = (this.weights.get(id) || 0) + effectiveWeight(rank);
       this.weights.set(id, current);
-      if (current > selectedWeight) { selected = entry; selectedWeight = current; }
+      if (current > selectedWeight) {
+        selected = rank.entry;
+        selectedWeight = current;
+      }
     }
     if (selected) this.weights.set(selected.account.id, (this.weights.get(selected.account.id) || 0) - total);
     return selected;
@@ -426,19 +469,24 @@ class AccountPool {
   }
 
   selectAccount(model, routingKey, excluded, { preferredAccountId = '', allowSticky = true } = {}) {
+    if (allowSticky) {
+      const now = this.now();
+      const preferred = preferredAccountId ? this.entries.get(preferredAccountId) : null;
+      if (preferred && this.isEntryEligible(preferred, model, excluded, now)) return preferred;
+      const bound = routingKey ? this.sessions.get(routingKey) : null;
+      const sticky = bound ? this.entries.get(bound.accountId) : null;
+      const active = bound && SESSION_TTL_MS > 0 && bound.at >= now - SESSION_TTL_MS;
+      // The hot path is an O(1) local-state lookup: no quota snapshots, sorting,
+      // refresh I/O, or account-list scan occurs during a healthy affinity window.
+      if (active && sticky && this.isEntryEligible(sticky, model, excluded, now)) return sticky;
+      if (bound && routingKey) this.deleteSession(routingKey);
+    }
+
     this.cleanupSessions();
     const candidates = this.eligible(model, excluded);
-    if (allowSticky) {
-      const preferred = candidates.find((entry) => entry.account.id === preferredAccountId);
-      const bound = routingKey ? this.sessions.get(routingKey) : null;
-      const sticky = bound && candidates.find((entry) => entry.account.id === bound.accountId);
-      // Successful continuations neither recalculate quota pressure nor change
-      // weighted rotation; image tools retain their explicitly preferred account.
-      if (preferred || sticky) return preferred || sticky;
-    }
     const ranks = this.quotaRanks(model, candidates);
     if (!ranks.length) return null;
-    return this.weightedPick(ranks.filter((rank) => compareQuotaRanks(rank, ranks[0]) === 0).map(({ entry }) => entry));
+    return this.weightedPickWithRanks(ranks);
   }
 
   attemptReporter(accountId, model) {
