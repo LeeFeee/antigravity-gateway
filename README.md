@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.1.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.2.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -426,6 +426,14 @@ antigravity-gateway --port 9898
 export NO_PROXY=127.0.0.1,localhost
 ```
 
+#### 鉴权与休眠恢复诊断日志
+
+网关会把账号隔离、手动重新检测、Token 刷新阶段、上游鉴权探测结果，以及疑似休眠或挂起造成的运行时间断层写入 `~/.antigravity-gateway/logs/auth-diagnostics.jsonl`。每行都是带 ISO 时间的独立 JSON，便于按事件还原链路；文件达到约 5 MB 后保留一份 `.1` 轮转副本。日志只记录账号掩码、状态、耗时、HTTP 状态和脱敏错误，不记录 access token、refresh token、client secret、提示词或模型回答。
+
+```bash
+tail -f ~/.antigravity-gateway/logs/auth-diagnostics.jsonl
+```
+
 #### 启动时只发现少量模型
 
 模型探测可能暂时失败或账号目录尚未刷新。输入 `models`、`reload`，或使用 `antigravity-gateway --models` 再次查询。客户端明确指定的模型仍会原样发给上游。
@@ -511,7 +519,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.1.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.2.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -753,6 +761,8 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
 ### Usage, update, and troubleshooting
 
 The browser dashboard shows lifetime and selected-period Tokens, requests, upstream calls, input/output/thinking/cache usage, failures, per-account quota, hourly heatmaps, model trends, and model consumption share. It supports 1/3/7/30-day windows and account filtering, and remembers the last selected time window in the browser. Accounts come exclusively from the active account pool. Quota cards mirror agy `/usage`: by default each account shows the shared weekly and five-hour limits for both the Gemini and Claude/GPT groups, with a compact overview that shows only the Gemini group; the browser also remembers the last selected quota view. Unhealthy accounts expose a one-shot authentication recheck, while Delete Account removes the credential, health record, quota snapshot, and affinity bindings and prevents an explicitly removed local agy identity from being auto-imported or used as an implicit fallback again; use `add` to explicitly restore it. Per-model request and Token charts use the exact model IDs actually called instead of treating a model-catalog balance as the account's total quota. The Generate Image action creates an account-masked, high-resolution PNG entirely in the browser: desktop browsers download it directly, while mobile browsers show a long-press save preview. No third-party screenshot service or extra gateway-side rendering process is used. The page reads local aggregate data once per minute only while open; it never stores prompts or model responses. Hourly account/model breakdowns begin with v0.8.0. Type `usage` for terminal details or run `antigravity-gateway stats` while either foreground or background mode is active. Usage is persisted every five minutes; quota snapshots refresh asynchronously.
+
+Authentication diagnostics are written as timestamped JSON Lines to `~/.antigravity-gateway/logs/auth-diagnostics.jsonl`, with one rotated `.1` copy at approximately 5 MB. Events cover account quarantine and recovery, manual rechecks, token-refresh stages, upstream authentication probes, and runtime gaps consistent with sleep or suspension. Credentials, prompts, and model responses are never written to this file.
 
 Update:
 

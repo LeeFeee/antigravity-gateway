@@ -239,7 +239,7 @@ class QuotaManager {
         if (summaryOnly) throw usageResult.reason;
         let failure = usageResult.reason;
         for (const result of [loadResult, modelsResult, usageResult]) {
-          if (result.status === 'rejected' && this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), result.reason)) {
+          if (result.status === 'rejected' && this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), result.reason, { source: summaryOnly ? 'quota_summary_refresh' : 'quota_full_refresh' })) {
             failure = result.reason;
             break;
           }
@@ -293,7 +293,7 @@ class QuotaManager {
           // explicit Google verification challenges remain immediate failures.
           void this.refreshAccount(accountId, { summaryOnly: false }).catch(() => {});
         } else {
-          this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), error);
+          this.accountPool.observeAccountFailure?.(this.currentEntry(accountId), error, { source: summaryOnly ? 'quota_summary_refresh' : 'quota_full_refresh' });
         }
       }
       throw error;

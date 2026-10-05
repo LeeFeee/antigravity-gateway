@@ -12,6 +12,7 @@ const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
 const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
+const { DiagnosticLog } = require('./src/diagnostic-log');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
@@ -102,7 +103,12 @@ const DEFAULT_MAX_CONCURRENCY = TRANSPORT === 'agy' ? 4 : 12;
 const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY || DEFAULT_MAX_CONCURRENCY));
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
-const DIRECT_PROVIDER = new DirectAntigravityProvider();
+const DIAGNOSTIC_LOG = new DiagnosticLog({ directory: path.join(CONFIG_DIR, 'logs') });
+let diagnosticsEnabled = false;
+const diagnosticReporter = (event, fields) => {
+  if (diagnosticsEnabled) DIAGNOSTIC_LOG.write(event, fields);
+};
+const DIRECT_PROVIDER = new DirectAntigravityProvider({ diagnosticReporter });
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
@@ -110,7 +116,8 @@ const ACCOUNT_POOL = new AccountPool({
   store: ACCOUNT_STORE,
   fallbackProvider: DIRECT_PROVIDER,
   usageStore: USAGE_STORE,
-  agyPath: AGY_PATH
+  agyPath: AGY_PATH,
+  diagnosticReporter
 });
 const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
@@ -123,10 +130,33 @@ const LOCAL_ACCOUNT_IMPORTER = new LocalAccountImporter({
 const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media') });
 const SESSION_MANAGER = new SessionManager();
 let TERMINAL = null;
+let diagnosticHeartbeat = null;
 
 function gatewayLog(message) { return TERMINAL ? TERMINAL.log(message) : console.log(message); }
 function gatewayWarn(message) { return TERMINAL ? TERMINAL.log(message, 'warn') : console.warn(message); }
 function gatewayError(message) { return TERMINAL ? TERMINAL.log(message, 'error') : console.error(message); }
+
+function startDiagnosticHeartbeat() {
+  if (diagnosticHeartbeat) return;
+  let previous = Date.now();
+  diagnosticHeartbeat = setInterval(() => {
+    const now = Date.now();
+    const gapMs = now - previous;
+    if (gapMs > 90_000) diagnosticReporter('runtime_gap_detected', {
+      gapMs,
+      previousAt: new Date(previous).toISOString(),
+      resumedAt: new Date(now).toISOString(),
+      likelySleepOrSuspend: true
+    });
+    previous = now;
+  }, 30_000);
+  diagnosticHeartbeat.unref?.();
+}
+
+function stopDiagnosticHeartbeat() {
+  if (diagnosticHeartbeat) clearInterval(diagnosticHeartbeat);
+  diagnosticHeartbeat = null;
+}
 
 const DASHBOARD_ACCESS = createDashboardAccessPolicy(
   process.env.ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW,
@@ -1503,6 +1533,7 @@ if (require.main === module) {
     process.exitCode = 1;
     return;
   }
+  diagnosticsEnabled = true;
   fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
   const server = createServer();
   let shuttingDown = false;
@@ -1510,6 +1541,8 @@ if (require.main === module) {
     if (shuttingDown) return;
     shuttingDown = true;
     TERMINAL?.stop();
+    stopDiagnosticHeartbeat();
+    diagnosticReporter('gateway_process_stopping', { pid: process.pid });
     QUOTA_MANAGER.stop();
     USAGE_STORE.stop();
     ACCOUNT_POOL.stop();
@@ -1547,6 +1580,16 @@ if (require.main === module) {
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
+    diagnosticReporter('gateway_process_started', {
+      pid: process.pid,
+      version: GATEWAY_VERSION,
+      transport: TRANSPORT,
+      host: HOST,
+      port: PORT,
+      maxConcurrency: MAX_CONCURRENCY,
+      accountCount: ACCOUNT_POOL.status().length
+    });
+    startDiagnosticHeartbeat();
     gatewayLog(`[Antigravity Gateway] 看板来源：${DASHBOARD_ACCESS.description}`);
     let models = [];
     let modelError = '';
@@ -1593,6 +1636,12 @@ if (require.main === module) {
     QUOTA_MANAGER.stop();
     USAGE_STORE.stop();
     ACCOUNT_POOL.stop();
+    stopDiagnosticHeartbeat();
+    diagnosticReporter('gateway_process_error', {
+      pid: process.pid,
+      errorCode: String(error.code || ''),
+      message: String(error.message || error || '').slice(0, 1000)
+    });
     process.exitCode = 1;
   });
   process.once('SIGINT', () => { void shutdown().finally(() => process.exit(0)); });

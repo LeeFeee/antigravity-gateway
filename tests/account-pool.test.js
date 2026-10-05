@@ -48,9 +48,11 @@ test('managed account refresh writes the new tokens back to its JSON record', as
     clientId: 'client',
     clientSecret: 'secret'
   });
+  const diagnostics = [];
   const auth = new ManagedAccountAuthProvider({
     account: saved,
     store,
+    diagnosticReporter: (event, fields) => diagnostics.push({ event, fields }),
     fetchImpl: async () => new Response(JSON.stringify({ access_token: 'access-new', refresh_token: 'refresh-new', expires_in: 3600 }), { status: 200 })
   });
   assert.deepEqual(auth.provider.clientCredentials, [{ clientId: 'client', clientSecret: 'secret' }]);
@@ -60,6 +62,10 @@ test('managed account refresh writes the new tokens back to its JSON record', as
   assert.equal(store.list()[0].refreshToken, 'refresh-new');
   assert.equal(store.list()[0].clientId, 'client');
   assert.equal(store.list()[0].clientSecret, 'secret');
+  assert.ok(diagnostics.some(({ event }) => event === 'managed_token_refresh_started'));
+  assert.ok(diagnostics.some(({ event, fields }) => event === 'managed_token_refresh_succeeded' && fields.refreshed));
+  assert.ok(diagnostics.every(({ fields }) => !JSON.stringify(fields).includes('access-new')));
+  assert.ok(diagnostics.every(({ fields }) => !JSON.stringify(fields).includes('refresh-new')));
   auth.disable();
   await assert.rejects(auth.get(), /已从账号池删除/);
 });
@@ -77,7 +83,7 @@ test('account pool rotates new sessions but keeps one session on one account', a
         calls.push([record.id, model]);
         return { text: record.email, toolCalls: [], usage: { input_tokens: 2, output_tokens: 1, total_tokens: 3 } };
       },
-      listModels: async () => ['gemini-3.8-flash-high'],
+      listModels: async () => ['gemini-3.8-flash-high', 'claude-sonnet-4-6'],
       modelInfo: () => null
     })
   });
@@ -88,6 +94,103 @@ test('account pool rotates new sessions but keeps one session on one account', a
   assert.notEqual(calls[0][0], calls[2][0]);
   assert.deepEqual(calls.map((item) => item[1]), ['claude-sonnet-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-6']);
   assert.deepEqual(new Set(calls.map((item) => item[0])), new Set([first.id, second.id]));
+});
+
+test('account pool routes a model only to accounts whose discovered catalog supports it', async (t) => {
+  const store = tempStore(t);
+  const capable = store.save(account('capable@example.com'));
+  const legacy = store.save(account('legacy@example.com'));
+  const unknown = store.save(account('unknown@example.com'));
+  const attempts = [];
+  const target = 'claude-opus-5-5-high';
+  const pool = new AccountPool({
+    store,
+    fallbackProvider: {},
+    providerFactory: (record) => ({
+      send: async (_normalized, model) => {
+        attempts.push({ accountId: record.id, model });
+        return { text: record.email, toolCalls: [], usage: {} };
+      },
+      listModels: async () => {
+        if (record.id === unknown.id) throw new Error('catalog temporarily unavailable');
+        return record.id === capable.id
+          ? ['claude-sonnet-4-6', target]
+          : ['claude-sonnet-4-6'];
+      },
+      modelInfo: () => null
+    })
+  });
+
+  await pool.listModels(undefined, { force: true });
+  pool.sessions.set('existing-session', { accountId: legacy.id, at: Date.now() });
+  const result = await pool.send({}, target, { routingKey: 'existing-session' });
+
+  assert.equal(result.accountId, capable.id);
+  assert.deepEqual(attempts, [{ accountId: capable.id, model: target }]);
+});
+
+test('account pool does not send a model to any account whose catalog excludes it', async (t) => {
+  const store = tempStore(t);
+  store.save(account('one@example.com'));
+  store.save(account('two@example.com'));
+  let attempts = 0;
+  const pool = new AccountPool({
+    store,
+    fallbackProvider: {},
+    providerFactory: () => ({
+      send: async () => {
+        attempts += 1;
+        return { text: 'unexpected', toolCalls: [], usage: {} };
+      },
+      listModels: async () => ['claude-sonnet-4-6'],
+      modelInfo: () => null
+    })
+  });
+
+  await pool.listModels(undefined, { force: true });
+  await assert.rejects(pool.send({}, 'claude-opus-5-5-high'), /没有可用于模型/);
+  assert.equal(attempts, 0);
+});
+
+test('model capability filtering leaves existing ranking rules unchanged among supporting accounts', async (t) => {
+  const store = tempStore(t);
+  const unsupported = store.save(account('unsupported@example.com'));
+  const soon = store.save(account('soon@example.com'));
+  const late = store.save(account('late@example.com'));
+  const target = 'claude-sonnet-5-5-high';
+  const attempts = [];
+  const pool = new AccountPool({
+    store,
+    fallbackProvider: {},
+    providerFactory: (record) => ({
+      send: async () => {
+        attempts.push(record.id);
+        return { text: record.email, toolCalls: [], usage: {} };
+      },
+      listModels: async () => record.id === unsupported.id ? ['claude-sonnet-4-6'] : [target],
+      modelInfo: () => null
+    })
+  });
+  const now = Date.now();
+  pool.quotaManager = {
+    get: (id) => ({
+      available: true,
+      groups: [{
+        id: 'gemini',
+        displayName: 'Gemini Models',
+        buckets: [{
+          window: '5h',
+          resetTime: new Date(now + (id === soon.id ? 60 : id === late.id ? 240 : 10) * 60_000).toISOString()
+        }]
+      }]
+    })
+  };
+
+  await pool.listModels(undefined, { force: true });
+  const result = await pool.send({}, target, { routingKey: 'new-session' });
+
+  assert.equal(result.accountId, soon.id);
+  assert.deepEqual(attempts, [soon.id]);
 });
 
 test('soft account affinity uses a fixed five-hour window across restarts', async (t) => {
@@ -148,7 +251,7 @@ test('account affinity is shared by parent and child conversations without shari
         return { text: record.email, toolCalls: [], usage: {} };
       },
       generateImage: async () => ({ data: Buffer.from('image').toString('base64'), mimeType: 'image/jpeg', usage: {} }),
-      listModels: async () => ['gemini-3.8-flash-high'],
+      listModels: async () => ['gemini-3.8-flash-high', 'gemini-3.1-flash-image'],
       modelInfo: () => null
     })
   });
@@ -184,7 +287,7 @@ test('an auxiliary image fallback does not migrate the parent text conversation'
         }
         return { data: Buffer.from('image').toString('base64'), mimeType: 'image/jpeg', usage: {} };
       },
-      listModels: async () => ['gemini-3.8-flash-high'],
+      listModels: async () => ['gemini-3.8-flash-high', 'gemini-3.1-flash-image'],
       modelInfo: () => null
     })
   });
@@ -342,9 +445,11 @@ test('manual account recheck clears health only after a successful lightweight p
   const store = tempStore(t);
   const saved = store.save(account('verify@example.com'));
   let result = 'success';
+  const diagnostics = [];
   const pool = new AccountPool({
     store,
     fallbackProvider: {},
+    diagnosticReporter: (event, fields) => diagnostics.push({ event, fields }),
     providerFactory: () => ({
       probeAuthentication: async () => {
         if (result === 'network') {
@@ -378,6 +483,11 @@ test('manual account recheck clears health only after a successful lightweight p
   const recovered = await pool.recheckAccount(saved.id);
   assert.equal(recovered.recovered, true);
   assert.equal(pool.status()[0].state, 'available');
+  assert.ok(diagnostics.some(({ event, fields }) => event === 'account_recheck_failed' && fields.category === 'transient'));
+  assert.ok(diagnostics.some(({ event, fields }) => event === 'account_health_quarantined' && fields.trigger === 'manual_recheck'));
+  assert.ok(diagnostics.some(({ event }) => event === 'account_recheck_succeeded'));
+  assert.ok(diagnostics.some(({ event, fields }) => event === 'account_health_cleared' && fields.trigger === 'manual_recheck'));
+  assert.ok(diagnostics.every(({ fields }) => !JSON.stringify(fields).includes('refresh-verify@example.com')));
 });
 
 test('deleting an account removes credentials, quota, affinity, health, and blocks automatic local reimport', async (t) => {

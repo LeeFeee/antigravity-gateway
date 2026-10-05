@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { errorDetails } = require('./diagnostic-log');
 const { LocalAgyAuthProvider, LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
 
 const DEFAULT_BASE_URL = 'https://cloudcode-pa.googleapis.com';
@@ -538,7 +539,7 @@ async function readBody(response) {
 }
 
 class DirectAntigravityProvider {
-  constructor({ fetchImpl = globalThis.fetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS } = {}) {
+  constructor({ fetchImpl = globalThis.fetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, diagnosticReporter } = {}) {
     this.fetchImpl = fetchImpl;
     this.authFile = authFile;
     this.localAuth = localAuth;
@@ -555,6 +556,12 @@ class DirectAntigravityProvider {
     this.fileAuth = {};
     this.authLoaded = false;
     this.projectLoaded = false;
+    this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
+  }
+
+  reportDiagnostic(event, fields = {}) {
+    try { this.diagnosticReporter?.(event, fields); }
+    catch { /* diagnostics are best effort */ }
   }
 
   isConfigured() {
@@ -664,14 +671,24 @@ class DirectAntigravityProvider {
     try { return await this.modelDiscovery; } finally { this.modelDiscovery = null; }
   }
 
+  modelCatalog() {
+    if (this.modelList.length) return [...this.modelList];
+    return this.modelsDiscoveredAt ? [...this.discoveredModels] : null;
+  }
+
   async probeAuthentication(signal) {
+    const probeStartedAt = Date.now();
     let token = await this.access(signal);
+    this.reportDiagnostic('auth_probe_token_ready', { durationMs: Date.now() - probeStartedAt });
     let lastError;
     let accountError;
-    for (const base of this.baseUrls()) {
+    const bases = this.baseUrls();
+    for (const [baseIndex, base] of bases.entries()) {
       for (let refresh = 0; refresh < 2; refresh += 1) {
         let response;
         let text = '';
+        const requestStartedAt = Date.now();
+        this.reportDiagnostic('auth_probe_request_started', { upstreamIndex: baseIndex + 1, refreshAttempt: refresh });
         try {
           response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
             method: 'POST',
@@ -681,11 +698,24 @@ class DirectAntigravityProvider {
           });
           text = await readBody(response);
         } catch (cause) {
+          this.reportDiagnostic('auth_probe_request_failed', {
+            upstreamIndex: baseIndex + 1,
+            refreshAttempt: refresh,
+            durationMs: Date.now() - requestStartedAt,
+            ...errorDetails(cause)
+          });
           lastError = new DirectProviderError('Antigravity 账号检测请求失败。', {
             code: 'direct_auth_probe_failed', status: 502, details: redact(cause.message), cause
           });
           break;
         }
+        this.reportDiagnostic('auth_probe_response_received', {
+          upstreamIndex: baseIndex + 1,
+          refreshAttempt: refresh,
+          durationMs: Date.now() - requestStartedAt,
+          status: response.status,
+          ok: response.ok
+        });
         if (response.ok) {
           try { JSON.parse(text || '{}'); }
           catch (cause) {
@@ -694,13 +724,20 @@ class DirectAntigravityProvider {
             });
             break;
           }
+          this.reportDiagnostic('auth_probe_succeeded', { durationMs: Date.now() - probeStartedAt, status: response.status, upstreamIndex: baseIndex + 1 });
           return { ok: true, status: response.status };
         }
         if (response.status === 401 && refresh === 0) {
+          this.reportDiagnostic('auth_probe_force_refresh_started', { upstreamIndex: baseIndex + 1 });
           try {
             token = await this.access(signal, true);
+            this.reportDiagnostic('auth_probe_force_refresh_succeeded', { upstreamIndex: baseIndex + 1 });
             continue;
           } catch (error) {
+            this.reportDiagnostic('auth_probe_force_refresh_failed', {
+              upstreamIndex: baseIndex + 1,
+              ...errorDetails(error)
+            });
             lastError = error;
             if (error?.status === 401 || error?.status === 403) accountError ||= error;
             break;
@@ -714,6 +751,10 @@ class DirectAntigravityProvider {
         break;
       }
     }
+    this.reportDiagnostic('auth_probe_failed', {
+      durationMs: Date.now() - probeStartedAt,
+      ...errorDetails(accountError || lastError)
+    });
     throw accountError || lastError || new DirectProviderError('Antigravity 账号检测失败。', { code: 'direct_auth_probe_failed', status: 502 });
   }
 

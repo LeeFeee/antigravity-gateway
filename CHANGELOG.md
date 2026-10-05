@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 - 2026-10-06
+
+- Added per-account model-capability routing: the gateway records each account's authoritative model catalog, filters out accounts that do not support the requested model, and then applies the existing affinity, health, cooldown, quota-pressure, five-hour reset, and weight rules unchanged among compatible accounts.
+- Added a bounded, redacted authentication diagnostic log for process lifecycle, sleep/resume gaps, token refreshes, account quarantine and recovery, manual rechecks, and upstream authentication probes. The JSONL log rotates at approximately 5 MB and retains one previous file without recording credentials, prompts, or model responses.
+
 ## 1.1.0 - 2026-10-01
 
 - Replaced winner-take-all quota routing with weighted distribution across healthy accounts: Gemini weekly pressure bands set the main weight, the nearest Gemini five-hour reset receives an in-band boost, and lower-ranked accounts retain traffic instead of starving.

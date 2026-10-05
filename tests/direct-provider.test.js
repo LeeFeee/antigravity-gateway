@@ -366,6 +366,7 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
     }
   });
   assert.deepEqual(await provider.listModels(), ['gemini-3.7-flash-high', 'claude-sonnet-5']);
+  assert.deepEqual(provider.modelCatalog(), ['gemini-3.7-flash-high', 'claude-sonnet-5']);
   assert.deepEqual(provider.modelInfo('gemini-3.7-flash-high'), {
     displayName: 'Flash',
     maxTokens: 1048576,
@@ -404,11 +405,13 @@ test('lightweight authentication probe preserves upstream rejection instead of u
 
 test('authentication probe accepts either official Cloud Code endpoint without generating content', async () => {
   const calls = [];
+  const diagnostics = [];
   const provider = new DirectAntigravityProvider({
     localAuth: null,
     accessToken: 'token',
     projectId: 'project-1',
     models: [],
+    diagnosticReporter: (event, fields) => diagnostics.push({ event, fields }),
     fetchImpl: async (url) => {
       calls.push(url);
       return url.startsWith('https://daily-cloudcode-pa.googleapis.com')
@@ -419,6 +422,9 @@ test('authentication probe accepts either official Cloud Code endpoint without g
   assert.deepEqual(await provider.probeAuthentication(), { ok: true, status: 200 });
   assert.equal(calls.length, 2);
   assert.ok(calls.every((url) => url.endsWith('/v1internal:fetchAvailableModels')));
+  assert.deepEqual(diagnostics.filter(({ event }) => event === 'auth_probe_response_received').map(({ fields }) => fields.status), [403, 200]);
+  assert.ok(diagnostics.some(({ event, fields }) => event === 'auth_probe_succeeded' && fields.upstreamIndex === 2));
+  assert.ok(diagnostics.every(({ fields }) => !JSON.stringify(fields).includes('token')));
 });
 
 test('forced catalog refresh is deduplicated and preserves stale catalog on failure', async () => {
