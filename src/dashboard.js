@@ -108,7 +108,7 @@ function accountPoolUsage(usage, accountIds) {
   };
 }
 
-function dashboardData({ usageStore, accountPool, quotaManager, version }) {
+function dashboardData({ usageStore, accountPool, quotaManager, proxyManager, version }) {
   const status = accountPool.status();
   const accountIds = new Set(status.map((account) => account.id));
   const usage = accountPoolUsage(usageStore.summary({ live: true, detailed: true }), accountIds);
@@ -120,6 +120,7 @@ function dashboardData({ usageStore, accountPool, quotaManager, version }) {
     version,
     generatedAt: new Date().toISOString(),
     refreshSeconds: 60,
+    proxyManagement: proxyManager?.snapshot() || { proxies: [], bindings: {} },
     accounts,
     usage
   };

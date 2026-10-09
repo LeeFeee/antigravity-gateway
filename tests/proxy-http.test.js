@@ -1,0 +1,31 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-proxy-http-'));
+process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR = directory;
+process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
+process.env.ANTIGRAVITY_CLI_PATH = process.execPath;
+process.env.ANTIGRAVITY_CLI_PREFIX_ARGS = JSON.stringify([path.join(__dirname,'fixtures','fake-agy.js')]);
+const { AccountStore } = require('../src/account-store');
+const account = new AccountStore({configDir:directory}).save({accessToken:'dummy',email:'test@example.com'});
+const {createServer} = require('../antigravity-gateway');
+
+test('dashboard manages proxies and account bindings with credentials redacted and browser protection',async t=>{
+  const server=createServer();await new Promise(r=>server.listen(0,'127.0.0.1',r));
+  t.after(async()=>{await new Promise(r=>server.close(r));fs.rmSync(directory,{recursive:true,force:true})});
+  const base='http://127.0.0.1:'+server.address().port;
+  const call=(route,body,method='POST',extra={})=>fetch(base+route,{method,headers:{'content-type':'application/json','x-gateway-management':'1',...extra},body:body===undefined?undefined:JSON.stringify(body)});
+  assert.equal((await fetch(base+'/dashboard/proxies',{method:'POST',body:'{}'})).status,403);
+  assert.equal((await call('/dashboard/proxies',{},'POST',{origin:'https://evil.example'})).status,403);
+  let r=await call('/dashboard/proxies',{id:'test',name:'US',url:'http://user:secret@localhost:9001'});assert.equal(r.status,200);assert(!(await r.text()).includes('secret'));
+  r=await call('/dashboard/accounts/'+account.id+'/proxy',{proxyId:'test'});assert.equal(r.status,200);
+  r=await fetch(base+'/dashboard/data');let d=await r.json();assert.equal(d.proxyManagement.bindings[account.id],'test');assert(!JSON.stringify(d).includes('secret@'));
+  assert.equal((await call('/dashboard/proxies/test',undefined,'DELETE')).status,409);
+  assert.equal((await call('/dashboard/accounts/missing/proxy',{proxyId:'test'})).status,404);
+  assert.equal((await call('/dashboard/accounts/'+account.id+'/proxy',{proxyId:null})).status,200);
+  assert.equal((await call('/dashboard/proxies/test',undefined,'DELETE')).status,200);
+  assert.equal((await call('/dashboard/proxies',{url:'socks5://localhost:9001'})).status,400);
+});

@@ -132,7 +132,7 @@ function accountFingerprint(account = {}) {
 }
 
 class AccountPool {
-  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = globalThis.fetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter } = {}) {
+  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = globalThis.fetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), proxyManager, diagnosticReporter } = {}) {
     this.store = store;
     this.fallbackProvider = fallbackProvider;
     this.usageStore = usageStore;
@@ -145,13 +145,14 @@ class AccountPool {
     this.stateFile = stateFile || path.join(path.dirname(this.store.directory), 'state', 'account-pool.json');
     this.providerFactory = providerFactory || ((account) => {
       const report = (event, fields) => this.reportDiagnostic(event, account, fields);
+      const accountFetch = proxyManager ? proxyManager.accountFetch(account.id, this.fetchImpl) : this.fetchImpl;
       return new DirectAntigravityProvider({
-        fetchImpl: this.fetchImpl,
+        fetchImpl: accountFetch,
         diagnosticReporter: report,
         localAuth: new ManagedAccountAuthProvider({
           account,
           store: this.store,
-          fetchImpl: this.fetchImpl,
+          fetchImpl: accountFetch,
           agyPath: this.agyPath,
           diagnosticReporter: report
         })

@@ -40,6 +40,7 @@
     @media(max-width:420px){.period-summary{grid-template-columns:minmax(0,1fr)}.qr-block{grid-template-columns:auto 116px;justify-self:start;margin-top:4px}.qr-trigger{width:116px;height:116px}.hero-number strong{font-size:clamp(38px,13vw,49px)}}
     @media(prefers-reduced-motion:reduce){.poster-overlay,.poster-overlay.open,.save-overlay,.save-panel{transition:none;transform:none;clip-path:none}}
     @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+      .proxy-panel{background:var(--mint);color:var(--ink);padding:20px;border-radius:22px}.proxy-panel summary{cursor:pointer;font-size:18px;font-weight:800}.proxy-panel p{font-size:12px;line-height:1.6}.proxy-form{display:grid;gap:8px;margin:14px 0}.proxy-form input,.proxy-panel select{padding:10px;border:1px solid #668675;border-radius:8px;background:#fff;color:#161817;max-width:100%;min-width:0}.proxy-item{padding:12px 0;border-top:1px solid #668675}.proxy-item small{display:block;overflow-wrap:anywhere;margin:6px 0}.proxy-buttons{display:flex;gap:8px;flex-wrap:wrap}.proxy-binding{display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,1fr) auto;gap:8px;align-items:center;margin:10px 0}.proxy-binding span{overflow-wrap:anywhere;font-size:12px}.is-capturing .proxy-panel{display:none!important}
   </style>
 </head>
 <body>
@@ -54,6 +55,11 @@
     <article class="card trend"><div class="card-head"><div><h2>模型调用趋势</h2><p>按所选周期聚合各模型 Token 用量</p></div></div><div class="card-body"><div class="trend-metrics"><div class="trend-metric"><span>上游调用</span><strong id="upstreamCalls">0</strong></div><div class="trend-metric"><span>缓存命中率</span><strong id="cacheRateTop">--</strong></div><div class="trend-metric"><span>失败率</span><strong id="failureRate">--</strong><small id="failureCount">0 次失败</small></div></div><div class="legend" id="trendLegend"></div><div id="trendChart"></div></div></article>
     <div class="column left-column">
       <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div><div class="card-body account-stack" id="accounts"></div></article>
+      <details class="proxy-panel"><summary>代理管理</summary>
+        <p>为每个账号指定 HTTP/HTTPS 代理，覆盖聊天、Token 刷新及额度查询。绑定代理失败时不会回落直连；未绑定账号沿用进程默认网络。节点固定不代表供应商保证永久静态 IP。</p>
+        <form class="proxy-form" id="proxyForm"><input id="proxyId" type="hidden"><label for="proxyName">代理名称</label><input id="proxyName" required maxlength="120" placeholder="例如：账号 1 美国出口"><label for="proxyUrl">代理 URL</label><input id="proxyUrl" type="password" autocomplete="new-password" placeholder="http://127.0.0.1:19101（编辑留空保留原地址）"><div class="proxy-buttons"><button class="account-action" type="submit">保存代理</button><button class="account-action" type="button" id="proxyReset">取消编辑</button></div></form>
+        <div id="proxyList"></div><h3>账号出口绑定</h3><div id="proxyBindings"></div><p id="proxyMessage" role="status" aria-live="polite"></p>
+      </details>
     </div>
     <div class="column right-column">
       <article class="card heat"><div class="card-head"><div><h2>小时活跃热力图</h2><p id="heatCaption">最近 1 天 · 每格 1 小时</p></div></div><div class="card-body"><div class="heatmap-wrap" id="heatmap"></div><div class="heat-scale"><span>少</span><i style="opacity:.14"></i><i style="opacity:.32"></i><i style="opacity:.55"></i><i style="opacity:.78"></i><i></i><span>多</span></div></div></article>
@@ -148,7 +154,40 @@
     return '<svg class="chart trend-chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="各模型 Token 用量平滑折线图"><title>模型调用趋势</title><desc>根据所选周期聚合的模型 Token 用量，数据点可通过键盘聚焦查看数值。</desc>'+grid+marks+'</svg>';
   }
   function render(){renderKpis();renderAccounts();renderHeatmap();renderModelShare();$('trendChart').innerHTML=trendSvg();const label=account==='all'?'全部账号':DATA.accounts.find((a)=>a.id===account)?.email||account,dayCount=Math.max(1,Math.ceil(hours/24));$('heatCaption').textContent=label+' · 最近 '+dayCount+' 天 · 每格 1 小时';$('freshness').textContent='数据更新时间：'+new Date(DATA.generatedAt).toLocaleString('zh-CN');$('subtitle').textContent='Antigravity Gateway v'+DATA.version+' · 本地实时统计 · '+label}
-  async function load(){try{const res=await fetch('/dashboard/data',{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);DATA=await res.json();$('error').classList.remove('show');const select=$('accountFilter'),value=select.value;select.innerHTML='<option value="all">全部账号</option>'+DATA.accounts.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.email||a.id)+'</option>').join('');select.value=[...select.options].some((o)=>o.value===value)?value:'all';account=select.value;render()}catch(e){$('error').textContent='看板数据读取失败：'+e.message;$('error').classList.add('show')}}
+  function renderProxies(){
+    const config=DATA.proxyManagement||{proxies:[],bindings:{}};
+    $('proxyList').innerHTML=config.proxies.map(p=>'<div class="proxy-item"><b>'+esc(p.name)+'</b><small>'+esc(p.endpoint)+(p.authenticated?' · 已设置认证':'')+' · 在途 '+num(p.activeRequests)+'</small><small>'+(p.health?(p.health.ok?'连接正常':'连接异常')+' · '+esc(new Date(p.health.checkedAt).toLocaleString('zh-CN'))+' · '+num(p.health.latencyMs)+' ms':'尚未检测')+'</small><div class="proxy-buttons">'+['edit','check','delete'].map(action=>'<button type="button" class="account-action" data-proxy-action="'+action+'" data-proxy-id="'+esc(p.id)+'">'+({edit:'编辑',check:'检测连接',delete:'删除'}[action])+'</button>').join('')+'</div></div>').join('')||'<p>暂无独立代理。</p>';
+    $('proxyBindings').innerHTML=DATA.accounts.map(a=>'<div class="proxy-binding"><span>'+esc(a.email||a.id)+'</span><select aria-label="'+esc(a.email||a.id)+' 的出口" data-proxy-account="'+esc(a.id)+'"><option value="">默认网络（未绑定）</option>'+(config.bindings[a.id]&&!config.proxies.some(p=>p.id===config.bindings[a.id])?'<option value="'+esc(config.bindings[a.id])+'" selected>绑定代理缺失（已阻止请求）</option>':'')+config.proxies.map(p=>'<option value="'+esc(p.id)+'"'+(config.bindings[a.id]===p.id?' selected':'')+'>'+esc(p.name)+'</option>').join('')+'</select><button type="button" class="account-action" data-bind-account="'+esc(a.id)+'">应用</button></div>').join('');
+  }
+  async function proxyRequest(path,method,body){
+    const response=await fetch(path,{method,headers:{'Content-Type':'application/json','X-Gateway-Management':'1'},body:body===undefined?undefined:JSON.stringify(body)});
+    const result=await response.json();if(!response.ok)throw new Error(result.error?.message||'操作失败');return result;
+  }
+  function proxyReset(){$('proxyId').value='';$('proxyName').value='';$('proxyUrl').value=''}
+  $('proxyReset').addEventListener('click',proxyReset);
+  $('proxyForm').addEventListener('submit',async event=>{
+    event.preventDefault();const button=event.submitter;button.disabled=true;
+    try{await proxyRequest('/dashboard/proxies','POST',{id:$('proxyId').value||undefined,name:$('proxyName').value,url:$('proxyUrl').value||undefined});proxyReset();$('proxyMessage').textContent='代理已保存，后续请求使用新配置。';await load()}
+    catch(e){$('proxyMessage').textContent=e.message}finally{button.disabled=false}
+  });
+  $('proxyList').addEventListener('click',async event=>{
+    const button=event.target.closest('[data-proxy-action]');if(!button)return;
+    const id=button.dataset.proxyId,action=button.dataset.proxyAction;
+    if(action==='edit'){const p=DATA.proxyManagement.proxies.find(p=>p.id===id);$('proxyId').value=id;$('proxyName').value=p.name;$('proxyUrl').value='';$('proxyName').focus();return}
+    if(action==='delete'&&!window.confirm('确认删除此代理？仍被账号绑定的代理不能删除。'))return;
+    button.disabled=true;
+    try{const result=await proxyRequest('/dashboard/proxies/'+encodeURIComponent(id)+(action==='check'?'/check':''),action==='check'?'POST':'DELETE');$('proxyMessage').textContent=action==='check'?(result.ok?'连接正常（Google HTTPS）':'连接检测失败，请复核网络和代理状态。'):'代理已删除';await load()}
+    catch(e){$('proxyMessage').textContent=e.message}finally{button.disabled=false}
+  });
+  $('proxyBindings').addEventListener('click',async event=>{
+    const button=event.target.closest('[data-bind-account]');if(!button)return;
+    const accountId=button.dataset.bindAccount,proxyId=button.parentElement.querySelector('select').value||null;
+    if(proxyId===null&&!window.confirm('解除绑定后，此账号将使用进程默认代理或直连。确认继续？'))return;
+    button.disabled=true;
+    try{await proxyRequest('/dashboard/accounts/'+encodeURIComponent(accountId)+'/proxy','POST',{proxyId});$('proxyMessage').textContent='账号出口已更新。';await load()}
+    catch(e){$('proxyMessage').textContent=e.message}finally{button.disabled=false}
+  });
+  async function load(){try{const res=await fetch('/dashboard/data',{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);DATA=await res.json();$('error').classList.remove('show');const select=$('accountFilter'),value=select.value;select.innerHTML='<option value="all">全部账号</option>'+DATA.accounts.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.email||a.id)+'</option>').join('');select.value=[...select.options].some((o)=>o.value===value)?value:'all';account=select.value;render();renderProxies()}catch(e){$('error').textContent='看板数据读取失败：'+e.message;$('error').classList.add('show')}}
   async function handleAccountAction(event){
     const button=event.target.closest('[data-account-action]');if(!button)return;
     const id=button.dataset.accountId,action=button.dataset.accountAction,label=button.dataset.accountLabel||id;
