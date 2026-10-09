@@ -818,3 +818,25 @@ Clients call the local Anthropic/OpenAI endpoints. The gateway converts requests
 ### License
 
 MIT. See [LICENSE](LICENSE).
+
+### 账号独立代理
+
+在 `/dashboard` 的「代理管理」中新增 HTTP/HTTPS 代理，然后为账号选择出口并点击「应用」。支持编辑、删除及 Google HTTPS 连通性检测；检测结果仅代表当次网络探测，不代表账号授权或模型额度正常。代理节点由外部代理软件或供应商提供，Gateway 不包含订阅管理或保证静态公网 IP。
+
+- 已绑定账号的聊天、模型列表、图片请求、OAuth Token 刷新及额度查询使用同一个代理。代理失败会返回错误，不回退进程默认代理或直连；账号池仍可按原策略尝试其他账号。
+- 未绑定账号（包括新导入账号）继续使用原来的进程网络配置。解除绑定会恢复该行为。首次 OAuth 登录尚无账号绑定，仍走原进程网络。
+- 绑定保存在配置目录的 `proxies.json`（0600），与账号 Token 文件分离，刷新 Token 不会覆盖绑定。配置损坏时拒绝启动；绑定指向不存在的代理时该账号请求失败。
+- 修改立即作用于后续网络请求，无需重启。仍有响应体传输的代理不能编辑或解除绑定；已绑定代理不能删除。代理认证 URL 不在看板 API 中回显，也不进入分享图片；编辑 URL 留空保留旧值，输入新 URL 则完整替换。
+- 本功能用于 `direct` 多账号传输；`agy` CLI 传输和未管理的本地登录仍使用原网络设置。每日巡检和节点替换由外部运维任务负责，本功能不自动轮换节点。
+
+管理接口继承看板来源限制。反向代理部署时应对整个 `/dashboard` 前缀启用鉴权。HTTPS 反向代理需将看板的精确 Origin（如 `https://gateway.example.com`）加入 `ANTIGRAVITY_GATEWAY_CORS_ORIGIN`。写操作额外要求 `X-Gateway-Management: 1`，请求体使用 JSON：
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| GET | `/dashboard/proxies` | 脱敏代理列表、绑定、在途网络请求数及上次检测 |
+| POST | `/dashboard/proxies` | 新增或更新 `{id?, name, url?}`（支持 URL 用户名/密码） |
+| DELETE | `/dashboard/proxies/:id` | 删除未绑定、空闲代理 |
+| POST | `/dashboard/proxies/:id/check` | 检测固定 Google HTTPS 目标 |
+| POST | `/dashboard/accounts/:id/proxy` | 绑定 `{proxyId}`；`null` 解除绑定 |
+
+请通过管理接口修改运行中的配置；直接编辑 `proxies.json` 后需要重启 Gateway。代理地址只支持 HTTP/HTTPS CONNECT，不支持 SOCKS。

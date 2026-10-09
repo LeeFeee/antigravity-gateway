@@ -9,6 +9,7 @@ const path = require('node:path');
 
 const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
 const { AccountPool } = require('./src/account-pool');
+const { ProxyManager } = require('./src/proxy-manager');
 const { AccountStore } = require('./src/account-store');
 const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
@@ -112,7 +113,9 @@ const DIRECT_PROVIDER = new DirectAntigravityProvider({ diagnosticReporter });
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
+const PROXY_MANAGER = new ProxyManager({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
+  proxyManager: PROXY_MANAGER,
   store: ACCOUNT_STORE,
   fallbackProvider: DIRECT_PROVIDER,
   usageStore: USAGE_STORE,
@@ -1278,7 +1281,7 @@ async function requestHandler(req, res) {
     res.end();
     return;
   }
-  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/') || route.startsWith('/dashboard/accounts/')) {
+  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/') || route.startsWith('/dashboard/accounts/') || route === '/dashboard/proxies' || route.startsWith('/dashboard/proxies/')) {
     if (!DASHBOARD_ACCESS.allows(req.socket?.remoteAddress)) {
       sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备或 ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 所列来源访问。' } });
       return;
@@ -1299,8 +1302,35 @@ async function requestHandler(req, res) {
         usageStore: USAGE_STORE,
         accountPool: ACCOUNT_POOL,
         quotaManager: QUOTA_MANAGER,
+        proxyManager: PROXY_MANAGER,
         version: GATEWAY_VERSION
       }), { 'Cache-Control': 'no-store' });
+      return;
+    }
+    if (route === '/dashboard/proxies' || route.startsWith('/dashboard/proxies/') || /^\/dashboard\/accounts\/[^/]+\/proxy$/.test(route)) {
+      try {
+        if (req.method === 'GET' && route === '/dashboard/proxies') {
+          sendJson(res, 200, PROXY_MANAGER.snapshot(), { 'Cache-Control': 'no-store' }); return;
+        }
+        if (req.headers['x-gateway-management'] !== '1') {
+          sendJson(res, 403, { error: { message: '代理管理请求缺少安全请求头。' } }); return;
+        }
+        const proxyMatch = route.match(/^\/dashboard\/proxies\/([a-zA-Z0-9_-]+)(\/check)?$/);
+        const bindingMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/proxy$/);
+        let result;
+        if (req.method === 'POST' && route === '/dashboard/proxies') result = PROXY_MANAGER.upsert(await readJson(req));
+        else if (req.method === 'DELETE' && proxyMatch && !proxyMatch[2]) result = PROXY_MANAGER.remove(proxyMatch[1]);
+        else if (req.method === 'POST' && proxyMatch?.[2]) result = await PROXY_MANAGER.check(proxyMatch[1]);
+        else if (req.method === 'POST' && bindingMatch) {
+          const accountId = decodeURIComponent(bindingMatch[1]);
+          if (!ACCOUNT_STORE.list().some((a) => a.id === accountId)) throw Object.assign(new Error('账号不存在。'), { status: 404 });
+          const body = await readJson(req);
+          result = PROXY_MANAGER.bind(accountId, body.proxyId);
+        } else { sendJson(res, 405, { error: { message: '代理请求方法不受支持。' } }); return; }
+        sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
+      } catch (error) {
+        sendJson(res, Number(error.status) || 500, { error: { type: 'proxy_management_error', message: error.code === 'proxy_management_error' ? error.message : '代理操作失败，请检查配置和文件权限。' } }, { 'Cache-Control': 'no-store' });
+      }
       return;
     }
     const accountRecheckMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/recheck$/);
