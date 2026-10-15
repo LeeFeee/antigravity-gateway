@@ -664,6 +664,27 @@ function poolHarness(t, send) {
   return { pool, store, advance: (ms) => { now += ms; } };
 }
 
+test('Robin quarantines terms-pending accounts, fails over, and persists the account state', async (t) => {
+  const attempts = [];
+  const { pool, store } = poolHarness(t, async (id) => {
+    attempts.push(id);
+    if (id === 'a') {
+      throw Object.assign(new Error('Before proceeding, please accept our terms of service.'), { status: 412 });
+    }
+    return { text: '完成', toolCalls: [], usageKnown: false };
+  });
+
+  const result = await pool.send(normalized, ARGON_MODEL, { sessionId: 'terms-failover' });
+  assert.equal(result.accountId, 'b');
+  assert.deepEqual(attempts, ['a', 'b']);
+  assert.equal(pool.status().find((account) => account.id === 'a').state, 'terms_acceptance_required');
+
+  const restored = new RobinAccountPool({ store, providerFactory: pool.providerFactory, now: pool.now });
+  t.after(() => restored.stop());
+  assert.deepEqual(restored.eligible(ARGON_MODEL).map((entry) => entry.account.id), ['b']);
+  assert.equal(restored.status().find((account) => account.id === 'a').state, 'terms_acceptance_required');
+});
+
 test('Robin sends only pending tool-result attachments over the existing remote tool stream', async (t) => {
   const { provider, streams } = harness(t);
   const uploads = [];

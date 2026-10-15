@@ -24,7 +24,7 @@ function fixture(accounts, byAccount, byAccountModel) {
     byModel[model] = sum([byModel[model] || counters(), value]);
   }
   const lifetime = sum(Object.values(byAccount));
-  return { version: '1.5.0', generatedAt: at, accounts, usage: {
+  return { version: '1.5.1', generatedAt: at, accounts, usage: {
     lifetime, byAccount, byAccountModel, byModel, history: [{ at, ...lifetime }],
     hourlyByAccount: { [at]: byAccount }, hourlyByAccountModel: { [at]: byAccountModel }, hourlyByModel: { [at]: byModel }
   } };
@@ -144,7 +144,7 @@ test('dashboard data declares missing usage without dropping requests, quota or 
     usageStore: { summary: () => { summaryCalls++; return raw; } },
     accountPool: { status: () => [{ id: 'c' }] },
     robinAccountPool: { status: () => [{ id: 'r', quota }] },
-    quotaManager: { peek: id => { assert.equal(id, 'c'); return { groups: [] }; } }, version: '1.5.0'
+    quotaManager: { peek: id => { assert.equal(id, 'c'); return { groups: [] }; } }, version: '1.5.1'
   });
   assert.deepEqual(data.tokenUsageMetadata, { complete: false, unmeteredAccountIds: ['r'] });
   assert.equal(data.accounts[0].tokenUsageKnown, true);

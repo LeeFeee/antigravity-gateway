@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Local Anthropic/OpenAI compatibility gateway for native Antigravity Cloud Code and Gemini App Argon routing.",
   "license": "MIT",
   "type": "commonjs",

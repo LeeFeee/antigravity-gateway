@@ -29,11 +29,18 @@ function upstreamSessionScope(normalized, options) {
   return kind ? { sessionId, kind } : sessionId;
 }
 
+function robinTermsAcceptanceRequired(error) {
+  const status = Number(error?.status || error?.statusCode || 0);
+  const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  return status === 412 && /accept(?:ing)?(?: our)? terms of service|terms of service.*accept/.test(message);
+}
+
 function robinErrorCategory(error) {
   if (error?.code === 'robin_unimplemented' || error?.code === 'request_aborted') return 'request';
   const status = Number(error?.status || error?.statusCode || 0);
   const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-  if (status === 401 || status === 403 || /invalid_grant|reauthori[sz]|verify your account/.test(message)) return 'account';
+  if (status === 401 || status === 403 || robinTermsAcceptanceRequired(error)
+      || /invalid_grant|reauthori[sz]|verify your account/.test(message)) return 'account';
   if (status === 429 || /quota|rate.?limit|resource.?exhausted/.test(message)) return 'quota';
   if (status >= 500 || /timeout|timed out|econn|network|unavailable|reset/.test(message)) return 'transient';
   return 'request';
@@ -262,7 +269,8 @@ class RobinAccountPool {
         if (category !== 'request') {
           const until = category === 'account' ? Infinity : this.now() + (category === 'quota' ? 5 * 60_000 : 10_000);
           const state = category === 'quota' ? 'quota_exhausted' : category === 'transient' ? 'cooldown'
-            : /verify your account/i.test(message) ? 'verification_required'
+            : robinTermsAcceptanceRequired(error) ? 'terms_acceptance_required'
+              : /verify your account/i.test(message) ? 'verification_required'
               : Number(error?.status) === 403 ? 'access_denied' : 'authentication_error';
           this.saveHealth(entry, category, state, message, until, { lastFailureAt: new Date(this.now()).toISOString() }, expectedAuthorization,
             error.upstreamAuthFingerprint || initialFingerprint);

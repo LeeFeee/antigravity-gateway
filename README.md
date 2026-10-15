@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.5.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.5.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -172,7 +172,7 @@ acc
 
 前台终端输入 `add-gemini` 可以独立授权 Gemini App 账号，凭据持久保存在 `~/.antigravity-gateway/robin-accounts/`，不与 Antigravity 账号混用。请求 `gemini-4-argon` 时进入 Robin 任务模式；仍使用同一网关、看板和 Messages / Chat Completions / Responses 接口，客户端工具仍由客户端执行。普通 Argon 请求不可用时明确报错，不降级到 Antigravity 的其他 Gemini 模型。唯一例外是实际携带视频的请求：Gemini App 依赖本地抽帧而不是可靠的 Argon 原生视频理解，因此网关沿用既有 Cloud Code 多媒体路径和 `ANTIGRAVITY_DEFAULT_MODEL`。现有 Antigravity 账号调度规则不变。
 
-已实测文本、客户端工具往返、会话隔离与重启续接、图片/音频/PDF/文本输入和原生额度查询。视频请求的回退路由已有回归覆盖；真实视频理解由原有 Cloud Code 路径负责。网关不从实验接口推导或提供 Gemini App 中不存在的思考档位，并忽略客户端的 reasoning 控制，不向 Argon 请求写入隐藏思考字段。原生 token 用量等仍未验证完成。授权、部署、兼容与验证边界见 [Robin Provider 开发说明](docs/robin-provider.md)。
+已实测文本、客户端工具往返、会话隔离与重启续接、图片/音频/PDF/文本输入和原生额度查询。视频请求的回退路由已有回归覆盖；真实视频理解由原有 Cloud Code 路径负责。遇到尚未接受 Gemini 服务条款的账号时，网关会隔离该账号并自动切换到其他可用账号；请用对应 Google 账号打开 Gemini App 接受条款，再从看板执行“重新检测”。网关不从实验接口推导或提供 Gemini App 中不存在的思考档位，并忽略客户端的 reasoning 控制，不向 Argon 请求写入隐藏思考字段。原生 token 用量等仍未验证完成。授权、部署、兼容与验证边界见 [Robin Provider 开发说明](docs/robin-provider.md)。
 
 ### 前台终端命令
 
@@ -527,7 +527,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.5.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.5.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -621,7 +621,7 @@ At startup, a usable official local agy identity is added to the pool only when 
 
 Run the gateway in foreground mode and type `add` to authorize another account. The complete OAuth URL is always printed. On a remote host, paste the final localhost callback URL back at `gateway>`.
 
-The in-development Gemini App provider uses independent `add-gemini` authorization and persistent `robin-accounts/` credentials. An explicit `gemini-4-argon` request enters native Robin task mode through the same gateway, dashboard, and three client protocols; client tools still execute on the client. Ordinary Argon failures never fall back to Cloud Code. Video-bearing Argon requests are the deliberate exception: Gemini App relies on local frame extraction rather than reliable native Argon video understanding, so the gateway keeps its established Cloud Code multimodal path and `ANTIGRAVITY_DEFAULT_MODEL`. Text, real client tool loops, isolation, conversation resumption across restarts, image/audio/PDF/text input and native quota queries have been exercised. The gateway does not infer or expose thinking tiers that are absent from the Gemini App UI, and it ignores client reasoning controls instead of writing hidden thinking fields into Argon requests. Native token usage and remaining client coverage are not established. See [Robin Provider development notes](docs/robin-provider.md) for the current boundaries.
+The in-development Gemini App provider uses independent `add-gemini` authorization and persistent `robin-accounts/` credentials. An explicit `gemini-4-argon` request enters native Robin task mode through the same gateway, dashboard, and three client protocols; client tools still execute on the client. Ordinary Argon failures never fall back to Cloud Code. Video-bearing Argon requests are the deliberate exception: Gemini App relies on local frame extraction rather than reliable native Argon video understanding, so the gateway keeps its established Cloud Code multimodal path and `ANTIGRAVITY_DEFAULT_MODEL`. Text, real client tool loops, isolation, conversation resumption across restarts, image/audio/PDF/text input and native quota queries have been exercised. Accounts that still require Gemini terms acceptance are quarantined and the request fails over to another eligible account; accept the terms in Gemini App with that Google account, then use the dashboard recheck action. The gateway does not infer or expose thinking tiers that are absent from the Gemini App UI, and it ignores client reasoning controls instead of writing hidden thinking fields into Argon requests. Native token usage and remaining client coverage are not established. See [Robin Provider development notes](docs/robin-provider.md) for the current boundaries.
 
 | Command | Purpose |
 |---|---|

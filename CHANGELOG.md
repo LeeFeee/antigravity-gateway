@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 - 2026-10-15
+
+- Quarantine Gemini App accounts that explicitly return a `412` terms-acceptance requirement, persist the actionable health state in the dashboard, and safely fail over unfinished Argon requests to another eligible account.
+
 ## 1.5.0 - 2026-10-15
 
 - Added independent persistent Gemini App OAuth, Argon capability routing, native task/tool streams, quota snapshots and account grouping within the existing gateway and dashboard. Antigravity scheduling and credentials remain separate.
