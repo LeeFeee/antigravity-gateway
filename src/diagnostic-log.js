@@ -8,7 +8,7 @@ const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 function redactText(value) {
   return String(value || '')
     .replace(/(bearer\s+)[a-z0-9._~+/=-]+/gi, '$1[REDACTED]')
-    .replace(/((?:access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization)\s*[=:]\s*)[^\s,;&}]+/gi, '$1[REDACTED]')
+    .replace(/((?:access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|(?:robin[_-]?)?server[_-]?token|x-server-token)["']?\s*[=:]\s*["']?)[^\s,;&}"']+/gi, '$1[REDACTED]')
     .replace(/\beyJ[a-z0-9_-]+\.[a-z0-9_-]+\.[a-z0-9_-]+\b/gi, '[REDACTED_JWT]')
     .slice(0, 1200);
 }
@@ -44,7 +44,7 @@ function sanitizeValue(value, depth = 0) {
   if (typeof value === 'object') {
     return Object.fromEntries(Object.entries(value).slice(0, 100).map(([key, item]) => [
       key,
-      /^(?:accessToken|access_token|refreshToken|refresh_token|clientSecret|client_secret|authorization)$/i.test(key)
+      /^(?:accessToken|access_token|refreshToken|refresh_token|clientSecret|client_secret|authorization|(?:robin[_-]?)?server[_-]?token|x-server-token)$/i.test(key)
         ? '[REDACTED]'
         : sanitizeValue(item, depth + 1)
     ]));

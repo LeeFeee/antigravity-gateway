@@ -50,6 +50,45 @@ function quotaGroups() {
   ];
 }
 
+test('Robin dashboard does not invent a subscription tier or full quota', () => {
+  const html = renderAccountHtml([{
+    id: 'robin-one', email: 'one@example.com', providerType: 'robin', enabled: true,
+    state: 'available', models: ['gemini-4-argon']
+  }]);
+  assert.match(html, /订阅信息待同步/);
+  assert.match(html, /Robin 暂未返回可展示的额度明细/);
+  assert.doesNotMatch(html, /Google AI Pro|Low \/ Medium \/ High|width:100%/);
+  assert.match(html, /quota missing/);
+});
+
+test('Robin dashboard shows native quota in both overview and detail without inventing plan metadata', () => {
+  for (const overview of [true, false]) {
+    const html = renderAccountHtml([{
+      id: 'robin', email: 'r@example.com', providerType: 'robin', enabled: true,
+      state: 'available', models: ['gemini-4-argon'], quota: { stale: true, groups: [{
+        id: 'gemini-robin', buckets: [
+          { window: 'weekly', remainingFraction: 0.875, resetTime: '2026-10-18T08:00:00Z' },
+          { window: '5h', remainingFraction: 0.75, resetTime: '2026-10-14T08:00:00Z' }
+        ]
+      }] }
+    }], { overview });
+    assert.match(html, /每周剩余额度/); assert.match(html, /5 小时剩余额度/);
+    assert.match(html, /87.5%/); assert.match(html, /75%/);
+    assert.match(html, /上次快照/); assert.match(html, /重置/);
+    assert.match(html, /订阅信息待同步/);
+    assert.doesNotMatch(html, /Robin 暂未返回|Google AI Pro/);
+  }
+});
+
+test('Robin dashboard displays an empirically verified account plan', () => {
+  const html = renderAccountHtml([{
+    id: 'robin-pro', email: 'pro@example.com', providerType: 'robin', enabled: true,
+    state: 'available', models: ['gemini-4-argon'], planName: 'Google AI Pro'
+  }]);
+  assert.match(html, /Google AI Pro/);
+  assert.doesNotMatch(html, /订阅信息待同步/);
+});
+
 function cssBlock(css, selector) {
   const start = css.indexOf(selector + '{');
   assert.ok(start >= 0, 'CSS block exists: ' + selector);
@@ -200,6 +239,10 @@ test('dashboard uses the account pool as the only account and usage scope', (t) 
     usageStore,
     version: '0.8.0',
     accountPool: { status: () => [{ id: 'account-1', email: 'one@example.com', enabled: true, state: 'available', modelCooldowns: [] }] },
+    robinAccountPool: { status: () => [{
+      id: 'robin-1', email: 'gemini@example.com', enabled: true, available: true,
+      state: 'available', models: ['gemini-4-argon'], providerType: 'robin', accountType: 'gemini-app'
+    }] },
     quotaManager: { peek: () => ({ available: true, stale: false, groups: [{
       id: 'gemini', displayName: 'Gemini Models', description: 'Models within this group: Gemini Flash, Gemini Pro',
       buckets: [
@@ -210,6 +253,9 @@ test('dashboard uses the account pool as the only account and usage scope', (t) 
   });
   assert.equal(result.version, '0.8.0');
   assert.equal(result.accounts[0].email, 'one@example.com');
+  assert.equal(result.accounts[1].email, 'gemini@example.com');
+  assert.equal(result.accounts[1].providerType, 'robin');
+  assert.equal(result.accounts[1].quota, null);
   assert.equal(result.accounts[0].quota.groups[0].buckets[0].remainingFraction, 0.75);
   assert.equal(result.usage.byAccountModel['account-1']['gemini-3.8-flash-high'].totalTokens, 100);
   assert.equal(result.usage.lifetime.totalTokens, 100);

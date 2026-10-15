@@ -38,6 +38,26 @@ test('diagnostic error details exclude stacks and redact token-shaped values', (
   assert.equal(Object.prototype.hasOwnProperty.call(details, 'stack'), false);
 });
 
+test('diagnostic logs redact Robin server tokens in fields, headers and serialized errors', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'robin-diagnostics-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const logger = new DiagnosticLog({ directory });
+  logger.write('robin_failure', {
+    serverToken: 'private-server-value',
+    nested: { robinServerToken: 'private-robin-value', 'x-server-token': 'private-header-value' },
+    message: 'x-server-token=private-text-value; robinServerToken=private-camel-value',
+    details: errorDetails(new Error('{"server_token":"private-json-value","mode":"argon"}')),
+    robinServerTokenFetchedAt: '2026-10-15T00:00:00Z'
+  });
+  const record = JSON.parse(fs.readFileSync(logger.file, 'utf8').trim());
+  assert.doesNotMatch(JSON.stringify(record), /private-(?:server|robin|header|text|camel|json)-value/);
+  assert.equal(record.serverToken, '[REDACTED]');
+  assert.equal(record.nested.robinServerToken, '[REDACTED]');
+  assert.equal(record.nested['x-server-token'], '[REDACTED]');
+  assert.match(record.details.message, /"mode":"argon"/);
+  assert.equal(record.robinServerTokenFetchedAt, '2026-10-15T00:00:00Z');
+});
+
 test('diagnostic log rotates without changing the caller outcome', () => {
   const calls = [];
   const fsImpl = {

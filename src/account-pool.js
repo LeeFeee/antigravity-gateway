@@ -232,6 +232,10 @@ class AccountPool {
     let stateChanged = false;
     const changedEntries = [];
     for (const account of this.store.list()) {
+      // Directory separation is not enough if a credential file was copied
+      // or imported into the wrong store. Never hand a Robin grant to the
+      // Cloud Code auth/provider path; legacy accounts remain Cloud Code.
+      if (account.providerType === 'robin' || account.accountType === 'gemini-app') continue;
       const previous = old.get(account.id);
       const persistedHealth = this.health.get(account.id);
       if (persistedHealth && persistedHealth.accountFingerprint !== accountFingerprint(account)) {

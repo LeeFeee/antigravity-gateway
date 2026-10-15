@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { AccountPool, SESSION_TTL_MS, durationMs, errorCategory, retryDelay } = require('../src/account-pool');
-const { AccountStore } = require('../src/account-store');
+const { AccountStore, accountId } = require('../src/account-store');
 const { ManagedAccountAuthProvider } = require('../src/managed-account-auth');
 
 function tempStore(t) {
@@ -38,6 +38,15 @@ test('account store deletes credentials only by the stored account ID', (t) => {
   assert.equal(store.delete(first.id).email, first.email);
   assert.deepEqual(store.list().map((item) => item.email), ['two@example.com']);
   assert.equal(store.delete(first.id), null);
+});
+
+test('implicit legacy account IDs stay stable while Robin receives an independent namespace', () => {
+  const identity = { email: 'one@example.com', subjectId: 'one-subject' };
+  assert.equal(accountId({ ...identity, providerType: 'legacy-export-label' }), accountId(identity));
+  assert.equal(accountId({ ...identity, provider_type: 'old-google-label' }), accountId(identity));
+  assert.equal(accountId({ ...identity, providerType: 'cloudcode' }), accountId(identity));
+  assert.notEqual(accountId({ ...identity, providerType: 'robin' }), accountId(identity));
+  assert.equal(accountId({ ...identity, id: 'stored-id', providerType: 'robin' }), 'stored-id');
 });
 
 test('managed account refresh writes the new tokens back to its JSON record', async (t) => {
@@ -94,6 +103,35 @@ test('account pool rotates new sessions but keeps one session on one account', a
   assert.notEqual(calls[0][0], calls[2][0]);
   assert.deepEqual(calls.map((item) => item[1]), ['claude-sonnet-4-6', 'claude-sonnet-4-6', 'claude-sonnet-4-6']);
   assert.deepEqual(new Set(calls.map((item) => item[0])), new Set([first.id, second.id]));
+});
+
+test('Cloud Code never constructs a provider for Gemini App credentials copied into its directory', async t => {
+  const store = tempStore(t);
+  const cloud = store.save(account('cloud@example.com'));
+  store.save({ ...account('foreign@example.com'), providerType: 'robin', accountType: 'gemini-app' });
+  const constructed = [];
+  const pool = new AccountPool({ store, fallbackProvider: {}, providerFactory: record => {
+    constructed.push(record.id);
+    return { send: async () => ({ text: 'ok', toolCalls: [], usage: {} }),
+      listModels: async () => ['claude-sonnet-4-6'], modelInfo: () => null };
+  } });
+  t.after(() => pool.stop());
+  assert.deepEqual(pool.status().map(entry => entry.id), [cloud.id]);
+  assert.deepEqual(constructed, [cloud.id]);
+  await pool.send({}, 'claude-sonnet-4-6', { sessionId: 'cloud-session' });
+  assert.equal(store.list().length, 2, 'a misplaced credential is ignored, never silently deleted');
+});
+
+test('unrecognized legacy JSON type markers do not exclude an otherwise normal Antigravity credential', async t => {
+  const store = tempStore(t);
+  const legacy = store.save({ ...account('legacy@example.com'), providerType: 'legacy-export-label', accountType: 'consumer-export' });
+  const pool = new AccountPool({ store, fallbackProvider: {}, providerFactory: record => ({
+    send: async () => ({ text: record.email, toolCalls: [], usage: {} }),
+    listModels: async () => ['claude-sonnet-4-6'], modelInfo: () => null
+  }) });
+  t.after(() => pool.stop());
+  assert.deepEqual(pool.status().map(entry => entry.id), [legacy.id]);
+  assert.equal((await pool.send({}, 'claude-sonnet-4-6', { sessionId: 'legacy' })).text, legacy.email);
 });
 
 test('account pool routes a model only to accounts whose discovered catalog supports it', async (t) => {

@@ -39,6 +39,7 @@ function mimeFromName(name, fallback = 'application/octet-stream') {
 
 function normalizeMime(value, name = '') {
   const mime = String(value || '').split(';')[0].trim().toLowerCase();
+  if (mime === 'application/octet-stream') return mimeFromName(name, mime);
   return /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(mime) ? mime : mimeFromName(name);
 }
 
@@ -54,12 +55,18 @@ function dataUrl(value) {
 
 function canonicalMedia({ id, mediaType, data, url, fileId, filePath, filename, detail } = {}) {
   const source = firstString(url, filePath);
-  const resolvedData = dataUrl(source);
+  const inline = firstString(data);
+  const inlineData = dataUrl(inline);
+  if (/^data:/i.test(inline) && !inlineData) {
+    throw new MultimediaError('内联附件的 Data URL 必须包含有效的 Base64 数据。');
+  }
+  const resolvedData = inlineData || dataUrl(source);
+  const encoded = inlineData?.data || firstString(data, resolvedData?.data);
   return {
     type: 'media',
     id: firstString(id) || `media_${crypto.randomUUID().replaceAll('-', '')}`,
     mediaType: normalizeMime(resolvedData?.mimeType || mediaType, filename || source),
-    ...(firstString(data, resolvedData?.data) ? { data: firstString(data, resolvedData?.data).replace(/\s+/g, '') } : {}),
+    ...(encoded ? { data: encoded.replace(/\s+/g, '') } : {}),
     ...(fileId ? { fileId: String(fileId) } : {}),
     ...(url && !resolvedData ? { url: String(url) } : {}),
     ...(filePath ? { filePath: String(filePath) } : {}),
@@ -101,13 +108,17 @@ function mediaPartFromBlock(block, protocol = '') {
     return canonicalMedia({ mediaType: block.media_type || block.mime_type || (audio.format ? `audio/${audio.format}` : 'audio/*'), data: audio.data, url: audio.url, fileId: block.file_id, filePath: block.file_path || block.path });
   }
   if (['file', 'input_file'].includes(block.type)) {
+    // Chat Completions wraps these fields in `file`; Responses and legacy
+    // clients use flat fields. Both reach the same canonical media path.
+    const file = block.type === 'file' && block.file && typeof block.file === 'object' && !Array.isArray(block.file)
+      ? block.file : block;
     return canonicalMedia({
-      mediaType: block.media_type || block.mime_type,
-      data: block.file_data && !String(block.file_data).startsWith('http') ? block.file_data : '',
-      url: block.file_url || (String(block.file_data || '').startsWith('http') ? block.file_data : ''),
-      fileId: block.file_id,
-      filePath: block.file_path || block.path,
-      filename: block.filename
+      mediaType: file.media_type || file.mime_type,
+      data: file.file_data && !String(file.file_data).startsWith('http') ? file.file_data : '',
+      url: file.file_url || (String(file.file_data || '').startsWith('http') ? file.file_data : ''),
+      fileId: file.file_id,
+      filePath: file.file_path || file.path,
+      filename: file.filename
     });
   }
   if (inlineData?.data) return canonicalMedia({ mediaType: inlineData.mimeType || inlineData.mime_type, data: inlineData.data, filename: block.filename });

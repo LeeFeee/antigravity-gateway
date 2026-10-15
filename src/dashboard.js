@@ -108,19 +108,36 @@ function accountPoolUsage(usage, accountIds) {
   };
 }
 
-function dashboardData({ usageStore, accountPool, quotaManager, version }) {
-  const status = accountPool.status();
+function dashboardData({ usageStore, accountPool, robinAccountPool, quotaManager, version }) {
+  const cloudcodeStatus = accountPool.status().map((account) => ({
+    ...account,
+    providerType: account.providerType || 'cloudcode',
+    accountType: account.accountType || 'antigravity'
+  }));
+  const robinStatus = (robinAccountPool?.status?.() || []).map((account) => ({
+    ...account,
+    providerType: 'robin',
+    accountType: 'gemini-app'
+  }));
+  const status = [...cloudcodeStatus, ...robinStatus];
   const accountIds = new Set(status.map((account) => account.id));
   const usage = accountPoolUsage(usageStore.summary({ live: true, detailed: true }), accountIds);
   const accounts = status.map((account) => ({
     ...account,
-    quota: quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
+    tokenUsageKnown: typeof account.tokenUsageKnown === 'boolean' ? account.tokenUsageKnown : account.providerType !== 'robin',
+    quota: account.providerType === 'cloudcode'
+      ? quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
+      : account.quota || null
   }));
   return {
     version,
     generatedAt: new Date().toISOString(),
     refreshSeconds: 60,
     accounts,
+    tokenUsageMetadata: {
+      complete: accounts.every(account => account.tokenUsageKnown),
+      unmeteredAccountIds: accounts.filter(account => !account.tokenUsageKnown).map(account => account.id)
+    },
     usage
   };
 }

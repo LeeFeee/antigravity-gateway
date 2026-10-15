@@ -38,7 +38,7 @@ function dashboard(usageStore, accountPool, quotaManager, width = 80) {
 }
 
 class TerminalConsole {
-  constructor({ input = process.stdin, output = process.stdout, usageStore, accountPool, quotaManager, oauthFlow, accountStore, commands = {} } = {}) {
+  constructor({ input = process.stdin, output = process.stdout, usageStore, accountPool, quotaManager, oauthFlow, accountStore, robinAccountPool, robinOAuthFlow, robinAccountStore, commands = {} } = {}) {
     this.input = input;
     this.output = output;
     this.usageStore = usageStore;
@@ -46,6 +46,9 @@ class TerminalConsole {
     this.quotaManager = quotaManager;
     this.oauthFlow = oauthFlow;
     this.accountStore = accountStore;
+    this.robinAccountPool = robinAccountPool;
+    this.robinOAuthFlow = robinOAuthFlow;
+    this.robinAccountStore = robinAccountStore;
     this.commands = commands;
     this.interactive = Boolean(input.isTTY && output.isTTY);
     this.rl = null;
@@ -97,9 +100,10 @@ class TerminalConsole {
   async handle(raw) {
     this.handling += 1;
     const line = String(raw || '').trim();
-    if (this.adding && this.oauthFlow.active) {
+    const activeOAuth = this.adding === 'robin' ? this.robinOAuthFlow : this.oauthFlow;
+    if (this.adding && activeOAuth?.active) {
       if (/^https?:\/\//i.test(line) || line.length > 20) {
-        this.oauthFlow.submit(line);
+        activeOAuth.submit(line);
         this.log('已收到授权结果，正在完成账号添加……');
       } else {
         this.log('正在等待账号授权。请完成浏览器授权，或粘贴完整回调链接。');
@@ -110,13 +114,14 @@ class TerminalConsole {
     }
     const [command] = line.toLowerCase().split(/\s+/);
     try {
-      if (/^https?:\/\/localhost(?::\d+)?\/oauth-callback\?/i.test(line)) {
+      if (/^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/oauth(?:-callback|2callback|callback)\?/i.test(line)) {
         this.log('当前没有正在等待的账号授权。该回调地址可能已被处理或授权流程已经失败；请重新输入 add 发起授权，不要重复使用旧授权码。');
         return;
       }
       switch (command) {
         case '': break;
         case 'add': await this.addAccount(); break;
+        case 'add-gemini': await this.addRobinAccount(); break;
         case 'acc':
         case 'accounts': this.showAccounts(); break;
         case 'models': this.log((await this.commands.models?.() || []).join('\n')); break;
@@ -146,7 +151,7 @@ class TerminalConsole {
 
   async addAccount() {
     if (this.adding) { this.log('已有账号授权正在进行，请先完成或取消当前授权。'); return; }
-    this.adding = true;
+    this.adding = 'cloudcode';
     this.log('正在创建新的 Antigravity 账号授权……');
     try {
       const account = await this.oauthFlow.start({ onReady: ({ url, browserOpened }) => {
@@ -163,14 +168,40 @@ class TerminalConsole {
       this.log('✅ 凭据已保存，账号池已重新加载。');
       this.log(`✅ 当前共有 ${this.accountPool.status().length} 个账号。`);
     } finally {
-      this.adding = false;
+      this.adding = '';
+    }
+  }
+
+  async addRobinAccount() {
+    if (this.adding) { this.log('已有账号授权正在进行，请先完成或取消当前授权。'); return; }
+    if (!this.robinOAuthFlow || !this.robinAccountStore || !this.robinAccountPool) throw new Error('当前网关未启用 Gemini App Provider。');
+    this.adding = 'robin';
+    this.log('正在创建新的 Gemini App 账号授权……');
+    try {
+      const account = await this.robinOAuthFlow.start({ onReady: ({ url, browserOpened }) => {
+        this.log(browserOpened ? '已尝试自动打开默认浏览器。' : '默认浏览器未能自动打开。');
+        this.log('\n如果浏览器没有自动打开网页，请复制下面的完整链接到浏览器中，然后完成 Gemini 账号授权：\n');
+        this.log(url);
+        this.log('\n正在等待授权完成……');
+      } });
+      const saved = this.robinAccountStore.save(account);
+      this.robinAccountPool.reload();
+      await this.robinAccountPool.listModels(undefined, { force: true });
+      void this.robinAccountPool.refreshQuota?.(saved.id).catch(() => {});
+      await this.commands.models?.();
+      this.log(`✅ Gemini 账号授权成功：${saved.email || saved.id}`);
+      this.log('✅ Robin 凭据已独立保存，统一模型目录与客户端模型文件已更新。');
+    } finally {
+      this.adding = '';
     }
   }
 
   showAccounts() {
     const accounts = this.accountPool.status();
-    if (!accounts.length) { this.log('账号池尚未添加账号，当前使用本地 agy 登录态。'); return; }
+    const robinAccounts = this.robinAccountPool?.status?.() || [];
+    if (!accounts.length && !robinAccounts.length) { this.log('账号池尚未添加账号，当前使用本地 agy 登录态。'); return; }
     const lines = ['账号池：'];
+    if (accounts.length) lines.push('Antigravity：');
     accounts.forEach((account, index) => {
       const quota = this.quotaManager?.get(account.id);
       lines.push(`${index + 1}. ${account.email || account.id}`);
@@ -178,6 +209,13 @@ class TerminalConsole {
       if (account.healthMessage) lines.push(`   账号提醒：${account.healthMessage}`);
       if (account.modelCooldowns.length) lines.push(`   模型冷却：${account.modelCooldowns.map((item) => item.model).join(', ')}`);
       if (account.lastSuccessAt) lines.push(`   最后成功：${account.lastSuccessAt}`);
+      if (account.lastError) lines.push(`   最近错误：${account.lastError}`);
+    });
+    if (robinAccounts.length) lines.push('Gemini：');
+    robinAccounts.forEach((account, index) => {
+      lines.push(`${index + 1}. ${account.email || account.id}`);
+      lines.push(`   状态：${account.available ? 'available' : 'unavailable'}，套餐：${account.planName || 'Gemini'}`);
+      lines.push(`   模型：${account.models.join(', ') || '尚未发现'}`);
       if (account.lastError) lines.push(`   最近错误：${account.lastError}`);
     });
     this.log(lines.join('\n'));
@@ -203,6 +241,7 @@ class TerminalConsole {
     this.log(`可用终端命令：
 
   add        添加 Antigravity 账号
+  add-gemini 添加 Gemini App 账号（Robin / Argon）
   acc        查看账号池和账号状态
   models     查看当前发现的模型
   status     查看网关及统计状态

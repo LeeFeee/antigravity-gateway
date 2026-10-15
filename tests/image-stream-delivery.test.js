@@ -1,4 +1,5 @@
 'use strict';
+require('./helpers/gateway-environment');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createChatTextEmitter, createAnthropicTextEmitter } = require('../antigravity-gateway');

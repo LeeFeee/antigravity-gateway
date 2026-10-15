@@ -18,11 +18,15 @@ const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowse
 const { LocalAccountImporter } = require('./src/local-account-importer');
 const { MediaStore, MultimediaError, mediaParts, normalizeMime } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
+const { ProviderRouter, ProviderRouterError } = require('./src/provider-router');
 const { QuotaManager } = require('./src/quota-manager');
+const { RobinAccountPool } = require('./src/robin-account-pool');
+const { RobinOAuthFlow } = require('./src/robin-oauth-flow');
+const { ARGON_MODEL, RobinProviderError } = require('./src/robin-provider');
 const { manageService } = require('./src/service-manager');
 const { TerminalConsole } = require('./src/terminal-console');
 const { UsageStore } = require('./src/usage-store');
-const { SessionManager, credentialScope } = require('./src/session-manager');
+const { SessionManager, SessionIdentityError, credentialScope } = require('./src/session-manager');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
@@ -111,6 +115,7 @@ const diagnosticReporter = (event, fields) => {
 const DIRECT_PROVIDER = new DirectAntigravityProvider({ diagnosticReporter });
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
+const ROBIN_ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR, directoryName: 'robin-accounts' });
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
   store: ACCOUNT_STORE,
@@ -122,6 +127,16 @@ const ACCOUNT_POOL = new AccountPool({
 const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
+const ROBIN_ACCOUNT_POOL = new RobinAccountPool({
+  store: ROBIN_ACCOUNT_STORE,
+  diagnosticReporter,
+  usageStore: USAGE_STORE
+});
+const ROBIN_OAUTH_FLOW = new RobinOAuthFlow();
+const PROVIDER_ROUTER = new ProviderRouter({
+  cloudcodePool: ACCOUNT_POOL,
+  robinPool: ROBIN_ACCOUNT_POOL
+});
 const LOCAL_ACCOUNT_IMPORTER = new LocalAccountImporter({
   provider: DIRECT_PROVIDER,
   store: ACCOUNT_STORE,
@@ -165,6 +180,7 @@ const DASHBOARD_ACCESS = createDashboardAccessPolicy(
 
 const activeWorkers = new Set();
 let modelCache = { at: 0, models: [], error: null };
+let cloudcodeModelCache = { at: 0, models: [] };
 let versionCache = null;
 
 class Semaphore {
@@ -257,11 +273,15 @@ function directAuthDescription() {
 }
 
 async function availableModels(force = false) {
+  if (force) cloudcodeModelCache.at = 0;
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
-    const models = usesDirectTransport()
-      ? await ACCOUNT_POOL.listModels(undefined, { force: true })
-      : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
+    // The subprocess is only a Cloud Code transport. Its absence/failure must
+    // not skip Robin, nor may a Robin catalog failure hide working agy models.
+    // Both modes use the same independent discovery and per-provider cache.
+    const models = await PROVIDER_ROUTER.refreshModels(undefined, usesDirectTransport() ? {} : {
+      cloudcodeDiscovery: () => listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS })
+    });
     if (!models.length) throw new GatewayError('`agy models` 没有返回可识别的模型 ID。', { code: 'empty_model_catalog', status: 503 });
     modelCache = { at: Date.now(), models, error: null };
   } catch (error) {
@@ -269,6 +289,17 @@ async function availableModels(force = false) {
     if (!modelCache.models.length) throw error;
   }
   return modelCache.models;
+}
+
+async function availableCloudCodeModels() {
+  if (Date.now() - cloudcodeModelCache.at < MODEL_CACHE_MS && cloudcodeModelCache.models.length) {
+    return cloudcodeModelCache.models;
+  }
+  const models = usesDirectTransport()
+    ? await ACCOUNT_POOL.listModels(undefined, { force: true })
+    : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
+  cloudcodeModelCache = { at: Date.now(), models };
+  return models;
 }
 
 function preferredFastModel(models) {
@@ -293,14 +324,17 @@ function preferredFastModel(models) {
 async function resolveModel(requested, { preferFast = false } = {}) {
   const aliases = configuredAliases();
   const original = requested || DEFAULT_MODEL;
+  const mapped = Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original;
   // Normal requests preserve the exact client model ID. Aliases are opt-in,
-  // exact mappings only. Auto Mode classifiers are the sole requests allowed
-  // to use the independent low-latency route.
-  if (!preferFast) {
-    return Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original;
+  // exact mappings only. Cloud Code Auto Mode classifiers can use its faster
+  // route; an explicitly Robin-owned model keeps its independent provider.
+  if (!preferFast || ROBIN_ACCOUNT_POOL.ownsModel(mapped)) {
+    return mapped;
   }
   try {
-    return preferredFastModel(await availableModels());
+    // Cloud Code's auxiliary classifier must not wait on Robin metadata.
+    // Explicitly Robin-owned models already returned unchanged above.
+    return preferredFastModel(await availableCloudCodeModels());
   } catch {
     // Model discovery is advisory. Even an Auto Mode classifier must still be
     // allowed to reach the upstream service when the local catalog is stale or
@@ -322,7 +356,10 @@ async function upstreamModelDiagnostic(error, model) {
 
   let models;
   try {
-    models = await availableModels();
+    // These error types originate from Cloud Code / agy only. Diagnostic
+    // advice must not query an unrelated Robin authorization, including when
+    // the unified catalog has not yet loaded. Keep the same short cache TTL.
+    models = await availableCloudCodeModels();
   } catch {
     return error;
   }
@@ -488,11 +525,21 @@ function writeClaudeConfig(models) {
   return target;
 }
 
+async function refreshClientModelCatalogs() {
+  const models = await availableModels(true);
+  try { writeCodexCatalog(models); }
+  catch (error) { gatewayWarn(`[Antigravity Gateway] Codex 模型目录写入失败：${error.message}`); }
+  try { writeClaudeConfig(models); }
+  catch (error) { gatewayWarn(`[Antigravity Gateway] Claude Code 模型配置写入失败：${error.message}`); }
+  return models;
+}
+
 function featuredModels(models) {
   return displayModels(models).filter((model) => (
     /^gemini-3\.[78](?:[.-]|$)/i.test(model)
     || model === 'claude-opus-4-6-thinking'
     || model === 'claude-sonnet-4-6'
+    || model === ARGON_MODEL
   ));
 }
 
@@ -523,6 +570,8 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
     ` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`,
     ' 可用模型:'
   ];
+  if (models.includes(ARGON_MODEL)) lines.splice(lines.length - 1, 0,
+    ' Gemini App: ✅ Robin 原生任务 / 工具通道（独立授权，无需本机应用）');
   const selected = featuredModels(models);
   if (selected.length) lines.push(...selected.map((model) => `    ${model}`));
   else lines.push(`    ${modelError ? `检测失败：${modelError}` : '未发现精选模型'}`);
@@ -611,7 +660,7 @@ function setCors(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
-  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, x-claude-session-id, x-codex-session-id, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, DELETE, OPTIONS');
   return true;
 }
@@ -624,8 +673,14 @@ function clientSessionScope(req, payload = {}, normalized = {}, previous = null)
   return SESSION_MANAGER.resolve(req, payload, normalized, previous);
 }
 
-function clientSessionIdentity(req, payload = {}, normalized = {}, previous = null) {
-  return SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous);
+function clientSessionIdentity(req, payload = {}, normalized = {}, previous = null, options) {
+  return SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous, options);
+}
+
+function taskIdentityOptions(model) {
+  // Only known stateful model ownership changes anonymous task handling.
+  // Cloud Code keeps its existing session and affinity derivation.
+  return model === ARGON_MODEL || PROVIDER_ROUTER.catalog.robin.has(model) ? { taskProvider: 'robin' } : {};
 }
 
 function identityTrace(identity = {}) {
@@ -703,7 +758,9 @@ function errorBody(error, protocol) {
 }
 
 function mapAgyError(error) {
-  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError || error instanceof MultimediaError) return error;
+  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError
+    || error instanceof MultimediaError || error instanceof RobinProviderError || error instanceof ProviderRouterError
+    || error instanceof SessionIdentityError) return error;
   if (error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || /request aborted/i.test(String(error?.message || ''))) {
     return new GatewayError('客户端已取消请求。', { code: 'request_aborted', status: 499 });
   }
@@ -740,17 +797,63 @@ function artifactUrl(base, id) {
   return base ? `${String(base).replace(/\/$/, '')}/v1/files/${encodeURIComponent(id)}/content` : '';
 }
 
-async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, onDelta, mediaScope = '', publicBaseUrl = '' } = {}) {
+function hasVideoInput(normalized) {
+  const parts = (normalized.messages || []).flatMap((message) => (message.parts || []).flatMap((part) => (
+    part?.type === 'tool_result' && Array.isArray(part.media) ? part.media : [part]
+  )));
+  return parts.some((part) => part?.type === 'media'
+    && normalizeMime(part.mediaType, part.filename || part.filePath || part.url).startsWith('video/'));
+}
+
+async function argonVideoFallbackModel() {
+  const fallback = await resolveModel(DEFAULT_MODEL);
+  if (fallback === ARGON_MODEL || ROBIN_ACCOUNT_POOL.ownsModel(fallback)) {
+    throw new GatewayError('Argon 视频理解需要一个非 Robin 的默认 Antigravity 模型。', {
+      code: 'argon_video_fallback_unavailable', status: 503
+    });
+  }
+  return fallback;
+}
+
+async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, auxiliaryScope, onDelta, onThinkingDelta, reuseConversation = false, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
-  if (usesDirectTransport()) {
+  const taskScope = auxiliaryScope ? { auxiliaryScope } : {};
+  const robinOwned = ROBIN_ACCOUNT_POOL.ownsModel(model);
+  if (usesDirectTransport() || robinOwned) {
     try {
       const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
-      const prepared = prepareNativeMultimodal(resolved);
-      const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
-      const onAccountSelected = ({ accountId, email, source, attempt }) => {
-        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${model} attempt=${attempt} ${trace}`);
+      // Gemini App performs its own local frame extraction for video rather
+      // than offering reliable native Argon video understanding. Preserve the
+      // gateway's established multimodal path: only video-bearing Argon turns
+      // use the configured Antigravity default model and Cloud Code account
+      // pool. Text, image, audio, PDF and tool turns remain on Robin.
+      const argonVideoFallback = model === ARGON_MODEL && hasVideoInput(resolved);
+      const upstreamModel = argonVideoFallback ? await argonVideoFallbackModel() : model;
+      const providerType = argonVideoFallback ? 'cloudcode'
+        : robinOwned ? 'robin' : await PROVIDER_ROUTER.resolveProvider(upstreamModel, signal);
+      const prepared = providerType === 'cloudcode'
+        ? prepareNativeMultimodal(resolved)
+        : { normalized: resolved, imageToolInjected: false };
+      const finalize = (raw) => {
+        try { return finalizeModelResult(normalized, raw); }
+        catch (error) {
+          if (providerType === 'robin' && raw.toolCalls?.length) {
+            PROVIDER_ROUTER.cancelTask(providerType, prepared.normalized, { sessionId, routingKey, clientId, ...taskScope });
+          }
+          throw error;
+        }
       };
-      let raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onDelta, onAccountSelected });
+      const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
+      if (argonVideoFallback) {
+        gatewayLog(`[Antigravity Gateway] Argon 视频请求转入原有多媒体路径 model=${upstreamModel} requested=${model} ${trace}`);
+      }
+      const onAccountSelected = ({ accountId, email, source, attempt }) => {
+        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${upstreamModel} attempt=${attempt} ${trace}`);
+      };
+      let raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, {
+        signal, sessionId, routingKey, requestId, clientId, clientLabel, onDelta, onAccountSelected, reuseConversation, ...taskScope,
+        onThinkingDelta: normalized.includeThinking ? onThinkingDelta : undefined
+      });
       const initialUsage = raw.usage;
       const internalCalls = prepared.imageToolInjected
         ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
@@ -822,20 +925,22 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
             }] }
           ]
         };
-        raw = await ACCOUNT_POOL.send(continuation, model, { signal, sessionId, routingKey, onAccountSelected });
-        const final = finalizeModelResult(normalized, raw);
+        raw = await PROVIDER_ROUTER.send(continuation, upstreamModel, {
+          signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope
+        });
+        const final = finalize(raw);
         return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
       }
       try {
-        return finalizeModelResult(normalized, raw);
+        return finalize(raw);
       } catch (error) {
         if (error.code === 'invalid_auto_mode_classifier_output') {
-          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onAccountSelected, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
-          return finalizeModelResult(normalized, raw);
+          raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+          return finalize(raw);
         }
         if (error.code === 'invalid_structured_output') {
-          raw = await ACCOUNT_POOL.send(prepared.normalized, model, { signal, sessionId, routingKey, onAccountSelected, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
-          return finalizeModelResult(normalized, raw);
+          raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+          return finalize(raw);
         }
         throw error;
       }
@@ -930,8 +1035,10 @@ function textStreamingAllowed(normalized) {
 function createAnthropicTextEmitter(res, model) {
   const id = `msg_${crypto.randomUUID().replaceAll('-', '')}`;
   let started = false;
-  let blockStarted = false;
+  let blockCount = 0;
+  let activeBlock = null;
   let emittedText = '';
+  let emittedThinking = '';
   const start = () => {
     if (started) return;
     started = true;
@@ -940,29 +1047,41 @@ function createAnthropicTextEmitter(res, model) {
       usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
     } });
   };
-  const emitText = (text) => {
+  const closeBlock = () => {
+    if (activeBlock) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: activeBlock.index });
+    activeBlock = null;
+  };
+  const emitBlock = (kind, text) => {
     text = String(text || '');
     if (!text) return;
     start();
-    if (!blockStarted) {
-      blockStarted = true;
-      sendSse(res, 'content_block_start', { type: 'content_block_start', index: 0, content_block: { type: 'text', text: '' } });
+    if (activeBlock?.kind !== kind) {
+      closeBlock();
+      activeBlock = { index: blockCount++, kind };
+      sendSse(res, 'content_block_start', { type: 'content_block_start', index: activeBlock.index,
+        content_block: kind === 'thinking' ? { type: 'thinking', thinking: '' } : { type: 'text', text: '' } });
     }
-    emittedText += text;
-    sendSse(res, 'content_block_delta', { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text } });
+    if (kind === 'thinking') emittedThinking += text;
+    else emittedText += text;
+    sendSse(res, 'content_block_delta', { type: 'content_block_delta', index: activeBlock.index,
+      delta: kind === 'thinking' ? { type: 'thinking_delta', thinking: text } : { type: 'text_delta', text } });
   };
   return {
-    onDelta: (text) => emitText(text),
+    onDelta: (text) => emitBlock('text', text),
+    onThinkingDelta: (text) => emitBlock('thinking', text),
     finish: (body) => {
       start();
-      const finalText = body.content?.find((block) => block.type === 'text')?.text || '';
-      emitText(streamTextRemainder(emittedText, finalText));
-      if (blockStarted) sendSse(res, 'content_block_stop', { type: 'content_block_stop', index: 0 });
+      const finalThinking = (body.content || []).filter(block => block.type === 'thinking').map(block => block.thinking || '').join('');
+      emitBlock('thinking', streamTextRemainder(emittedThinking, finalThinking));
+      const finalText = (body.content || []).filter(block => block.type === 'text').map(block => block.text || '').join('');
+      emitBlock('text', streamTextRemainder(emittedText, finalText));
+      closeBlock();
       // message_start went out before upstream usage existed; message_delta usage is cumulative per the Messages API.
       sendSse(res, 'message_delta', {
         type: 'message_delta',
         delta: { stop_reason: body.stop_reason, stop_sequence: null },
         usage: body.usage,
+        ...(body.usage_known === false ? { usage_known: false } : {}),
         ...(body.artifacts ? { artifacts: body.artifacts } : {})
       });
       sendSse(res, 'message_stop', { type: 'message_stop' });
@@ -971,40 +1090,61 @@ function createAnthropicTextEmitter(res, model) {
   };
 }
 
-function createChatTextEmitter(res, model) {
+function sendChatChunk(res, base, choices, { includeUsage = false, usage = null, usageKnown } = {}) {
+  res.write(`data: ${JSON.stringify({ id: base.id, object: 'chat.completion.chunk', created: base.created,
+    model: base.model, choices, ...(includeUsage ? { usage } : {}),
+    ...(usageKnown === false ? { usage_known: false } : {}) })}\n\n`);
+}
+
+function createChatTextEmitter(res, model, { includeUsage = false } = {}) {
   const id = `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`;
   const created = Math.floor(Date.now() / 1000);
   let started = false;
   let emittedText = '';
+  let emittedThinking = '';
+  const base = { id, created, model };
+  const chunk = (delta, finish_reason = null, extra = {}) => sendChatChunk(res, base,
+    [{ index: 0, delta, finish_reason }], { includeUsage, ...extra });
   const start = () => {
     if (started) return;
     started = true;
-    res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }] })}\n\n`);
+    chunk({ role: 'assistant' });
   };
   return {
+    onThinkingDelta: (text) => {
+      text = String(text || '');
+      if (!text) return;
+      start();
+      emittedThinking += text;
+      chunk({ reasoning_content: text });
+    },
     onDelta: (text) => {
       text = String(text || '');
       if (!text) return;
       start();
       emittedText += text;
-      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: text }, finish_reason: null }] })}\n\n`);
+      chunk({ content: text });
     },
     finish: (body) => {
       start();
+      const thinking = body.choices?.[0]?.message?.reasoning_content || '';
+      const thinkingRemainder = streamTextRemainder(emittedThinking, thinking);
+      if (thinkingRemainder) chunk({ reasoning_content: thinkingRemainder });
       const finalText = body.choices?.[0]?.message?.content || '';
       const remainder = streamTextRemainder(emittedText, finalText);
       if (remainder) {
-        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: { content: remainder }, finish_reason: null }] })}\n\n`);
+        chunk({ content: remainder });
       }
       const finalMessage = body.choices?.[0]?.message || {};
       if (finalMessage.images || finalMessage.artifacts) {
         const delta = {};
         if (finalMessage.images) delta.images = finalMessage.images;
         if (finalMessage.artifacts) delta.artifacts = finalMessage.artifacts;
-        res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta, finish_reason: null }] })}\n\n`);
+        chunk(delta);
       }
       const finishReason = body.choices?.[0]?.finish_reason || 'stop';
-      res.write(`data: ${JSON.stringify({ id, object: 'chat.completion.chunk', created, model, choices: [{ index: 0, delta: {}, finish_reason: finishReason }] })}\n\n`);
+      chunk({}, finishReason, { usageKnown: body.usage_known });
+      if (includeUsage) sendChatChunk(res, base, [], { includeUsage: true, usage: body.usage ?? null, usageKnown: body.usage_known });
       res.write('data: [DONE]\n\n');
       res.end();
     }
@@ -1036,44 +1176,126 @@ function emitAnthropicStream(res, body) {
     type: 'message_delta',
     delta: { stop_reason: body.stop_reason, stop_sequence: null },
     usage: body.usage,
+    ...(body.usage_known === false ? { usage_known: false } : {}),
     ...(body.artifacts ? { artifacts: body.artifacts } : {})
   });
   sendSse(res, 'message_stop', { type: 'message_stop' });
   res.end();
 }
 
-function emitChatStream(res, body) {
+function emitChatStream(res, body, { includeUsage = false } = {}) {
   if (!res.headersSent) res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   const choice = body.choices[0];
   const first = { role: 'assistant' };
   if (choice.message.content) first.content = choice.message.content;
+  if (choice.message.reasoning_content) first.reasoning_content = choice.message.reasoning_content;
   if (choice.message.tool_calls) first.tool_calls = choice.message.tool_calls.map((call, index) => ({ index, ...call }));
   if (choice.message.images) first.images = choice.message.images;
   if (choice.message.artifacts) first.artifacts = choice.message.artifacts;
-  res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: first, finish_reason: null }] })}\n\n`);
-  res.write(`data: ${JSON.stringify({ id: body.id, object: 'chat.completion.chunk', created: body.created, model: body.model, choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason }] })}\n\n`);
+  sendChatChunk(res, body, [{ index: 0, delta: first, finish_reason: null }], { includeUsage });
+  sendChatChunk(res, body, [{ index: 0, delta: {}, finish_reason: choice.finish_reason }], { includeUsage, usageKnown: body.usage_known });
+  if (includeUsage) sendChatChunk(res, body, [], { includeUsage: true, usage: body.usage ?? null, usageKnown: body.usage_known });
   res.write('data: [DONE]\n\n');
   res.end();
+}
+
+function emitResponsesItem(emit, item, outputIndex) {
+  emit({ type: 'response.output_item.added', output_index: outputIndex, item: { ...item, status: 'in_progress', content: item.content ? [] : undefined,
+    ...(item.type === 'reasoning' ? { summary: [] } : {}) } });
+  if (item.type === 'message') {
+    const part = item.content[0];
+    emit({ type: 'response.content_part.added', item_id: item.id, output_index: outputIndex, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
+    emit({ type: 'response.output_text.delta', item_id: item.id, output_index: outputIndex, content_index: 0, delta: part.text });
+    emit({ type: 'response.output_text.done', item_id: item.id, output_index: outputIndex, content_index: 0, text: part.text });
+    emit({ type: 'response.content_part.done', item_id: item.id, output_index: outputIndex, content_index: 0, part });
+  } else if (item.type === 'reasoning') {
+    (item.summary || []).forEach((part, summaryIndex) => {
+      const ids = { item_id: item.id, output_index: outputIndex, summary_index: summaryIndex };
+      emit({ type: 'response.reasoning_summary_part.added', ...ids, part: { type: 'summary_text', text: '' } });
+      emit({ type: 'response.reasoning_summary_text.delta', ...ids, delta: part.text });
+      emit({ type: 'response.reasoning_summary_text.done', ...ids, text: part.text });
+      emit({ type: 'response.reasoning_summary_part.done', ...ids, part });
+    });
+  } else if (item.type === 'function_call') {
+    emit({ type: 'response.function_call_arguments.delta', item_id: item.id, output_index: outputIndex, delta: item.arguments });
+    emit({ type: 'response.function_call_arguments.done', item_id: item.id, output_index: outputIndex, arguments: item.arguments });
+  }
+  emit({ type: 'response.output_item.done', output_index: outputIndex, item });
+}
+
+function createResponsesTextEmitter(res, model, responseId) {
+  const createdAt = Math.floor(Date.now() / 1000);
+  let sequence = 0;
+  let started = false;
+  const states = new Map();
+  const emit = (event) => sendSse(res, null, { ...event, sequence_number: sequence++ });
+  const start = () => {
+    if (started) return;
+    started = true;
+    emit({ type: 'response.created', response: {
+      id: responseId, object: 'response', created_at: createdAt, model,
+      status: 'in_progress', output: [], error: null, incomplete_details: null, usage: null
+    } });
+  };
+  const emitDelta = (kind, value) => {
+    const text = String(value || '');
+    if (!text) return;
+    start();
+    let state = states.get(kind);
+    if (!state) {
+      state = { id: `${kind === 'reasoning' ? 'rs' : 'msg'}_${crypto.randomUUID().replaceAll('-', '')}`, index: states.size, text: '' };
+      states.set(kind, state);
+      const item = kind === 'reasoning'
+        ? { id: state.id, type: 'reasoning', status: 'in_progress', summary: [] }
+        : { id: state.id, type: 'message', role: 'assistant', status: 'in_progress', content: [] };
+      emit({ type: 'response.output_item.added', output_index: state.index, item });
+      if (kind === 'reasoning') emit({ type: 'response.reasoning_summary_part.added', item_id: state.id,
+        output_index: state.index, summary_index: 0, part: { type: 'summary_text', text: '' } });
+      else emit({ type: 'response.content_part.added', item_id: state.id, output_index: state.index,
+        content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
+    }
+    state.text += text;
+    emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_text.delta' : 'response.output_text.delta',
+      item_id: state.id, output_index: state.index, ...(kind === 'reasoning' ? { summary_index: 0 } : { content_index: 0 }), delta: text });
+  };
+  return { onDelta: value => emitDelta('message', value), onThinkingDelta: value => emitDelta('reasoning', value), finish(body) {
+    start();
+    body.id = responseId;
+    body.created_at = createdAt;
+    const message = body.output.find((item) => item.type === 'message');
+    const reasoning = body.output.find((item) => item.type === 'reasoning');
+    emitDelta('reasoning', streamTextRemainder(states.get('reasoning')?.text || '',
+      (reasoning?.summary || []).map(part => part.text || '').join('')));
+    emitDelta('message', streamTextRemainder(states.get('message')?.text || '', message?.content?.[0]?.text || ''));
+    const completed = [];
+    for (const [kind, state] of states) {
+      const part = kind === 'reasoning' ? { type: 'summary_text', text: state.text }
+        : { type: 'output_text', text: state.text, annotations: message?.content?.[0]?.annotations || [] };
+      const item = kind === 'reasoning'
+        ? { id: state.id, type: 'reasoning', status: 'completed', summary: [part] }
+        : { id: state.id, type: 'message', role: 'assistant', status: 'completed', content: [part] };
+      const ids = { item_id: state.id, output_index: state.index,
+        ...(kind === 'reasoning' ? { summary_index: 0 } : { content_index: 0 }) };
+      emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_text.done' : 'response.output_text.done', ...ids, text: state.text });
+      emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_part.done' : 'response.content_part.done', ...ids, part });
+      emit({ type: 'response.output_item.done', output_index: state.index, item });
+      completed.push(item);
+    }
+    const remaining = body.output.filter(item => !(item === message && states.has('message'))
+      && !(item === reasoning && states.has('reasoning')));
+    body.output = [...completed, ...remaining];
+    remaining.forEach((item, index) => emitResponsesItem(emit, item, completed.length + index));
+    emit({ type: 'response.completed', response: body });
+    res.write('data: [DONE]\n\n');
+    res.end();
+  } };
 }
 
 function emitResponsesStream(res, body) {
   if (!res.headersSent) res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
   let sequence = 0;
   sendSse(res, null, { type: 'response.created', sequence_number: sequence++, response: { ...body, status: 'in_progress', output: [] } });
-  body.output.forEach((item, outputIndex) => {
-    sendSse(res, null, { type: 'response.output_item.added', sequence_number: sequence++, output_index: outputIndex, item: { ...item, status: 'in_progress', content: item.content ? [] : undefined } });
-    if (item.type === 'message') {
-      const part = item.content[0];
-      sendSse(res, null, { type: 'response.content_part.added', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
-      sendSse(res, null, { type: 'response.output_text.delta', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, content_index: 0, delta: part.text });
-      sendSse(res, null, { type: 'response.output_text.done', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, content_index: 0, text: part.text });
-      sendSse(res, null, { type: 'response.content_part.done', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, content_index: 0, part });
-    } else if (item.type === 'function_call') {
-      sendSse(res, null, { type: 'response.function_call_arguments.delta', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, delta: item.arguments });
-      sendSse(res, null, { type: 'response.function_call_arguments.done', sequence_number: sequence++, item_id: item.id, output_index: outputIndex, arguments: item.arguments });
-    }
-    sendSse(res, null, { type: 'response.output_item.done', sequence_number: sequence++, output_index: outputIndex, item });
-  });
+  body.output.forEach((item, index) => emitResponsesItem((event) => sendSse(res, null, { ...event, sequence_number: sequence++ }), item, index));
   sendSse(res, null, { type: 'response.completed', sequence_number: sequence++, response: body });
   res.write('data: [DONE]\n\n');
   res.end();
@@ -1091,6 +1313,14 @@ async function generateImages(payload, req, signal, references = []) {
   const count = Math.max(1, Math.min(4, Number(payload.n) || 1));
   const prompt = String(payload.prompt || '').trim();
   if (!prompt) throw new GatewayError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
+  const requestedModel = payload.model ? await resolveModel(payload.model) : '';
+  if (requestedModel && (ROBIN_ACCOUNT_POOL.ownsModel(requestedModel) || PROVIDER_ROUTER.catalog.robin.has(requestedModel))) {
+    // This operation is currently the existing Cloud Code image transport.
+    // Never reinterpret an explicitly selected Robin model as that provider.
+    throw new GatewayError(`请求模型 ${requestedModel} 的独立图片接口尚未接入，未切换到其他模型或账号来源。`, {
+      code: 'robin_images_not_implemented', status: 501
+    });
+  }
   const scope = clientScope(req);
   const identity = clientSessionIdentity(req, payload, { model: payload.model, messages: [{ role: 'user', text: prompt, parts: references }] });
   const trace = identityTrace(identity);
@@ -1194,12 +1424,13 @@ async function handleAnthropic(payload, req, res, signal) {
   const normalized = normalizeAnthropic(payload);
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
   const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
-  const identity = clientSessionIdentity(req, payload, normalized);
+  const identity = clientSessionIdentity(req, payload, normalized, null, taskIdentityOptions(model));
   gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
+  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
@@ -1209,15 +1440,16 @@ async function handleChat(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   const normalized = normalizeChat(payload);
   const model = await resolveModel(normalized.model);
-  const identity = clientSessionIdentity(req, payload, normalized);
+  const identity = clientSessionIdentity(req, payload, normalized, null, taskIdentityOptions(model));
   gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
-  const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model) : null;
+  const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model, { includeUsage: normalized.includeUsage }) : null;
   let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta }); } finally { stopHeartbeat?.(); }
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
+  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
   const body = chatResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
-  else if (normalized.stream) emitChatStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
+  else if (normalized.stream) emitChatStream(res, body, { includeUsage: normalized.includeUsage }); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleResponses(payload, req, res, signal) {
@@ -1229,20 +1461,23 @@ async function handleResponses(payload, req, res, signal) {
   }
   const normalized = normalizeResponses(payload, previous);
   const model = await resolveModel(normalized.model);
-  const identity = clientSessionIdentity(req, payload, normalized, previous);
+  const identity = clientSessionIdentity(req, payload, normalized, previous, taskIdentityOptions(model));
   gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
   if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
     const customTools = (payload.tools || []).filter((tool) => tool?.type === 'custom');
     if (customTools.length) gatewayLog(`[Antigravity Gateway Debug] custom-tools=${JSON.stringify(customTools).slice(0, 4000)}`);
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
+  const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
+  const liveEmitter = textStreamingAllowed(normalized) ? createResponsesTextEmitter(res, normalized.model || model, responseId) : null;
   let result;
   const sessionId = identity.sessionId;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req) }); } finally { stopHeartbeat?.(); }
-  const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
+  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
+  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
   const body = responsesResponse(normalized.model || model, result, responseId);
   SESSION_MANAGER.bindResponse(responseId, req, {
     sessionId,
+    ...(identity.anonymousTask ? { anonymousTask: true } : {}),
     routingKey: identity.routingKey,
     system: normalized.system,
     messages: [...normalized.messages, {
@@ -1261,17 +1496,41 @@ async function handleResponses(payload, req, res, signal) {
       ]
     }]
   }, payload);
-  if (normalized.stream) emitResponsesStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
+  if (liveEmitter) liveEmitter.finish(body);
+  else if (normalized.stream) emitResponsesStream(res, body);
+  else sendJson(res, 200, body, { 'x-antigravity-model': model });
+}
+
+function dashboardAccountPool(requestUrl, accountId) {
+  const providers = requestUrl.searchParams.getAll('provider');
+  if (providers.length > 1 || (providers.length === 1 && !['cloudcode', 'robin'].includes(providers[0]))) {
+    throw new GatewayError('账号来源必须明确为 cloudcode 或 robin，且只能指定一次。', {
+      code: 'invalid_account_provider', status: 400
+    });
+  }
+  if (providers.length) return providers[0] === 'robin' ? ROBIN_ACCOUNT_POOL : ACCOUNT_POOL;
+  const inCloudCode = ACCOUNT_POOL.status().some(account => account.id === accountId);
+  const inRobin = ROBIN_ACCOUNT_POOL.status().some(account => account.id === accountId);
+  if (inCloudCode && inRobin) {
+    throw new GatewayError('该账号 ID 同时存在于两类账号池，请明确指定账号来源。', {
+      code: 'ambiguous_account_provider', status: 409
+    });
+  }
+  // Preserve older single-provider callers, including the existing Cloud Code
+  // not-found error, without guessing when two stores own the same ID.
+  return inRobin ? ROBIN_ACCOUNT_POOL : ACCOUNT_POOL;
 }
 
 async function requestHandler(req, res) {
   if (!setCors(req, res)) { sendJson(res, 403, { error: { type: 'origin_not_allowed', message: '浏览器来源未获授权。' } }); return; }
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   let route;
+  let requestUrl;
   try {
     // Validate Host, but never use client-controlled Host as the URL parser base.
     if (req.headers.host) new URL(`http://${req.headers.host}`);
-    route = new URL(req.url, 'http://localhost').pathname.replace(/\/$/, '') || '/';
+    requestUrl = new URL(req.url, 'http://localhost');
+    route = requestUrl.pathname.replace(/\/$/, '') || '/';
   } catch { sendJson(res, 400, { error: { type: 'invalid_url', message: '请求 URL 或 Host 无效。' } }); return; }
   if (req.method === 'GET' && route === '/favicon.ico') {
     res.writeHead(204, { 'Cache-Control': 'public, max-age=86400' });
@@ -1298,6 +1557,7 @@ async function requestHandler(req, res) {
       sendJson(res, 200, dashboardData({
         usageStore: USAGE_STORE,
         accountPool: ACCOUNT_POOL,
+        robinAccountPool: ROBIN_ACCOUNT_POOL,
         quotaManager: QUOTA_MANAGER,
         version: GATEWAY_VERSION
       }), { 'Cache-Control': 'no-store' });
@@ -1308,7 +1568,10 @@ async function requestHandler(req, res) {
     if (req.method === 'POST' && accountRecheckMatch) {
       try {
         const accountId = decodeURIComponent(accountRecheckMatch[1]);
-        const result = await ACCOUNT_POOL.recheckAccount(accountId, { signal: AbortSignal.timeout(15_000) });
+        const pool = dashboardAccountPool(requestUrl, accountId);
+        const result = await pool.recheckAccount(accountId, { signal: AbortSignal.timeout(15_000) });
+        modelCache.at = 0;
+        if (pool === ACCOUNT_POOL) cloudcodeModelCache.at = 0;
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 502, {
@@ -1320,7 +1583,11 @@ async function requestHandler(req, res) {
     if (req.method === 'DELETE' && accountDeleteMatch) {
       try {
         const accountId = decodeURIComponent(accountDeleteMatch[1]);
-        sendJson(res, 200, ACCOUNT_POOL.removeAccount(accountId), { 'Cache-Control': 'no-store' });
+        const pool = dashboardAccountPool(requestUrl, accountId);
+        const result = pool.removeAccount(accountId);
+        modelCache.at = 0;
+        if (pool === ACCOUNT_POOL) cloudcodeModelCache.at = 0;
+        sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 500, {
           error: { type: error?.code || 'account_delete_failed', message: error?.message || '账号删除失败。' }
@@ -1412,7 +1679,10 @@ async function requestHandler(req, res) {
         fast_model: preferredFastModel(models),
         models: models.length,
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
-        account_pool: { managed_accounts: ACCOUNT_POOL.status().length, accounts: ACCOUNT_POOL.status() },
+        account_pool: {
+          managed_accounts: ACCOUNT_POOL.status().length + ROBIN_ACCOUNT_POOL.status().length,
+          accounts: [...ACCOUNT_POOL.status(), ...ROBIN_ACCOUNT_POOL.status()]
+        },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
         capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
       });
@@ -1546,6 +1816,7 @@ if (require.main === module) {
     QUOTA_MANAGER.stop();
     USAGE_STORE.stop();
     ACCOUNT_POOL.stop();
+    ROBIN_ACCOUNT_POOL.stop();
     await new Promise((resolve) => server.close(resolve));
     await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
   };
@@ -1555,8 +1826,11 @@ if (require.main === module) {
     quotaManager: QUOTA_MANAGER,
     oauthFlow: OAUTH_FLOW,
     accountStore: ACCOUNT_STORE,
+    robinAccountPool: ROBIN_ACCOUNT_POOL,
+    robinOAuthFlow: ROBIN_OAUTH_FLOW,
+    robinAccountStore: ROBIN_ACCOUNT_STORE,
     commands: {
-      models: async () => displayModels(await availableModels(true)),
+      models: async () => displayModels(await refreshClientModelCatalogs()),
       status: async () => gatewayLog(`网关运行中：${HOST}:${PORT}，账号 ${ACCOUNT_POOL.status().length || '本地 agy'}，并发 ${requestSlots.active}/${MAX_CONCURRENCY}`),
       config: async () => [
         `Anthropic: http://${HOST}:${PORT}`,
@@ -1577,6 +1851,7 @@ if (require.main === module) {
   });
   USAGE_STORE.start();
   QUOTA_MANAGER.start();
+  ROBIN_ACCOUNT_POOL.start();
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, async () => {
@@ -1605,17 +1880,19 @@ if (require.main === module) {
       }
     }
     try {
-      models = await availableModels(true);
-      try { writeCodexCatalog(models); }
-      catch (error) { gatewayWarn(`[Antigravity Gateway] Codex 模型目录写入失败：${error.message}`); }
-      try { writeClaudeConfig(models); }
-      catch (error) { gatewayWarn(`[Antigravity Gateway] Claude Code 模型配置写入失败：${error.message}`); }
+      models = await refreshClientModelCatalogs();
+    } catch (error) {
+      modelError = error.message;
+    }
+    try {
       // Version detection is read-only and works for both the subprocess and
       // direct transports. Showing the real Windows CLI version is valuable
       // diagnostics even though direct mode does not invoke it per request.
       versionCache = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
     } catch (error) {
-      modelError = error.message;
+      // Direct providers work on servers without a local CLI. An optional
+      // version probe must not misreport successful model discovery as failed.
+      if (!usesDirectTransport()) modelError = modelError || error.message;
     }
     gatewayLog(startupBanner({ models, modelError }));
     if (localAccountImport?.status === 'imported') {
@@ -1634,6 +1911,7 @@ if (require.main === module) {
     if (error.code === 'EADDRINUSE') gatewayError(`[Antigravity Gateway Error] ${HOST}:${PORT} 已被占用，请关闭旧进程或设置 ANTIGRAVITY_GATEWAY_PORT。`);
     else gatewayError(`[Antigravity Gateway Error] ${error.message}`);
     QUOTA_MANAGER.stop();
+    ROBIN_ACCOUNT_POOL.stop();
     USAGE_STORE.stop();
     ACCOUNT_POOL.stop();
     stopDiagnosticHeartbeat();
@@ -1660,12 +1938,14 @@ module.exports = {
   createServer,
   createChatTextEmitter,
   createAnthropicTextEmitter,
+  createResponsesTextEmitter,
   displayModels,
   emitAnthropicStream,
   emitChatStream,
   emitResponsesStream,
   featuredModels,
   imagesResponse,
+  refreshClientModelCatalogs,
   resolveModel,
   runTurn,
   startupBanner

@@ -190,6 +190,19 @@ function generationConfigFrom(payload) {
   return Object.keys(config).length ? config : null;
 }
 
+function reasoningOptionsFrom(payload, protocol) {
+  const disabled = ['chat', 'anthropic'].includes(protocol) && payload.thinking?.type === 'disabled';
+  const effort = payload.reasoning?.effort ?? payload.reasoning_effort ?? payload.output_config?.effort
+    ?? (disabled ? 'none' : undefined);
+  const level = effort == null ? '' : String(effort).toLowerCase();
+  const includeThinking = protocol === 'responses'
+    ? ['auto', 'concise', 'detailed'].includes(payload.reasoning?.summary)
+    : protocol === 'anthropic'
+      ? ['enabled', 'adaptive'].includes(payload.thinking?.type)
+      : payload.include_reasoning === true || (Boolean(level) && level !== 'none' && payload.include_reasoning !== false);
+  return { ...(level ? { reasoningEffort: level } : {}), includeThinking: level !== 'none' && includeThinking };
+}
+
 function toolChoiceRule(choice) {
   if (choice == null || choice === 'auto') return { mode: 'auto' };
   if (choice === 'none' || choice?.type === 'none') return { mode: 'none' };
@@ -302,6 +315,7 @@ function normalizeAnthropic(payload) {
     tools: normalizeTools(payload.tools, 'anthropic'),
     toolChoice: payload.tool_choice,
     generationConfig: generationConfigFrom(payload),
+    ...reasoningOptionsFrom(payload, "anthropic"),
     stream: Boolean(payload.stream),
     structuredSchema: payload.output_config?.format?.type === 'json_schema'
       ? payload.output_config.format.schema
@@ -338,6 +352,8 @@ function normalizeChat(payload) {
     protocol: 'chat', model: payload.model, system: systemParts.join('\n'), messages,
     tools: normalizeTools(payload.tools, 'chat'), toolChoice: payload.tool_choice,
     generationConfig: generationConfigFrom(payload),
+    ...reasoningOptionsFrom(payload, "chat"),
+    ...(payload.stream_options?.include_usage === true ? { includeUsage: true } : {}),
     stream: Boolean(payload.stream), structuredSchema: payload.response_format?.type === 'json_schema'
       ? payload.response_format.json_schema?.schema : null, autoMode: false
   };
@@ -383,6 +399,7 @@ function normalizeResponses(payload, previousTranscript) {
     protocol: 'responses', model: payload.model, system, messages,
     tools: normalizeTools(payload.tools, 'responses'), toolChoice: payload.tool_choice,
     generationConfig: generationConfigFrom(payload),
+    ...reasoningOptionsFrom(payload, "responses"),
     stream: Boolean(payload.stream), structuredSchema: payload.text?.format?.type === 'json_schema'
       ? payload.text.format.schema : null, autoMode: false
   };
@@ -583,7 +600,7 @@ function finalizeModelResult(normalized, agyResult) {
   let text = nativeToolCalls ? String(agyResult.text || '') : (toolCalls.length ? '' : String(agyResult.text || ''));
   if (normalized.autoMode) text = normalizeAutoMode(text, normalized.autoModeFormat);
   if (normalized.structuredSchema && !toolCalls.length) text = normalizeStructured(text, normalized.structuredSchema);
-  return { ...agyResult, text, toolCalls };
+  return { ...agyResult, text, toolCalls, thinking: normalized.includeThinking ? String(agyResult.thinking || '') : '' };
 }
 
 // Gemini reports hidden reasoning (thoughtsTokenCount) separately from
@@ -618,6 +635,7 @@ function anthropicResponse(model, result) {
   for (const call of result.toolCalls) {
     if (call.thoughtSignature) content.push({ type: 'thinking', thinking: '', signature: call.thoughtSignature });
   }
+  if (result.thinking) content.push({ type: 'thinking', thinking: result.thinking });
   if (text) content.push({ type: 'text', text });
   for (const call of result.toolCalls) {
     content.push({ type: 'tool_use', id: call.id, name: call.name, input: call.arguments });
@@ -628,7 +646,8 @@ function anthropicResponse(model, result) {
     content,
     stop_reason: result.toolCalls.length ? 'tool_use' : 'end_turn',
     stop_sequence: null,
-    usage: anthropicUsage(result.usage)
+    usage: anthropicUsage(result.usage || {}),
+    ...(result.usageKnown === false ? { usage_known: false } : {})
   };
   if (result.images?.length) response.artifacts = imageArtifacts(result.images);
   return response;
@@ -637,6 +656,7 @@ function anthropicResponse(model, result) {
 function chatResponse(model, result) {
   const text = deliveryText(result);
   const message = { role: 'assistant', content: text || null };
+  if (result.thinking) message.reasoning_content = result.thinking;
   if (result.toolCalls.length) message.tool_calls = result.toolCalls.map((call) => ({
     id: call.id, type: 'function', function: { name: call.name, arguments: compactJson(call.arguments) }
   }));
@@ -650,17 +670,21 @@ function chatResponse(model, result) {
     id: `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`,
     object: 'chat.completion', created: Math.floor(Date.now() / 1000), model,
     choices: [{ index: 0, message, finish_reason: result.toolCalls.length ? 'tool_calls' : 'stop' }],
-    usage: {
-      prompt_tokens: result.usage.input_tokens || 0,
+    ...(result.usageKnown === false ? { usage_known: false } : { usage: {
+      prompt_tokens: result.usage?.input_tokens || 0,
       completion_tokens: billedOutputTokens(result.usage),
-      total_tokens: result.usage.total_tokens || 0
-    }
+      total_tokens: result.usage?.total_tokens || 0
+    } })
   };
 }
 
 function responsesResponse(model, result, responseId) {
   const output = [];
   const text = deliveryText(result);
+  if (result.thinking) output.push({
+    id: `rs_${crypto.randomUUID().replaceAll('-', '')}`, type: 'reasoning', status: 'completed',
+    summary: [{ type: 'summary_text', text: result.thinking }]
+  });
   if (text) {
     output.push({
       id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
@@ -694,11 +718,12 @@ function responsesResponse(model, result, responseId) {
     id: responseId, object: 'response', created_at: Math.floor(Date.now() / 1000),
     status: 'completed', error: null, incomplete_details: null, model,
     output,
-    usage: {
-      input_tokens: result.usage.input_tokens || 0,
+    usage: result.usageKnown === false ? null : {
+      input_tokens: result.usage?.input_tokens || 0,
       output_tokens: billedOutputTokens(result.usage),
-      total_tokens: result.usage.total_tokens || 0
-    }
+      total_tokens: result.usage?.total_tokens || 0
+    },
+    ...(result.usageKnown === false ? { usage_known: false } : {})
   };
   if (result.images?.length) response.artifacts = imageArtifacts(result.images);
   return response;

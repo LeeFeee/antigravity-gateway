@@ -11,7 +11,12 @@ function firstString(...values) {
 
 function accountId(record) {
   const stable = firstString(record?.id, record?.subjectId, record?.subject_id, record?.email, record?.refreshToken, record?.refresh_token, record?.projectId, record?.project_id);
-  return record?.id || `account-${crypto.createHash('sha256').update(stable || crypto.randomUUID()).digest('hex').slice(0, 16)}`;
+  const providerType = firstString(record?.providerType, record?.provider_type);
+  // Older imported JSON could contain arbitrary type labels which were
+  // previously ignored. Only the new, known Robin provider gets a namespace;
+  // legacy Antigravity account IDs and their persisted affinity stay stable.
+  const namespace = providerType === 'robin' ? 'robin:' : '';
+  return record?.id || `account-${crypto.createHash('sha256').update(`${namespace}${stable || crypto.randomUUID()}`).digest('hex').slice(0, 16)}`;
 }
 
 function normalizeAccount(raw) {
@@ -25,6 +30,8 @@ function normalizeAccount(raw) {
   const now = new Date().toISOString();
   return {
     id: accountId(raw),
+    providerType: firstString(raw.providerType, raw.provider_type) || 'cloudcode',
+    accountType: firstString(raw.accountType, raw.account_type) || 'antigravity',
     subjectId: firstString(raw.subjectId, raw.subject_id),
     email: firstString(raw.email),
     accessToken,
@@ -41,7 +48,14 @@ function normalizeAccount(raw) {
     updatedAt: firstString(raw.updatedAt) || now,
     lastSuccessAt: firstString(raw.lastSuccessAt),
     lastFailureAt: firstString(raw.lastFailureAt),
-    lastError: firstString(raw.lastError)
+    lastError: firstString(raw.lastError),
+    planName: firstString(raw.planName, raw.plan_name),
+    modeVariantId: firstString(raw.modeVariantId, raw.mode_variant_id),
+    routingVariantId: firstString(raw.routingVariantId, raw.routing_variant_id),
+    capabilities: Array.isArray(raw.capabilities) ? raw.capabilities.map(String).filter(Boolean) : [],
+    providerMetadata: raw.providerMetadata && typeof raw.providerMetadata === 'object'
+      ? raw.providerMetadata
+      : {}
   };
 }
 
@@ -51,16 +65,19 @@ function safeName(account) {
 }
 
 class AccountStore {
-  constructor({ configDir, fsImpl = fs } = {}) {
+  constructor({ configDir, fsImpl = fs, directoryName = 'accounts' } = {}) {
     if (!configDir) throw new Error('AccountStore requires configDir');
     this.fs = fsImpl;
-    this.directory = path.join(configDir, 'accounts');
+    if (!/^[a-z0-9][a-z0-9._-]*$/i.test(directoryName)) throw new Error('AccountStore directoryName is invalid');
+    this.directory = path.join(configDir, directoryName);
+    this.privateStorage = directoryName === 'robin-accounts';
   }
 
   ensureDirectory() {
-    // Deliberately use the operating system's normal user defaults. The
-    // gateway is a local tool and does not install an encryption/ACL layer.
-    this.fs.mkdirSync(this.directory, { recursive: true });
+    // Keep existing Cloud Code storage behavior. Independent Robin OAuth
+    // credentials stay owner-only, including after atomic file replacement.
+    this.fs.mkdirSync(this.directory, { recursive: true, ...(this.privateStorage ? { mode: 0o700 } : {}) });
+    if (this.privateStorage) this.fs.chmodSync(this.directory, 0o700);
   }
 
   list() {
@@ -84,7 +101,7 @@ class AccountStore {
     this.ensureDirectory();
     const target = path.join(this.directory, safeName(account));
     const temporary = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
-    this.fs.writeFileSync(temporary, `${JSON.stringify(account, null, 2)}\n`);
+    this.fs.writeFileSync(temporary, `${JSON.stringify(account, null, 2)}\n`, this.privateStorage ? { mode: 0o600 } : undefined);
     this.fs.renameSync(temporary, target);
     // If the account email became known after the first save, remove a stale
     // ID-named duplicate while leaving unrelated files untouched.
