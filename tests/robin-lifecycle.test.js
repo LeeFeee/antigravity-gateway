@@ -7,7 +7,7 @@ const path = require('node:path');
 const test = require('node:test');
 const { AccountStore } = require('../src/account-store');
 const { RobinAccountPool, ROBIN_SESSION_TTL_MS } = require('../src/robin-account-pool');
-const { RobinProvider, ARGON_MODEL } = require('../src/robin-provider');
+const { RobinProvider, RobinProviderError, ARGON_MODEL } = require('../src/robin-provider');
 const { robinCredentialFingerprint } = require('../src/robin-auth');
 const { bytesField, messageField, stringField, protoStruct, decodeFields, decodeProtoStruct } = require('../src/robin-proto');
 
@@ -664,25 +664,35 @@ function poolHarness(t, send) {
   return { pool, store, advance: (ms) => { now += ms; } };
 }
 
-test('Robin quarantines terms-pending accounts, fails over, and persists the account state', async (t) => {
+test('Robin returns the original terms error with the current account guidance without failover', async (t) => {
   const attempts = [];
   const { pool, store } = poolHarness(t, async (id) => {
     attempts.push(id);
     if (id === 'a') {
-      throw Object.assign(new Error('Before proceeding, please accept our terms of service.'), { status: 412 });
+      throw new RobinProviderError(
+        'Gemini Robin 请求失败：com.google.assistant.boq.bard.application.utils.BardStatusException: Before proceeding, please accept our terms of service.',
+        { code: 'robin_failed_precondition', status: 412, details: 'Before proceeding, please accept our terms of service.' }
+      );
     }
     return { text: '完成', toolCalls: [], usageKnown: false };
   });
+  store.update('a', { email: 'current@example.com' });
+  pool.bind('terms-account', 'a');
 
-  const result = await pool.send(normalized, ARGON_MODEL, { sessionId: 'terms-failover' });
-  assert.equal(result.accountId, 'b');
-  assert.deepEqual(attempts, ['a', 'b']);
-  assert.equal(pool.status().find((account) => account.id === 'a').state, 'terms_acceptance_required');
-
-  const restored = new RobinAccountPool({ store, providerFactory: pool.providerFactory, now: pool.now });
-  t.after(() => restored.stop());
-  assert.deepEqual(restored.eligible(ARGON_MODEL).map((entry) => entry.account.id), ['b']);
-  assert.equal(restored.status().find((account) => account.id === 'a').state, 'terms_acceptance_required');
+  await assert.rejects(pool.send(normalized, ARGON_MODEL, {
+    sessionId: 'terms-error', routingKey: 'terms-account'
+  }), (error) => {
+    assert.equal(error.status, 412);
+    assert.equal(error.code, 'robin_failed_precondition');
+    assert.equal(error.message,
+      'Gemini Robin 请求失败：com.google.assistant.boq.bard.application.utils.BardStatusException: Before proceeding, please accept our terms of service.\n'
+      + '请登录在 Gemini App 当前账号 current@example.com 并同意服务条款。');
+    assert.equal(error.details, 'Before proceeding, please accept our terms of service.');
+    return true;
+  });
+  assert.deepEqual(attempts, ['a']);
+  assert.equal(pool.status().find((account) => account.id === 'a').state, 'available');
+  assert.equal(store.list().find((account) => account.id === 'a').providerMetadata?.robinHealth, undefined);
 });
 
 test('Robin sends only pending tool-result attachments over the existing remote tool stream', async (t) => {

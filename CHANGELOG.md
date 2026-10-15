@@ -2,7 +2,7 @@
 
 ## 1.5.1 - 2026-10-15
 
-- Quarantine Gemini App accounts that explicitly return a `412` terms-acceptance requirement, persist the actionable health state in the dashboard, and safely fail over unfinished Argon requests to another eligible account.
+- Preserve Gemini App `412` terms-acceptance errors verbatim, append the actual routed account and a Chinese action prompt, and return the error without quarantining or failing over to another account.
 
 ## 1.5.0 - 2026-10-15
 

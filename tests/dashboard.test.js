@@ -121,7 +121,6 @@ test('dashboard responsive account layout keeps controls inline and quota values
 
 test('dashboard renders both account controls only for actionable account abnormalities', () => {
   for (const [state, label] of [
-    ['terms_acceptance_required', '需接受条款'],
     ['verification_required', '需安全核验'],
     ['authentication_error', '认证异常'],
     ['access_denied', '访问受限']
@@ -145,7 +144,6 @@ test('dashboard renders both account controls only for actionable account abnorm
 
 test('dashboard abnormal accounts keep warning and controls without a server health message', () => {
   for (const [state, label] of [
-    ['terms_acceptance_required', '需接受条款'],
     ['verification_required', '需安全核验'],
     ['authentication_error', '认证异常'],
     ['access_denied', '访问受限']

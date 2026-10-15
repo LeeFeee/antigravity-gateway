@@ -39,8 +39,7 @@ function robinErrorCategory(error) {
   if (error?.code === 'robin_unimplemented' || error?.code === 'request_aborted') return 'request';
   const status = Number(error?.status || error?.statusCode || 0);
   const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
-  if (status === 401 || status === 403 || robinTermsAcceptanceRequired(error)
-      || /invalid_grant|reauthori[sz]|verify your account/.test(message)) return 'account';
+  if (status === 401 || status === 403 || /invalid_grant|reauthori[sz]|verify your account/.test(message)) return 'account';
   if (status === 429 || /quota|rate.?limit|resource.?exhausted/.test(message)) return 'quota';
   if (status >= 500 || /timeout|timed out|econn|network|unavailable|reset/.test(message)) return 'transient';
   return 'request';
@@ -266,11 +265,17 @@ class RobinAccountPool {
         const category = robinErrorCategory(error);
         const message = String(error?.message || error);
         this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
+        if (robinTermsAcceptanceRequired(error)) {
+          const accountLabel = String(entry.account.email || '').trim()
+            || String(entry.account.id || '').trim() || '未知账号';
+          throw new RobinProviderError(`${failure.message}\n请登录在 Gemini App 当前账号 ${accountLabel} 并同意服务条款。`, {
+            code: failure.code, status: failure.status, details: failure.details
+          });
+        }
         if (category !== 'request') {
           const until = category === 'account' ? Infinity : this.now() + (category === 'quota' ? 5 * 60_000 : 10_000);
           const state = category === 'quota' ? 'quota_exhausted' : category === 'transient' ? 'cooldown'
-            : robinTermsAcceptanceRequired(error) ? 'terms_acceptance_required'
-              : /verify your account/i.test(message) ? 'verification_required'
+            : /verify your account/i.test(message) ? 'verification_required'
               : Number(error?.status) === 403 ? 'access_denied' : 'authentication_error';
           this.saveHealth(entry, category, state, message, until, { lastFailureAt: new Date(this.now()).toISOString() }, expectedAuthorization,
             error.upstreamAuthFingerprint || initialFingerprint);
