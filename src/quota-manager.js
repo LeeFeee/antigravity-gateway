@@ -4,8 +4,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const REFRESH_INTERVAL_MS = 30 * 60_000;
-const TARGETED_REFRESH_MIN_INTERVAL_MS = 5 * 60_000;
+const { QUOTA_TTL_MS: REFRESH_INTERVAL_MS,
+  QUOTA_RETRY_MS: TARGETED_REFRESH_MIN_INTERVAL_MS } = require('./account-scheduling');
 const LOAD_PATH = '/v1internal:loadCodeAssist';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const USAGE_PATH = '/v1internal:retrieveUserQuotaSummary';

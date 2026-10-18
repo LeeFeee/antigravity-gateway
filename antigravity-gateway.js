@@ -22,6 +22,8 @@ const { ProviderRouter, ProviderRouterError } = require('./src/provider-router')
 const { QuotaManager } = require('./src/quota-manager');
 const { RobinAccountPool } = require('./src/robin-account-pool');
 const { RobinOAuthFlow } = require('./src/robin-oauth-flow');
+const { GeminiWindowsLogin } = require('./src/gemini-windows-login');
+const { GeminiAccountStore } = require('./src/gemini-account-store');
 const { ARGON_MODEL, RobinProviderError } = require('./src/robin-provider');
 const { manageService } = require('./src/service-manager');
 const { TerminalConsole } = require('./src/terminal-console');
@@ -115,7 +117,9 @@ const diagnosticReporter = (event, fields) => {
 const DIRECT_PROVIDER = new DirectAntigravityProvider({ diagnosticReporter });
 DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
-const ROBIN_ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR, directoryName: 'robin-accounts' });
+const GEMINI_ACCOUNT_STORE = new GeminiAccountStore({ configDir: CONFIG_DIR });
+const ROBIN_ACCOUNT_STORE = GEMINI_ACCOUNT_STORE.oauth;
+const WINDOWS_ACCOUNT_STORE = GEMINI_ACCOUNT_STORE.windows;
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
   store: ACCOUNT_STORE,
@@ -128,11 +132,12 @@ const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACC
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
 const ROBIN_ACCOUNT_POOL = new RobinAccountPool({
-  store: ROBIN_ACCOUNT_STORE,
+  store: GEMINI_ACCOUNT_STORE,
   diagnosticReporter,
   usageStore: USAGE_STORE
 });
 const ROBIN_OAUTH_FLOW = new RobinOAuthFlow();
+const WINDOWS_LOGIN = new GeminiWindowsLogin();
 const PROVIDER_ROUTER = new ProviderRouter({
   cloudcodePool: ACCOUNT_POOL,
   robinPool: ROBIN_ACCOUNT_POOL
@@ -571,7 +576,7 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
     ' 可用模型:'
   ];
   if (models.includes(ARGON_MODEL)) lines.splice(lines.length - 1, 0,
-    ' Gemini App: ✅ Robin 原生任务 / 工具通道（独立授权，无需本机应用）');
+    ' Gemini App: ✅ 独立账号池（Robin OAuth / Windows WebChannel）');
   const selected = featuredModels(models);
   if (selected.length) lines.push(...selected.map((model) => `    ${model}`));
   else lines.push(`    ${modelError ? `检测失败：${modelError}` : '未发现精选模型'}`);
@@ -1828,6 +1833,8 @@ if (require.main === module) {
     accountStore: ACCOUNT_STORE,
     robinAccountPool: ROBIN_ACCOUNT_POOL,
     robinOAuthFlow: ROBIN_OAUTH_FLOW,
+    windowsLogin: WINDOWS_LOGIN,
+    windowsAccountStore: WINDOWS_ACCOUNT_STORE,
     robinAccountStore: ROBIN_ACCOUNT_STORE,
     commands: {
       models: async () => displayModels(await refreshClientModelCatalogs()),

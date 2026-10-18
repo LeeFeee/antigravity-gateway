@@ -10,7 +10,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.5.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.6.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ### 主要功能
 
@@ -18,7 +18,7 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 - 支持 Claude Code、Codex CLI、Trae 和其他兼容客户端。
 - 支持前台运行，以及 macOS、Linux、Windows 后台保活和开机自启。
 - 支持自动导入本地 agy 账号，也可以输入 `add` 手动添加账号。
-- 支持通过独立的 `add-gemini` OAuth 账号池反代 Gemini App 的 `gemini-4-argon`，与原 Antigravity 凭据和调度完全隔离。
+- 支持通过独立 Gemini 账号池反代 `gemini-4-argon`：`add-gemini` 保持原 Robin OAuth；`add-gemini-win` 新增 Windows 浏览器会话和 WebChannel 请求。两种凭据分开保存，复用统一接口和调度。
 - 多账号之间轮询；同一会话保持账号一致，限流、认证或额度异常时自动尝试其他账号。
 - 启动界面显示账号状态、历史用量、Token、缓存命中率和最近24小时图表。
 - 支持客户端工具调用、SSE、Claude Code Auto Mode 和结构化输出。
@@ -170,6 +170,12 @@ acc
 
 #### Gemini App / Argon（开发中）
 
+**Windows 原生通道（基于 1.5.1 增量实现）**：在 Windows 前台终端输入 `add-gemini-win`，打开系统已安装的完整 Chrome/Edge。登录阶段不带调试或自动化参数；登录 Google、进入 Gemini 并完成网页确认后，关闭本次专用窗口，网关自动读取会话并保存到 `gemini-win-accounts/`。不需要 Gemini App，不发送模型试探请求，不因 Argon 暂时没额度而拒绝保存登录态。原 OAuth 保存在 `robin-accounts/`，同一 Google 账号的两种凭据可以并存，不会互相覆盖。
+
+Windows 新通道支持文本、SSE、客户端工具兼容协议、结构化输出和账号持久保存；不是 macOS Robin 原生 MCP 通道。账号通过 Gemini 用量页面的只读接口获取 5 小时/周剩余额度和重置时间，独立保存并接入原有账号看板。Antigravity、macOS Robin、Windows 三条通道共用同一选号策略：固定会话黏性、周额度压力和 5 小时重置加权轮询；有其他可用账号时避开耗尽快照，仅在没有其他选择时保留兜底，查询失败不封禁账号。当前不支持非视频附件，token 实测仍未知。视频继续走既有 Cloud Code 路由。完整说明见 [Windows 原生通道](docs/windows-native.md)。
+
+下面的原生任务、附件和额度能力描述针对原 **Robin OAuth 通道**，不能套用于 Windows 新通道。所有系统的 `add-gemini` 均保持 1.5.1 原行为。实际使用哪个上游通道由选中的凭据类型决定，不按网关运行系统猜测。
+
 前台终端输入 `add-gemini` 可以独立授权 Gemini App 账号，凭据持久保存在 `~/.antigravity-gateway/robin-accounts/`，不与 Antigravity 账号混用。请求 `gemini-4-argon` 时进入 Robin 任务模式；仍使用同一网关、看板和 Messages / Chat Completions / Responses 接口，客户端工具仍由客户端执行。普通 Argon 请求不可用时明确报错，不降级到 Antigravity 的其他 Gemini 模型。唯一例外是实际携带视频的请求：Gemini App 依赖本地抽帧而不是可靠的 Argon 原生视频理解，因此网关沿用既有 Cloud Code 多媒体路径和 `ANTIGRAVITY_DEFAULT_MODEL`。现有 Antigravity 账号调度规则不变。
 
 已实测文本、客户端工具往返、会话隔离与重启续接、图片/音频/PDF/文本输入和原生额度查询。视频请求的回退路由已有回归覆盖；真实视频理解由原有 Cloud Code 路径负责。遇到尚未接受 Gemini 服务条款的账号时，网关保留并直接返回上游原始错误，同时追加当前账号和中文处理提示；不会自动切换账号。网关不从实验接口推导或提供 Gemini App 中不存在的思考档位，并忽略客户端的 reasoning 控制，不向 Argon 请求写入隐藏思考字段。原生 token 用量等仍未验证完成。授权、部署、兼容与验证边界见 [Robin Provider 开发说明](docs/robin-provider.md)。
@@ -179,7 +185,9 @@ acc
 | 命令 | 作用 |
 |---|---|
 | `add` | 添加 Antigravity 账号 |
-| `add-gemini` | 独立授权 Gemini App 账号（开发中） |
+| `add-gemini` | 原 Gemini App OAuth，支持粘贴回调 URL，行为保持不变 |
+| `add-gemini-win` | Windows 原生会话授权，调用系统安装的完整 Chrome/Edge |
+| `cancel` | 取消正在进行的 Windows 浏览器授权 |
 | `acc` | 查看账号池和账号状态 |
 | `models` | 查看当前发现的模型 |
 | `status` | 重新显示网关和统计状态 |
@@ -351,11 +359,11 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
   --prompt "分析这段视频并回答我的问题"
 ```
 
-网关分别管理客户端身份、独立对话和账号黏性：同一对话及其工具调用优先使用同一账号；子 Agent 使用独立会话状态，但通过父会话继承账号黏性。软黏性映射会在本地保存固定 5 小时（可通过 `ANTIGRAVITY_AFFINITY_TTL_SECONDS` 调整），网关重启后仍会优先恢复当前窗口内的账号；窗口内的后续请求只检查本地可用状态，不重复读取或排序额度。窗口到期、账号额度耗尽、网络异常、凭据失效、访问受限或 Google 要求安全核验时会重新按 Gemini 周额度压力、5 小时重置时间和账号权重加权选择，避免单一高压力账号独占全部新流量。认证和账号风控会把账号标记为异常并停止继续尝试；重新授权导致凭据变化时自动恢复，也可以在看板中点击“重新检测”，以不生成内容、不消耗模型 Token 的轻量鉴权确认核验结果。网络瞬态故障仍由直连传输重试，失败后只进入短暂冷却。
+网关分别管理客户端身份、独立对话和账号黏性：同一对话及其工具调用优先使用同一账号；子 Agent 使用独立会话状态，但通过父会话继承账号黏性。软黏性映射会在本地保存固定 5 小时（可通过 `ANTIGRAVITY_AFFINITY_TTL_SECONDS` 调整），网关重启后仍会优先恢复当前窗口内的账号；窗口内的后续请求只检查本地可用状态，不重复读取或排序额度。窗口到期、上游返回额度耗尽、网络异常、凭据失效、访问受限或 Google 要求安全核验时会重新按 Gemini 周额度压力、5 小时重置时间和账号权重加权选择，避免单一高压力账号独占全部新流量。认证和账号风控会把账号标记为异常并停止继续尝试；重新授权导致凭据变化时自动恢复，也可以在看板中点击“重新检测”，以不生成内容、不消耗模型 Token 的轻量鉴权确认核验结果。网络瞬态故障仍由直连传输重试，失败后只进入短暂冷却。
 
 首次选择账号或故障转移时，保留当前模型的可用性优先规则，然后仅参考 Gemini 模型组的周额度计算 `Pressure = remainingFraction / 距周重置小时数`，以 `floor(log2(Pressure))` 分档。最高压力档、相邻档和其余可用档分别获得 4、2、1 倍权重；同档中 Gemini 5 小时额度最早重置的账号再获得 2 倍权重，最后叠加账号自身权重进行平滑加权轮询。无论请求使用 Gemini、Claude 还是 GPT，都不使用 Claude/GPT 周额度参与压力排序。已有可用的黏性账号及生图的优先账号直接续接，不重算压力或变更轮询权重；切号时重新读取快照，单次请求不重复尝试同一账号。
 
-选号只读取内存中的真实上游额度快照，不等待联网查询，也不根据 Token 用量推算余额。有效的 Gemini 周压力档位优先，未知压力账号随后，已知周额度耗尽账号保留为最终兜底。快照过期、周重置已到或字段缺失时按未知处理，并异步补刷新；同档未知的 5 小时重置时间仍退回加权轮询。后台保留约 30 分钟一次的完整刷新；缺失/失效快照及实际额度失败只补查相关账号的额度汇总，普通补刷新每账号至少间隔 5 分钟，重复请求合并，最多同时刷新两个账号。新增账号、凭据变化及重新检测成功会触发该账号的完整刷新。额度汇总单独记录观测时间，套餐或模型目录查询成功不会把旧额度标记为最新。
+三条通道复用同一个选号模块，只读取本地保存的真实上游额度快照，不等待联网查询，也不根据 Token 用量推算余额。有效的 Gemini 周压力档位优先，未知压力账号随后，已知周额度耗尽账号保留为最终兜底。快照过期、周重置已到或字段缺失时按未知处理，并异步补刷新；同档未知的 5 小时重置时间仍退回加权轮询。后台保留约 30 分钟一次的完整刷新；缺失/失效快照及实际额度失败只补查相关账号的额度汇总，普通补刷新每账号至少间隔 5 分钟，重复请求合并；Cloud Code 的额度查询最多同时刷新两个账号，Gemini 后台批次逐个查询。新增账号、凭据变化及重新检测成功会触发该账号的完整刷新。额度汇总单独记录观测时间，套餐或模型目录查询成功不会把旧额度标记为最新。
 
 支持客户端显式发送 `x-client-id`/`x-agent-id`、`x-session-id`/`x-conversation-id`、`x-parent-session-id` 和 `x-routing-affinity-id`；未提供时继续兼容现有 Claude、Codex、OpenAI 和 Anthropic 客户端字段。所有原始标识仅用于本地路由，提交上游的会话值是不可逆哈希，不会写入模型提示词。日志中的 request、client、session 和 affinity 短标识可用于区分并发链路。
 
@@ -463,7 +471,7 @@ tail -f ~/.antigravity-gateway/logs/auth-diagnostics.jsonl
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | 单次请求总超时，单位毫秒 |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `12`（`agy` 模式为 `4`） | 最大并发请求数 |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | 最大排队请求数 |
-| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | 账号软黏性的固定窗口，单位秒；窗口内成功请求不会续期 |
+| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | 三条通道共用的账号软黏性固定窗口，单位秒；成功请求不会续期 |
 | `ANTIGRAVITY_GATEWAY_CORS_ORIGIN` | 空 | 允许访问本地网关的浏览器 Origin |
 | `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | 空 | 额外允许访问看板的 IP、CIDR 或 `*`，逗号分隔；默认仅本机 |
 | `ANTIGRAVITY_GATEWAY_DEBUG` | 空 | 设置为 `1` 输出更多诊断信息 |
@@ -527,7 +535,7 @@ The default `direct` transport calls Cloud Code without the agy Agent wrapper pr
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.5.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.6.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 ### Features
 
@@ -535,7 +543,7 @@ Current version: `v1.5.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 - Claude Code, Codex CLI, Trae, and other compatible clients.
 - Foreground mode and cross-platform background keepalive/autostart.
 - Automatic local agy account import plus interactive `add` authorization.
-- Gemini App `gemini-4-argon` proxying through an independent `add-gemini` OAuth account pool without changing Antigravity credentials or scheduling.
+- Gemini App `gemini-4-argon` proxying through the existing account pool: `add-gemini` retains Robin OAuth on every OS; `add-gemini-win` adds Windows web-session credentials and WebChannel requests. Credential directories are separate; client APIs and scheduling are shared.
 - Sticky-session account rotation and failover on authentication, quota, or rate-limit failures.
 - Request, token, cache, account, quota, and 24-hour usage displays.
 - Client-side tools, SSE, Claude Code Auto Mode, and structured output support.
@@ -621,12 +629,16 @@ At startup, a usable official local agy identity is added to the pool only when 
 
 Run the gateway in foreground mode and type `add` to authorize another account. The complete OAuth URL is always printed. On a remote host, paste the final localhost callback URL back at `gateway>`.
 
-The in-development Gemini App provider uses independent `add-gemini` authorization and persistent `robin-accounts/` credentials. An explicit `gemini-4-argon` request enters native Robin task mode through the same gateway, dashboard, and three client protocols; client tools still execute on the client. Ordinary Argon failures never fall back to Cloud Code. Video-bearing Argon requests are the deliberate exception: Gemini App relies on local frame extraction rather than reliable native Argon video understanding, so the gateway keeps its established Cloud Code multimodal path and `ANTIGRAVITY_DEFAULT_MODEL`. Text, real client tool loops, isolation, conversation resumption across restarts, image/audio/PDF/text input and native quota queries have been exercised. If Gemini requires terms acceptance, the gateway preserves and returns the original upstream error, appends the current account and Chinese action guidance, and does not fail over. The gateway does not infer or expose thinking tiers that are absent from the Gemini App UI, and it ignores client reasoning controls instead of writing hidden thinking fields into Argon requests. Native token usage and remaining client coverage are not established. See [Robin Provider development notes](docs/robin-provider.md) for the current boundaries.
+On Windows, `add-gemini-win` opens the system-installed full Chrome/Edge browser without debugging or automation flags during sign-in. Sign in, finish Gemini onboarding, then close this dedicated window; the gateway reads that session and saves it in `gemini-win-accounts/`. Login and model listing do not send inference probes. Requests use WebChannel / `ProcessSession` directly from Node.js; no Gemini App installation or macOS impersonation is needed. Text, streaming and client-tool compatibility reuse the existing APIs. Five-hour/weekly quota and reset times are fetched through the read-only Gemini Usage page query and persisted independently. Antigravity, macOS Robin and Windows share one scheduling policy: fixed affinity and smooth rotation weighted by weekly pressure and five-hour reset time. Depleted snapshots are avoided when alternatives exist, but remain last-resort fallbacks; telemetry failures do not disable accounts. Non-video attachments remain unsupported and token usage remains unknown. Video retains the established Cloud Code route. See [Windows native channel](docs/windows-native.md).
+
+On every OS, `add-gemini` retains the 1.5.1 OAuth flow and `robin-accounts/` storage. Its native Robin task, attachment and quota capabilities remain unchanged. OAuth and Windows credentials for the same Google account coexist without overwriting one another. The selected credential's type chooses the upstream transport, not the host OS. Ordinary Argon failures never silently fall back to other models; neither path adds hidden thinking tiers. See [Robin Provider development notes](docs/robin-provider.md).
 
 | Command | Purpose |
 |---|---|
 | `add` | Add an Antigravity account |
-| `add-gemini` | Authorize a Gemini App account independently (in development) |
+| `add-gemini` | Original 1.5.1 OAuth flow on every OS, including pasted callback URLs |
+| `add-gemini-win` | Windows session login using installed full Chrome/Edge |
+| `cancel` | Cancel an active Windows browser login |
 | `acc` | Show pool and account state |
 | `models` | Show discovered models |
 | `status` | Refresh gateway and dashboard status |
@@ -754,11 +766,11 @@ curl http://127.0.0.1:9897/v1/files \
   -F 'purpose=assistants'
 ```
 
-Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata. Soft affinity is persisted locally for a fixed five-hour window, configurable through `ANTIGRAVITY_AFFINITY_TTL_SECONDS`, and successful requests do not extend that window. Healthy continuations use an O(1) local affinity lookup without recalculating quota ranks; expiry or failure triggers weighted selection using Gemini weekly pressure, Gemini five-hour reset time, and configured account weights without starving lower-ranked healthy accounts. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
+Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata. All three transports share the same scheduling module. Soft affinity is persisted locally for a fixed five-hour window, configurable through `ANTIGRAVITY_AFFINITY_TTL_SECONDS`, and successful requests do not extend that window. Healthy continuations reuse local affinity without recalculating quota ranks; expiry or failure triggers weighted selection using Gemini weekly pressure, Gemini five-hour reset time, and configured account weights without starving lower-ranked healthy accounts. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
 
 For new bindings and failover, retain current-model availability priority, then calculate Gemini-only weekly pressure bands as `floor(log2(remainingFraction / hoursUntilWeeklyReset))`, with a one-minute minimum denominator. The highest, adjacent, and remaining usable bands receive 4x, 2x, and 1x weights; the earliest Gemini five-hour reset within each band receives a further 2x boost before applying the configured account weight through smooth weighted rotation. Claude/GPT weekly quota does not affect pressure regardless of the requested model. Healthy sticky continuations and preferred image accounts skip recalculation and do not spend rotation weights. Failover rereads snapshots and tries each account at most once per request.
 
-Scheduling reads fresh in-memory quota summaries without waiting for network queries or estimating quota from Token counts. Unknown/expired weekly data follows known positive pressure, and exhausted snapshots remain advisory fallbacks. Full background refreshes remain approximately half-hourly. Missing/expired data and live quota failures trigger asynchronous per-account summary refreshes, coalesced and throttled to once per five minutes with two accounts refreshed concurrently; account additions, changed credentials and successful authentication rechecks trigger full account refreshes. Summary freshness is tracked independently, so successful plan/catalog queries cannot renew stale quota data.
+Scheduling reads locally stored quota summaries without waiting for network queries or estimating quota from Token counts. Unknown/expired weekly data follows known positive pressure, and exhausted snapshots remain advisory fallbacks. Full background refreshes remain approximately half-hourly. Missing/expired data and live quota failures trigger asynchronous per-account summary refreshes, coalesced and throttled to once per five minutes (Cloud Code limits refresh concurrency to two; Gemini background batches are sequential); account additions, changed credentials and successful authentication rechecks trigger full account refreshes. Summary freshness is tracked independently, so successful plan/catalog queries cannot renew stale quota data.
 
 Generated-image responses include a readable text receipt, Markdown, an accessible URL, the absolute path on the gateway host, and structured `artifacts` metadata for each protocol. Clients that ignore extension fields can still obtain the delivery address from the assistant text. File content supports both `GET` and `HEAD`.
 
@@ -807,7 +819,7 @@ Common failures:
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | `300000` | Request timeout in milliseconds |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | `12` (`4` in `agy` mode) | Maximum concurrent requests |
 | `ANTIGRAVITY_GATEWAY_MAX_QUEUE` | `32` | Maximum queued requests |
-| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | Fixed account-affinity window in seconds; successful requests do not renew it |
+| `ANTIGRAVITY_AFFINITY_TTL_SECONDS` | `18000` | Shared fixed account-affinity window for all three transports, in seconds; successful requests do not renew it |
 | `ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW` | empty | Extra IPs, CIDRs, or `*` allowed to open the dashboard; comma-separated and local-only by default |
 | `ANTIGRAVITY_IMAGE_MODEL` | `gemini-3.1-flash-image` | Native Antigravity image model |
 | `ANTIGRAVITY_GATEWAY_MEDIA_LIMIT` | `100663296` | Maximum bytes per media item |

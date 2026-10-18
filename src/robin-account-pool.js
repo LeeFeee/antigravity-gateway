@@ -5,10 +5,16 @@ const path = require('node:path');
 const { RobinAccountAuthProvider, robinAuthorizationKey: authorizationKey,
   robinCredentialFingerprint: credentialFingerprint } = require('./robin-auth');
 const { ARGON_MODEL, RobinProvider, RobinProviderError } = require('./robin-provider');
+const { GeminiWindowsAuthProvider } = require('./gemini-windows-auth');
+const { GeminiWindowsProvider } = require('./gemini-windows-provider');
 
-const ROBIN_SESSION_TTL_MS = Math.max(0, Number(process.env.ANTIGRAVITY_ROBIN_AFFINITY_TTL_SECONDS || 5 * 60 * 60) * 1000);
-const ROBIN_QUOTA_TTL_MS = 30 * 60_000;
-const ROBIN_QUOTA_RETRY_MS = 5 * 60_000;
+const { SESSION_TTL_MS: ROBIN_SESSION_TTL_MS, SESSION_CAPACITY,
+  QUOTA_TTL_MS: ROBIN_QUOTA_TTL_MS, QUOTA_RETRY_MS: ROBIN_QUOTA_RETRY_MS,
+  TRANSIENT_COOLDOWN_MS, retryDelay, affinityActive, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
+
+function quotaKey(account) {
+  return account.authMethod === 'gemini-windows-session' ? 'geminiWindowsQuota' : 'robinQuota';
+}
 
 function entryAuthorizationKey(entry) {
   return entry.provider.auth?.authorizationKey || authorizationKey(entry.account);
@@ -37,6 +43,10 @@ function robinTermsAcceptanceRequired(error) {
 
 function robinErrorCategory(error) {
   if (error?.code === 'robin_unimplemented' || error?.code === 'request_aborted') return 'request';
+  // The Windows upstream may substitute a different model without an HTTP
+  // quota error. Treat it as temporarily unavailable, not as proven quota
+  // exhaustion or an invalid login. Existing no-replay guards still apply.
+  if (error?.code === 'gemini_windows_model_mismatch') return 'transient';
   const status = Number(error?.status || error?.statusCode || 0);
   const message = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
   if (status === 401 || status === 403 || /invalid_grant|reauthori[sz]|verify your account/.test(message)) return 'account';
@@ -54,6 +64,10 @@ class RobinAccountPool {
     this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
     this.usageStore = usageStore || null;
     this.providerFactory = providerFactory || ((account) => {
+      if (account.authMethod === 'gemini-windows-session') {
+        const auth = new GeminiWindowsAuthProvider({ account, store });
+        return new GeminiWindowsProvider({ auth, fetchImpl });
+      }
       const auth = new RobinAccountAuthProvider({ account, store, fetchImpl, diagnosticReporter });
       return new RobinProvider({ auth, fetchImpl, diagnosticReporter });
     });
@@ -129,7 +143,6 @@ class RobinAccountPool {
     const now = this.now();
     return [...this.entries.values()].filter((entry) => {
       if (!entry.account.enabled || excluded.has(entry.account.id) || entry.unhealthyUntil > now) return false;
-      if (this.quotaDepleted(entry.account)) return false;
       if (!model) return true;
       return entry.models.has(model) || (!entry.catalogKnown && (entry.account.capabilities || []).includes(model));
     });
@@ -148,24 +161,39 @@ class RobinAccountPool {
     ));
   }
 
-  selectAccount(model, routingKey, excluded = new Set()) {
+  quotaRanks(model, candidates) {
+    const now = this.now();
+    return candidates.map((entry) => {
+      const snapshot = this.quotaSnapshot(entry.account);
+      const fetchedAt = Date.parse(snapshot?.fetchedAt);
+      // Expire telemetry as a whole only at its TTL. Individual reset windows
+      // are evaluated separately: a 5h reset must not renew the weekly budget.
+      const current = Number.isFinite(fetchedAt) && now - fetchedAt < ROBIN_QUOTA_TTL_MS ? snapshot : null;
+      const rank = quotaRank(entry, current, now, this.quotaDepleted(entry.account));
+      if (!current || rank.lane === 1 || rank.resetTime === Infinity) this.refreshAccountQuota(entry);
+      return rank;
+    }).sort(compareQuotaRanks);
+  }
+
+  refreshAccountQuota(entry) {
+    // Never await quota I/O on the request path. Refreshes coalesce and retain
+    // the same per-account five-minute throttle as Cloud Code.
+    void this.refreshQuota(entry.account.id, { refreshFresh: true }).catch(() => {});
+  }
+
+  selectAccount(model, routingKey, excluded = new Set(), { preferredAccountId = '', allowSticky = true } = {}) {
     this.cleanupSessions();
     const candidates = this.eligible(model, excluded);
     if (!candidates.length) return null;
-    const bound = routingKey ? this.sessions.get(routingKey) : null;
-    const sticky = bound && candidates.find((entry) => entry.account.id === bound.accountId);
-    if (sticky) return sticky;
-    let selected = null;
-    let selectedWeight = -Infinity;
-    const total = candidates.reduce((sum, entry) => sum + Math.max(1, Number(entry.account.weight) || 1), 0);
-    for (const entry of candidates) {
-      const id = entry.account.id;
-      const weight = (this.weights.get(id) || 0) + Math.max(1, Number(entry.account.weight) || 1);
-      this.weights.set(id, weight);
-      if (weight > selectedWeight) { selected = entry; selectedWeight = weight; }
+    if (allowSticky) {
+      const preferred = preferredAccountId && candidates.find((entry) => entry.account.id === preferredAccountId);
+      if (preferred) return preferred;
+      const bound = routingKey ? this.sessions.get(routingKey) : null;
+      const sticky = bound && candidates.find((entry) => entry.account.id === bound.accountId);
+      if (sticky && affinityActive(bound, this.now())) return sticky;
+      if (bound) this.deleteSession(routingKey);
     }
-    if (selected) this.weights.set(selected.account.id, this.weights.get(selected.account.id) - total);
-    return selected;
+    return weightedPickWithRanks(this.quotaRanks(model, candidates), this.weights);
   }
 
   async send(normalized, model, options = {}) {
@@ -193,24 +221,26 @@ class RobinAccountPool {
 
   async sendRequest(normalized, model, options, requestKey) {
     const excluded = new Set();
+    const routingKey = options.routingKey || options.sessionId || '';
     this.reload();
     const taskAccountId = this.activeTasks.get(requestKey);
     const taskAccount = taskAccountId ? this.entries.get(taskAccountId) : null;
+    const hasAttachments = (normalized.messages || []).some(message => (message.parts || []).some(part => part.type === 'media' || part.media?.length));
+    if (!taskAccount && hasAttachments && this.eligible(model).some(entry => entry.account.authMethod !== 'gemini-windows-session')) {
+      // Keep existing Robin attachment support usable in a mixed account pool.
+      // An in-flight tool task cannot migrate: its original provider validates it.
+      for (const entry of this.entries.values()) if (entry.account.authMethod === 'gemini-windows-session') excluded.add(entry.account.id);
+    }
     if (taskAccountId && (!taskAccount || !taskAccount.account.enabled)) {
       this.activeTasks.delete(requestKey);
       throw new RobinProviderError('当前 Argon 任务的账号已被禁用或删除。', { code: 'robin_task_account_unavailable', status: 409 });
     }
-    let lastError = null;
+    let lastError = null, attempts = 0;
     while (true) {
       options.signal?.throwIfAborted();
-      const entry = taskAccount || this.selectAccount(model, options.routingKey || options.sessionId || '', excluded);
+      const entry = taskAccount || this.selectAccount(model, routingKey, excluded, { allowSticky: attempts === 0 });
       if (!entry) {
         if (lastError) throw lastError;
-        if ([...this.entries.values()].some(candidate => candidate.account.enabled
-            && candidate.unhealthyUntil <= this.now() && candidate.models.has(model)
-            && this.quotaDepleted(candidate.account))) {
-          throw new RobinProviderError('可用 Gemini 账号的 Argon 任务额度已耗尽。', { code: 'robin_quota_error', status: 429 });
-        }
         throw new RobinProviderError(`没有可用于模型 ${model} 的 Gemini 账号。`, { code: 'robin_model_unavailable', status: 503 });
       }
       excluded.add(entry.account.id);
@@ -218,7 +248,7 @@ class RobinAccountPool {
         accountId: entry.account.id,
         email: entry.account.email,
         source: 'robin-account-pool',
-        attempt: excluded.size
+        attempt: ++attempts
       });
       let emitted = false;
       const expectedAuthorization = entryAuthorizationKey(entry);
@@ -245,7 +275,7 @@ class RobinAccountPool {
         }
         this.saveHealth(entry, '', '', '', 0, { lastSuccessAt: new Date(this.now()).toISOString() }, expectedAuthorization,
           result.upstreamAuthFingerprint || initialFingerprint);
-        if (options.routingKey) this.bind(options.routingKey, entry.account.id);
+        if (routingKey && options.bindRouting !== false) this.bind(routingKey, entry.account.id);
         return { ...result, accountId: entry.account.id, accountEmail: entry.account.email, providerType: 'robin' };
       } catch (error) {
         if (error?.code !== 'robin_tool_result_missing' && error?.code !== 'robin_session_busy') {
@@ -273,7 +303,9 @@ class RobinAccountPool {
           });
         }
         if (category !== 'request') {
-          const until = category === 'account' ? Infinity : this.now() + (category === 'quota' ? 5 * 60_000 : 10_000);
+          if (category === 'quota') this.refreshAccountQuota(entry);
+          const until = category === 'account' ? Infinity : this.now() + (category === 'quota'
+            ? retryDelay(error.details || error.message) : TRANSIENT_COOLDOWN_MS);
           const state = category === 'quota' ? 'quota_exhausted' : category === 'transient' ? 'cooldown'
             : /verify your account/i.test(message) ? 'verification_required'
               : Number(error?.status) === 403 ? 'access_denied' : 'authentication_error';
@@ -283,6 +315,7 @@ class RobinAccountPool {
         // Once a client saw text or a tool call, replaying on another account
         // can duplicate both output and client side effects.
         if (category === 'request' || taskAccount || emitted) throw failure;
+        if (routingKey && options.bindRouting !== false) this.deleteSession(routingKey);
       }
     }
   }
@@ -342,13 +375,15 @@ class RobinAccountPool {
       email: entry.account.email,
       providerType: 'robin',
       accountType: 'gemini-app',
+      authMethod: entry.account.authMethod,
       planName: entry.account.planName,
       quota: this.quotaSnapshot(entry.account),
       models: [...entry.models],
       enabled: entry.account.enabled,
-      available: entry.account.enabled && entry.unhealthyUntil <= this.now() && !this.quotaDepleted(entry.account),
+      available: entry.account.enabled && entry.unhealthyUntil <= this.now(),
+      quotaDepleted: this.quotaDepleted(entry.account),
       state: !entry.account.enabled ? 'disabled' : entry.unhealthyUntil > this.now()
-        ? entry.healthState || 'unavailable' : this.quotaDepleted(entry.account) ? 'quota_exhausted' : 'available',
+        ? entry.healthState || 'unavailable' : 'available',
       healthMessage: entry.unhealthyUntil > this.now() ? entry.lastError : '',
       healthSince: entry.healthSince,
       modelCooldowns: [],
@@ -359,7 +394,9 @@ class RobinAccountPool {
   }
 
   quotaSnapshot(account) {
-    const snapshot = account.providerMetadata?.robinQuota;
+    // OAuth and Windows telemetry use independent snapshots, even for the same
+    // Google identity. Never attribute one channel's cached data to the other.
+    const snapshot = account.providerMetadata?.[quotaKey(account)];
     if (!snapshot) return null;
     const fetchedAt = Date.parse(snapshot.fetchedAt);
     const stale = !Number.isFinite(fetchedAt) || this.now() - fetchedAt >= ROBIN_QUOTA_TTL_MS
@@ -371,23 +408,26 @@ class RobinAccountPool {
 
   quotaDepleted(account) {
     const quota = this.quotaSnapshot(account);
-    // Never let an absent/expired snapshot block a live request. The upstream
-    // request remains authoritative, and ongoing tool tasks stay on their
-    // original stream even if a background snapshot changes.
-    return Boolean(quota && !quota.stale && (quota.groups || []).some(group => (
+    // This is an advisory rank, not a health gate. Live upstream responses are
+    // authoritative and a quota snapshot cannot break an active tool task.
+    const fetchedAt = Date.parse(quota?.fetchedAt);
+    if (!Number.isFinite(fetchedAt) || this.now() - fetchedAt >= ROBIN_QUOTA_TTL_MS) return false;
+    // A five-hour reset does not reset an independently depleted weekly pool.
+    return Boolean(quota && (quota.groups || []).some(group => (
       (group.buckets || []).some(bucket => ['5h', 'weekly'].includes(bucket.window)
-        && bucket.remainingFraction === 0)
+        && bucket.remainingFraction === 0
+        && !(bucket.resetTime && Date.parse(bucket.resetTime) <= this.now()))
     )));
   }
 
-  async refreshQuota(id, { signal } = {}) {
+  async refreshQuota(id, { signal, refreshFresh = false } = {}) {
     if (this.quotaController.signal.aborted) return null;
     if (this.quotaRefreshes.has(id)) return this.quotaRefreshes.get(id);
     this.reload();
     const entry = this.entries.get(id);
     if (!entry?.account.enabled || entry.unhealthyUntil > this.now() || !entry.provider.getQuota) return null;
     const snapshot = this.quotaSnapshot(entry.account);
-    if (snapshot && !snapshot.stale) return snapshot;
+    if (snapshot && !snapshot.stale && !refreshFresh) return snapshot;
     if (this.now() - (this.quotaAttempts.get(id) ?? -Infinity) < ROBIN_QUOTA_RETRY_MS) return snapshot;
     this.quotaAttempts.set(id, this.now());
     const controllerSignal = this.quotaController.signal;
@@ -404,7 +444,7 @@ class RobinAccountPool {
         entry.account = this.store.update(id, {
           ...(quota.planName ? { planName: quota.planName } : {}),
           providerMetadata: {
-            ...latest.providerMetadata, robinQuota: { ...quota, fetchedAt: new Date(this.now()).toISOString() }
+            ...latest.providerMetadata, [quotaKey(latest)]: { ...quota, fetchedAt: new Date(this.now()).toISOString() }
           }
         });
         return this.quotaSnapshot(entry.account);
@@ -431,7 +471,7 @@ class RobinAccountPool {
   start() {
     if (this.quotaTimer) return;
     if (this.quotaController.signal.aborted) this.quotaController = new AbortController();
-    this.quotaTimer = setInterval(() => { void this.refreshQuotas().catch(() => {}); }, ROBIN_QUOTA_RETRY_MS);
+    this.quotaTimer = setInterval(() => { void this.refreshQuotas().catch(() => {}); }, ROBIN_QUOTA_TTL_MS);
     this.quotaTimer.unref?.();
     void this.refreshQuotas().catch(() => {});
   }
@@ -507,7 +547,7 @@ class RobinAccountPool {
   bind(routingKey, accountId) {
     if (!routingKey || !accountId) return;
     const previous = this.sessions.get(routingKey);
-    if (previous?.accountId === accountId && this.now() - previous.at < ROBIN_SESSION_TTL_MS) return;
+    if (previous?.accountId === accountId && affinityActive(previous, this.now())) return;
     this.sessions.set(routingKey, { accountId, at: this.now() });
     this.saveSessions();
   }
@@ -516,12 +556,20 @@ class RobinAccountPool {
     const now = this.now();
     let changed = false;
     for (const [key, value] of this.sessions) {
-      if (ROBIN_SESSION_TTL_MS <= 0 || now - value.at >= ROBIN_SESSION_TTL_MS || !this.entries.has(value.accountId)) {
+      if (value.at < now - ROBIN_SESSION_TTL_MS || !this.entries.has(value.accountId)) {
         this.sessions.delete(key);
         changed = true;
       }
     }
+    while (this.sessions.size > SESSION_CAPACITY) {
+      this.sessions.delete(this.sessions.keys().next().value);
+      changed = true;
+    }
     if (changed) this.saveSessions();
+  }
+
+  deleteSession(routingKey) {
+    if (routingKey && this.sessions.delete(routingKey)) this.saveSessions();
   }
 
   loadSessions() {

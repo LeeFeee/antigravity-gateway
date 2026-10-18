@@ -71,3 +71,16 @@ test('diagnostic log rotates without changing the caller outcome', () => {
   assert.doesNotThrow(() => logger.write('rotation_test', { ok: true }));
   assert.deepEqual(calls.map(([name]) => name), ['rm', 'rename', 'append']);
 });
+
+test('diagnostic log redacts Windows session cookies and authentication hashes', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'windows-diagnostics-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const logger = new DiagnosticLog({ directory });
+  logger.write('windows_failure', {
+    cookies: [{ name: 'SID', value: 'secret-cookie' }],
+    headers: { Cookie: 'SAPISID=secret-header' },
+    providerMetadata: { geminiWindows: { cookies: [{ value: 'secret-session' }] } },
+    message: 'SAPISID=secret-inline; __Secure-1PSID=secret-psid; SAPISIDHASH 100_secret-hash SAPISID1PHASH 100_secret-hash2'
+  });
+  assert.doesNotMatch(fs.readFileSync(logger.file, 'utf8'), /secret-/);
+});

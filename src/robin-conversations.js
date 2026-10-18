@@ -4,8 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const seconds = Number(process.env.ANTIGRAVITY_ROBIN_AFFINITY_TTL_SECONDS || 5 * 60 * 60);
-const CONVERSATION_TTL_MS = Number.isFinite(seconds) && seconds >= 0 ? seconds * 1000 : 5 * 60 * 60_000;
+const { SESSION_TTL_MS: CONVERSATION_TTL_MS } = require('./account-scheduling');
 const hash = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 const ownerKey = account => hash(JSON.stringify(['robin', account?.id || '', account?.subjectId || account?.email || '']));
 

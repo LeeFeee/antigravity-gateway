@@ -12,14 +12,16 @@ const DEFAULT_CLIENT_SECRET_B64 = 'R09DU1BYLWNkZWIwR0NrVE1MWUZURWhLQTMxcGhGQ0JSc
 
 function robinCredentialFingerprint(account = {}) {
   return crypto.createHash('sha256').update(JSON.stringify([
-    account.accessToken || '', account.refreshToken || '', account.clientId || ''
+    account.accessToken || '', account.refreshToken || '', account.clientId || '',
+    ...(account.authMethod === 'gemini-windows-session' ? [account.providerMetadata?.geminiWindows?.cookies || []] : [])
   ])).digest('hex');
 }
 
 function robinAuthorizationKey(account = {}) {
   return crypto.createHash('sha256').update(JSON.stringify([
     account.id, account.subjectId || '', String(account.email || '').toLowerCase(),
-    account.refreshToken || ''
+    account.refreshToken || '',
+    ...(account.authMethod === 'gemini-windows-session' ? [account.authMethod, account.providerMetadata?.geminiWindows?.cookies || []] : [])
   ])).digest('hex');
 }
 

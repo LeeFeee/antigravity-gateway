@@ -15,7 +15,8 @@ function accountId(record) {
   // Older imported JSON could contain arbitrary type labels which were
   // previously ignored. Only the new, known Robin provider gets a namespace;
   // legacy Antigravity account IDs and their persisted affinity stay stable.
-  const namespace = providerType === 'robin' ? 'robin:' : '';
+  const namespace = providerType === 'robin'
+    ? (record.authMethod === 'gemini-windows-session' ? 'gemini-win:' : 'robin:') : '';
   return record?.id || `account-${crypto.createHash('sha256').update(`${namespace}${stable || crypto.randomUUID()}`).digest('hex').slice(0, 16)}`;
 }
 
@@ -23,7 +24,10 @@ function normalizeAccount(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const accessToken = firstString(raw.accessToken, raw.access_token);
   const refreshToken = firstString(raw.refreshToken, raw.refresh_token);
-  if (!accessToken && !refreshToken) return null;
+  const windowsSession = raw.providerType === 'robin' && raw.accountType === 'gemini-app'
+    && raw.authMethod === 'gemini-windows-session' && Array.isArray(raw.providerMetadata?.geminiWindows?.cookies)
+    && raw.providerMetadata.geminiWindows.cookies.length > 0 && raw.subjectId && raw.email;
+  if (!accessToken && !refreshToken && !windowsSession) return null;
   const expirySource = raw.expiresAt ?? raw.expiry ?? raw.expires_at;
   const expiry = expirySource ? new Date(expirySource) : null;
   const expiresAt = expiry && !Number.isNaN(expiry.valueOf()) ? expiry.toISOString() : '';
@@ -70,7 +74,7 @@ class AccountStore {
     this.fs = fsImpl;
     if (!/^[a-z0-9][a-z0-9._-]*$/i.test(directoryName)) throw new Error('AccountStore directoryName is invalid');
     this.directory = path.join(configDir, directoryName);
-    this.privateStorage = directoryName === 'robin-accounts';
+    this.privateStorage = ['robin-accounts', 'gemini-win-accounts'].includes(directoryName);
   }
 
   ensureDirectory() {

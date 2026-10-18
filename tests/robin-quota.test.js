@@ -162,19 +162,22 @@ test('Robin background quota checks skip disabled and unhealthy accounts', async
   await pool.refreshQuotas(); assert.equal(calls, 0);
 });
 
-test('Robin selection skips fresh depleted quota but recovers at reset without changing health', async t => {
+test('Robin depleted quota is a last-resort fallback, not an account health failure', async t => {
   const { pool, store, advance } = harness(t, async () => robinQuotaSnapshot(budget(1, 1), now));
   store.update('r', { capabilities: [ARGON_MODEL] });
   pool.entries.get('r').models.add(ARGON_MODEL);
   await pool.refreshQuota('r');
-  assert.equal(pool.selectAccount(ARGON_MODEL, 'one'), null);
-  assert.equal(pool.status()[0].state, 'quota_exhausted');
-  await assert.rejects(pool.send({ messages: [], tools: [] }, ARGON_MODEL, { clientId: 'c', sessionId: 's' }), {
-    code: 'robin_quota_error', status: 429
-  });
+  assert.equal(pool.selectAccount(ARGON_MODEL, 'one').account.id, 'r');
+  assert.equal(pool.status()[0].state, 'available');
+  assert.equal(pool.status()[0].quotaDepleted, true);
   assert.equal(store.list()[0].providerMetadata.robinHealth, undefined);
+  let calls = 0;
+  pool.entries.get('r').provider.send = async () => { calls++; return { text: 'recovered', toolCalls: [] }; };
+  assert.equal((await pool.send({ messages: [], tools: [] }, ARGON_MODEL, { clientId: 'c', sessionId: 's' })).text, 'recovered');
+  assert.equal(calls, 1);
   advance(3600000);
   assert.equal(pool.status()[0].state, 'available');
+  assert.equal(pool.status()[0].quotaDepleted, false);
   assert.equal(pool.selectAccount(ARGON_MODEL, 'one').account.id, 'r');
 });
 
