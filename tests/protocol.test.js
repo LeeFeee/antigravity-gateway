@@ -57,6 +57,24 @@ test('Claude Code billing metadata is removed without changing adjacent system t
   assert.equal(normalized.system, 'Before\nAfter');
 });
 
+test('Claude Code system-role environment messages remain instructions, not extra user turns', () => {
+  const payload = {
+    system: [{ type: 'text', text: 'Keep project and permission rules.' }],
+    messages: [
+      { role: 'user', content: 'Read the fixture.' },
+      { role: 'system', content: [{ type: 'text', text: "Today's date is 2026-10-19.", cache_control: { type: 'ephemeral' } }] },
+      { role: 'developer', content: 'Only use Read.' },
+      { role: 'assistant', content: 'Ready.' }
+    ]
+  };
+  const before = JSON.stringify(payload);
+  const normalized = normalizeAnthropic(payload);
+  assert.equal(normalized.system, "Keep project and permission rules.\n\nToday's date is 2026-10-19.\n\nOnly use Read.");
+  assert.deepEqual(normalized.messages.map(m => [m.role, m.text]), [['user', 'Read the fixture.'], ['assistant', 'Ready.']]);
+  assert.equal(JSON.stringify(payload), before);
+  assert.equal(normalizeAnthropic({ system: '  original\n', messages: [] }).system, '  original\n');
+});
+
 const shellTool = {
   name: 'shell',
   description: 'run a command',

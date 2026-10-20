@@ -4,6 +4,8 @@
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const { resolveNativeBinary } = require('../src/agy-native-transport');
 
 const MIN_NODE_MAJOR = 20;
 const SUPPORTED_PLATFORMS = new Set(['darwin', 'linux', 'win32']);
@@ -33,8 +35,11 @@ function main() {
   try {
     probeDir = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-gateway-check-'));
     fs.writeFileSync(path.join(probeDir, 'write-test'), 'ok', { mode: 0o600 });
+    const binary = resolveNativeBinary({ cacheDir: probeDir, binaryPath: '' });
+    const version = execFileSync(binary, ['--version'], { encoding: 'utf8', timeout: 10000, windowsHide: true }).trim();
+    if (!/^antigravity-native\/1 go1\.27\.2 /.test(version)) throw new Error('bundled native transport version mismatch');
   } catch (error) {
-    fail(`the operating-system temporary directory is not writable: ${error.message}`);
+    fail(`temporary directory or bundled native transport check failed: ${error.message}`);
     return;
   } finally {
     if (probeDir) fs.rmSync(probeDir, { recursive: true, force: true });

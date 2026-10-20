@@ -5,6 +5,7 @@ const http2 = require('node:http2');
 const path = require('node:path');
 const { setTimeout: pause } = require('node:timers/promises');
 const { RobinConversationStore } = require('./robin-conversations');
+const { prepareRobinClientAdapter } = require('./robin-client-adapter');
 const { robinCredentialFingerprint } = require('./robin-auth');
 const { robinQuotaSnapshot } = require('./robin-quota');
 const { responseMetadata, conversationTurnFrames } = require('./robin-response');
@@ -663,6 +664,7 @@ class RobinTurn {
   constructor({
     provider,
     normalized,
+    clientAdapter,
     token,
     serverToken,
     authFingerprint,
@@ -677,6 +679,7 @@ class RobinTurn {
   }) {
     this.provider = provider;
     this.normalized = normalized;
+    this.clientAdapter = clientAdapter || { toClient: call => call };
     this.token = token;
     this.serverToken = serverToken;
     this.authFingerprint = authFingerprint;
@@ -694,6 +697,7 @@ class RobinTurn {
     this.waiters = [];
     this.messages = [];
     this.pendingCalls = new Map();
+    this.completedCallIds = new Set();
     this.closed = false;
     this.remote = null;
     this.process = null;
@@ -998,8 +1002,25 @@ class RobinTurn {
       else {
         const projected = projectedClientCall(call, this.normalized.tools);
         if (projected) {
-          this.pendingCalls.set(projected.id, { remoteId: call.id, remoteName: call.name, source });
-          external.push(projected);
+          if (this.completedCallIds.has(projected.id)) {
+            this.fail(new RobinProviderError('Argon 重复请求了已经回传结果的工具调用。', { code: 'robin_client_tool_contract', status: 422 }));
+            return;
+          }
+          let clientCall;
+          try { clientCall = this.clientAdapter.toClient(projected); }
+          catch (error) {
+            this.fail(new RobinProviderError(error.message, { code: 'robin_client_tool_contract', status: 422 }));
+            return;
+          }
+          const pending = this.pendingCalls.get(projected.id);
+          if (pending) {
+            if (pending.source === source && pending.clientCall
+                && JSON.stringify(pending.clientCall) === JSON.stringify(clientCall)) continue;
+            this.fail(new RobinProviderError('Argon 重复工具调用 ID 对应了不同请求。', { code: 'robin_client_tool_contract', status: 422 }));
+            return;
+          }
+          this.pendingCalls.set(projected.id, { remoteId: call.id, remoteName: call.name, source, clientCall });
+          external.push(clientCall);
         } else internal.push({ ...call, unsupported: true });
       }
     }
@@ -1030,6 +1051,7 @@ class RobinTurn {
         return;
       }
       this.pendingCalls.delete(result.id);
+      this.completedCallIds.add(result.id);
       if (result.isError) pending.source.write(remoteToolFailure({
         conversationId: this.upstreamConversationId,
         id: pending.remoteId,
@@ -1472,7 +1494,7 @@ class RobinProvider {
     this.uploadCache.clear();
   }
 
-  async sendTurn(normalized, model, { signal, sessionId, onDelta, onThinkingDelta, onAuthUsed, requireExistingTurn = false, reuseConversation = true, repairInstruction = '' } = {}) {
+  async sendTurn(normalized, model, { signal, sessionId, onDelta, onThinkingDelta, onAuthUsed, requireExistingTurn = false, reuseConversation = true, repairInstruction = '', nativeClientProfile = '' } = {}) {
     signal?.throwIfAborted();
     if (model !== ARGON_MODEL) {
       throw new RobinProviderError(`Robin Provider 不支持模型 ${model}。`, { code: 'robin_model_unavailable', status: 404 });
@@ -1498,6 +1520,11 @@ class RobinProvider {
       if (!matched.length) throw new RobinProviderError('客户端尚未返回当前 Argon 任务的工具结果。', {
         code: 'robin_tool_result_missing', status: 409
       });
+      for (const result of matched) {
+        const issued = turn.pendingCalls.get(result.id).clientCall;
+        if (result.name && issued && result.name !== issued.name) throw new RobinProviderError(
+          '工具结果名称与实际交付给客户端的调用不匹配。', { code: 'robin_client_tool_contract', status: 422 });
+      }
       // Only upload results for outstanding calls. Historical tool results
       // travel with client conversation history and must not be replayed.
       if (matched.some((result) => !result.isError && result.attachments?.length)) {
@@ -1518,7 +1545,8 @@ class RobinProvider {
       const authFingerprint = record.credentialFingerprint || robinCredentialFingerprint(this.auth.account);
       onAuthUsed?.(authFingerprint);
       const identity = await this.ensureDeviceRegistered(record, signal);
-      const preparedNormalized = await this.prepareNormalized(normalized, record, signal);
+      const clientAdapter = prepareRobinClientAdapter(normalized, nativeClientProfile);
+      const preparedNormalized = await this.prepareNormalized(clientAdapter.normalized, record, signal);
       // Preparation may finish after disable/delete even if an adapter did
       // not honour abort. Never create a new task or write results afterward.
       signal?.throwIfAborted();
@@ -1526,6 +1554,7 @@ class RobinProvider {
       turn = new RobinTurn({
         provider: this,
         normalized: preparedNormalized,
+        clientAdapter,
         token: record.accessToken,
         serverToken: record.serverToken,
         authFingerprint,

@@ -1,6 +1,8 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { detectNativeCompaction } = require('./agy-client-compaction');
+const { capturedNativeClient } = require('./agy-client-profile');
 
 const DEFAULT_TTL_MS = 60 * 60_000;
 const DEFAULT_CAPACITY = 2000;
@@ -59,6 +61,7 @@ function explicitSessionId(req, payload = {}, { legacy = true, cacheKey = true }
   return firstString(
     header(req, 'x-session-id'),
     header(req, 'x-claude-session-id'),
+    header(req, 'x-claude-code-session-id'),
     header(req, 'x-codex-session-id'),
     header(req, 'x-deepseek-harness-session-id'),
     header(req, 'x-client-session-id'),
@@ -226,6 +229,8 @@ class SessionManager {
     const conversationRaw = firstString(nativeExplicit, explicit, fallback);
     const affinityRaw = firstString(explicitAffinity, parent, explicit, fallback);
     const auxiliary = auxiliaryScope(req, normalized);
+    const nativeCompaction = detectNativeCompaction(req, normalized);
+    const nativeClientProfile = capturedNativeClient(req, normalized);
     const reliableConversation = Boolean(previous?.sessionId || (taskProvider ? nativeExplicit
       : explicitSessionId(req, payload, { legacy: false })));
     let anonymousTask = Boolean(previous?.anonymousTask), owner;
@@ -243,6 +248,8 @@ class SessionManager {
       routingKey: previous?.routingKey || owner?.routingKey || this.alias('affinity', scope, affinityRaw),
       requestId: `req_${crypto.randomUUID().replaceAll('-', '')}`,
       ...(auxiliary ? { auxiliaryScope: auxiliary } : {}),
+      ...(nativeCompaction ? { nativeCompaction } : {}),
+      ...(nativeClientProfile ? { nativeClientProfile } : {}),
       sessionSource: previous?.sessionId ? 'previous_response' : owner ? 'tool_result' : anonymousTask ? 'anonymous' : explicit ? 'explicit' : 'fallback',
       affinitySource: previous?.routingKey ? 'previous_response' : explicitAffinity ? 'explicit' : parent ? 'parent' : explicit ? 'conversation' : 'fallback',
       // A legacy user identifier or a prompt fingerprint is not evidence of

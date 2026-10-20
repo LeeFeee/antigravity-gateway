@@ -5,6 +5,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
+const testStateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-direct-state-'));
+process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR = testStateDir;
+test.after(() => fs.rmSync(testStateDir, { recursive: true, force: true }));
 
 const { DirectAntigravityProvider, buildDirectRequest, cleanToolSchema } = require('../src/direct-provider');
 const {
@@ -32,10 +35,12 @@ test('direct request uses native Antigravity envelope without agy prompt', () =>
   const request = buildDirectRequest(normalized(), 'gemini-test-high', 'project-1', '-123');
   assert.equal(request.model, 'gemini-test-high');
   assert.equal(request.project, 'project-1');
-  assert.match(request.requestId, /^agent-/);
-  assert.equal(request.request.sessionId, '-123');
+  assert.match(request.requestId, /^agent\/[a-f0-9-]{36}\/\d+\/[a-f0-9-]{36}\/1$/);
+  assert.equal(request.request.sessionId, '-3750763034362895579');
+  assert.doesNotMatch(JSON.stringify(request), /-123/);
   assert.equal(request.request.systemInstruction.parts[0].text, 'client system');
-  assert.deepEqual(request.request.contents, [{ role: 'user', parts: [{ text: 'hello' }] }]);
+  assert.equal(request.request.contents[0].role, 'user');
+  assert.match(request.request.contents[0].parts[0].text, /^<USER_REQUEST>\nhello\n<\/USER_REQUEST>\n<ADDITIONAL_METADATA>/);
   assert.doesNotMatch(JSON.stringify(request), /ANTIGRAVITY_GATEWAY_INFERENCE_CONTRACT|CLIENT_SYSTEM_BEGIN/);
 });
 
@@ -64,7 +69,7 @@ test('direct request normalizes nullable union schema types for Cloud Code', () 
     } }]
   }, 'gemini-test-high', 'project-1', '-123');
   const pathSchema = request.request.tools[0].functionDeclarations[0].parameters.properties.path;
-  assert.equal(pathSchema.type, 'string');
+  assert.equal(pathSchema.type, 'STRING');
   assert.equal(pathSchema.nullable, true);
 });
 
@@ -183,8 +188,9 @@ test('direct request maps tool results to the original function name and ID', ()
   }, 'gemini-test-high', 'project-1', '-123');
   const part = request.request.contents[2].parts[0];
   assert.deepEqual(part.functionResponse, {
-    id: 'call_old', name: 'shell', response: { result: '/tmp' }
+    id: 'call_old', name: 'shell', response: { output: '/tmp' }
   });
+  assert.equal(request.request.contents[2].role, 'model');
 });
 
 test('direct request keeps an orphaned tool result as text instead of inventing a function name', () => {
@@ -194,7 +200,7 @@ test('direct request keeps an orphaned tool result as text instead of inventing 
     tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
   }, 'gemini-test-high', 'project-1', '-123');
   assert.equal(request.request.contents[0].parts[0].functionResponse, undefined);
-  assert.match(request.request.contents[0].parts[0].text, /CLIENT_TOOL_RESULT id=orphan/);
+  assert.match(request.request.contents[0].parts[0].text, /^<USER_REQUEST>\nold output\n<\/USER_REQUEST>/);
 });
 
 test('direct request restores the Cloud Code thought signature for a prior tool call', () => {
@@ -276,7 +282,7 @@ test('direct provider parses non-stream text and usage', async () => {
   const result = await provider.send(normalized(), 'gemini-test-high', { sessionId: '-123' });
   assert.equal(result.text, 'hello direct');
   assert.deepEqual(result.usage, { input_tokens: 3, output_tokens: 2, total_tokens: 5, thinking_tokens: 0, cache_read_tokens: 0 });
-  assert.equal(calls[0].url, 'https://example.test/v1internal:generateContent');
+  assert.equal(calls[0].url, 'https://example.test/v1internal:streamGenerateContent?alt=sse');
   assert.equal(calls[0].options.headers.authorization, 'Bearer token');
 });
 
@@ -357,7 +363,7 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
     models: [],
     fetchImpl: async (url, options) => {
       assert.match(url, /fetchAvailableModels$/);
-      assert.equal(options.body, '{}');
+      assert.deepEqual(JSON.parse(options.body), { project: 'project-1' });
       return new Response(JSON.stringify({ models: {
         'gemini-3.7-flash-high': { displayName: 'Flash', maxTokens: 1048576, maxOutputTokens: 65536, supportsImages: true, supportsThinking: true },
         'models/claude-sonnet-5': { displayName: 'Claude' },
@@ -510,14 +516,14 @@ test('direct provider carries a tool thought signature into the next turn', asyn
   const first = await provider.send({ ...normalized(), tools, toolChoice: { type: 'required' } }, 'gemini-test-high', { sessionId: '-signature-sequence' });
   const call = first.toolCalls[0];
   await provider.send({ ...normalized(), messages: [
-    { role: 'user', text: 'previous task' },
+    ...normalized().messages,
     { role: 'assistant', text: `[ASSISTANT_TOOL_CALL id=${call.id} name=${call.name}]\n${JSON.stringify(call.arguments)}` },
     { role: 'user', text: `[CLIENT_TOOL_RESULT id=${call.id}]\npwd output` },
     { role: 'user', text: 'continue' }
   ], tools }, 'gemini-test-high', { sessionId: '-signature-sequence' });
   assert.equal(requests[1].request.contents[1].parts[0].thoughtSignature, 'signature-1');
   assert.deepEqual(requests[1].request.contents[2].parts[0].functionResponse, {
-    id: call.id, name: 'shell', response: { result: 'pwd output' }
+    id: call.id, name: 'shell', response: { output: 'pwd output' }
   });
   assert.equal(requests[1].request.contents[1].parts[0].id, undefined);
 });

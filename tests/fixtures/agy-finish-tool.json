@@ -1,0 +1,29 @@
+{
+  "name": "finish",
+  "description": "Finish your task and end the interaction. Don't call this tool unless you are confident that your solution is correct, for example after you've written tests, executed them, and verified the task is complete.",
+  "parameters": {
+    "type": "OBJECT",
+    "properties": {
+      "code": {
+        "type": "STRING"
+      },
+      "count": {
+        "type": "INTEGER"
+      },
+      "toolAction": {
+        "type": "STRING",
+        "description": "Brief 2-5 word phrase in -ing form describing the specific action. Capitalize like a sentence. Some examples: 'Analyzing directory', 'Searching the web', 'Checking git status', 'Running tests', 'Searching code'."
+      },
+      "toolSummary": {
+        "type": "STRING",
+        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+      }
+    },
+    "required": [
+      "code",
+      "count",
+      "toolSummary",
+      "toolAction"
+    ]
+  }
+}

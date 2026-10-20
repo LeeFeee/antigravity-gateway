@@ -11,6 +11,24 @@ function request(session, user = 'anonymous-a', version = '0.1.0-rc.5', extra = 
     socket: { remoteAddress: '127.0.0.1' } };
 }
 
+test('captured Claude Code session header is authoritative across restart and metadata changes', () => {
+  const req = { headers: { 'x-api-key': 'synthetic-key', 'user-agent': 'claude-cli/2.1.285 (external, sdk-cli)',
+    'x-claude-code-session-id': 'opaque-claude-session-a' }, socket: { remoteAddress: '127.0.0.1' } };
+  for (const taskProvider of ['', 'robin', 'gemini-windows']) {
+    const first = new SessionManager().resolveIdentity(req, { metadata: { user_id: '{"device_id":"old","session_id":"opaque-claude-session-a"}' } }, input, null, { taskProvider });
+    const resumed = new SessionManager().resolveIdentity(req, { metadata: { user_id: 'changed-client-metadata' } }, input, null, { taskProvider });
+    assert.equal(first.sessionId, resumed.sessionId);
+    assert.equal(first.routingKey, resumed.routingKey);
+    assert.equal(first.reuseConversation, true);
+    assert.equal(first.anonymousTask, undefined);
+    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-claude-code-session-id': 'opaque-claude-session-b' } }, {}, input, null, { taskProvider }).sessionId, first.sessionId);
+    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-api-key': 'another-key' } }, {}, input, null, { taskProvider }).sessionId, first.sessionId);
+  }
+  const common = { ...req, headers: { ...req.headers, 'x-session-id': 'explicit-session' } };
+  const oldAlias = { ...req, headers: { ...req.headers, 'x-claude-session-id': 'explicit-session' } };
+  assert.equal(new SessionManager().resolve(common, {}, input), new SessionManager().resolve(oldAlias, {}, input));
+});
+
 test('two DSH sessions with the same initial prompt get separate native conversation and affinity identities', () => {
   const manager = new SessionManager();
   const first = manager.resolveIdentity(request('session-a'), {}, input);
@@ -93,9 +111,9 @@ test('Chat handlers retain DSH tool ownership across turns without injecting rou
   t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
   const base = `http://127.0.0.1:${server.address().port}`;
   const preflight = await fetch(`${base}/v1/chat/completions`, { method: 'OPTIONS', headers: { origin: base,
-    'access-control-request-headers': 'x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact' } });
+    'access-control-request-headers': 'x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-claude-code-session-id' } });
   assert.equal(preflight.status, 204);
-  for (const header of ['x-deepseek-harness-session-id', 'x-deepseek-harness-user-id', 'x-deepseek-harness-compact']) {
+  for (const header of ['x-deepseek-harness-session-id', 'x-deepseek-harness-user-id', 'x-deepseek-harness-compact', 'x-claude-code-session-id']) {
     assert.ok(preflight.headers.get('access-control-allow-headers').split(', ').includes(header));
   }
   const body = { model: 'gemini-4-argon', messages: [{ role: 'user', content: '读取笔记。' }],

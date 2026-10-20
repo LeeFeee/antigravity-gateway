@@ -34,6 +34,21 @@ Robin 账号池只接收 Robin / Gemini App 凭据，Antigravity 账号池拒绝
 
 ## 工具调用与会话
 
+### macOS Robin 客户端定向适配
+
+v1.7.0 起，网关复用已捕获的 Claude Code 2.1.285、Codex 0.159.2、Hermes 0.21.7 能力识别，在 Robin Provider 内应用双向映射。Claude 的 Read/Write/Edit/Bash、Codex 的 exec_command/write_stdin/view_image、Hermes 的 read_file/write_file/patch/terminal 使用与 Cloud Code 适配一致的可逆名称和参数转换，但在 Robin 上它们属于 `external_client` MCP 目录，不冒充 Gemini 内置工具。
+
+- 仍使用原生 `ProcessQuery`、`list_mcp`、`execute_mcp` 和 `ExecuteRemoteTools`，不引入 Cloud Code 请求结构、签名或恢复状态。
+- 不注入 agy 身份，也不添加 `toolAction` / `toolSummary` 等 Cloud Code 元数据。只移除已识别的固定客户端身份句并调整固定框架中的工具引用；用户 SOUL、项目规则、权限、真实运行信息保持不变。
+- 工具目录与转换器随活动 Robin 任务固定；后续请求即使省略工具定义，结果仍按实际交付的调用 ID 回到原生调用名称及原连接。显式结果名称必须匹配客户端实际收到的名称。重复的相同未完成调用不再次交付，冲突 ID 或无法无损转换的参数终止该任务，不修改账号健康、不换号重放。
+- 新任务重放历史时，仅转换结构化 assistant 工具调用。参数必须通过原 Schema 及双向还原检查；用户文字、路径、命令、引用和工具结果正文不做字符串替换。未知工具、修改后的能力声明、名称冲突、歧义模板及 Codex 自定义补丁继续原兼容路径。
+- 原生工具流不能跨网关进程恢复：缺失的未完成任务仍明确报错，不重新执行已经发生的客户端副作用。已完成对话继续使用原有按账号及会话隔离的 Robin 游标；不新增提示词或工具结果落盘。
+- 本次不改变 Windows `ProcessSession` 通道、账号调度、额度、看板或视频回退。客户端识别只是本地适配选项，不是鉴权，不发送给 Google。
+
+2026-10-20 验证：18 项新增针对性回归、全量 704 项测试均通过。经 `npm pack` 和独立前缀全局安装，未修改的实际 Claude Code 2.1.285、Codex 0.159.2、Hermes 0.21.7 均通过本机新网关连接真实 Google Argon。最终安装包的三组原生任务均返回 HTTP 200 / gRPC 0，响应模式 ID 为 `95a4c0abcba24364`，请求 surface 为 21；共 11 次实际客户端工具执行，结果文件均经独立磁盘核验。Claude 和 Hermes 各完成读→写→编辑→命令，Codex 完成命令→原始 apply_patch→命令。工具目录、原生调用、还原参数和原连接回执由保存的双向 gRPC 字节及客户端 API 报文独立比对，不以模型自述或单元测试替代。
+
+证据目录：项目同级 `antigravity-robin-client-20261020.Vu7hRb/`，包含报告、原始请求/响应、CLI 结果、正式包和校验清单。最初账号的服务条款 412、未加认证的客户端探测和不受支持的自动探测路径均保留，不算通过样本；切换到另一已有账号后完成验证，未自动接受条款。额外中间 Claude 成功样本与最终包复验分开记录。该验证不声称 Gemini App 全部指纹一致，也没有声称未完成 Robin 工具流能够跨重启恢复。
+
 1. `ProcessQuery` 承载任务模式初始化、消息、附件、设备上下文和回答。
 2. 服务端返回独立会话与路由信息后，建立 `ExecuteRemoteTools` 通道。
 3. 网关把客户端声明的工具目录交给 Argon，将上游工具调用转换为客户端原有协议。

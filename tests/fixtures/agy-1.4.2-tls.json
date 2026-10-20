@@ -1,0 +1,19 @@
+{
+  "provenance": "Captured from installed agy 1.4.2 on macOS arm64, 2026-10-19; native-continuity ClientHello. Ephemeral bytes excluded, not source-derived.",
+  "serverName": "daily-cloudcode-pa.googleapis.com",
+  "legacyVersion": 771,
+  "sessionIdLength": 32,
+  "cipherSuites": [49195, 49199, 49196, 49200, 52393, 52392, 49161, 49171, 49162, 49172, 4865, 4866, 4867],
+  "extensions": [
+    [0, "00240000216461696c792d636c6f7564636f64652d70612e676f6f676c65617069732e636f6d"],
+    [11, "0100"],
+    [65281, "00"],
+    [23, ""],
+    [18, ""],
+    [5, "0100000000"],
+    [10, "000e11ec11eb11ed001d001700180019"],
+    [13, "001a0904090509060804040308070805080604010501060105030603"],
+    [50, "001e090409050906080404030807080508060401050106010503060302010203"],
+    [43, "0403040303"]
+  ]
+}

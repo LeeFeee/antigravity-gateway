@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Local Anthropic/OpenAI compatibility gateway for native Antigravity Cloud Code and Gemini App Argon routing.",
   "license": "MIT",
   "type": "commonjs",
@@ -8,6 +8,7 @@
   "files": [
     "antigravity-gateway.js",
     "src/",
+    "native/",
     "scripts/",
     "skills/",
     "docs/",
@@ -24,9 +25,12 @@
   },
   "scripts": {
     "start": "node antigravity-gateway.js",
+    "build:native": "node scripts/build-native-transport.js",
+    "check:native": "node --check src/agy-native-transport.js && node --check src/agy-request-profile.js && node --check src/agy-session-state.js && node --check src/agy-file-lease.js && node --check src/agy-context-state.js && node --check src/agy-image-references.js && node --check src/agy-tool-results.js && node --check src/agy-structured-output.js && node --check scripts/build-native-transport.js",
     "postinstall": "node scripts/check-environment.js",
     "check": "node --check antigravity-gateway.js && node --check src/account-pool.js && node --check src/account-scheduling.js && node --check src/account-store.js && node --check src/agy-worker.js && node --check src/artifacts.js && node --check src/dashboard-access.js && node --check src/dashboard.js && node --check src/diagnostic-log.js && node --check src/direct-provider.js && node --check src/local-account-importer.js && node --check src/local-agy-auth.js && node --check src/managed-account-auth.js && node --check src/multimedia.js && node --check src/oauth-flow.js && node --check src/protocol.js && node --check src/provider-router.js && node --check src/quota-manager.js && node --check src/robin-account-pool.js && node --check src/robin-auth.js && node --check src/robin-conversations.js && node --check src/robin-oauth-flow.js && node --check src/robin-phenotype.js && node --check src/robin-proto.js && node --check src/robin-provider.js && node --check src/robin-quota.js && node --check src/robin-response.js && node --check src/service-manager.js && node --check src/service-runner.js && node --check src/session-manager.js && node --check src/terminal-console.js && node --check src/usage-store.js",
-    "postcheck": "npm run check:windows",
+    "postcheck": "npm run check:windows && npm run check:native && npm run check:robin-adapter",
+    "check:robin-adapter": "node --check src/robin-client-adapter.js && node --check src/agy-tool-adapter.js && node --check src/agy-hermes-profile.js",
     "check:windows": "node --check src/gemini-account-store.js && node --check src/gemini-windows-auth.js && node --check src/gemini-windows-login.js && node --check src/gemini-windows-protocol.js && node --check src/gemini-windows-provider.js && node --check src/gemini-windows-quota.js",
     "test": "node --test tests/*.test.js"
   },

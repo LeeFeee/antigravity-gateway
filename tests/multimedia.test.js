@@ -39,6 +39,20 @@ test('media store persists uploads and resolves file IDs for an account scope', 
   await assert.rejects(() => store.resolve({ type: 'media', fileId: saved.id }, { scope: 'scope-b' }), /找不到多媒体文件/);
 });
 
+test('generated images use readable extensions while legacy .bin files and scoped deletion keep working', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'generated-media-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const store = new MediaStore({ directory });
+  const saved = store.save(Buffer.from('png'), { purpose: 'generated', filename: 'result.png', mediaType: 'image/png', scope: 'owner' });
+  const typed = store.contentPath(saved.id); assert.match(typed, /\.png$/); assert.equal(fs.readFileSync(typed, 'utf8'), 'png');
+  assert.equal(store.get(saved.id, { scope: 'other' }), null); assert.equal(store.delete(saved.id, { scope: 'other' }), false);
+  const legacy = path.join(directory, `${saved.id}.bin`); fs.renameSync(typed, legacy);
+  assert.equal(store.contentPath(saved.id), legacy); assert.equal(store.get(saved.id, { scope: 'owner' }).buffer.toString(), 'png');
+  assert.equal(store.delete(saved.id, { scope: 'owner' }), true); assert.equal(fs.existsSync(legacy), false);
+  const upload = store.save(Buffer.from('png'), { filename: 'upload.png', mediaType: 'image/png' });
+  assert.match(store.contentPath(upload.id), /\.bin$/);
+});
+
 test('stored file metadata replaces a generic input MIME type', async (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'antigravity-media-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -70,11 +84,12 @@ test('native multimodal preparation lets the model choose image generation witho
   const prepared = prepareNativeMultimodal(normalized);
   assert.equal(prepared.imageToolInjected, true);
   assert.equal(prepared.normalized.tools.at(-1).name, 'generate_image');
-  assert.match(prepared.normalized.system, /attachment by itself never means/i);
+  assert.equal(prepared.normalized.system, normalized.system);
+  assert.match(prepared.normalized.tools.at(-1).description, /not for analyzing attachments/i);
   assert.doesNotMatch(prepared.normalized.system, /gateway/i);
   const request = buildDirectRequest(prepared.normalized, 'gemini-test', 'project', 'session');
   assert.equal(request.request.contents[0].parts[1].inlineData.mimeType, 'image/png');
-  assert.equal(request.request.tools[0].functionDeclarations.at(-1).name, 'generate_image');
+  assert.equal(request.request.tools.flatMap(tool => tool.functionDeclarations).at(-1).name, 'generate_image');
 });
 
 test('explicit client tool choice is preserved and does not inject the native image tool', () => {

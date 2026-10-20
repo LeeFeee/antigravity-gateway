@@ -231,8 +231,8 @@ class QuotaManager {
       const token = await provider.access(AbortSignal.timeout(30_000));
       const [loadResult, modelsResult, usageResult] = await Promise.allSettled([
         summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
-        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, MODELS_PATH, {}),
-        fetchJson(provider, token, USAGE_PATH, {})
+        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, MODELS_PATH, provider.projectRequestBody?.() || {}),
+        fetchJson(provider, token, USAGE_PATH, provider.projectRequestBody?.() || {})
       ]);
       if (!isCurrent() || !this.usableEntry(this.currentEntry(accountId))) return null;
       if ((summaryOnly || (loadResult.status === 'rejected' && modelsResult.status === 'rejected')) && usageResult.status === 'rejected') {

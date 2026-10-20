@@ -6,13 +6,79 @@
 
 Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官方 Antigravity CLI（`agy`）的登录状态，让 Claude Code、Codex CLI、Trae 及其他兼容客户端通过本地接口调用当前账号可用的模型。
 
-默认使用原生 Cloud Code 直连，不经过 `agy` Agent 的包装提示词。客户端选择什么模型，网关就把该模型 ID 原样发送给上游；只有 Claude Code Auto Mode 的分类请求使用独立的快速模型。
+默认使用原生 Cloud Code 直连，不启动 `agy` Agent 子进程，也不整套覆盖客户端系统提示词。当前源码按已抓包的 agy 格式封装上游消息、工具和会话元数据，并适配已识别的固定身份句及等价工具表达；用户要求、项目规则和真实执行语义保持不变。客户端选择什么模型，网关就把该模型 ID 原样发送给上游；只有 Claude Code Auto Mode 的分类请求使用独立的快速模型。
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.6.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.7.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+v1.7.0 汇入 Cloud Code 上游请求转译和 macOS Argon／Robin 三客户端适配，保留统一的对外接口与既有账号调度。合并后的本地回归共 704 项；Cloud Code 阶段的三类真实客户端、上下文/工具续接和原功能回归见 [最终验收矩阵](docs/agy-acceptance-matrix.md)，原始抓包及各阶段过程见 [实施记录](docs/agy-fidelity-plan.md)。下方按阶段保留的测试数量、待验证项和重试实验不替代本版边界，也不代表所有模型、客户端未来版本或 Google 内部识别信号都与官方客户端一致。
+
+macOS Argon／Robin 现已接入三个客户端的定向适配：复用可逆工具映射，但通过 Robin 原生 MCP 目录与双向工具流传输，不套用 Cloud Code 请求结构、agy 身份或额外工具元数据。用户 SOUL、项目规则、权限和非等价工具保持原样，Windows 通道不启用这套改动。协议边界及验证记录见 [Robin 客户端适配](docs/robin-provider.md#macos-robin-客户端定向适配)。
+
+v1.7.0 的执行边界（2026-10-20，优先于下方较早的实验记录）：网关做双向协议翻译，不代替 agent 决定任务恢复。默认恢复原网关有限传输重试，不插入隐藏的“继续任务”消息，不因旧断流终止记录阻止 agent 重试；原显式 `ANTIGRAVITY_DIRECT_RETRY_POLICY=agy` 配置仅作为兼容选项保留，不再默认开启。客户端提交的上下文是依据，能匹配的原始签名与工具映射尽量复用，不强制恢复旧任务。
+
+已实现并实测 Claude Code 2.1.285 的 `Read ↔ view_file`、`Write ↔ write_to_file`：Google 侧使用原生工具名称/参数，客户端仍执行自己的工具和权限逻辑，工具结果再按实际原调用恢复名称及签名。保留读取范围、PDF 页码和写入覆盖语义，不虚构字节偏移、追加写入或后台执行能力；不等价的能力不冒称官方声明完全一致。只识别匹配的客户端版本、工具描述和 Schema，未知工具/版本或名称冲突保持兼容路径。已识别 Cloud Code 客户端的固定身份句使用官方表达，不新增“协议兼容客户端”身份声明；用户文字、项目规则和任意提示中的工具名不做全局替换。此处的 Cloud Code 身份和签名逻辑不应用于 Gemini App；macOS Robin 只复用可逆能力映射，并使用自己的原生 MCP 通道，Windows 保持原路径。
+
+已增加实际捕获的 Hermes 0.21.7 CLI 固定框架及四类工具适配：`read_file/write_file/patch/terminal` 对应 `view_file/write_to_file/replace_file_content/run_command`。保留分页、模糊替换、写入保护、终端秒数超时与通知参数；按独立固定块识别，SOUL 自定义身份和项目上下文逐字保留，不把通用 OpenAI SDK 请求头当 Hermes 身份，也不虚构会话 ID。正式安装包已在正常加载 SOUL/AGENTS.md 的真实 CLI 中通过工具执行、首次回执前网关重启及恢复会话，并保留项目规则和先前记忆。已捕获编码说明中的旧 `mode` 提示与实际工具 Schema 不符，因此仅在该固定块内去掉不可执行的旧提示，不新增虚假参数。未知或重复歧义模板保持原兼容路径；延迟加载工具仍使用客户端原协议，不主动展开或增加能力声明。最终全量 686 项回归通过，69 个运行时文件与正式包一致。
+
+同一适配层已扩展到 `Edit ↔ replace_file_content`、`Bash ↔ run_command`。精确匹配文本、替换全部开关、命令原文、执行超时、后台开关、说明和沙盒请求都双向保留；仅转换字段名，不执行命令、不放宽客户端权限。执行时限使用必要的 `TimeoutMs`，后台开关使用 `RunInBackground`，不误称 `WaitMsBeforeAsync` 或 `IsDaemon`；不声明客户端没有的行号限定编辑、独立 `Cwd`、持久终端等能力。工具说明中的已知参数及已适配读取工具引用同步转换，保留先读后改、Git 操作授权等原约束。正式安装包经真实 Claude CLI 完成 Read→Edit→Bash，网关重启后再次 Bash；上下游原始报文验证调用、结果关联与原签名保持一致。本地全量回归 664 项通过；真实测试为 macOS/Flash High 前台命令，不代表后台执行、所有客户端或全平台均已线上验收。
+
+正式 npm 包已在 Linux ARM64 容器及 Linux x64 架构仿真容器中完成安装、原生二进制运行和各 553 项回归，无失败或跳过。测试没有账号凭据，传输数据来自容器内真实套接字；握手稳定字段与现有 macOS 官方 agy 样本一致，但不代表已完成 Linux 官方 agy 同平台对照、实体 x64 主机或 Windows 新传输验收。
+
+Codex CLI 0.159.2 的实际 Responses 请求已接入 `exec_command ↔ run_command`、`write_stdin ↔ manage_task`、`view_image ↔ view_file`。仅匹配已抓取的版本、originator、会话头与兼容工具 Schema；命令、工作目录、等待时间、输出限额和权限请求双向保留。后台工具只支持真实可执行的 status/send_input，不声明 list/kill；图片工具仍仅看图，不虚构文本阅读能力。`apply_patch` 的多文件补丁语法保持原自定义工具，不冒充单块替换。真实正式包验证同回复双命令、回执前网关重启、原生补丁、后台会话输入与图片数据回传；672 项本地回归通过。识别信息只存本地，不新增上游身份字段，不接管客户端执行或授权。
+
+已补测真实 Claude Code CLI 的 `Read → Write → Read` 和网关重启后续聊；客户端会话头仅用于本地映射，系统/环境消息不再计入用户轨迹步数。带工具声明的请求仍沿用整轮完成后发送的既有策略，不能把 SSE 心跳当成首字输出。
+
+已补测真实 Codex CLI 的 Responses 并行工具、`apply_patch` 自定义工具和工具回传前重启。Codex 将同一回复拆成文字与多个调用项时，Cloud Code 转换会重新组成该模型步骤，再按严格历史前缀恢复真实上游签名；不会把并行调用各自算成一个模型步骤。这一合并不修改 Gemini App 通道收到的归一化消息。
+
+Cloud Code 私有会话状态使用原子发布的非空目录锁。每个持有者拥有唯一归属文件，进程退出后的并发清理不能删除新持有者的锁；取消等待只清理自己的候选目录。真实 8 进程压力测试已复现并修正旧文件锁在恢复遗留锁时丢失计数的问题。这里的锁与归属数据仅保存在本地，不成为上游请求字段；Linux 正式包已运行现有多进程锁回归，Windows 的实际运行验收仍待完成。
+
+普通文本生成的取消状态也已按官方 agy 实抓修正：尚未收到模型内容时不增加回答步骤；已收到思考或正文时保留该步骤，并更新原生执行标识。未完成思考不回传上游，部分正文只在客户端确实提交相同历史时恢复；客户端丢弃的部分不会自动补回。网关不会伪造官方进程重启时的后台任务通知。工具调用/压缩中途取消、强制杀进程及任意截断片段仍需分别验收。
+
+同一账号、会话中切换官方目录已有的 `gemini-3.8-flash-high` / `medium` / `low`，现按官方实抓保留此前真实文本和工具调用签名；仍要求完整历史前缀与内容精确匹配。仅此三种已测模型开放跨模型复用，不推广到其他模型或跨模型生图回执。生成参数优先取实时目录，三种模型的实抓离线基线分别为 `thinkingBudget=-1/4000/1000`、最大输出 `65536`。这不是给 Gemini App Argon 添加档位，也不改变默认模型。
+
+Cloud Code 的纯图片/文字附图消息已按实抓 agy 格式发送，不再携带网关的 `attached_media` 标记。引用文件保存在私有 `state/agy-sessions/images/`，同一会话的路径和包装时间跨重启稳定；图片编辑仍可使用这些路径，旧附件 ID 也保留兼容。缓存按 24 小时未使用及默认 256 MiB / 1024 文件阈值在请求时清理，当前请求用到的图片受到保护，不删除 Files API 上传或已生成图片。其他媒体和混合媒体的上游布局仍待核对。
+
+非图片与混合附件也不再发送随机媒体 ID 或 `attached_media` 私有标签。必要文件名保留为紧邻附件的普通文字，媒体 MIME 与原始字节不变；这修正了同一附件每轮重新解析后前缀变化、导致回答签名恢复失败的问题。官方 agy 的音频/PDF/视频 `view_file` 结果与续聊已抓包，网关对应真实工具回传、重启和 Argon 视频转路由均已验证。用户直接附非图片文件的完整官方布局仍未捕获，当前保留兼容语义，不伪造工具调用，也不宣称这条布局已与 agy 完全一致。
+
+Cloud Code 的普通对象型 JSON Schema 输出按官方 `agy --json-schema` 实抓使用 `finish` 终结工具，首次请求即携带输出字段，不增加 `responseSchema` 或网关专有字段。客户端只收到通过原始 Schema 校验的 JSON；官方工具附带的 `toolAction` / `toolSummary` 留在原生历史中。精确匹配的客户端历史可跨网关重启还原实际签名与完成结果。强制客户端工具、同名工具/属性、特殊根 Schema 和压缩请求保留既有兼容路径，不冒充已验证的原生情况；Robin、Windows 不使用这一转换。
+
+客户端显式标记失败的工具结果，现在按官方 agy 实抓的 `Encountered error in tool execution:` 文本送入 Cloud Code 的 `functionResponse.response.output`，不新增错误 JSON 字段，也不丢掉 `is_error` 的语义。错误原文、附件和顺序保留；已有原生错误包装不重复添加。网关不知道外部工具的真实执行时间，不伪造 Created At / Completed At。普通成功结果不根据文本里是否出现 error 来重新分类；Gemini App 两条通道不变。
+
+Cloud Code 的 503/429 重试现按官方实抓更新原生错误步数和请求时间戳，逻辑请求计数、轨迹、正文及签名保持不变；后续工具结果与重启续聊沿用实际步数，不添加错误消息或私有字段。重试调度的最新实测范围见下文。鉴权刷新、网络异常、压缩及其他未抓取失败场景不凭推断套用这一规则。
+
+已进一步实抓 400 终止、429/503 重试耗尽以及 503 退避期间取消：错误步骤在收到错误时即保存，不再等到下次重试才记账；最终失败会保存执行边界，网关重启后续聊仍保持正确计数。已取消的请求不会再等待一个刚注册的退避计时器。正式安装包四组真实 HTTP 对照及真实 Claude Code Read/重启续聊通过，564 项回归通过；当时官方持续 429/503 各发出 9 次，网关原策略各 4 次；该调度差异现已在下述限定范围修正，历史证据仍保留。
+
+原始线包进一步确认：模型目录、额度等已抓取的元数据查询使用 `Content-Length`，生成请求使用单个 HTTP 数据块及结束块。网关现在区分这两类请求，避免将查询也误设为 chunked。按官方连接顺序、相同报文字节和等长假凭据进行的本地对照，10 份脱敏 HTTP 线包及对应 TLS 记录长度序列全部一致；这些旧请求未重放到 Google。独立真实 Google 长上下文、工具与恢复，以及本地 Claude Code 另行验证通过。真实业务内容及连接调度不相同，不能把受控对照扩展为全链路或 Google 内部不可识别的结论。
+
+生成图片按实际 MIME 保存为 `.jpg` / `.png` 等文件，旧 `.bin` 产物仍兼容。客户端仍收到原有交付回执；在同账号、同会话、同模型且完整前缀与已发回执匹配时，网关将其还原成此前真实发生的内部生图工具历史，不把客户端回执当作上游对话正文。该映射只存在私有会话状态，包含网关生成的工具结果和图片，受会话状态容量与过期限制，不是全部只存散列。真实 Claude Code 已完成生图 → Read 返回图片内容 → Write → 网关重启续聊。这里采用了实抓文件工具的文本结果结构，额外生图工具及交付说明仍是必要兼容语义，并非已证明与官方生图请求完全一致。
+
+默认 `gemini-3.8-flash-high` 的已实抓 429/500/502/503/504 使用 agy 1.4.2 调度：普通 agent 最多 9 次、checkpoint 最多 5 次，均重试同一端点；agent 从 4 秒起按原生向下抖动退避，名义上限 30 秒，checkpoint 默认间隔 1 秒。忽略 HTTP `Retry-After`，但采纳 429 正文的标准 `google.rpc.RetryInfo`；9 秒实际等待，超过 30 秒停止当前账号重试并交回既有账号池处理。真实 CLI、旧/新正式包和真正 Claude Code Read/重启续聊已抓包对照；随机等待值不要求逐次相同，不宣称 Google 内部无法区分。
+
+重试兼容设置仅在本地生效：`ANTIGRAVITY_DIRECT_RETRY_POLICY=agy|legacy` 可显式选择。未设置策略但配置了原来的 `ANTIGRAVITY_DIRECT_MAX_RETRIES` 或 `ANTIGRAVITY_DIRECT_RETRY_BASE_MS` 时，保留旧参数的轮次与 daily/normal 回退语义；显式 `agy` 优先并使用上述固定策略。其他模型、未验证 HTTP 状态、运输层异常、独立生图及 Gemini App 两条通道不套用新规则。账号权重、亲和性、冷却和跨账号轮询算法不变。
+
+同一正式测试包已补充两个真实 Cloud Code 账号的新会话选号、客户端隔离、故障切换和重启续聊：真实 Claude Code 执行 Read，原账号遇到明确标记的本地 429/RetryInfo 31s 后由另一账号向 Google 完成请求，重启后仍正确续聊。客户端主动回传的工具签名保留；另一个客户端即使提交相同普通对话历史，也不恢复前者的私有回答签名。本轮 20 份推理请求中 18 份为完整 Google 200、2 份为未转发 Google 的本地故障注入，另保留一组未进入推理的准备脚本失败。77 份 ClientHello 的稳定字段及主模型 HTTP/原生外层结构匹配官方样本；客户端系统指令、工具名称和显式输出上限仍不同，不宣称完整请求或 Google 内部判别不可区分。这是 macOS/Flash High 的部分验收，不外推 Windows、Linux 或 Gemini App 两条通道。
+
+Cloud Code 私有轨迹/签名缓存还绑定账号的 Google subject（缺失时使用规范化邮箱；两者皆无时按授权凭据隔离），不再只信任可复用的本地账号 ID。真实同 ID 身份替换已复现并修正旧签名误用；同一已知身份的 token 刷新仍保持轨迹，客户端主动提交的工具签名不删除。旧的未绑定身份缓存不自动迁移，已有客户端历史仍照常提交，只重新建立私有轨迹与缓存；不改账号 ID、凭据格式、轮询规则或上游字段。身份缺失且授权发生轮换时，宁可重新建立私有状态，不猜测两个 grant 属于同一人。
+
+已修正实抓的 Flash High 工具结果后 SSE 读流中断：默认原生策略保留已收到的部分正文、不重放未完成思考，加入 agy 的原生恢复提示并推进两个步骤及一个逻辑请求。恢复提示只在严格绑定账号身份、会话、模型和完整历史前缀的私有记录中保存，不允许普通投影插入任意 user 消息；客户端仍接收连续回答。中断记录在退避前落盘，重启或取消不会创建未发送的逻辑请求，也不补回客户端删除的原始上下文。
+
+真实 agy 连续 9 次断流确认最多自动续写 8 次，最后的网络错误消耗终止步骤但不再追加第 9 条恢复提示。正式安装包的真实 Claude Code 已验证正文/思考中断、实际 Read 不重复、网关内部续写及重启后历史/签名保持：两组上游步骤均为 1/3/5/7，不再由 Claude 改为非流式重发原历史。另一次真实 Claude 连续九次中断验证了上限；SDK 在预算耗尽后仍可重试，但网关保留真实隐藏恢复历史，不再退回原历史。过程中真实 401 刷新后保持轨迹与请求体，原始失败样本保留。无响应内容、半个工具调用、checkpoint、其他模型或未知运输错误尚未套用这条规则；不要把该边界修正等同于所有网络故障和完整指纹验收完成。
 
 ### 主要功能
+
+进一步真实抓包已将上述恢复扩展到 Flash High 首轮纯对话，并统一 HTTP/读流连续失败预算与退避序号，避免交替故障重新从 4 秒开始或多发第十次自动请求。恢复段的思考只在客户端汇总一次，不再在正文后重复造成 Claude 空 result；未完成思考仍不进入上游历史。第九次终止若留下部分 model 正文，相同历史的客户端重试在本地返回不可重试的 400，等待新的用户消息，不再把 model 结尾请求发给 Google，也不虚构继续指令。此前 409 导致 SDK 重试十次，现已由两个真实 Claude 样本验证各只拒绝一次，随后停止，重启后仍能续聊。
+
+真实 Claude 思考中断及混合故障恢复通过；正文恢复长回答有一组在约 300 秒收到“网关请求超时”，原始 SSE 和时序已确认它来自原有整请求期限而不是 Google 504；保留期限和失败样本，同一会话重启后正确回忆，不宣称已解决所有恢复和延迟问题。635 项本地回归通过，完整原始证据、旧/中间失败包及边界见 `docs/agy-fidelity-plan.md`。Gemini App 两通道和原有账号调度不改动，本次未重新做其线上验收。
+
+恢复途中真实取消也已与官方 agy 对照：Claude 2.1.285 在客户端历史里写入的精确取消状态消息对，仅在匹配实际取消记录、同身份/会话/模型、完整历史前缀和已发部分回答时留在本地，不作为普通 user/model 对话上传。未知客户端、修改后的内容、正常正文、HTTP 失败和网关超时不触发过滤；新消息、已收到部分正文和原生恢复提示仍保留。实际 SIGINT、正式包重启和同会话续聊验证通过，其他取消/工具阶段不据此泛化。
+
+空 SSE 内容阶段的读错误已另行实测并修正，不套用上述“部分回答续写”：保留同一个逻辑请求和原始正文，只增加错误步骤；与 HTTP 失败共享九次预算和退避，不插入模型回答或恢复提示。真实正式安装包的 Claude 测得约 4016ms 重试，官方样本约 4015ms；重启续聊保持原历史。九次混合失败后 Claude SDK 仍会重新请求，实抓五次请求被原有账号冷却在本地拒绝，之后新逻辑请求成功；这不是网关内部第十次重试，也不宣称整套客户端行为等同官方。该阶段 640 项本地回归通过；原始报文、故障注入失效样本及验收边界见开发记录。
+
+完整带签名工具调用后的读流错误也已按官方实抓修正：只有收到完整 SSE 事件（终止空行）才交付工具，不要求先收到 STOP；保留真实调用、参数及签名，收到客户端实际工具回执后再接入原生中断历史，不重新生成该调用。仅收到 JSON 数据行但没有事件终止空行，不算已收到工具。连续工具断流沿用同一失败预算；第九次仍交付实际工具调用并保留真实结果，但不再追加恢复 user 或自动请求 Google，同一回执的客户端重试在本地以 400 停止，新用户消息可恢复。真实正式安装 Claude 已验证单次/连续两次断流、终止及重启续聊，工具各执行一次。最新 649 项本地回归通过；双工具实测均串行，不能据此宣称并行工具中断、结构化 finish、半参数或所有平台/模型已经验收。Gemini App 两通道和原账号调度不改动，整体指纹目标尚未完成。
+
+Cloud Code 已补齐实抓的 Claude Code 2.1.285 自动压缩转换：完整压缩指令指纹匹配后，使用同轨迹 checkpoint 和 16384 输出上限，压缩不额外递增 agent 请求计数；随后把已识别的客户端摘要放入 `CONTEXT_SUMMARY`，摘要正文、恢复指令和工具定义不变。仅保存被客户端暂时省略的已完成回答的计数元数据，不补回删除的历史或挪用旧签名。未知版本、自定义压缩指令和未验证格式保留原兼容路径，不按“总结”等关键词猜测。官方真实长上下文自动压缩与正式安装包的真实 Claude Code/重启续聊已验证；checkpoint 429/500/502/503/504 重试只更新时间戳，最终 400/429/500/502/503/504 失败仅记一个错误步骤，取消不安装部分摘要，失败/取消后更新执行边界。普通 agent 对这些已实测 HTTP 错误则逐次计步，不能混用 checkpoint 规则。最新 635 项回归通过；已验证的重试调度范围见上文，不代表所有模型、网络状态或跨系统验收完成。Gemini App 两条通道不使用该转换。
 
 - 同时提供 Anthropic Messages、OpenAI Responses 和 Chat Completions 接口。
 - 支持 Claude Code、Codex CLI、Trae 和其他兼容客户端。
@@ -365,7 +431,7 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
 
 三条通道复用同一个选号模块，只读取本地保存的真实上游额度快照，不等待联网查询，也不根据 Token 用量推算余额。有效的 Gemini 周压力档位优先，未知压力账号随后，已知周额度耗尽账号保留为最终兜底。快照过期、周重置已到或字段缺失时按未知处理，并异步补刷新；同档未知的 5 小时重置时间仍退回加权轮询。后台保留约 30 分钟一次的完整刷新；缺失/失效快照及实际额度失败只补查相关账号的额度汇总，普通补刷新每账号至少间隔 5 分钟，重复请求合并；Cloud Code 的额度查询最多同时刷新两个账号，Gemini 后台批次逐个查询。新增账号、凭据变化及重新检测成功会触发该账号的完整刷新。额度汇总单独记录观测时间，套餐或模型目录查询成功不会把旧额度标记为最新。
 
-支持客户端显式发送 `x-client-id`/`x-agent-id`、`x-session-id`/`x-conversation-id`、`x-parent-session-id` 和 `x-routing-affinity-id`；未提供时继续兼容现有 Claude、Codex、OpenAI 和 Anthropic 客户端字段。所有原始标识仅用于本地路由，提交上游的会话值是不可逆哈希，不会写入模型提示词。日志中的 request、client、session 和 affinity 短标识可用于区分并发链路。
+支持客户端显式发送 `x-client-id`/`x-agent-id`、`x-session-id`/`x-conversation-id`、`x-parent-session-id` 和 `x-routing-affinity-id`；未提供时继续兼容现有 Claude、Codex、OpenAI 和 Anthropic 客户端字段。这些客户端原始标识仅用于本地散列路由，不写入模型提示词。Cloud Code 使用独立的原生 cascade/trajectory UUID 与已实抓的上游 sessionId，不把本地路由哈希冒充该字段；其他通道沿用各自的会话映射。日志中的 request、client、session 和 affinity 短标识可用于区分并发链路。
 
 ### 用量和额度
 
@@ -531,13 +597,25 @@ MIT，见 [LICENSE](LICENSE)。
 
 Antigravity Gateway is a local Anthropic/OpenAI-compatible gateway. It reuses the official Antigravity CLI (`agy`) login state so Claude Code, Codex CLI, Trae, and other compatible clients can access models available to the current account through local HTTP endpoints.
 
-The default `direct` transport calls Cloud Code without the agy Agent wrapper prompt. Normal requests preserve the exact model ID selected by the client. Only detected Claude Code Auto Mode classifier requests use a separate fast model.
+The default `direct` transport calls Cloud Code without launching the agy Agent or replacing the caller's entire system prompt. The current source formats upstream messages, tools and session metadata according to captured agy requests and adapts recognized identity templates and equivalent tool expressions, preserving user instructions, project rules and execution semantics. Normal requests preserve the exact model ID selected by the client. Only detected Claude Code Auto Mode classifier requests use a separate fast model.
+
+The captured Claude Code 2.1.285 profile supports reversible Read/view_file, Write/write_to_file, Edit/replace_file_content and Bash/run_command mappings. Native names do not imply unsupported native capabilities: command execution limits and background flags retain their own semantics, and permissions remain with the client. Actual packaged CLI Read/Edit/Bash and gateway-restart tests pass, with signed upstream calls and correlated receipts preserved.
+
+The captured Codex CLI 0.159.2 Responses profile also maps exec_command/run_command, write_stdin/manage_task and view_image/view_file. Command options, approval requests, numeric sessions and image bytes are preserved; task management advertises only status/send_input and image viewing remains image-only. The multi-file apply_patch custom grammar is unchanged. Captured Hermes 0.21.7 framework blocks map read_file/write_file/patch/terminal while preserving custom SOUL identity, project instructions, actual executor semantics and signed history across restarts. Actual installed clients verify these workflows; all 686 local regressions pass. Unknown or ambiguous templates and non-equivalent tools retain compatibility. See the final acceptance matrix for evidence and explicit limits; no complete Google-internal indistinguishability is claimed.
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.6.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.7.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+Version 1.7.0 combines the Cloud Code request translation with macOS Robin adapters for Claude Code, Codex and Hermes. The combined local suite has 704 passing tests; the 686-test count above describes the earlier Cloud Code stage. Robin uses its own external MCP catalog and bidirectional streams, without Cloud Code envelopes, agy identity or extra tool metadata. Three actual CLIs completed 11 real Argon tool executions. Windows routing, account scheduling, quota reporting and video fallback retain their existing behavior. See [Robin client adapters](docs/robin-provider.md#macos-robin-客户端定向适配).
+
+The default remains bounded transport retries, not hidden task continuation or agent-side retry decisions. The explicit `ANTIGRAVITY_DIRECT_RETRY_POLICY=agy` mode is retained only as an opt-in compatibility option. Later sections preserve earlier experiment records, not additional default behavior. An unfinished Robin tool stream cannot survive a gateway process restart.
+
+Cloud Code text/image user messages now use the captured agy upload layout without gateway attachment markers. Real reference files live in private `state/agy-sessions/images/`; paths and message timestamps survive session reloads and remain usable by image editing. Request-time cleanup evicts idle (24-hour), over-size (256 MiB) or over-count (1024) cached files while protecting the current request, without deleting Files API uploads or generated artifacts. Other/mixed-media layouts and complete fingerprint equivalence remain under verification.
 
 ### Features
+
+Cloud Code recognizes the exactly captured Claude Code 2.1.285 automatic-compaction instruction and maps it to a same-trajectory checkpoint with the observed 16384 output cap and unchanged agent counter. Recognized client summaries use CONTEXT_SUMMARY while retaining all caller text and tools. Only timeline metadata is retained for temporarily omitted completed answers; removed history/signatures are not reconstructed. Unknown versions, customized instructions and unverified envelopes keep the existing route. Captured checkpoint 429/500/502/503/504 retries update only the timestamp; terminal 400/429/500/502/503/504 failures consume one error step, cancellations do not install partial summaries, and failed/canceled executions receive a new boundary. Ordinary agent attempts instead consume one step per observed HTTP failure. Actual official captures and formally installed real Claude Code retry/cancel/restart tests verify these bounded paths; 594 regressions pass. Account/endpoint failover, retry counts/backoff and Robin/Windows routing remain unchanged, so full temporal fingerprint and cross-platform equivalence remain unverified.
 
 - Anthropic Messages, OpenAI Responses, and Chat Completions endpoints.
 - Claude Code, Codex CLI, Trae, and other compatible clients.
@@ -766,7 +844,9 @@ curl http://127.0.0.1:9897/v1/files \
   -F 'purpose=assistants'
 ```
 
-Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity; raw identifiers stay local and only irreversible hashes are used as upstream session metadata. All three transports share the same scheduling module. Soft affinity is persisted locally for a fixed five-hour window, configurable through `ANTIGRAVITY_AFFINITY_TTL_SECONDS`, and successful requests do not extend that window. Healthy continuations reuse local affinity without recalculating quota ranks; expiry or failure triggers weighted selection using Gemini weekly pressure, Gemini five-hour reset time, and configured account weights without starving lower-ranked healthy accounts. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
+Use the returned `file_...` in Anthropic, Chat Completions, or Responses media blocks. Base64/Data URLs, HTTP(S) URLs, gateway-local absolute paths, and previously generated gateway URLs are also accepted. Files are kept under `~/.antigravity-gateway/media/`. The gateway separates client identity, conversation state, parent-child relationships, request tracing, and account affinity. Explicit `x-client-id`/`x-agent-id`, `x-session-id`/`x-conversation-id`, `x-parent-session-id`, and `x-routing-affinity-id` headers are supported alongside existing Claude, Codex, OpenAI, Anthropic, and Responses identifiers. Child agents keep independent upstream sessions while inheriting parent account affinity. Raw client identifiers remain in local hashed routing; Cloud Code uses independent native cascade/trajectory UUIDs and the captured upstream sessionId rather than substituting a local routing hash. Other transports retain their own conversation mappings.
+
+All three transports share the same scheduling module. Soft affinity is persisted locally for a fixed five-hour window, configurable through `ANTIGRAVITY_AFFINITY_TTL_SECONDS`, and successful requests do not extend that window. Healthy continuations reuse local affinity without recalculating quota ranks; expiry or failure triggers weighted selection using Gemini weekly pressure, Gemini five-hour reset time, and configured account weights without starving lower-ranked healthy accounts. Account-level authentication, access-denial, and Google verification challenges mark that account unhealthy and stop further routing or quota probes until its credentials change or the user runs the dashboard's token-free authentication recheck; transient network failures retain transport retries and only cause a short cooldown.
 
 For new bindings and failover, retain current-model availability priority, then calculate Gemini-only weekly pressure bands as `floor(log2(remainingFraction / hoursUntilWeeklyReset))`, with a one-minute minimum denominator. The highest, adjacent, and remaining usable bands receive 4x, 2x, and 1x weights; the earliest Gemini five-hour reset within each band receives a further 2x boost before applying the configured account weight through smooth weighted rotation. Claude/GPT weekly quota does not affect pressure regardless of the requested model. Healthy sticky continuations and preferred image accounts skip recalculation and do not spend rotation weights. Failover rereads snapshots and tries each account at most once per request.
 

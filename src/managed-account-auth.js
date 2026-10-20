@@ -1,7 +1,22 @@
 'use strict';
 
+const crypto = require('node:crypto');
 const { errorDetails } = require('./diagnostic-log');
 const { LocalAgyAuthProvider } = require('./local-agy-auth');
+
+function privateAccountIdentity(account) {
+  const subject = String(account.subjectId || '').trim();
+  const email = String(account.email || '').trim().toLowerCase();
+  // A local record ID can survive a credential import/replacement. Bind the
+  // private native history to the actual identity, not only to that record.
+  // Known identities stay stable through ordinary token refresh/rotation.
+  // Without identity metadata, a different grant must not inherit old state.
+  const identity = subject ? ['subject', subject] : email ? ['email', email]
+    : account.refreshToken ? ['refresh-token', account.refreshToken]
+    : account.accessToken ? ['access-token', account.accessToken]
+    : ['unidentified', crypto.randomUUID()];
+  return crypto.createHash('sha256').update(JSON.stringify(identity)).digest('hex');
+}
 
 function authRecord(account) {
   return {
@@ -10,7 +25,9 @@ function authRecord(account) {
     expiry: account.expiresAt ? new Date(account.expiresAt) : null,
     projectId: account.projectId || '',
     authMethod: account.authMethod || 'consumer',
-    sourcePath: `managed-account:${account.id}`
+    // This identifier is local-only. Do not migrate unbound legacy state: its
+    // contents cannot prove which Google identity originally produced it.
+    sourcePath: `managed-account:${account.id}:identity:${privateAccountIdentity(account)}`
   };
 }
 

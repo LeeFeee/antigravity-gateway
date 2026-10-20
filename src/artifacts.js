@@ -21,9 +21,9 @@ function imageArtifacts(images = []) {
   return Array.isArray(images) ? images.map(imageArtifact) : [];
 }
 
-// The model continuation needs machine-readable facts about the generated
-// artifact, not the client-facing receipt. Keeping those two representations
-// separate prevents the model and gateway from both presenting the same image.
+// Local delivery bookkeeping, separate from the client-visible receipt.
+// Cloud Code must receive nativeImageToolResponse's text projection instead
+// of serializing these private artifact/delivery fields into tool history.
 function internalImageToolResult(image = {}) {
   const artifact = imageArtifact(image);
   delete artifact.markdown;

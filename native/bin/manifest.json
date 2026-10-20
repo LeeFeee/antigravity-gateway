@@ -1,0 +1,44 @@
+{
+  "protocol": 1,
+  "goVersion": "go1.27.2",
+  "profile": "agy-1.4.2",
+  "sourceSha256": "74acdb6ec4a8552886666f1d12467277e80939f103b91a0557b82a00fa539694",
+  "platforms": {
+    "darwin-arm64": {
+      "file": "agy-transport-darwin-arm64.gz",
+      "bytes": 6335922,
+      "sha256": "c934cde151d9ca2b21fe6990e2554515c9cd0790723788d586c6079c92297e25",
+      "compressedSha256": "bcf620f3bb07885e189139f9eb36c9ecc82bd763e504f4cd37f34ba04f8aad1f"
+    },
+    "darwin-x64": {
+      "file": "agy-transport-darwin-x64.gz",
+      "bytes": 6856576,
+      "sha256": "976de15d4d1db8ed19b5a921eadef733de18b033d17cd51ebc0c5ad3e1fcd7d3",
+      "compressedSha256": "80dd2f6852f02d0b463f3889fd27042ec9ee3934be5375ba56f8570495c6b702"
+    },
+    "linux-arm64": {
+      "file": "agy-transport-linux-arm64.gz",
+      "bytes": 6226044,
+      "sha256": "e0f427692f97654e7479810316a1c718134625976b9575b33d25e39bb042f8ee",
+      "compressedSha256": "2a21a5f8270d22baf6751b693ae06958b34b5a2af6884c73e24e12bb6ad47ea0"
+    },
+    "linux-x64": {
+      "file": "agy-transport-linux-x64.gz",
+      "bytes": 6701180,
+      "sha256": "ac632b00c8923b541a28c366244ede99e93a8de38819bfde5a9580f25b1c33ea",
+      "compressedSha256": "bbc8b1664658452d7a7e32261191ec441248ce305a54d5d4f8cb9c0ee74302ae"
+    },
+    "win32-arm64": {
+      "file": "agy-transport-win32-arm64.gz",
+      "bytes": 6249472,
+      "sha256": "5acd3296076c6f6591bec5a1f6db58e478235fa3b3e118857d44506957d7c87c",
+      "compressedSha256": "80b4acf5fea7c0ad973ea88f6996830cb8b109e931679612329712308b2b1616"
+    },
+    "win32-x64": {
+      "file": "agy-transport-win32-x64.gz",
+      "bytes": 6903296,
+      "sha256": "dc498f2f2564d969f03f4d0bcd5e45eb3ab1bebc9084229a63f0b5de3a52dc54",
+      "compressedSha256": "5be740ea34f1cca516f9cb83931b338aff40db65006a05e84e539b45d4ae61b5"
+    }
+  }
+}

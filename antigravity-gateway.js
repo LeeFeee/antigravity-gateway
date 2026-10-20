@@ -14,9 +14,12 @@ const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemain
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DiagnosticLog } = require('./src/diagnostic-log');
 const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { closeNativeTransport } = require('./src/agy-native-transport');
+const { imageReferencePaths } = require('./src/agy-image-references');
+const { nativeImageToolResponse } = require('./src/agy-tool-results');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
 const { LocalAccountImporter } = require('./src/local-account-importer');
-const { MediaStore, MultimediaError, mediaParts, normalizeMime } = require('./src/multimedia');
+const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { ProviderRouter, ProviderRouterError } = require('./src/provider-router');
 const { QuotaManager } = require('./src/quota-manager');
@@ -665,7 +668,7 @@ function setCors(req, res) {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Vary', 'Origin');
   }
-  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, DELETE, OPTIONS');
   return true;
 }
@@ -795,7 +798,8 @@ function imageReferences(normalized, requested = []) {
   const images = mediaParts(normalized, (part) => String(part.mediaType || '').startsWith('image/'));
   if (!Array.isArray(requested) || !requested.length) return [];
   const wanted = new Set(requested.map(String));
-  return images.filter((part) => wanted.has(String(part.id)) || wanted.has(String(part.fileId)) || wanted.has(String(part.filename))).slice(0, 3);
+  return images.filter((part) => wanted.has(String(part.id)) || wanted.has(String(part.fileId)) || wanted.has(String(part.filename))
+    || imageReferencePaths(part).some(file => wanted.has(file))).slice(0, 3);
 }
 
 function artifactUrl(base, id) {
@@ -820,7 +824,7 @@ async function argonVideoFallbackModel() {
   return fallback;
 }
 
-async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, auxiliaryScope, onDelta, onThinkingDelta, reuseConversation = false, mediaScope = '', publicBaseUrl = '' } = {}) {
+async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, auxiliaryScope, nativeCompaction, nativeClientProfile, onDelta, onThinkingDelta, reuseConversation = false, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
   const taskScope = auxiliaryScope ? { auxiliaryScope } : {};
   const robinOwned = ROBIN_ACCOUNT_POOL.ownsModel(model);
@@ -857,6 +861,8 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
       };
       let raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, {
         signal, sessionId, routingKey, requestId, clientId, clientLabel, onDelta, onAccountSelected, reuseConversation, ...taskScope,
+        ...(providerType === 'cloudcode' && nativeCompaction ? { nativeCompaction } : {}),
+        ...(nativeClientProfile ? { nativeClientProfile } : {}),
         onThinkingDelta: normalized.includeThinking ? onThinkingDelta : undefined
       });
       const initialUsage = raw.usage;
@@ -880,6 +886,7 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
         if ((args.ImagePaths || []).length !== references.length) {
           throw new GatewayError('生图工具引用了不存在或非图片类型的附件。', { code: 'invalid_image_reference', status: 400 });
         }
+        const imageStartedAt = Date.now();
         const generated = await ACCOUNT_POOL.generateImage({
           prompt: args.Prompt,
           aspectRatio: args.AspectRatio || '1:1',
@@ -896,7 +903,7 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
         });
         const saved = MEDIA_STORE.save(Buffer.from(generated.data, 'base64'), {
           mediaType: generated.mimeType,
-          filename: `${String(args.ImageName || 'generated_image').replace(/[^a-z0-9_-]+/gi, '_')}.jpg`,
+          filename: `${String(args.ImageName || 'generated_image').replace(/[^a-z0-9_-]+/gi, '_')}.${imageFileExtension(generated.mimeType)}`,
           purpose: 'generated',
           scope: mediaScope
         });
@@ -921,17 +928,23 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
           toolChoice: resolved.toolChoice,
           messages: [
             ...prepared.normalized.messages,
-            { role: 'assistant', text: '', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }] },
+            { role: 'assistant', text: raw.text || '', parts: [
+              ...(raw.text ? [{ type: 'text', text: raw.text }] : []),
+              { type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }
+            ] },
             { role: 'user', text: '', parts: [{
               type: 'tool_result', id: call.id, name: call.name,
               content: JSON.stringify(internalResult),
-              response: { output: internalResult },
+              // Local structured metadata remains available to the API/client
+              // layer; only the native text projection goes to Cloud Code.
+              response: nativeImageToolResponse(image, { createdAt: imageStartedAt }),
               media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
             }] }
           ]
         };
         raw = await PROVIDER_ROUTER.send(continuation, upstreamModel, {
-          signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope
+          signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope,
+          clientProjection: { source: prepared.normalized, images: [image], streamedPrefix: onDelta ? raw.streamedText || raw.text || '' : '' }
         });
         const final = finalize(raw);
         return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
@@ -1345,7 +1358,7 @@ async function generateImages(payload, req, signal, references = []) {
     accountId = result.accountId;
     const saved = MEDIA_STORE.save(Buffer.from(result.data, 'base64'), {
       mediaType: result.mimeType,
-      filename: `generated_${Date.now()}_${index + 1}.jpg`, purpose: 'generated', scope
+      filename: `generated_${Date.now()}_${index + 1}.${imageFileExtension(result.mimeType)}`, purpose: 'generated', scope
     });
     images.push({
       id: saved.id,
@@ -1824,6 +1837,7 @@ if (require.main === module) {
     ROBIN_ACCOUNT_POOL.stop();
     await new Promise((resolve) => server.close(resolve));
     await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
+    closeNativeTransport();
   };
   TERMINAL = new TerminalConsole({
     usageStore: USAGE_STORE,
@@ -1922,6 +1936,7 @@ if (require.main === module) {
     USAGE_STORE.stop();
     ACCOUNT_POOL.stop();
     stopDiagnosticHeartbeat();
+    closeNativeTransport();
     diagnosticReporter('gateway_process_error', {
       pid: process.pid,
       errorCode: String(error.code || ''),

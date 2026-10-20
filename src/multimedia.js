@@ -9,6 +9,8 @@ const path = require('node:path');
 const DEFAULT_MEDIA_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_MEDIA_LIMIT || 96 * 1024 * 1024);
 const DEFAULT_TOTAL_MEDIA_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_TOTAL_MEDIA_LIMIT || 192 * 1024 * 1024);
 const MEDIA_ID = /^file_[a-f0-9]{32}$/;
+const IMAGE_EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' };
+function imageFileExtension(mime) { return IMAGE_EXTENSIONS[normalizeMime(mime)] || 'bin'; }
 
 const MIME_BY_EXTENSION = new Map(Object.entries({
   '.avif': 'image/avif', '.bmp': 'image/bmp', '.gif': 'image/gif', '.heic': 'image/heic',
@@ -192,7 +194,13 @@ class MediaStore {
 
   ensureDirectory() { this.fs.mkdirSync(this.directory, { recursive: true }); }
   metadataPath(id) { return path.join(this.directory, `${id}.json`); }
-  contentPath(id) { return path.join(this.directory, `${id}.bin`); }
+  contentPath(id, metadata) {
+    if (!metadata) { try { metadata = JSON.parse(this.fs.readFileSync(this.metadataPath(id), 'utf8')); } catch { /* legacy files use .bin */ } }
+    const extension = metadata?.purpose === 'generated' ? imageFileExtension(metadata.mediaType) : 'bin';
+    const typed = path.join(this.directory, `${id}.${extension}`);
+    // Older generated files remain readable/deletable without migration.
+    return extension !== 'bin' && this.fs.existsSync(typed) ? typed : path.join(this.directory, `${id}.bin`);
+  }
 
   save(buffer, { mediaType, filename = '', purpose = 'assistants', scope = '' } = {}) {
     const content = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || '');
@@ -204,7 +212,8 @@ class MediaStore {
       id, object: 'file', bytes: content.length, created_at: Math.floor(Date.now() / 1000),
       filename: filename || `${id}.bin`, purpose, mediaType: normalizeMime(mediaType, filename), scope
     };
-    this.fs.writeFileSync(this.contentPath(id), content);
+    const extension = purpose === 'generated' ? imageFileExtension(metadata.mediaType) : 'bin';
+    this.fs.writeFileSync(path.join(this.directory, `${id}.${extension}`), content);
     this.fs.writeFileSync(this.metadataPath(id), `${JSON.stringify(metadata)}\n`);
     return metadata;
   }
@@ -214,7 +223,7 @@ class MediaStore {
     try {
       const metadata = JSON.parse(this.fs.readFileSync(this.metadataPath(id), 'utf8'));
       if (!allowPublic && metadata.scope && metadata.scope !== scope) return null;
-      const buffer = this.fs.readFileSync(this.contentPath(id));
+      const buffer = this.fs.readFileSync(this.contentPath(id, metadata));
       return { metadata, buffer };
     } catch { return null; }
   }
@@ -315,6 +324,7 @@ module.exports = {
   MediaStore,
   MultimediaError,
   canonicalMedia,
+  imageFileExtension,
   dataUrl,
   mediaPartFromBlock,
   mediaParts,

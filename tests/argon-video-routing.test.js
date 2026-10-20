@@ -30,7 +30,7 @@ test('Argon video understanding uses the original Cloud Code multimodal route on
   assert.equal(videoResult.text, 'cloud-video-analysis');
   assert.equal(cloud.length, 1); assert.equal(robin.length, 0);
   assert.equal(cloud[0].model, 'gemini-3.8-flash-high');
-  assert.match(cloud[0].normalized.system, /Attached images.*are context/is);
+  assert.equal(cloud[0].normalized.system, video.system);
   assert.equal(cloud[0].normalized.messages[0].parts[1].mediaType, 'video/mp4');
 
   const text = normalizeChat({ model: ARGON_MODEL, messages: [{ role: 'user', content: '只处理文本。' }] });

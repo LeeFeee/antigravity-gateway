@@ -45,7 +45,7 @@ test('image artifacts expose transport-neutral delivery metadata without embeddi
   assert.match(receipt, /Markdown: !\[Generated image\]\(https:\/\/gateway\.example/);
 });
 
-test('native image continuation receives structured internal data without a visible receipt', () => {
+test('local image bookkeeping keeps structured delivery data separate from the visible receipt', () => {
   const internal = internalImageToolResult(image);
   assert.deepEqual(internal, {
     status: 'completed',
