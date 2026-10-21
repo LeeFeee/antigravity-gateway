@@ -713,3 +713,93 @@ test('quota cooldown parser understands compound Google reset durations', () => 
   assert.equal(retryDelay('{"quotaResetDelay":"5h1m2s"}'), 5 * 3_600_000 + 60_000 + 2000);
   assert.equal(retryDelay('retryDelay: 708.717057ms'), 1000);
 });
+
+test('request timeout or aborted signal does not cascade failover or freeze healthy accounts', async (t) => {
+  const store = tempStore(t);
+  const acc1 = store.save(account('acc1@example.com'));
+  const acc2 = store.save(account('acc2@example.com'));
+  const acc3 = store.save(account('acc3@example.com'));
+  const attempts = [];
+  const controller = new AbortController();
+
+  const pool = new AccountPool({
+    store,
+    fallbackProvider: {},
+    providerFactory: (record) => ({
+      send: async (normalized, model, options = {}) => {
+        attempts.push(record.id);
+        if (attempts.length === 1) {
+          // 模拟请求运行中触发网关 300s 超时 abort
+          const timeoutErr = Object.assign(new Error('网关请求超时。'), { code: 'request_timeout', status: 504 });
+          controller.abort(timeoutErr);
+          throw timeoutErr;
+        }
+        return { text: record.email, toolCalls: [], usage: {} };
+      },
+      listModels: async () => [], modelInfo: () => null
+    })
+  });
+
+  // 发起带 controller.signal 的请求，首个账号超时并 abort
+  await assert.rejects(
+    async () => { await pool.send({}, 'gemini-3.8-flash-high', { signal: controller.signal }); },
+    /网关请求超时/
+  );
+
+  // 必须只尝试了 1 次，严禁轮询击穿其余账号
+  assert.equal(attempts.length, 1);
+  const attemptedId = attempts[0];
+  const otherAccs = [acc1.id, acc2.id, acc3.id].filter((id) => id !== attemptedId);
+
+  // 验证未被尝试的其他账号没有被冷冻（cooldownUntil 未被设置）
+  const status = pool.status();
+  for (const otherId of otherAccs) {
+    const entry = status.find((s) => s.id === otherId);
+    assert.equal(entry.state, 'available');
+    assert.equal(entry.cooldownUntil, '');
+  }
+
+  // 随后新的请求立即能成功派发给健康账号，绝不抛出 429
+  const nextRes = await pool.send({}, 'gemini-3.8-flash-high', {});
+  assert.ok(otherAccs.includes(nextRes.accountId));
+});
+
+for (const method of ['send', 'generateImage']) {
+  for (const mode of ['pre-abort', 'abort-running', 'AbortError', 'request_aborted', 'request_timeout', 'network']) {
+    test(`${method}: abort-guard matrix (${mode})`, async (t) => {
+      const store = tempStore(t);
+      for (let n = 0; n < 3; n++) store.save(account(`matrix${n}@example.com`));
+      let attempts = 0;
+      const c = new AbortController();
+      const err = new Error(mode === 'network' ? 'fetch failed' : 'opaque cancellation');
+      if (mode === 'AbortError') err.name = 'AbortError';
+      if (mode.startsWith('request_')) err.code = mode;
+      const invoke = async () => {
+        attempts++;
+        if (mode === 'network' && attempts > 1) return { text: 'ok', toolCalls: [], usage: {} };
+        if (mode === 'abort-running') c.abort(err);
+        throw err;
+      };
+      const pool = new AccountPool({
+        store,
+        fallbackProvider: {},
+        providerFactory: () => ({ send: invoke, generateImage: invoke, listModels: async () => [], modelInfo: () => null })
+      });
+      await pool.ensureModelCatalogs();
+      if (mode === 'pre-abort') c.abort(err);
+      const call = () => method === 'send'
+        ? pool.send({}, 'gemini-3.8-flash-high', { signal: c.signal })
+        : pool.generateImage({}, { signal: c.signal });
+      if (mode === 'network') {
+        await call();
+        assert.equal(attempts, 2);
+        assert.equal(pool.status().filter((s) => s.cooldownUntil).length, 1);
+      } else {
+        await assert.rejects(call);
+        assert.equal(attempts, mode === 'pre-abort' ? 0 : 1);
+        assert.ok(pool.status().every((s) => s.state === 'available' && !s.cooldownUntil));
+      }
+    });
+  }
+}
+

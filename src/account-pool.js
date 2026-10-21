@@ -15,7 +15,7 @@ const ACCOUNT_HEALTH_STATES = new Set(['verification_required', 'authentication_
 function errorCategory(error) {
   const status = Number(error?.status) || 0;
   const source = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''} ${error?.cause?.code || ''} ${error?.cause?.message || ''}`;
-  if (/abort(?:ed|error)|请求已取消/i.test(source)) return 'request';
+  if (error?.code === 'request_timeout' || error?.code === 'request_aborted' || /abort(?:ed|error)|请求已取消|网关请求超时/i.test(source)) return 'request';
   if (status === 429 || /resource.*exhausted|quota|rate.?limit/i.test(source)) return 'quota';
   if (/fetch failed|network|timeout|timed out|econnreset|econnrefused|enotfound|eai_again|socket|tls|dns/i.test(source)) return 'transient';
   if (status === 401 || status === 403 || (status >= 400 && status < 500 && /direct_refresh_failed/i.test(source)) || /invalid_grant|refresh token|auth.*missing|登录态|unauthenticated|permission.?denied|forbidden|verify\s*your\s*account|account.*verif|security.*challenge|account.*(?:disabled|suspended)/i.test(source)) return 'account';
@@ -589,6 +589,7 @@ class AccountPool {
     const attempted = new Set();
     let lastError;
     while (true) {
+      if (options.signal?.aborted) throw lastError || options.signal.reason || new Error('请求已取消');
       const entry = this.selectAccount(model, routingKey, attempted, { allowSticky: attempted.size === 0 });
       if (!entry) break;
       attempted.add(entry.account.id);
@@ -614,6 +615,9 @@ class AccountPool {
         if (routingKey && options.bindRouting !== false) this.bindSession(routingKey, entry.account.id);
         return { ...result, accountId: entry.account.id };
       } catch (error) {
+        if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') {
+          throw error;
+        }
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
         entry.lastFailureAt = new Date(this.now()).toISOString();
@@ -658,6 +662,7 @@ class AccountPool {
     const attempted = new Set();
     let lastError;
     while (true) {
+      if (options.signal?.aborted) throw lastError || options.signal.reason || new Error('请求已取消');
       const entry = this.selectAccount(model, routingKey, attempted, {
         preferredAccountId: options.accountId, allowSticky: attempted.size === 0
       });
@@ -680,6 +685,9 @@ class AccountPool {
         if (routingKey && options.bindRouting !== false) this.bindSession(routingKey, entry.account.id);
         return { ...result, accountId: entry.account.id };
       } catch (error) {
+        if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') {
+          throw error;
+        }
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
         entry.lastFailureAt = new Date(this.now()).toISOString();
