@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.1 - 2026-10-21
+
+- Fix macOS Robin tool continuations getting stuck in repeated 409 errors after a native stream closes, expires or is lost on restart. A new client request containing the matching assistant tool calls and results can start a fresh upstream query with that supplied history. The gateway does not execute tools, invent continuation prompts or automatically retry model generation.
+- Keep live tool receipts on their original native stream. Reject orphan receipts without portable history; preserve caller isolation and reject ambiguous ownership. An expired anonymous binding no longer blocks a self-contained request.
+- Separate Robin no-tool auxiliary requests from the same client's tool task by declared protocol fields, without guessing intent. Preserve Cloud Code and Windows routing, account rotation and quota policies.
+- Close both native streams on an empty response and record privacy-preserving failure/re-forward diagnostics. Add ten regression tests; all 714 local tests pass. Actual Claude Code validates controlled Robin connection loss, gateway restart before receipts, and the existing Cloud Code Flash High route, with one command execution per task.
+
 ## 1.7.0 - 2026-10-20
 
 This release combines Cloud Code request translation and macOS Robin client adapters. Preserve client-owned permissions, tool execution and task/retry decisions; the default remains the gateway's bounded transport retry policy. The explicit agy recovery policy is opt-in. The combined local suite has 704 passing tests.

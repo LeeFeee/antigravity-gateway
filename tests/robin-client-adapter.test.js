@@ -181,10 +181,10 @@ test('Robin duplicate in-flight calls are not delivered twice and result names m
   assert.equal(responses(streams[1]).length, 0);
 });
 
-test('Robin restart with outstanding tool results still reports lost native stream without replay', async t => {
+test('Robin restart rejects a bare tool result without its assistant call history', async t => {
   const { provider, streams } = fixture(t);
   await assert.rejects(provider.send({ ...cases[0].normalize(), messages: [{ role: 'user', parts: [{ type: 'tool_result', id: 'lost-call', name: 'Read', content: 'already executed' }] }] }, ARGON_MODEL,
-    { sessionId: 'restarted', nativeClientProfile: cases[0].profile }), { code: 'robin_task_not_found' });
+    { sessionId: 'restarted', nativeClientProfile: cases[0].profile }), { code: 'robin_tool_history_missing', status: 400 });
   assert.equal(streams.length, 0);
 });
 

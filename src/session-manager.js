@@ -3,22 +3,13 @@
 const crypto = require('node:crypto');
 const { detectNativeCompaction } = require('./agy-client-compaction');
 const { capturedNativeClient } = require('./agy-client-profile');
+const { trailingToolResultIds, hasToolResultHistory } = require('./tool-history');
 
 const DEFAULT_TTL_MS = 60 * 60_000;
 const DEFAULT_CAPACITY = 2000;
 
 class SessionIdentityError extends Error {
   constructor(message, code) { super(message); this.name = 'SessionIdentityError'; this.code = code; this.status = 409; }
-}
-
-function trailingToolResultIds(normalized) {
-  const ids = [];
-  for (let index = (normalized.messages || []).length - 1; index >= 0; index--) {
-    const results = (normalized.messages[index].parts || []).filter(part => part?.type === 'tool_result' && part.id);
-    if (!results.length) break;
-    ids.push(...results.map(part => String(part.id)));
-  }
-  return [...new Set(ids)];
 }
 
 function firstString(...values) {
@@ -136,10 +127,11 @@ function fallbackSeed(payload = {}, normalized = {}) {
   });
 }
 
-function auxiliaryScope(req, normalized) {
-  if (!firstString(header(req, 'x-deepseek-harness-session-id'))) return '';
-  if (header(req, 'x-deepseek-harness-compact') === '1') return 'compaction';
-  // DSH sends title-only and main tool requests under the same session ID.
+function auxiliaryScope(req, normalized, taskProvider = '') {
+  const dsh = firstString(header(req, 'x-deepseek-harness-session-id'));
+  if (!dsh && taskProvider !== 'robin') return '';
+  if (dsh && header(req, 'x-deepseek-harness-compact') === '1') return 'compaction';
+  // Clients can send no-tool auxiliary and main tool requests under one ID.
   // Partition the declared tool surface, not natural-language intent. A tool
   // result stays on the main task even if the client omitted its definitions.
   if (normalized.tools?.length === 0 && !(normalized.messages || []).some(message => (
@@ -228,7 +220,7 @@ class SessionManager {
     const nativeExplicit = taskProvider ? explicitSessionId(req, payload, { legacy: false, cacheKey: false }) : explicit;
     const conversationRaw = firstString(nativeExplicit, explicit, fallback);
     const affinityRaw = firstString(explicitAffinity, parent, explicit, fallback);
-    const auxiliary = auxiliaryScope(req, normalized);
+    const auxiliary = auxiliaryScope(req, normalized, taskProvider);
     const nativeCompaction = detectNativeCompaction(req, normalized);
     const nativeClientProfile = capturedNativeClient(req, normalized);
     const reliableConversation = Boolean(previous?.sessionId || (taskProvider ? nativeExplicit
@@ -237,7 +229,15 @@ class SessionManager {
     if (taskProvider && !reliableConversation) {
       anonymousTask = true;
       const ids = trailingToolResultIds(normalized);
-      if (ids.length) owner = this.toolOwner(taskProvider, scope, ids);
+      if (ids.length) {
+        try { owner = this.toolOwner(taskProvider, scope, ids); }
+        catch (error) {
+          // A complete client-supplied history needs no previous owner's
+          // state. Start an isolated task, never guess or attach another one.
+          if (taskProvider !== 'robin' || error.code !== 'tool_session_not_found'
+              || !hasToolResultHistory(normalized, ids)) throw error;
+        }
+      }
     }
     return {
       clientId: scope,

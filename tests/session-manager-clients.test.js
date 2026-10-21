@@ -95,6 +95,15 @@ test('DSH auxiliary scopes follow explicit compaction headers or tool declaratio
   assert.equal(manager.resolveIdentity(req, {}, { ...mainInput, messages: [{ role: 'user', text: 'compaction title 标题压缩' }] }).auxiliaryScope, undefined);
 });
 
+test('Robin separates no-tool auxiliary requests without guessing their intent or changing Cloud Code routing', () => {
+  const manager = new SessionManager(), req = { headers: { 'x-claude-code-session-id': 'same-session' } };
+  const main = { ...input, tools: [{ name: 'Bash' }] }, auxiliary = { ...input, tools: [] };
+  assert.equal(manager.resolveIdentity(req, {}, main, null, { taskProvider: 'robin' }).auxiliaryScope, undefined);
+  assert.equal(manager.resolveIdentity(req, {}, auxiliary, null, { taskProvider: 'robin' }).auxiliaryScope, 'no-client-tools');
+  assert.equal(manager.resolveIdentity(req, {}, auxiliary).auxiliaryScope, undefined);
+  assert.equal(manager.resolveIdentity(req, {}, { ...auxiliary, messages: [{ role: 'user', parts: [{ type: 'tool_result', id: 'call' }] }] }, null, { taskProvider: 'robin' }).auxiliaryScope, undefined);
+});
+
 test('Chat handlers retain DSH tool ownership across turns without injecting routing headers into model content', async t => {
   const { RobinAccountPool } = require('../src/robin-account-pool');
   const { createServer } = require('../antigravity-gateway');

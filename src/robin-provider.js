@@ -8,6 +8,7 @@ const { RobinConversationStore } = require('./robin-conversations');
 const { prepareRobinClientAdapter } = require('./robin-client-adapter');
 const { robinCredentialFingerprint } = require('./robin-auth');
 const { robinQuotaSnapshot } = require('./robin-quota');
+const { trailingToolResultIds, hasToolResultHistory } = require('./tool-history');
 const { responseMetadata, conversationTurnFrames } = require('./robin-response');
 const {
   GrpcFrameDecoder,
@@ -959,15 +960,19 @@ class RobinTurn {
         }));
         return;
       }
-      this.closed = true;
-      clearTimeout(this.timer);
-      this.emit(text ? { type: 'final', ...snapshot } : { type: 'error', error: new RobinProviderError(
+      if (!text) {
+        this.fail(new RobinProviderError(
         [metadata.punt?.headline, metadata.punt?.body].filter(Boolean).join('\n') || 'Argon 任务没有返回可识别的最终文本。', {
           code: 'robin_empty_response', status: 502,
           details: JSON.stringify({ messageCount: messages.length, modeCategory: metadata.modeCategory,
             goalStatus: metadata.goalStatus,
             puntCategory: metadata.punt?.category, puntType: metadata.punt?.type })
-        }) });
+        }));
+        return;
+      }
+      this.closed = true;
+      clearTimeout(this.timer);
+      this.emit({ type: 'final', ...snapshot });
       for (const remote of this.remotes) { try { remote.end(); } catch { /* best effort */ } }
     }, error => {
       if (error && typeof error === 'object' && Object.isExtensible(error)) error.upstreamAuthFingerprint ||= fingerprint;
@@ -1075,7 +1080,12 @@ class RobinTurn {
 
   fail(error) {
     if (this.closed) return;
+    this.failure = error;
     this.closed = true;
+    this.provider.reportTask('robin_task_failed', this.sessionId, {
+      code: error?.code || 'robin_upstream_error', status: error?.status || 502,
+      pendingToolCount: this.pendingCalls.size
+    });
     this.recoveryWake?.();
     clearTimeout(this.timer);
     this.emit({ type: 'error', error });
@@ -1198,6 +1208,12 @@ class RobinProvider {
   }
 
   forgetConversations() { this.conversations.forget(); }
+
+  reportTask(event, sessionId, fields = {}) {
+    // No prompts, tool arguments, receipts, cookies or tokens in diagnostics.
+    this.diagnosticReporter?.(event, { accountId: this.auth.account?.id,
+      session: crypto.createHash('sha256').update(String(sessionId)).digest('hex').slice(0, 16), ...fields });
+  }
 
   deviceIdentity() {
     const account = this.auth.account || {};
@@ -1504,14 +1520,30 @@ class RobinProvider {
     this.cleanupTurns();
     const key = String(sessionId || crypto.randomUUID());
     let turn = this.turns.get(key);
+    let restartFromHistory = false;
     const results = normalizedToolResults(normalized);
-    const latestResults = normalizedToolResults({ messages: normalized?.messages?.slice(-1) || [] });
-    // A tool continuation cannot be replayed as a new task after process
-    // restart, eviction or failure: client-side writes may already have run.
-    if (!turn && (requireExistingTurn || latestResults.length)) {
-      throw new RobinProviderError('原 Argon 工具任务已结束或丢失，无法继续回传结果；请发起新的任务。', {
-        code: 'robin_task_not_found', status: 409
-      });
+    const latestIds = trailingToolResultIds(normalized);
+    if (!turn || turn.closed) {
+      if (latestIds.length && !hasToolResultHistory(normalized, latestIds)) {
+        // A bare tool receipt has no portable context. This is a malformed
+        // continuation, not a transient 409 for the agent to retry forever.
+        throw new RobinProviderError('工具连接已结束；请在请求中携带对应的 assistant 工具调用和工具结果历史。', {
+          code: 'robin_tool_history_missing', status: 400
+        });
+      }
+      if (turn || latestIds.length || requireExistingTurn) {
+        this.reportTask('robin_request_from_history', key, {
+          previousCode: turn?.failure?.code || (turn ? 'closed' : 'missing'),
+          toolResultCount: latestIds.length
+        });
+        turn?.destroy();
+        this.turns.delete(key);
+        turn = null;
+        // This incoming request is the only reason to create a query. Its
+        // supplied history is forwarded normally, never submitted as results
+        // to an invented old call or retried here with a "continue" prompt.
+        restartFromHistory = true;
+      }
     }
     if (turn && !turn.closed) {
       turn.onAuthUsed = onAuthUsed;
@@ -1563,7 +1595,7 @@ class RobinProvider {
         deviceName: identity.name,
         workspacePaths: identity.workspacePaths,
         modeVariantId: this.auth.account?.modeVariantId || ARGON_MODE_VARIANT_ID,
-        requestIdentifiers: reuseConversation ? this.conversations.get(key) : null,
+        requestIdentifiers: reuseConversation && !restartFromHistory ? this.conversations.get(key) : null,
         onAuthUsed,
         signal
       });

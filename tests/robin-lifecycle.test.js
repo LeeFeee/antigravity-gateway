@@ -489,6 +489,14 @@ test('Robin uses only its own successful native cursor on the next ordinary turn
   const uncertain = provider.send(normalized, ARGON_MODEL, { sessionId: 'client-one', reuseConversation: false });
   await tick(); assert.deepEqual(initialIdentifiers(streams[3]), ['', '', '']);
   streams[3].resolve([complete]); await uncertain;
+  const history = provider.send(completeToolHistory(), ARGON_MODEL, { sessionId: 'client-one' });
+  await tick(); assert.deepEqual(initialIdentifiers(streams[4]), ['', '', ''], 'portable history must not resume the stale cursor');
+  const newComplete = bytesField(1003, messageField(1, Buffer.concat([
+    messageField(1, Buffer.concat([stringField(1, 'rc_newresponse1234'), messageField(2, stringField(1, 'done')), intField(19, 2)])),
+    messageField(2, Buffer.concat([stringField(1, 'c_newconversation1234'), stringField(2, 'r_newrequest1234')])), intField(9, 1)
+  ])));
+  streams[4].resolve([newComplete]); await history;
+  assert.deepEqual(provider.conversations.get('client-one'), { conversationId: 'c_newconversation1234', parentRequestId: 'r_newrequest1234', parentResponseId: 'rc_newresponse1234' });
 });
 
 test('Robin receives shared protocol repair instructions without mutating the client request', async t => {
@@ -524,15 +532,113 @@ test('Robin rejects concurrent requests for one session before duplicate upstrea
   await first;
 });
 
-test('Robin refuses a lost tool continuation without authentication or upstream replay', async (t) => {
+test('Robin rejects an orphan receipt as missing history before authentication or upstream work', async (t) => {
   const { provider, streams, authCalls } = harness(t);
   const continuation = { ...normalized, messages: [{ role: 'user', parts: [
     { type: 'tool_result', id: 'call_1', content: '已保存文件' }
   ] }] };
-  await assert.rejects(provider.send(continuation, ARGON_MODEL, { sessionId: 'expired' }), { code: 'robin_task_not_found' });
-  await assert.rejects(provider.send(normalized, ARGON_MODEL, { sessionId: 'expired', requireExistingTurn: true }), { code: 'robin_task_not_found' });
+  await assert.rejects(provider.send(continuation, ARGON_MODEL, { sessionId: 'expired' }), { code: 'robin_tool_history_missing', status: 400 });
   assert.equal(streams.length, 0);
   assert.equal(authCalls(), 0);
+});
+
+test('a stale pool binding cannot block a new user request', async t => {
+  const { provider, streams } = harness(t);
+  const pending = provider.send(normalized, ARGON_MODEL, { sessionId: 'expired', requireExistingTurn: true });
+  await tick();
+  assert.equal(streams.length, 1);
+  streams[0].resolve([answer('new request accepted')]);
+  assert.equal((await pending).text, 'new request accepted');
+});
+
+function completeToolHistory(protocol = 'anthropic') {
+  const { normalizeAnthropic, normalizeChat, normalizeResponses } = require('../src/protocol');
+  const tools = [{ name: 'write_note', input_schema: { type: 'object' } }];
+  if (protocol === 'chat') return normalizeChat({ tools: tools.map(tool => ({ type: 'function', function: { name: tool.name, parameters: tool.input_schema } })), messages: [
+    { role: 'user', content: 'write once' }, { role: 'assistant', content: null, tool_calls: [{ id: 'call_1234', type: 'function', function: { name: 'write_note', arguments: '{"text":"note"}' } }] },
+    { role: 'tool', tool_call_id: 'call_1234', content: 'saved once; unique-receipt-917' }
+  ] });
+  if (protocol === 'responses') return normalizeResponses({ tools: [{ type: 'function', name: 'write_note', parameters: { type: 'object' } }], input: [
+    { role: 'user', content: 'write once' }, { type: 'function_call', call_id: 'call_1234', name: 'write_note', arguments: '{"text":"note"}' },
+    { type: 'function_call_output', call_id: 'call_1234', output: 'saved once; unique-receipt-917' }
+  ] });
+  return normalizeAnthropic({ tools, messages: [
+    { role: 'user', content: 'write once' }, { role: 'assistant', content: [{ type: 'tool_use', id: 'call_1234', name: 'write_note', input: { text: 'note' } }] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'call_1234', content: 'saved once; unique-receipt-917' }] }
+  ] });
+}
+
+for (const protocol of ['anthropic', 'chat', 'responses']) test(`Robin forwards complete ${protocol} tool history after losing the old connection`, async t => {
+  const { provider, streams, authCalls } = harness(t);
+  const history = completeToolHistory(protocol), before = JSON.stringify(history);
+  const pending = provider.send(history, ARGON_MODEL, { sessionId: 'restarted', requireExistingTurn: true });
+  await tick();
+  assert.equal(streams.length, 1, 'only the client-requested query starts');
+  assert.ok(streams[0].writes[0].includes(Buffer.from('unique-receipt-917')));
+  assert.ok(streams[0].writes[0].includes(Buffer.from('call_1234')));
+  assert.equal(JSON.stringify(history), before, 'client history is not rewritten');
+  streams[0].resolve([answer('receipt received')]);
+  assert.equal((await pending).text, 'receipt received');
+  assert.equal(authCalls(), 1);
+});
+
+test('empty EOF while a tool executes closes resources but does not generate until the client returns', async t => {
+  const { provider, streams } = harness(t), diagnostics = [];
+  provider.diagnosticReporter = (event, detail) => diagnostics.push({ event, detail });
+  const history = completeToolHistory();
+  const initial = provider.send({ ...history, messages: history.messages.slice(0, 1) }, ARGON_MODEL, { sessionId: 'pending' });
+  await tick();
+  streams[0].options.onMessage(bytesField(1014, messageField(1, Buffer.concat([
+    stringField(1, 'c_conversation1234'), bytesField(2, Buffer.from('routing'))
+  ]))));
+  streams[1].options.onMessage(messageField(2, messageField(1, Buffer.concat([
+    stringField(1, 'write_note'), stringField(2, 'call_1234'), messageField(3, protoStruct({ text: 'note' }))
+  ]))));
+  assert.equal((await initial).toolCalls[0].id, 'call_1234');
+  const remoteWriteCount = streams[1].writes.length;
+  streams[0].resolve([]);
+  await tick();
+  assert.equal(provider.turns.get('pending').failure.code, 'robin_empty_response');
+  assert.equal(streams.length, 2, 'no hidden recovery generation');
+  assert.ok(streams[0].closed && streams[1].closed);
+  const pending = provider.send(history, ARGON_MODEL, { sessionId: 'pending', requireExistingTurn: true });
+  await tick();
+  assert.equal(streams.length, 3);
+  assert.equal(streams[1].writes.length, remoteWriteCount, 'no result is replayed into an old tool stream');
+  assert.ok(streams[2].writes[0].includes(Buffer.from('unique-receipt-917')));
+  streams[2].resolve([answer('continued from receipt')]);
+  assert.equal((await pending).text, 'continued from receipt');
+  assert.deepEqual(diagnostics.map(item => item.event), ['robin_task_failed', 'robin_request_from_history']);
+  assert.equal(diagnostics[0].detail.pendingToolCount, 1);
+  assert.doesNotMatch(JSON.stringify(diagnostics), /unique-receipt|write_note|"pending"|accessToken/);
+});
+
+test('failure during the HTTP response is returned once; only a later client request starts again', async t => {
+  const { provider, streams } = harness(t), history = completeToolHistory();
+  const first = provider.send(history, ARGON_MODEL, { sessionId: 's' });
+  const rejected = assert.rejects(first, { code: 'robin_empty_response' });
+  await tick(); streams[0].resolve([]); await rejected;
+  assert.equal(streams.length, 1);
+  const retry = provider.send(history, ARGON_MODEL, { sessionId: 's' });
+  await tick(); streams[1].resolve([answer('client retry accepted')]);
+  assert.equal((await retry).text, 'client retry accepted');
+  assert.equal(streams.length, 2);
+});
+
+test('an expired pending tool task accepts complete client history instead of requiring its old stream', async t => {
+  const { provider, streams } = harness(t), history = completeToolHistory();
+  const first = provider.send({ ...history, messages: history.messages.slice(0, 1) }, ARGON_MODEL, { sessionId: 'idle' });
+  await tick(); streams[0].options.onMessage(nativeRouting());
+  streams[1].options.onMessage(nativeTool('write_note', { text: 'note' }, 'call_1234'));
+  assert.equal((await first).toolCalls[0].id, 'call_1234');
+  provider.turns.get('idle').updatedAt = 0;
+  const pending = provider.send(history, ARGON_MODEL, { sessionId: 'idle', requireExistingTurn: true });
+  await tick();
+  assert.ok(streams[0].closed && streams[1].closed);
+  assert.equal(streams.length, 3);
+  assert.ok(streams[2].writes[0].includes(Buffer.from('unique-receipt-917')));
+  streams[2].resolve([answer('history after idle accepted')]);
+  assert.equal((await pending).text, 'history after idle accepted');
 });
 
 test('Robin does not advertise Argon when upstream status has no model capability', async (t) => {

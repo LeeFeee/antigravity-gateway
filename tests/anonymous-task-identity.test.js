@@ -129,6 +129,22 @@ test('anonymous tool bindings are capacity bounded and consumed only after a suc
   assert.equal(manager.resolveIdentity(req(), {}, resultInput('follow-up'), null, opts).sessionId, resolved.sessionId);
 });
 
+test('complete self-contained history after binding loss creates an isolated task, never attaches to another caller', () => {
+  const manager = new SessionManager(), input = normalizeChat(payload);
+  const owner = manager.resolveIdentity(req(), payload, input, null, opts);
+  manager.bindToolCalls(owner, [{ id: 'old-call' }]);
+  const history = { messages: [{ role: 'assistant', parts: [{ type: 'tool_call', id: 'old-call', name: 'read_note', arguments: {} }] }, ...resultInput('old-call').messages] };
+  const foreign = manager.resolveIdentity(req({ authorization: 'Bearer different' }), {}, history, null, opts);
+  assert.notEqual(foreign.sessionId, owner.sessionId);
+  assert.notEqual(foreign.clientId, owner.clientId);
+  assert.equal(manager.resolveIdentity(req(), {}, history, null, opts).sessionId, owner.sessionId);
+  for (const binding of manager.toolBindings.values()) binding.at = Date.now() - manager.ttlMs - 1;
+  const fresh = manager.resolveIdentity(req(), {}, history, null, opts);
+  assert.notEqual(fresh.sessionId, owner.sessionId);
+  assert.equal(fresh.reuseConversation, false);
+  assert.throws(() => manager.resolveIdentity(req(), {}, history, null, { taskProvider: 'other' }), { code: 'tool_session_not_found' });
+});
+
 test('all three HTTP protocols isolate identical anonymous tasks and recover each real pool tool owner', async t => {
   const { directory } = require('./helpers/gateway-environment');
   const { AccountStore } = require('../src/account-store');
@@ -156,6 +172,8 @@ test('all three HTTP protocols isolate identical anonymous tasks and recover eac
       return { text: result.content, toolCalls: [], usageKnown: false };
     }
     assert.equal(options.requireExistingTurn, false);
+    const historical = _input.messages.flatMap(message => message.parts).find(part => part.type === 'tool_result');
+    if (historical) return { text: historical.content, toolCalls: [], usageKnown: false };
     const id = 'call-' + calls.length + '-' + tasks.size;
     tasks.set(options.sessionId, { id });
     return { text: '', toolCalls: [{ id, name: 'read_note', arguments: {} }], usageKnown: false };
@@ -206,8 +224,15 @@ test('all three HTTP protocols isolate identical anonymous tasks and recover eac
     assert.deepEqual(new Set(calls.slice(-2).map(call => call.sessionId)), new Set(pair.map(call => call.sessionId)));
     assert.equal(tasks.size, 0);
     const replay = await post(example.continuation(first[0].body, 'must-not-be-replayed'));
-    assert.equal(replay.status, 409);
-    assert.equal(calls.length, beforeReplies + 2, 'lost or completed tools never start another upstream request');
+    if (example.path === '/v1/responses') {
+      assert.equal(replay.status, 409, 'an orphan result alone has no portable history');
+      assert.equal(calls.length, beforeReplies + 2);
+    } else {
+      assert.equal(replay.status, 200, 'complete caller-supplied history may start a new query');
+      assert.equal(example.text(replay.body), 'must-not-be-replayed');
+      assert.equal(calls.length, beforeReplies + 3);
+      assert.ok(!pair.some(call => call.sessionId === calls.at(-1).sessionId));
+    }
     if (example.path === '/v1/responses') {
       const start = await post(example.first);
       const resumed = await post({ ...example.continuation(start.body, 'previous-response-result'), previous_response_id: start.body.id });

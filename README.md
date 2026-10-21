@@ -10,7 +10,9 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.7.0`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.7.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+v1.7.1 修复 macOS Argon 工具连接失效后反复 409：原连接可用就回传原调用；连接丢失时，收到 agent 携带完整调用与结果历史的新请求，按该请求重新转发。网关不执行工具、不自行继续任务、不自动重做命令；只有孤立的工具结果无法凭空恢复上下文。账号轮询和额度策略不变，714 项本地回归通过。
 
 v1.7.0 汇入 Cloud Code 上游请求转译和 macOS Argon／Robin 三客户端适配，保留统一的对外接口与既有账号调度。合并后的本地回归共 704 项；Cloud Code 阶段的三类真实客户端、上下文/工具续接和原功能回归见 [最终验收矩阵](docs/agy-acceptance-matrix.md)，原始抓包及各阶段过程见 [实施记录](docs/agy-fidelity-plan.md)。下方按阶段保留的测试数量、待验证项和重试实验不替代本版边界，也不代表所有模型、客户端未来版本或 Google 内部识别信号都与官方客户端一致。
 
@@ -605,7 +607,9 @@ The captured Codex CLI 0.159.2 Responses profile also maps exec_command/run_comm
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.7.0`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.7.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+Version 1.7.1 fixes repeated Robin 409 errors after a tool connection is lost. A live connection receives its original receipts; otherwise a new client request with complete call/result history can be forwarded as a fresh query. The gateway never executes tools, invents continuation prompts or independently restarts an agent task. Account rotation and quota policy are unchanged; all 714 local regressions pass.
 
 Version 1.7.0 combines the Cloud Code request translation with macOS Robin adapters for Claude Code, Codex and Hermes. The combined local suite has 704 passing tests; the 686-test count above describes the earlier Cloud Code stage. Robin uses its own external MCP catalog and bidirectional streams, without Cloud Code envelopes, agy identity or extra tool metadata. Three actual CLIs completed 11 real Argon tool executions. Windows routing, account scheduling, quota reporting and video fallback retain their existing behavior. See [Robin client adapters](docs/robin-provider.md#macos-robin-客户端定向适配).
 
