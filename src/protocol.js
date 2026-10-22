@@ -302,7 +302,15 @@ function normalizeAnthropic(payload) {
     // Claude Code 2.1.285 also sends environment/date instructions as an
     // actual system-role message. Keep their instruction role; treating them
     // as user turns changes both priority and the native trajectory count.
-    if (message.role === 'system' || message.role === 'developer') systemParts.push(text);
+    // CLI 会把 token 与美元余量合成一个 system 消息；纯运行时通知保留时间顺序。
+    // 混合真实指令或非文本块时不降级，避免把高优先级指令误识别为预算状态。
+    const textOnly = typeof message.content === 'string' || (Array.isArray(message.content)
+      && message.content.length > 0 && message.content.every(part => part?.type === 'text' && typeof part.text === 'string'));
+    const runtimeNotice = message.role === 'system' && textOnly && text.trim().split(/\n\s*\n/).every(part => (
+      /^<total_tokens>\d+ tokens left<\/total_tokens>$/.test(part.trim())
+      || /^USD budget: \$\d+(?:\.\d+)?\/\$\d+(?:\.\d+)?; \$-?\d+(?:\.\d+)? remaining$/.test(part.trim())
+    ));
+    if ((message.role === 'system' || message.role === 'developer') && !runtimeNotice) systemParts.push(text);
     else messages.push({
       role: message.role || 'user',
       text,
