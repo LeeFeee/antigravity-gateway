@@ -502,3 +502,43 @@ test('explicit model aliases remain opt-in exact mappings', async (t) => {
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
 });
+
+test('in-flight transactions settle on failure or cancellation without unhandled promise rejection and server survives', async (t) => {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`;
+
+  // 1. 模拟上游错误拒绝请求
+  const failResp = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gemini-test-high', messages: [{ role: 'user', content: 'FAIL' }] })
+  });
+  assert.equal(failResp.status, 502);
+
+  // 2. 模拟客户端主动取消请求
+  const ac = new AbortController();
+  const cancelPromise = fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gemini-test-high', messages: [{ role: 'user', content: 'hello' }] }),
+    signal: ac.signal
+  }).catch((err) => err);
+  ac.abort();
+  await cancelPromise;
+
+  // 3. 验证事务均已排空且无残留
+  if (typeof server.drainTransactions === 'function') {
+    const drained = await server.drainTransactions(2000);
+    assert.equal(drained, true);
+  }
+
+  // 4. 验证服务持续健康存活，正常请求依然返回 200
+  const okResp = await fetch(`${base}/v1/messages`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gemini-test-high', messages: [{ role: 'user', content: 'hello' }] })
+  });
+  assert.equal(okResp.status, 200);
+});

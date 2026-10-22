@@ -28,6 +28,7 @@ const { RobinOAuthFlow } = require('./src/robin-oauth-flow');
 const { GeminiWindowsLogin } = require('./src/gemini-windows-login');
 const { GeminiAccountStore } = require('./src/gemini-account-store');
 const { ARGON_MODEL, RobinProviderError } = require('./src/robin-provider');
+const { acquireDirectoryGuard } = require('./src/agy-file-lease');
 const { manageService } = require('./src/service-manager');
 const { TerminalConsole } = require('./src/terminal-console');
 const { UsageStore } = require('./src/usage-store');
@@ -1022,12 +1023,33 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
   }
 }
 
+const activeTransactions = new Set();
+
+function trackTransaction(promise) {
+  const cleanup = () => { activeTransactions.delete(promise); };
+  activeTransactions.add(promise);
+  promise.then(cleanup, cleanup);
+  return promise;
+}
+
+async function drainTransactions(timeoutMs = 10000) {
+  if (!activeTransactions.size) return true;
+  let timer;
+  const timeoutPromise = new Promise((resolve) => { timer = setTimeout(resolve, timeoutMs); });
+  await Promise.race([Promise.allSettled([...activeTransactions]), timeoutPromise]);
+  clearTimeout(timer);
+  return activeTransactions.size === 0;
+}
+
 async function runTurnWithModelDiagnostic(normalized, model, signal, options) {
-  try {
-    return await runTurn(normalized, model, signal, options);
-  } catch (error) {
-    throw await upstreamModelDiagnostic(error, model);
-  }
+  const transaction = (async () => {
+    try {
+      return await runTurn(normalized, model, signal, options);
+    } catch (error) {
+      throw await upstreamModelDiagnostic(error, model);
+    }
+  })();
+  return await trackTransaction(transaction);
 }
 
 function beginSse(res) {
@@ -1766,13 +1788,19 @@ async function requestHandler(req, res) {
   }
 }
 
-function createServer() {
-  return http.createServer((req, res) => {
+function createServer({ directoryGuard = null } = {}) {
+  if (directoryGuard) {
+    DIRECT_PROVIDER.bindDirectoryGuard(directoryGuard);
+    ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
+  }
+  const server = http.createServer((req, res) => {
     void requestHandler(req, res).catch(() => {
       if (!res.headersSent && !res.destroyed) sendJson(res, 500, { error: { message: 'Antigravity Gateway 内部错误。' } });
       else res.destroy();
     });
   });
+  server.drainTransactions = drainTransactions;
+  return server;
 }
 
 if (require.main === module) {
@@ -1821,24 +1849,41 @@ if (require.main === module) {
     process.exitCode = 1;
     return;
   }
-  diagnosticsEnabled = true;
-  fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
-  const server = createServer();
-  let shuttingDown = false;
-  const shutdown = async () => {
-    if (shuttingDown) return;
-    shuttingDown = true;
-    TERMINAL?.stop();
-    stopDiagnosticHeartbeat();
-    diagnosticReporter('gateway_process_stopping', { pid: process.pid });
-    QUOTA_MANAGER.stop();
-    USAGE_STORE.stop();
-    ACCOUNT_POOL.stop();
-    ROBIN_ACCOUNT_POOL.stop();
-    await new Promise((resolve) => server.close(resolve));
-    await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
-    closeNativeTransport();
-  };
+  void (async () => {
+    let directoryGuard;
+    try {
+      directoryGuard = await acquireDirectoryGuard(CONFIG_DIR);
+      DIRECT_PROVIDER.bindDirectoryGuard(directoryGuard);
+      ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
+    } catch (error) {
+      console.error(`[Antigravity Gateway Error] ${error.message}`);
+      process.exitCode = 1;
+      return;
+    }
+    diagnosticsEnabled = true;
+    fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
+    const server = createServer();
+    let shuttingDown = false;
+    const shutdown = async () => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+      TERMINAL?.stop();
+      stopDiagnosticHeartbeat();
+      diagnosticReporter('gateway_process_stopping', { pid: process.pid });
+      QUOTA_MANAGER.stop();
+      USAGE_STORE.stop();
+      ACCOUNT_POOL.stop();
+      ROBIN_ACCOUNT_POOL.stop();
+      await new Promise((resolve) => server.close(resolve));
+      await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
+      const drained = await drainTransactions(10000);
+      closeNativeTransport();
+      if (drained) {
+        DIRECT_PROVIDER.bindDirectoryGuard(null);
+        ACCOUNT_POOL.bindDirectoryGuard(null);
+        directoryGuard?.close();
+      }
+    };
   TERMINAL = new TerminalConsole({
     usageStore: USAGE_STORE,
     accountPool: ACCOUNT_POOL,
@@ -1937,6 +1982,7 @@ if (require.main === module) {
     ACCOUNT_POOL.stop();
     stopDiagnosticHeartbeat();
     closeNativeTransport();
+    directoryGuard?.close();
     diagnosticReporter('gateway_process_error', {
       pid: process.pid,
       errorCode: String(error.code || ''),
@@ -1946,6 +1992,10 @@ if (require.main === module) {
   });
   process.once('SIGINT', () => { void shutdown().finally(() => process.exit(0)); });
   process.once('SIGTERM', () => { void shutdown().finally(() => process.exit(0)); });
+})().catch((error) => {
+  console.error(`[Antigravity Gateway Error] ${error.message}`);
+  process.exitCode = 1;
+});
 }
 
 module.exports = {
@@ -1970,5 +2020,7 @@ module.exports = {
   refreshClientModelCatalogs,
   resolveModel,
   runTurn,
-  startupBanner
+  startupBanner,
+  activeTransactions,
+  drainTransactions
 };
