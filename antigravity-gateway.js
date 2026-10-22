@@ -113,6 +113,8 @@ const DEFAULT_MAX_CONCURRENCY = TRANSPORT === 'agy' ? 4 : 12;
 const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY || DEFAULT_MAX_CONCURRENCY));
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
+// 先取得目录守护，再初始化可能清理或落盘状态的账号池。
+function initializeGateway(directoryGuard = null) {
 const DIAGNOSTIC_LOG = new DiagnosticLog({ directory: path.join(CONFIG_DIR, 'logs') });
 let diagnosticsEnabled = false;
 const diagnosticReporter = (event, fields) => {
@@ -1032,14 +1034,22 @@ function trackTransaction(promise) {
   return promise;
 }
 
-async function drainTransactions(timeoutMs = 10000) {
-  if (!activeTransactions.size) return true;
-  let timer;
-  const timeoutPromise = new Promise((resolve) => { timer = setTimeout(resolve, timeoutMs); });
-  await Promise.race([Promise.allSettled([...activeTransactions]), timeoutPromise]);
-  clearTimeout(timer);
-  return activeTransactions.size === 0;
+async function drainTransactions(timeoutMs = Infinity) {
+  const until = Number.isFinite(timeoutMs) ? Date.now() + timeoutMs : Infinity;
+  while (activeTransactions.size) {
+    const pending = Promise.allSettled([...activeTransactions]);
+    if (until === Infinity) await pending;
+    else {
+      const left = until - Date.now();
+      if (left <= 0) return false;
+      let timer;
+      try { await Promise.race([pending, new Promise(resolve => { timer = setTimeout(resolve, left); })]); }
+      finally { clearTimeout(timer); }
+    }
+  }
+  return true;
 }
+
 
 async function runTurnWithModelDiagnostic(normalized, model, signal, options) {
   const transaction = (async () => {
@@ -1794,7 +1804,7 @@ function createServer({ directoryGuard = null } = {}) {
     ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
   }
   const server = http.createServer((req, res) => {
-    void requestHandler(req, res).catch(() => {
+    void trackTransaction(requestHandler(req, res)).catch(() => {
       if (!res.headersSent && !res.destroyed) sendJson(res, 500, { error: { message: 'Antigravity Gateway 内部错误。' } });
       else res.destroy();
     });
@@ -1849,41 +1859,42 @@ if (require.main === module) {
     process.exitCode = 1;
     return;
   }
-  void (async () => {
-    let directoryGuard;
-    try {
-      directoryGuard = await acquireDirectoryGuard(CONFIG_DIR);
-      DIRECT_PROVIDER.bindDirectoryGuard(directoryGuard);
-      ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
-    } catch (error) {
-      console.error(`[Antigravity Gateway Error] ${error.message}`);
-      process.exitCode = 1;
-      return;
-    }
-    diagnosticsEnabled = true;
-    fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
-    const server = createServer();
-    let shuttingDown = false;
-    const shutdown = async () => {
-      if (shuttingDown) return;
-      shuttingDown = true;
+  diagnosticsEnabled = true;
+  fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
+  const server = createServer({ directoryGuard });
+  let shuttingDown = false;
+  let shutdownPromise = null;
+  const shutdown = () => {
+    if (shutdownPromise) return shutdownPromise;
+    shuttingDown = true;
+    shutdownPromise = (async () => {
       TERMINAL?.stop();
       stopDiagnosticHeartbeat();
       diagnosticReporter('gateway_process_stopping', { pid: process.pid });
+      directoryGuard.hold();
       QUOTA_MANAGER.stop();
+      await new Promise((resolve) => server.close(resolve));
+      await drainTransactions();
+      await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
+      await QUOTA_MANAGER.drain();
+      // 最后一条请求可能刚更新用量、账号亲和性；排空后才落盘和交接目录。
+      ROBIN_ACCOUNT_POOL.stop();
+      await Promise.allSettled([...ROBIN_ACCOUNT_POOL.quotaRefreshes.values()]);
       USAGE_STORE.stop();
       ACCOUNT_POOL.stop();
-      ROBIN_ACCOUNT_POOL.stop();
-      await new Promise((resolve) => server.close(resolve));
-      await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
-      const drained = await drainTransactions(10000);
       closeNativeTransport();
-      if (drained) {
-        DIRECT_PROVIDER.bindDirectoryGuard(null);
-        ACCOUNT_POOL.bindDirectoryGuard(null);
-        directoryGuard?.close();
-      }
-    };
+      DIRECT_PROVIDER.bindDirectoryGuard(null);
+      ACCOUNT_POOL.bindDirectoryGuard(null);
+      directoryGuard.close();
+    })();
+    return shutdownPromise;
+  };
+  const exitAfterShutdown = (code = 0) => {
+    void shutdown().then(() => process.exit(code), error => {
+      gatewayError(`[Antigravity Gateway Error] 排空退出失败：${error.message}`);
+      process.exit(1);
+    });
+  };
   TERMINAL = new TerminalConsole({
     usageStore: USAGE_STORE,
     accountPool: ACCOUNT_POOL,
@@ -1920,7 +1931,7 @@ if (require.main === module) {
   ROBIN_ACCOUNT_POOL.start();
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
-  server.listen(PORT, HOST, async () => {
+  server.listen(PORT, HOST, () => { void trackTransaction((async () => {
     diagnosticReporter('gateway_process_started', {
       pid: process.pid,
       version: GATEWAY_VERSION,
@@ -1970,32 +1981,23 @@ if (require.main === module) {
     } else if (localAccountImport?.status === 'error') {
       gatewayWarn(`[Antigravity Gateway] 本地 agy 账号自动导入未完成：${localAccountImport.message}（不影响已有账号池和原有登录态）`);
     }
-    TERMINAL.showDashboard();
-    TERMINAL.start();
-  });
+    if (!shuttingDown) {
+      TERMINAL.showDashboard();
+      TERMINAL.start();
+    }
+  })()).catch(error => gatewayWarn(`[Antigravity Gateway Warning] 启动初始化未完成：${error.message}`)); });
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') gatewayError(`[Antigravity Gateway Error] ${HOST}:${PORT} 已被占用，请关闭旧进程或设置 ANTIGRAVITY_GATEWAY_PORT。`);
     else gatewayError(`[Antigravity Gateway Error] ${error.message}`);
-    QUOTA_MANAGER.stop();
-    ROBIN_ACCOUNT_POOL.stop();
-    USAGE_STORE.stop();
-    ACCOUNT_POOL.stop();
-    stopDiagnosticHeartbeat();
-    closeNativeTransport();
-    directoryGuard?.close();
     diagnosticReporter('gateway_process_error', {
       pid: process.pid,
       errorCode: String(error.code || ''),
       message: String(error.message || error || '').slice(0, 1000)
     });
-    process.exitCode = 1;
+    exitAfterShutdown(1);
   });
-  process.once('SIGINT', () => { void shutdown().finally(() => process.exit(0)); });
-  process.once('SIGTERM', () => { void shutdown().finally(() => process.exit(0)); });
-})().catch((error) => {
-  console.error(`[Antigravity Gateway Error] ${error.message}`);
-  process.exitCode = 1;
-});
+  process.once('SIGINT', () => exitAfterShutdown());
+  process.once('SIGTERM', () => exitAfterShutdown());
 }
 
 module.exports = {
@@ -2024,3 +2026,19 @@ module.exports = {
   activeTransactions,
   drainTransactions
 };
+
+}
+
+const daemonStart = require.main === module && ![
+  'help', 'version', 'serviceRequested', 'stats', 'codexCatalogPath',
+  'claudeConfigPath', 'models', 'claudeConfig'
+].some(key => CLI_ARGS[key]);
+if (daemonStart) {
+  void acquireDirectoryGuard(CONFIG_DIR).then(guard => {
+    try { initializeGateway(guard); }
+    catch (error) { guard.close(); throw error; }
+  }).catch(error => {
+    console.error(`[Antigravity Gateway Error] ${error.message}`);
+    process.exitCode = 1;
+  });
+} else initializeGateway();
