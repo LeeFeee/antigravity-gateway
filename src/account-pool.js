@@ -72,7 +72,7 @@ function accountFingerprint(account = {}) {
 }
 
 class AccountPool {
-  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter } = {}) {
+  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter, directoryGuard = null } = {}) {
     this.store = store;
     this.fallbackProvider = fallbackProvider;
     this.usageStore = usageStore;
@@ -81,6 +81,7 @@ class AccountPool {
     this.fs = fsImpl;
     this.now = now;
     this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
+    this.directoryGuard = directoryGuard;
     this.lastUnavailableDiagnosticAt = -Infinity;
     this.stateFile = stateFile || path.join(path.dirname(this.store.directory), 'state', 'account-pool.json');
     this.providerFactory = providerFactory || ((account) => {
@@ -88,6 +89,7 @@ class AccountPool {
       return new DirectAntigravityProvider({
         fetchImpl: this.fetchImpl,
         diagnosticReporter: report,
+        directoryGuard: this.directoryGuard,
         localAuth: new ManagedAccountAuthProvider({
           account,
           store: this.store,
@@ -107,6 +109,14 @@ class AccountPool {
     this.modelCatalogDiscovery = null;
     this.loadState();
     this.reload();
+  }
+
+  bindDirectoryGuard(guard) {
+    this.directoryGuard = guard;
+    this.fallbackProvider?.bindDirectoryGuard?.(guard);
+    for (const entry of this.entries.values()) {
+      entry.provider?.bindDirectoryGuard?.(guard);
+    }
   }
 
   reportDiagnostic(event, account, fields = {}) {

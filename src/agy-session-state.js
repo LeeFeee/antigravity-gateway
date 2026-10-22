@@ -258,17 +258,31 @@ async function waitUntil(promise, signal) {
 
 class AgySessionStore {
   constructor({ directory = path.join(process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR || path.join(os.homedir(), '.antigravity-gateway'),
-    'state', 'agy-sessions'), now = () => Date.now(), ttlMs = TTL_MS, capacity = 1024 } = {}) {
+    'state', 'agy-sessions'), now = () => Date.now(), ttlMs = TTL_MS, capacity = 1024, directoryGuard = null, diagnosticReporter = null } = {}) {
     this.directory = directory;
     this.now = now;
     this.ttlMs = ttlMs;
     this.capacity = capacity;
+    this.directoryGuard = directoryGuard;
+    this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
     this.memory = new Map();
     this.lastCleanup = 0;
   }
 
+  bindDirectoryGuard(guard) {
+    this.directoryGuard = guard;
+  }
+
   async fileLock(file, signal) {
-    return acquireFileLease(`${file}.lock`, signal, this.now);
+    return acquireFileLease(`${file}.lock`, signal, this.now, {
+      directoryGuard: this.directoryGuard,
+      onWaiting: (info) => {
+        this.diagnosticReporter?.('wait_session_lock', { file, target: info.target });
+      },
+      onAcquired: (info) => {
+        this.diagnosticReporter?.('acquired_session_lock', { file, target: info.target, elapsedMs: info.elapsedMs });
+      }
+    });
   }
 
   read(file, owner, key) {
@@ -302,7 +316,7 @@ class AgySessionStore {
     while (this.memory.size > this.capacity) this.memory.delete(this.memory.keys().next().value);
     if (!this.directory || this.now() - this.lastCleanup < 60_000) return;
     this.lastCleanup = this.now();
-    cleanupPendingLeases(this.directory);
+    cleanupPendingLeases(this.directory, { directoryGuard: this.directoryGuard });
     const entries = [];
     for (const name of fs.readdirSync(this.directory)) {
       if (!/^[a-f0-9]{64}\.json$/.test(name)) continue;

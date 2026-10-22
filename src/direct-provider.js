@@ -568,7 +568,7 @@ async function readBody(response) {
 }
 
 class DirectAntigravityProvider {
-  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore = new AgySessionStore() } = {}) {
+  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore, directoryGuard = null } = {}) {
     this.fetchImpl = fetchImpl;
     this.authFile = authFile;
     this.localAuth = localAuth;
@@ -592,8 +592,12 @@ class DirectAntigravityProvider {
     this.authLoaded = false;
     this.projectLoaded = false;
     this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
-    this.sessionStore = sessionStore;
-    this.imageStore = sessionStore.directory ? new AgyImageStore({ directory: path.join(sessionStore.directory, 'images') }) : null;
+    this.sessionStore = sessionStore || new AgySessionStore({ diagnosticReporter, directoryGuard });
+    this.imageStore = this.sessionStore.directory ? new AgyImageStore({ directory: path.join(this.sessionStore.directory, 'images') }) : null;
+  }
+
+  bindDirectoryGuard(guard) {
+    this.sessionStore?.bindDirectoryGuard?.(guard);
   }
 
   reportDiagnostic(event, fields = {}) {
