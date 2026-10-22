@@ -302,7 +302,9 @@ function normalizeAnthropic(payload) {
     // Claude Code 2.1.285 also sends environment/date instructions as an
     // actual system-role message. Keep their instruction role; treating them
     // as user turns changes both priority and the native trajectory count.
-    if (message.role === 'system' || message.role === 'developer') systemParts.push(text);
+    // 动态 token 余量属于逐轮运行时上下文；保留在原位置，避免改变整个历史之前的系统前缀。
+    const runtimeNotice = message.role === 'system' && /^<total_tokens>\d+ tokens left<\/total_tokens>$/.test(text.trim());
+    if ((message.role === 'system' || message.role === 'developer') && !runtimeNotice) systemParts.push(text);
     else messages.push({
       role: message.role || 'user',
       text,
