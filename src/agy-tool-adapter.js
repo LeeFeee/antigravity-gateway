@@ -3,7 +3,7 @@
 const { GatewayError, validateSchema } = require('./protocol');
 const { isDeepStrictEqual } = require('node:util');
 const { CLAUDE_COMPACTION_PROFILE } = require('./agy-client-compaction');
-const { CODEX_CLIENT_PROFILE } = require('./agy-client-profile');
+const { CODEX_CLIENT_PROFILE, CLAUDE_304_CLIENT_PROFILE, CLAUDE_284_CLIENT_PROFILE } = require('./agy-client-profile');
 const { FINISH_METADATA } = require('./agy-structured-output');
 const { HERMES_CLIENT_PROFILE, capturedHermesTool, hermesSystemText, toolReferences } = require('./agy-hermes-profile');
 
@@ -52,8 +52,33 @@ const hermesRules = {
   terminal: { name: 'run_command', hermes: true, parameters: { command: 'CommandLine', background: 'RunInBackground', timeout: 'ExecutionTimeoutSeconds', workdir: 'Cwd', pty: 'Tty', notify: 'Notify', heartbeat: 'HeartbeatSeconds', persist_on_release: 'PersistOnRelease' } }
 };
 
+const claude304Rules = {
+  Write: {
+    name: 'write_to_file',
+    description: 'Writes a file to the local filesystem.',
+    fields: { file_path: 'string', content: 'string' },
+    required: ['file_path', 'content']
+  },
+  Edit: {
+    name: 'replace_file_content',
+    description: 'Performs exact string replacements in files.',
+    fields: { file_path: 'string', old_string: 'string', new_string: 'string', replace_all: 'boolean' },
+    required: ['file_path', 'old_string', 'new_string'],
+    parameters: { file_path: 'TargetFile', old_string: 'TargetContent', new_string: 'ReplacementContent', replace_all: 'AllowMultiple' }
+  },
+  Bash: {
+    name: 'run_command',
+    description: 'Executes a given bash command and returns its output.',
+    fields: { command: 'string', timeout: 'number', description: 'string', run_in_background: 'boolean', dangerouslyDisableSandbox: 'boolean' },
+    required: ['command'],
+    parameters: { command: 'CommandLine', timeout: 'TimeoutMs', description: 'Description', run_in_background: 'RunInBackground', dangerouslyDisableSandbox: 'BypassSandbox' }
+  }
+};
+
 const profiles = {
   [CLAUDE_COMPACTION_PROFILE]: { protocol: 'anthropic', rules: claudeRules },
+  [CLAUDE_284_CLIENT_PROFILE]: { protocol: 'anthropic', rules: claudeRules },
+  [CLAUDE_304_CLIENT_PROFILE]: { protocol: 'anthropic', rules: claude304Rules },
   [CODEX_CLIENT_PROFILE]: { protocol: 'responses', rules: codexRules },
   [HERMES_CLIENT_PROFILE]: { protocol: 'chat', rules: hermesRules }
 };
@@ -223,7 +248,8 @@ function providerCall(call, tool, rule, target) {
 function prepareToolAdapter(normalized, { clientProfile = '', checkpoint = false, target = 'cloudcode' } = {}) {
   const mappings = new Map(), source = new Map(), names = new Set((normalized.tools || []).map(t => t.name));
   const profile = profiles[clientProfile];
-  const recognized = !checkpoint && !normalized.autoMode && profile && normalized.protocol === profile.protocol;
+  const recognized = !checkpoint && !normalized.autoMode && profile && normalized.protocol === profile.protocol
+    && (target !== 'robin' || (![CLAUDE_304_CLIENT_PROFILE, CLAUDE_284_CLIENT_PROFILE].includes(clientProfile)));
   if (recognized) {
     for (const tool of normalized.tools || []) {
       const rule = profile.rules[tool.name];
