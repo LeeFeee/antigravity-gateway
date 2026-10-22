@@ -38,6 +38,9 @@ class DirectoryGuard {
     return this.active && Boolean(this.server?.listening);
   }
 
+  // 排空期间即使只剩未完成的 Promise，也保持事件循环存活。
+  hold() { if (this.isActive()) this.server.ref(); }
+
   coversDirectory(targetPath) {
     if (!this.isActive()) return false;
     try {
@@ -63,7 +66,7 @@ class DirectoryGuard {
 function canonicalDirectoryPort(configDir) {
   const realDir = fs.realpathSync(configDir);
   const stat = fs.statSync(realDir);
-  if (!Number.isSafeInteger(stat.dev) || !Number.isSafeInteger(stat.ino) || stat.dev === 0 || stat.ino === 0) {
+  if (!stat.isDirectory() || !Number.isSafeInteger(stat.dev) || !Number.isSafeInteger(stat.ino) || stat.dev === 0 || stat.ino === 0) {
     throw new Error('当前文件系统不支持稳定的设备与 Inode 物理标识，拒绝赋予托管独占资格。');
   }
   const identity = `${stat.dev}:${stat.ino}`;
@@ -72,8 +75,11 @@ function canonicalDirectoryPort(configDir) {
 }
 
 async function acquireDirectoryGuard(configDir) {
+  fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
+  const realDir = fs.realpathSync(configDir);
+  const stat = fs.statSync(realDir);
   const port = canonicalDirectoryPort(configDir);
-  const server = net.createServer();
+  const server = net.createServer(socket => socket.destroy());
   server.unref();
   await new Promise((resolve, reject) => {
     server.once('error', (err) => {
@@ -87,8 +93,11 @@ async function acquireDirectoryGuard(configDir) {
       resolve();
     });
   });
-  const realDir = fs.realpathSync(configDir);
-  const stat = fs.statSync(realDir);
+  const current = fs.statSync(fs.realpathSync(configDir));
+  if (current.dev !== stat.dev || current.ino !== stat.ino) {
+    server.close();
+    throw new Error('获取守护期间数据目录发生变化，拒绝启动。');
+  }
   return new DirectoryGuard(configDir, server, port, stat);
 }
 

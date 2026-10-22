@@ -112,6 +112,7 @@ class QuotaManager {
     this.file = path.join(this.directory, 'quota.json');
     this.snapshots = this.load();
     this.timer = null;
+    this.startupTimer = null;
     this.refreshing = null;
     this.refreshingAccounts = new Map();
     this.refreshAttempts = new Map();
@@ -130,12 +131,25 @@ class QuotaManager {
     if (this.timer) return;
     this.timer = setInterval(() => { void this.refresh().catch(() => {}); }, this.intervalMs);
     this.timer.unref?.();
-    setTimeout(() => { void this.refresh().catch(() => {}); }, 1000).unref?.();
+    this.startupTimer = setTimeout(() => { this.startupTimer = null; void this.refresh().catch(() => {}); }, 1000);
+    this.startupTimer.unref?.();
   }
 
   stop() {
+    if (this.startupTimer) clearTimeout(this.startupTimer);
+    this.startupTimer = null;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+  }
+
+  async drain() {
+    // 额度查询也可能刷新凭据或写状态，目录交接前等待已经派发的任务。
+    while (this.refreshing || this.refreshingAccounts.size) {
+      await Promise.allSettled([
+        ...(this.refreshing ? [this.refreshing] : []),
+        ...[...this.refreshingAccounts.values()].map(job => job.promise)
+      ]);
+    }
   }
 
   async refresh() {
