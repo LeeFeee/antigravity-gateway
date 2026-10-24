@@ -107,6 +107,8 @@ test('remote dashboard allowlist gates page, data, and every bundled asset toget
   const routes = [
     '/dashboard',
     '/dashboard/data',
+    '/dashboard/accounts/antigravity/oauth',
+    '/dashboard/assets/account-auth.js',
     '/dashboard/assets/community-qr.png',
     '/dashboard/assets/community-poster.png',
     '/dashboard/assets/html2canvas.min.js'

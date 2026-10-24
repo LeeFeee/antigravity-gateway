@@ -112,8 +112,15 @@ class OAuthFlow {
     this.active = null;
   }
 
-  async start({ onReady } = {}) {
-    if (this.active) throw new Error('已有账号授权正在进行，请先完成或取消当前授权。');
+  async start(options = {}) {
+    if (this.active || this.starting) throw new Error('已有账号授权正在进行，请先完成或取消当前授权。');
+    this.starting = true;
+    try { return await this._start(options); }
+    finally { this.starting = false; }
+  }
+
+  async _start({ onReady, onCode, openBrowser: launchBrowser = true, signal, requireState = false } = {}) {
+    signal?.throwIfAborted();
     const candidates = this.clientCredentials.length ? this.clientCredentials : discoverClientCredentials({ agyPath: this.agyPath });
     // agy currently embeds more than one historical OAuth client. The
     // official local session and the maintained Antigravity login flow use
@@ -122,7 +129,7 @@ class OAuthFlow {
     const credential = candidates.find((candidate) => candidate.clientId === PREFERRED_OAUTH_CLIENT_ID) || candidates[0];
     if (!credential) throw new Error('无法从本地 agy 安装中发现 OAuth 客户端配置。');
     const state = crypto.randomBytes(24).toString('hex');
-    const callback = await this._callbackServer(state);
+    const callback = await this._callbackServer(state, { requireState });
     const redirectUri = `http://localhost:${callback.port}/oauth-callback`;
     const params = new URLSearchParams({
       access_type: 'offline', client_id: credential.clientId, prompt: 'consent', redirect_uri: redirectUri,
@@ -131,19 +138,28 @@ class OAuthFlow {
     const url = `${AUTH_ENDPOINT}?${params}`;
     // A locked-down desktop can leave the operating-system browser launcher
     // hanging. Never delay printing the complete manual URL for that reason.
-    const browserOpened = await Promise.race([
-      this.openBrowserImpl(url, this.platform),
-      new Promise((resolve) => setTimeout(() => resolve(false), 1500))
-    ]);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(new Error('账号授权已超时，没有保存任何凭据。请重新输入 add 发起授权。')), this.timeoutMs);
     timeout.unref?.();
+    const abort = () => controller.abort(signal.reason || new Error('账号授权已取消。'));
+    signal?.addEventListener('abort', abort, { once: true });
     let submit;
     const manual = new Promise((resolve) => { submit = (value) => resolve(callbackInput(value)); });
-    const active = { url, browserOpened, submit, close: callback.close };
+    const active = { url, browserOpened: false, submit, close: callback.close };
     this.active = active;
-    onReady?.({ url, browserOpened, submit });
     try {
+      if (signal?.aborted) abort();
+      controller.signal.throwIfAborted();
+      let openerTimeout;
+      try {
+        active.browserOpened = launchBrowser && await Promise.race([
+          Promise.resolve().then(() => this.openBrowserImpl(url, this.platform)).catch(() => false),
+          new Promise(resolve => { openerTimeout = setTimeout(() => resolve(false), 1500); })
+        ]);
+      } finally { clearTimeout(openerTimeout); }
+      controller.signal.throwIfAborted();
+      onReady?.({ url, browserOpened: active.browserOpened, submit });
+      controller.signal.throwIfAborted();
       const selected = await Promise.race([
         callback.result,
         manual,
@@ -151,8 +167,9 @@ class OAuthFlow {
       ]);
       if (!selected) throw new Error('没有收到有效的授权回调。');
       if (selected.error) throw new Error(`账号授权失败：${selected.error}`);
-      if (selected.state && selected.state !== state) throw new Error('账号授权回调状态不匹配。');
+      if ((requireState || selected.state) && selected.state !== state) throw new Error('账号授权回调状态不匹配。');
       if (!selected.code) throw new Error('账号授权回调中没有授权码。');
+      onCode?.();
       const account = await this._exchange(
         selected.code,
         redirectUri,
@@ -162,6 +179,7 @@ class OAuthFlow {
       return account;
     } finally {
       clearTimeout(timeout);
+      signal?.removeEventListener('abort', abort);
       callback.close();
       if (this.active === active) this.active = null;
     }
@@ -310,15 +328,18 @@ class OAuthFlow {
     return '';
   }
 
-  _callbackServer(expectedState) {
+  _callbackServer(expectedState, { requireState = false } = {}) {
     return new Promise((resolve, reject) => {
       let settle;
       const result = new Promise((done) => { settle = done; });
       const server = http.createServer((req, res) => {
-        const url = new URL(req.url, 'http://localhost');
+        let url;
+        try { url = new URL(req.url, 'http://localhost'); }
+        catch { res.writeHead(400); res.end('Invalid URL'); return; }
         if (url.pathname !== '/oauth-callback') { res.writeHead(404); res.end('Not found'); return; }
+        if (req.method !== 'GET') { res.writeHead(405); res.end('Method not allowed'); return; }
         const value = callbackInput(`http://localhost${url.pathname}${url.search}`);
-        if (value?.state && value.state !== expectedState) {
+        if ((requireState || value?.state) && value?.state !== expectedState) {
           res.writeHead(400, { 'content-type': 'text/html; charset=utf-8' });
           res.end('<h1>Authorization failed</h1><p>State mismatch. Return to the terminal.</p>');
           return;

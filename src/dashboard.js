@@ -7,6 +7,7 @@ const { spawn } = require('node:child_process');
 
 const DASHBOARD_FILE = path.join(__dirname, 'dashboard.html');
 const DASHBOARD_ASSETS = Object.freeze({
+  'account-auth.js': { absolutePath: path.join(__dirname, 'dashboard-account-auth-ui.js'), contentType: 'text/javascript; charset=utf-8' },
   'community-qr.png': { file: 'community-qr.png', contentType: 'image/png' },
   'community-poster.png': { file: 'community-poster.png', contentType: 'image/png' },
   'html2canvas.min.js': {

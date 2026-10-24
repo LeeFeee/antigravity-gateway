@@ -10,7 +10,9 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.7.1`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.7.2`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+
+v1.7.2 在面板“账号池与额度”新增“添加 Antigravity 账号”入口：复用现有 OAuth 和账号保存逻辑，支持本机自动回调、服务器部署时粘贴完整回调 URL、取消重试及刷新后继续。原终端和 Gemini 添加入口、模型路由及轮询额度策略保持不变。本版包含已合并的 PR #12–#16 修复与适配；759 项自动化测试及隔离账号数据的浏览器交互检查通过，未通过测试新增真实 Google 授权账号。
 
 v1.7.1 修复 macOS Argon 工具连接失效后反复 409：原连接可用就回传原调用；连接丢失时，收到 agent 携带完整调用与结果历史的新请求，按该请求重新转发。网关不执行工具、不自行继续任务、不自动重做命令；只有孤立的工具结果无法凭空恢复上下文。账号轮询和额度策略不变，714 项本地回归通过。
 
@@ -178,7 +180,9 @@ antigravity-gateway service logs
 antigravity-gateway service uninstall
 ```
 
-重复执行 `service start` 会更新配置并重启现有服务，不会创建重复服务。后台模式没有交互输入框；需要添加账号时，先停止后台服务并以前台模式启动，添加完成后再执行 `service start`。
+重复执行 `service start` 会更新配置并重启现有服务，不会创建重复服务。后台模式没有交互输入框；添加 Antigravity 账号可以直接在面板的“账号池与额度”区域点击“添加 Antigravity 账号”，无需停止服务。打开弹窗内的 Google 授权链接，完成后会自动保存；如果浏览器的 localhost 回调页面无法打开（例如网关部署在服务器），复制该页面地址栏中的完整 URL，回到面板粘贴并提交即可。弹窗支持取消、超时重试和刷新页面后继续授权，授权令牌只保存在网关，不会返回面板。
+
+原来的终端 `add`、`add-gemini`、`add-gemini-win` 和本地 agy 自动导入方式保持不变。需要使用终端添加入口时，先停止后台服务并以前台模式启动，添加完成后再执行 `service start`。
 
 打开 Token 用量看板：
 
@@ -607,7 +611,9 @@ The captured Codex CLI 0.159.2 Responses profile also maps exec_command/run_comm
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.7.1`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.7.2`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+Version 1.7.2 adds an Add Antigravity account entry to the dashboard using the existing OAuth flow and account store. It supports automatic local callbacks, full callback URL submission for remote servers, cancellation, retry and resuming after a page reload. Existing terminal and Gemini account entry points, model routing, rotation and quota policies remain unchanged. This release includes merged PRs #12–#16; all 759 automated tests and browser interaction checks with isolated account data pass. These checks do not add a real Google account.
 
 Version 1.7.1 fixes repeated Robin 409 errors after a tool connection is lost. A live connection receives its original receipts; otherwise a new client request with complete call/result history can be forwarded as a fresh query. The gateway never executes tools, invents continuation prompts or independently restarts an agent task. Account rotation and quota policy are unchanged; all 714 local regressions pass.
 

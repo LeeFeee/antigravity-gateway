@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.7.2 - 2026-10-24
+
+- Add an Antigravity account entry in the dashboard's account pool section. Reuse the existing OAuth flow and account store; support automatic local callbacks and pasting the complete callback URL when the gateway runs on a remote server.
+- Add cancellation, timeout/retry, reload recovery, strict OAuth state validation and CSRF protection. Keep authorization tokens server-side and prevent cancelled exchanges from saving late credentials. Preserve the existing terminal, Gemini App and Windows account entry points.
+- Include merged PRs #12–#16: prevent abort/timeout failover cascades, extend captured Claude CLI tool adapters, repair container PID-reuse session locks, stabilize runtime budget notifications for prefix caching, and preserve early directory guarding with complete transaction draining on shutdown.
+- Preserve model routing, account rotation, quota policy and existing gateway configuration. Update dashboard documentation; all 759 automated tests pass. Browser checks use isolated test account data and cover callback validation, saving, cancellation, reload/retry and small-screen layout; no real Google account was added by these checks.
+
 ## 1.7.1 - 2026-10-21
 
 - Fix macOS Robin tool continuations getting stuck in repeated 409 errors after a native stream closes, expires or is lost on restart. A new client request containing the matching assistant tool calls and results can start a fresh upstream query with that supplied history. The gateway does not execute tools, invent continuation prompts or automatically retry model generation.

@@ -40,6 +40,14 @@
     @media(max-width:420px){.period-summary{grid-template-columns:minmax(0,1fr)}.qr-block{grid-template-columns:auto 116px;justify-self:start;margin-top:4px}.qr-trigger{width:116px;height:116px}.hero-number strong{font-size:clamp(38px,13vw,49px)}}
     @media(prefers-reduced-motion:reduce){.poster-overlay,.poster-overlay.open,.save-overlay,.save-panel{transition:none;transform:none;clip-path:none}}
     @media(prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+    /* finesse · component: account-authorization · register=product
+     * states: default · hover · focus-visible · active · disabled · loading · error · success
+     * tokens: inherited (:root); existing dashboard layout and palette retained */
+    .accounts .card-head{flex-wrap:wrap}.account-toolbar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;max-width:100%}
+    .auth-button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;min-width:112px;padding:9px 14px;border:1px solid color-mix(in srgb,var(--ink) 24%,transparent);border-radius:11px;background:var(--ivory);color:var(--ink);font:inherit;font-weight:750;text-decoration:none;white-space:nowrap;cursor:pointer;outline:2px solid transparent;outline-offset:2px}.auth-button.primary{background:var(--ink);color:var(--ivory)}.auth-button.add{min-width:208px;font-size:12px}.auth-button:focus-visible,.auth-button.is-focus{outline-color:var(--ink)}.auth-button:active:not(:disabled),.auth-button.is-active{transform:translateY(1px)}.auth-button:disabled,.auth-button[aria-disabled="true"]{opacity:.5;cursor:not-allowed}.auth-button[data-state="loading"]{cursor:wait}.auth-button[data-state="error"]{border-color:var(--coral)}.auth-button[data-state="success"]{background:var(--mint);color:var(--ink)}
+    .auth-dialog{width:min(580px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid color-mix(in srgb,var(--ink) 18%,transparent);border-radius:var(--radius);background:var(--ivory);color:var(--ink);box-shadow:var(--shadow);overflow:auto}.auth-dialog::backdrop{background:color-mix(in srgb,var(--ink) 72%,transparent)}.auth-dialog h2{margin:0;font-size:22px;line-height:1.2;overflow-wrap:anywhere}.auth-dialog p{line-height:1.6}.auth-dialog label{display:block;margin-bottom:7px;font-weight:750}.auth-dialog input,.auth-dialog textarea{width:100%;min-height:44px;padding:11px;border:1px solid color-mix(in srgb,var(--ink) 32%,transparent);border-radius:9px;background:var(--sage);color:var(--ink);font:inherit;resize:vertical}.auth-dialog input::placeholder,.auth-dialog textarea::placeholder{color:color-mix(in srgb,var(--ink) 75%,var(--sage))}.auth-dialog input:focus-visible,.auth-dialog textarea:focus-visible{outline:2px solid var(--ink);outline-offset:2px}.auth-dialog [aria-invalid="true"]{border-color:var(--coral)}.auth-dialog [hidden]{display:none!important}.auth-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}.auth-step{margin-top:20px}.auth-step p{margin:8px 0;font-size:13px}.auth-status{min-height:48px;margin:16px 0 0;padding:10px 12px;border:1px solid color-mix(in srgb,var(--ink) 15%,transparent);border-radius:9px;background:var(--sage);overflow-wrap:anywhere}.auth-status[data-state="error"]{border-color:var(--coral);background:color-mix(in srgb,var(--coral) 16%,var(--ivory))}.auth-status[data-state="success"]{background:var(--mint)}.auth-error{min-height:22px;margin:6px 0 0;font-size:13px;font-weight:650;overflow-wrap:anywhere}
+    @media(hover:hover){.auth-button:hover:not(:disabled),.auth-button.is-hover{background:var(--sage)}.auth-button.primary:hover:not(:disabled){background:var(--ink-soft)}.auth-dialog input:hover,.auth-dialog textarea:hover{border-color:var(--ink)}}
+    @media(max-width:680px){.account-toolbar{justify-content:flex-start}.auth-dialog{padding:18px}.auth-dialog h2{font-size:20px}.auth-actions .auth-button{flex:1}}
   </style>
 </head>
 <body>
@@ -53,7 +61,7 @@
     <article class="card overview"><div class="card-head overview-head"><div><h2>Token 总览</h2><p id="tokenScope">所选账号与统计周期</p></div></div><div class="card-body overview-main"><div class="overview-stats" aria-label="历史累计指标"><div class="stat-slab"><span>历史总 Token</span><strong id="historyTotal">--</strong></div><div class="stat-slab"><span>历史总请求</span><strong id="historyRequests">0</strong></div><div class="stat-slab"><span>总输入 Token</span><strong id="inputTokens">--</strong></div><div class="stat-slab"><span>总输出 Token</span><strong id="outputTokens">--</strong></div><div class="stat-slab"><span>缓存 Token</span><strong id="cacheTotal">--</strong></div><div class="stat-slab"><span>缓存命中率</span><strong id="cacheRate">--</strong></div></div><div class="period-pane"><div class="period-summary"><div class="hero-number"><div class="period-heading"><span class="period-label">所选时段 Token</span><span class="range-badge" id="rangeBadge">最近 24 小时</span></div><strong id="periodTotal">--</strong><small><span id="requestCount">0</span> 次请求</small></div><div class="qr-block"><span class="qr-caption">反代教程</span><button class="qr-trigger" id="posterTrigger" type="button" aria-label="反代教程二维码，查看「 Token 自由社群」" aria-haspopup="dialog"><img class="qr-image" src="/dashboard/assets/community-qr.png" alt="反代教程二维码"></button></div></div><div class="overview-bars" id="overviewBars" aria-label="时段 Token 柱状图"></div></div></div></article>
     <article class="card trend"><div class="card-head"><div><h2>模型调用趋势</h2><p>按所选周期聚合各模型 Token 用量</p></div></div><div class="card-body"><div class="trend-metrics"><div class="trend-metric"><span>上游调用</span><strong id="upstreamCalls">0</strong></div><div class="trend-metric"><span>缓存命中率</span><strong id="cacheRateTop">--</strong></div><div class="trend-metric"><span>失败率</span><strong id="failureRate">--</strong><small id="failureCount">0 次失败</small></div></div><div class="legend" id="trendLegend"></div><div id="trendChart"></div></div></article>
     <div class="column left-column">
-      <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div><div class="card-body account-stack" id="accounts"></div></article>
+      <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><div class="account-toolbar"><button class="auth-button add" id="addAntigravityAccount" type="button" aria-haspopup="dialog" aria-controls="antigravityAuthDialog">添加 Antigravity 账号</button><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div></div><div class="card-body account-stack" id="accounts"></div></article>
     </div>
     <div class="column right-column">
       <article class="card heat"><div class="card-head"><div><h2>小时活跃热力图</h2><p id="heatCaption">最近 1 天 · 每格 1 小时</p></div></div><div class="card-body"><div class="heatmap-wrap" id="heatmap"></div><div class="heat-scale" id="heatScale"><span>少</span><i style="opacity:.14"></i><i style="opacity:.32"></i><i style="opacity:.55"></i><i style="opacity:.78"></i><i></i><span>多</span></div></div></article>
@@ -62,6 +70,24 @@
   </section>
   <footer class="footer"><span>数据仅保存在本机，不记录提示词与模型回复；账号与模型的小时细分从 v0.8.0 起累计。</span><span id="freshness">--</span></footer>
 </main>
+<dialog class="auth-dialog" id="antigravityAuthDialog" aria-labelledby="antigravityAuthTitle" aria-describedby="antigravityAuthStatus">
+  <h2 id="antigravityAuthTitle">添加 Antigravity 账号</h2>
+  <p>使用 Google 授权加入 Antigravity 账号池。现有账号和其他添加方式保持不变。</p>
+  <p class="auth-status" id="antigravityAuthStatus" role="status" aria-live="polite">正在创建授权链接…</p>
+  <div class="auth-step" id="antigravityAuthLogin" hidden>
+    <label for="antigravityAuthUrl">1. 打开 Google 授权页面</label>
+    <input id="antigravityAuthUrl" type="text" readonly autocomplete="off" aria-label="Google 授权链接">
+    <div class="auth-actions"><button class="auth-button" id="antigravityAuthCopy" type="button">复制链接</button><a class="auth-button primary" id="antigravityAuthOpen" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">打开 Google 授权</a></div>
+  </div>
+  <form class="auth-step" id="antigravityAuthForm" hidden>
+    <label for="antigravityAuthCallback">2. 如果未自动完成，粘贴回调 URL</label>
+    <p>完成 Google 授权后，如果 localhost 页面无法打开，请复制该页面地址栏中的完整 URL，粘贴到这里。服务器部署也适用。</p>
+    <textarea id="antigravityAuthCallback" rows="3" maxlength="16000" autocomplete="off" spellcheck="false" placeholder="http://localhost:…/oauth-callback?state=…&amp;code=…" required aria-describedby="antigravityAuthError"></textarea>
+    <p class="auth-error" id="antigravityAuthError" role="alert"></p>
+    <div class="auth-actions"><button class="auth-button primary" id="antigravityAuthSubmit" type="submit">提交回调 URL</button></div>
+  </form>
+  <div class="auth-actions"><button class="auth-button" id="antigravityAuthRetry" type="button" hidden>重新授权</button><button class="auth-button" id="antigravityAuthClose" type="button">取消授权</button></div>
+</dialog>
 <div class="poster-overlay" id="posterOverlay" role="dialog" aria-label="「 Token 自由社群」" aria-hidden="true"><button class="poster-close" id="posterClose" type="button" aria-label="关闭海报">×</button><img class="poster-image" id="posterImage" data-src="/dashboard/assets/community-poster.png" alt="「 Token 自由社群」"></div>
 <div class="save-overlay" id="saveOverlay" role="dialog" aria-modal="true" aria-labelledby="saveTitle" aria-describedby="saveHint" aria-hidden="true"><div class="save-panel"><div class="save-head"><div><h2 id="saveTitle">图片已生成</h2><p id="saveHint">长按下方图片，选择“保存图片”或“存储到照片”。</p></div><button class="save-close" id="saveClose" type="button" aria-label="关闭图片预览">×</button></div><div class="save-preview"><img id="savePreview" alt="已脱敏的 Token 看板图片预览"></div><div class="save-actions"><a class="button save-download" id="saveDownload" href="#" download>下载 PNG</a><button class="button save-done" id="saveDone" type="button">完成</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -223,5 +249,6 @@
   $('ranges').addEventListener('click',(e)=>{const b=e.target.closest('button');if(!b)return;hours=Number(b.dataset.hours);try{localStorage.setItem(RANGE_KEY,String(hours))}catch{}syncRangeButtons();render()});$('accountFilter').addEventListener('change',(e)=>{account=e.target.value;render()});$('quotaViewToggle').addEventListener('click',()=>{quotaOverview=!quotaOverview;try{localStorage.setItem(QUOTA_VIEW_KEY,quotaOverview?'overview':'details')}catch{}syncQuotaViewToggle();renderAccounts()});$('accounts').addEventListener('click',handleAccountAction);$('refresh').addEventListener('click',load);syncRangeButtons();syncQuotaViewToggle();load();setInterval(load,60000);
 })();
 </script>
+<script src="/dashboard/assets/account-auth.js"></script>
 </body>
 </html>

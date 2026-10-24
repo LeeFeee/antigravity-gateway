@@ -21,6 +21,7 @@ const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowse
 const { LocalAccountImporter } = require('./src/local-account-importer');
 const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
+const { DashboardAccountAuth, handleDashboardAccountAuth } = require('./src/dashboard-account-auth');
 const { ProviderRouter, ProviderRouterError } = require('./src/provider-router');
 const { QuotaManager } = require('./src/quota-manager');
 const { RobinAccountPool } = require('./src/robin-account-pool');
@@ -137,6 +138,10 @@ const ACCOUNT_POOL = new AccountPool({
 const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
+const DASHBOARD_ACCOUNT_AUTH = new DashboardAccountAuth({
+  flow: OAUTH_FLOW, store: ACCOUNT_STORE, pool: ACCOUNT_POOL, quotaManager: QUOTA_MANAGER,
+  onAdded: () => { modelCache.at = 0; cloudcodeModelCache.at = 0; }
+});
 const ROBIN_ACCOUNT_POOL = new RobinAccountPool({
   store: GEMINI_ACCOUNT_STORE,
   diagnosticReporter,
@@ -1613,6 +1618,7 @@ async function requestHandler(req, res) {
       }), { 'Cache-Control': 'no-store' });
       return;
     }
+    if (await handleDashboardAccountAuth(req, res, route, DASHBOARD_ACCOUNT_AUTH, sendJson)) return;
     const accountRecheckMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/recheck$/);
     const accountDeleteMatch = route.match(/^\/dashboard\/accounts\/([^/]+)$/);
     if (req.method === 'POST' && accountRecheckMatch) {
@@ -1873,6 +1879,7 @@ if (require.main === module) {
       diagnosticReporter('gateway_process_stopping', { pid: process.pid });
       directoryGuard.hold();
       QUOTA_MANAGER.stop();
+      await DASHBOARD_ACCOUNT_AUTH.stop();
       await new Promise((resolve) => server.close(resolve));
       await drainTransactions();
       await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
