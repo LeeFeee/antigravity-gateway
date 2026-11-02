@@ -119,7 +119,7 @@ test('dashboard responsive account layout keeps controls inline and quota values
   assert.match(cssBlock(mobile, '.quota-bucket'), /grid-template-areas:"name number meta" "bar bar bar"/);
 });
 
-test('dashboard renders both account controls only for actionable account abnormalities', () => {
+test('dashboard renders recheck for actionable abnormalities and one delete control for every account', () => {
   for (const [state, label] of [
     ['verification_required', '需安全核验'],
     ['authentication_error', '认证异常'],
@@ -137,8 +137,9 @@ test('dashboard renders both account controls only for actionable account abnorm
     assert.ok(html.includes(label), state);
     assert.equal((html.match(/data-account-action="recheck"/g) || []).length, 1, state);
     assert.equal((html.match(/data-account-action="delete"/g) || []).length, 1, state);
-    assert.ok(html.indexOf('class="account-alert"') < html.indexOf('class="account-actions"'), 'health warning precedes its inline actions');
-    assert.ok(html.indexOf('class="account-actions"') < html.indexOf('class="quota-groups"'), 'actions belong to the health row, not quota details');
+    assert.ok(html.indexOf('data-account-action="delete"') < html.indexOf('class="account-alert"'), 'delete belongs to the account header');
+    assert.ok(html.indexOf('class="account-alert"') < html.indexOf('class="account-actions"'), 'health warning precedes its recheck action');
+    assert.ok(html.indexOf('class="account-actions"') < html.indexOf('class="quota-groups"'), 'recheck belongs to the health row, not quota details');
   }
 });
 
@@ -158,7 +159,7 @@ test('dashboard abnormal accounts keep warning and controls without a server hea
   }
 });
 
-test('dashboard healthy, cooling and disabled accounts do not expose account management controls', () => {
+test('dashboard healthy, cooling and disabled accounts expose delete without recheck', () => {
   for (const account of [
     { id: 'healthy', enabled: true, state: 'available' },
     { id: 'healthy-old-message', enabled: true, state: 'available', healthMessage: 'Previous verification failure' },
@@ -170,7 +171,8 @@ test('dashboard healthy, cooling and disabled accounts do not expose account man
     const html = renderAccountHtml([account]);
     assert.doesNotMatch(html, /class="account-health"/, account.id);
     assert.doesNotMatch(html, /class="account-actions"/, account.id);
-    assert.doesNotMatch(html, /data-account-action="(?:recheck|delete)"/, account.id);
+    assert.doesNotMatch(html, /data-account-action="recheck"/, account.id);
+    assert.equal((html.match(/data-account-action="delete"/g) || []).length, 1, account.id);
     assert.match(html, /class="quota-groups"/, 'quota details remain for ' + account.id);
   }
 });
@@ -199,7 +201,8 @@ test('dashboard account quota output preserves weekly and five-hour percentage a
   assert.ok(html.includes(new Date('2026-09-30T12:16:58Z').toLocaleString('zh-CN')));
   assert.match(html, /Gemini 模型组/);
   assert.match(html, /Claude 和 GPT 模型组/);
-  assert.doesNotMatch(html, /data-account-action=/);
+  assert.match(html, /data-account-action="delete"/);
+  assert.doesNotMatch(html, /data-account-action="recheck"/);
 });
 
 test('dashboard saved quota overview shows only Gemini without changing abnormal account controls', () => {
@@ -216,7 +219,8 @@ test('dashboard saved quota overview shows only Gemini without changing abnormal
     id: 'healthy', enabled: true, state: 'available', quota: { groups: quotaGroups().slice(1) }
   }], { overview: true });
   assert.match(noGemini, /暂无 Gemini 模型组额度快照/);
-  assert.doesNotMatch(noGemini, /data-account-action=/);
+  assert.match(noGemini, /data-account-action="delete"/);
+  assert.doesNotMatch(noGemini, /data-account-action="recheck"/);
 });
 
 test('dashboard uses the account pool as the only account and usage scope', (t) => {
@@ -284,7 +288,7 @@ test('dashboard HTML contains the required monitoring surfaces and bundled asset
   assert.match(html, /data-account-action="delete"/);
   assert.match(html, /\/dashboard\/accounts\//);
   assert.match(html, /window\.confirm/);
-  assert.match(html, /\.is-capturing \.account-actions/);
+  assert.match(html, /\.is-capturing \.account-action/);
   assert.match(html, /visibleGroups=quotaOverview\?\(q\.groups\|\|\[\]\)\.filter\(isGeminiGroup\)/);
   assert.match(html, /antigravity-dashboard-quota-view/);
   assert.match(html, /localStorage\.getItem\(QUOTA_VIEW_KEY\)/);
