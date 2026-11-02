@@ -13,7 +13,7 @@ const { UsageStore } = require('../src/usage-store');
 function renderAccountHtml(accounts, { overview = false, byAccount = {} } = {}) {
   const html = dashboardHtml();
   const start = html.indexOf("  const COLORS=");
-  const end = html.indexOf('  function heatDays(){', start);
+  const end = html.indexOf('  function heatDays(', start);
   assert.ok(start >= 0 && end > start, 'dashboard account rendering script is available');
   const nodes = new Map();
   const context = {
@@ -103,6 +103,167 @@ function cssBlock(css, selector) {
   assert.equal(depth, 0, 'CSS block is complete: ' + selector);
   return css.slice(contentStart, end - 1);
 }
+
+test('dashboard overview contains all nine metrics once and no duplicate metrics in trend', () => {
+  const html = dashboardHtml();
+  const overview = html.slice(html.indexOf('<article class="card overview"'), html.indexOf('<article class="card trend"'));
+  const trend = html.slice(html.indexOf('<article class="card trend"'), html.indexOf('<div class="column left-column"'));
+  for (const id of ['historyTotal', 'historyRequests', 'inputTokens', 'outputTokens', 'cacheTotal', 'cacheRate', 'upstreamCalls', 'cacheRateTop', 'failureRate', 'failureCount']) {
+    assert.equal((overview.match(new RegExp('id="' + id + '"', 'g')) || []).length, 1, id);
+    assert.ok(!trend.includes('id="' + id + '"'), id);
+  }
+  assert.equal((overview.match(/class="stat-slab"/g) || []).length, 9);
+  assert.match(overview, /历史缓存命中率/);
+  assert.match(overview, /缓存命中率 · 时段/);
+});
+
+test('dashboard chart panels do not crop long ranges or force a desktop heatmap width', () => {
+  const css = dashboardHtml().match(/<style>([\s\S]*?)<\/style>/)[1].split('/* Bailey-inspired visual system.')[1];
+  assert.match(cssBlock(css, '.card'), /overflow:visible/);
+  assert.match(css, /\n    \.trend\{height:auto;/);
+  assert.match(css, /\n    \.trend\{height:auto;min-height:350px/);
+  assert.match(css, /\n    \.heat\{height:auto;min-height:350px;align-self:stretch;display:flex;flex-direction:column/);
+  assert.match(cssBlock(css, '.heat .card-body'), /flex:1/);
+  assert.match(cssBlock(css, '.heat .card-body'), /gap:12px;padding-top:14px/);
+  assert.match(cssBlock(css, '.heatmap-wrap'), /flex:1 0 230px;min-height:230px/);
+  assert.match(cssBlock(css, '.heatmap-wrap'), /padding:16px 0 30px/);
+  assert.match(cssBlock(css, '.heat-calendar'), /height:100%/);
+  assert.match(cssBlock(css, '.heat-calendar'), /align-content:space-between/);
+  assert.match(cssBlock(css, '.heat-axis'), /bottom:0/);
+  assert.match(cssBlock(css, '.heat-axis'), /height:30px/);
+  assert.match(cssBlock(css, '.overview-stats'), /grid-template-rows:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(cssBlock(css, '.heat-calendar'), /grid-template-rows:repeat\(7,var\(--day-size\)\)/);
+  assert.match(cssBlock(css, '.heat-calendar'), /repeat\(var\(--heat-weeks\),var\(--day-size\)\)/);
+  assert.match(cssBlock(css, '.heat-calendar'), /width:100%/);
+  assert.match(cssBlock(css, '.heatmap-wrap'), /min-width:0/);
+  assert.match(cssBlock(css, '#trendChart'), /min-height:230px/);
+  assert.doesNotMatch(css, /min-width:5[13]0px|height:360px/);
+});
+
+test('activity uses the same legend, plot padding and axis baseline as the trend chart', () => {
+  const html = dashboardHtml();
+  const heat = html.slice(html.indexOf('<article class="card heat">'), html.indexOf('<article class="card model-share">'));
+  assert.ok(heat.indexOf('id="heatScale"') < heat.indexOf('id="heatmap"'));
+  assert.match(html, /T=16,B=30,plotW=/);
+  assert.match(html, /class="heat-month" x=".*?y="22"/);
+  assert.match(html, /class="heat-axis" viewBox="0 0 .*? 30"/);
+  assert.ok(html.includes("$('heatScale').style.setProperty('--chart-legend-height',entry.contentRect.height+'px')"));
+});
+
+test('daily activity shares the neutral palette across cells, legend and focus borders', () => {
+  const css = dashboardHtml().match(/<style>([\s\S]*?)<\/style>/)[1].split('/* Bailey-inspired visual system.')[1];
+  const palette = cssBlock(css, ':root');
+  assert.match(palette, /--heat-ink:var\(--text-soft\)/);
+  assert.match(palette, /--heat-zero:#e7e7e9;--heat-1:#c4c4c7;--heat-2:#a1a1a6;--heat-3:var\(--muted\);--heat-4:var\(--ink\)/);
+  assert.match(cssBlock(css, '.heat-day:focus-visible'), /outline-color:var\(--heat-ink\)/);
+  assert.match(css, /\.heat-day:not\(\.outside\):hover\{outline-color:var\(--heat-ink\)/);
+  for (let level = 1; level <= 4; level++) {
+    assert.match(cssBlock(css, '.heat-day[data-level="' + level + '"]'), new RegExp('background:var\\(--heat-' + level + '\\)'));
+    assert.match(cssBlock(css, '.heat-scale i:nth-of-type(' + (level + 1) + ')'), new RegExp('background:var\\(--heat-' + level + '\\)'));
+  }
+});
+
+test('dashboard 30-day plot retains all models and heatmap cells with finite responsive geometry', () => {
+  const html = dashboardHtml(), start = html.indexOf('  const COLORS='), end = html.indexOf('  function render(){', start);
+  const nodes = new Map();
+  const at = new Date(Math.floor(Date.now() / 3600000) * 3600000).toISOString();
+  const byModel = Object.fromEntries(['one', 'two', 'three', 'four', 'five'].map((name, i) => [name, { totalTokens: 100000000 * (i + 1) }]));
+  const context = {
+    document: { getElementById(id) { if (!nodes.has(id)) nodes.set(id, { innerHTML: '', style: {}, clientWidth: 272, clientHeight: 420 }); return nodes.get(id); } },
+    localStorage: { getItem() { return null; } },
+    inputData: { accounts: [{ id: 'a', providerType: 'cloudcode' }], usage: { history: [{ at, totalTokens: 1500000000 }], hourlyByModel: { [at]: byModel } } }
+  };
+  vm.runInNewContext(html.slice(start, end) + '\nDATA=inputData;hours=720;renderHeatmap();svg=trendSvg();curve=smoothPath([{x:0,y:0},{x:10,y:10},{x:20,y:0}]);', context, { timeout: 2000 });
+  assert.equal((nodes.get('heatmap').innerHTML.match(/class="heat-day[" ]/g) || []).length, 11 * 7);
+  assert.match(nodes.get('heatmap').innerHTML, /--heat-weeks:11/);
+  assert.match(nodes.get('heatmap').innerHTML, /class="heat-month"/);
+  assert.doesNotMatch(nodes.get('heatCaption').textContent, /最近 30 天/);
+  assert.match(nodes.get('trendLegend').innerHTML, /five.*four.*three.*其他模型/);
+  assert.match(context.svg, /viewBox="0 0 272 420"/);
+  assert.equal((context.svg.match(/class="trend-area"/g) || []).length, 4);
+  assert.equal((context.svg.match(/class="point is-last"/g) || []).length, 4);
+  assert.match(context.svg, /text-anchor="start"/);
+  assert.match(context.svg, /text-anchor="end"/);
+  assert.doesNotMatch(context.svg, /NaN|Infinity|preserveAspectRatio="none"/);
+  assert.match(context.curve, /C3\.333 3\.333 6\.667 10 10 10 C13\.333 10 16\.667 3\.333 20 0/);
+});
+
+test('daily activity fills the available width and is independent of the top period filter', () => {
+  const html = dashboardHtml(), start = html.indexOf('  const COLORS='), end = html.indexOf('  function sparkline(', start);
+  const now = new Date(2026, 10, 2, 12, 30).getTime();
+  class ClockDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return now; }
+  }
+  const records = [
+    [new Date(2026, 10, 2, 0).toISOString(), 100],
+    [new Date(2026, 10, 2, 10).toISOString(), 250],
+    [new Date(2026, 10, 1, 23).toISOString(), 75],
+    [new Date(2026, 9, 30, 10).toISOString(), 0],
+    [new Date(2026, 10, 2, 23).toISOString(), 999], // Future records must not leak into today.
+    [new Date(2026, 9, 1, 0).toISOString(), 888]
+  ];
+  const nodes = new Map();
+  const context = vm.createContext({
+    Date: ClockDate,
+    document: { getElementById(id) { if (!nodes.has(id)) nodes.set(id, { innerHTML: '', style: {} }); return nodes.get(id); } },
+    localStorage: { getItem() { return null; } },
+    inputData: { accounts: [{ id: 'a' }, { id: 'b' }], usage: {
+      history: records.map(([at, totalTokens]) => ({ at, totalTokens })),
+      hourlyByAccount: Object.fromEntries(records.map(([at, totalTokens]) => [at, { a: { totalTokens: totalTokens / 5 }, b: { totalTokens: totalTokens * 4 / 5 } }]))
+    } }
+  });
+  vm.runInContext(html.slice(start, end) + '\nDATA=inputData;', context);
+  let firstDate, calendar;
+  for (const range of [24, 72, 168, 720]) {
+    context.range = range;
+    vm.runInContext('hours=range;result=heatDays();renderHeatmap();', context);
+    assert.equal(context.result.length, 42);
+    firstDate ??= context.result[0].date;
+    assert.equal(context.result[0].date, firstDate, 'range switching does not shift the six-week calendar');
+    calendar ??= nodes.get('heatmap').innerHTML;
+    assert.equal(nodes.get('heatmap').innerHTML, calendar, 'range switching must not change heatmap dates, values or colors');
+    assert.equal(context.result.find(day => day.date === '2026-11-02').total, 350);
+    assert.equal(context.result.find(day => day.date === '2026-11-03').inRange, false);
+    assert.equal(context.result.filter(day => !day.inRange).every(day => day.total === null), true);
+    assert.equal((nodes.get('heatmap').innerHTML.match(/class="heat-day[" ]/g) || []).length, 77);
+    assert.match(nodes.get('heatmap').innerHTML, /2026-11-02 · 350 Token/);
+  }
+  assert.equal(context.result.find(day => day.date === '2026-11-01').total, 75);
+  assert.equal(context.result.find(day => day.date === '2026-10-31').total, null, 'missing history is not a measured zero');
+  assert.equal(context.result.find(day => day.date === '2026-10-30').total, 0);
+  assert.match(nodes.get('heatmap').innerHTML, /2026-10-31 · 无记录/);
+  assert.match(nodes.get('heatmap').innerHTML, /2026-10-30 · 0 Token/);
+  for (const width of [268, 323, 372, 453, 696, 1200]) {
+    context.width = width;
+    vm.runInContext('weeks=heatWeekCount(width);result=heatDays(weeks);', context);
+    const used = context.weeks * 18 + (context.weeks - 1) * 6;
+    assert.ok(used <= width && width - used < 24, 'fills all full columns without overflowing');
+    assert.equal(context.result.length, context.weeks * 7);
+  }
+  vm.runInContext("account='a';result=heatDays();renderHeatmap();", context);
+  assert.equal(context.result.find(day => day.date === '2026-11-02').total, 70);
+  assert.match(nodes.get('heatmap').innerHTML, /2026-11-02 · 70 Token/);
+  assert.doesNotMatch(dashboardHtml(), /每格 1 小时/);
+});
+
+test('daily activity includes both repeated hours at the daylight-saving boundary', () => {
+  const html = dashboardHtml(), start = html.indexOf('  const COLORS='), end = html.indexOf('  function sparkline(', start);
+  const now = Date.parse('2026-11-02T20:00:00Z');
+  class ClockDate extends Date {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return now; }
+  }
+  const context = {
+    Date: ClockDate, localStorage: { getItem() { return null; } },
+    inputData: { accounts: [], usage: { history: [
+      { at: '2026-11-01T05:00:00Z', totalTokens: 120 },
+      { at: '2026-11-01T06:00:00Z', totalTokens: 180 }
+    ] } }
+  };
+  vm.runInNewContext(html.slice(start, end) + '\nDATA=inputData;hours=720;result=heatDays();', context);
+  assert.equal(context.result.filter(day => day.inRange).reduce((sum, day) => sum + day.total, 0), 300);
+});
 
 test('dashboard responsive account layout keeps controls inline and quota values above their progress bar', () => {
   const css = dashboardHtml().match(/<style>([\s\S]*?)<\/style>/)?.[1];
@@ -297,7 +458,7 @@ test('dashboard HTML contains the required monitoring surfaces and bundled asset
   assert.match(html, /\[24,72,168,720\]\.includes\(savedHours\)/);
   assert.match(html, /localStorage\.setItem\(RANGE_KEY,String\(hours\)\)/);
   assert.match(html, /syncRangeButtons\(\);syncQuotaViewToggle\(\);load\(\)/);
-  assert.match(html, /小时活跃热力图/);
+  assert.match(html, /Token 活动/);
   assert.match(html, /模型消耗占比/);
   assert.match(html, /\/dashboard\/assets\/community-qr\.png/);
   assert.match(html, /\/dashboard\/assets\/community-poster\.png/);

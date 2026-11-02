@@ -6,8 +6,8 @@
   <meta name="color-scheme" content="light">
   <title>Antigravity Gateway · Token 看板</title>
   <style>
-    /* finesse · register=product-dashboard · A=true-neutral+mono · B=800/500 · C=centered-summary-grid
-     * D=CSS-microinteraction · E=matte-admin-surfaces · SOUL=6 SPECTACLE=2 DENSITY=7 */
+    /* finesse · register=product-dashboard · A=bailey-zinc+mono · B=600/400 · C=compact-nine-metric-grid
+     * D=responsive-SVG · E=borderless-admin-panels · SOUL=4 SPECTACLE=2 DENSITY=8 */
     :root{--ink:#161817;--ink-soft:#232523;--coral:#ff6655;--violet:#7c70f7;--mint:#91e5c0;--sage:#c8d2bd;--yellow:#f3dc62;--heat-bg:#f1c95e;--heat-ink:#51375f;--heat-cell-rgb:164,55,47;--ivory:#f7f1df;--red:#ff776b;--green:#52c996;--radius:22px;--shadow:0 22px 54px rgba(7,9,8,.22);--focus:#fff4a7}
     *{box-sizing:border-box}html,body{margin:0;min-height:100%;overflow-x:clip;background:#151716;color:var(--ivory);font:14px/1.45 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}body{padding:18px;background:linear-gradient(180deg,#20221f 0,#141615 100%)}button,select{font:inherit}button:focus-visible,select:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
     .shell{max-width:1680px;margin:auto;padding:14px;border:1px solid rgba(255,255,255,.09);border-radius:30px;background:#0e100f;box-shadow:var(--shadow)}
@@ -52,69 +52,77 @@
     /* Bailey-inspired visual system. The dashboard keeps its existing data, routes and controls;
        this layer only changes information hierarchy, layout and presentation. */
     :root{
-      --page:#f1f1ef;--panel:#fbfbfa;--panel-strong:#ffffff;--surface:#e9e9e7;--surface-2:#dfdfdc;
-      --ink:#181817;--ink-soft:#292927;--text:#20201f;--text-soft:#555551;--muted:#71716b;
-      --line:#d8d8d4;--line-strong:#c8c8c3;--success:#147a56;--warning:#a5630b;--danger:#b43b34;
+      --page:#fafafa;--panel:#f4f4f5;--panel-strong:#fbfbfb;--surface:#ececee;--surface-2:#dedee1;
+      --ink:#18181b;--ink-soft:#27272a;--text:#18181b;--text-soft:#52525b;--muted:#71717a;
+      --line:rgba(24,24,27,.07);--line-strong:rgba(24,24,27,.14);--success:#047857;--warning:#b45309;--danger:#b91c1c;
       --coral:#b43b34;--violet:#6b7280;--mint:#e7f1ec;--sage:#efefed;--yellow:#181817;
-      --heat-bg:#fbfbfa;--heat-ink:#181817;--heat-cell-rgb:24,24,23;--ivory:#fbfbfa;
-      --red:#b43b34;--green:#147a56;--focus:#3367d6;--radius:18px;
-      --shadow:0 1px 2px rgba(24,24,23,.04),0 14px 34px rgba(24,24,23,.045)
+      --heat-bg:#f4f4f5;--heat-ink:var(--text-soft);--heat-cell-rgb:24,24,27;--ivory:#fbfbfb;
+      --heat-zero:#e7e7e9;--heat-1:#c4c4c7;--heat-2:#a1a1a6;--heat-3:var(--muted);--heat-4:var(--ink);
+      --red:#b91c1c;--green:#047857;--focus:#52525b;--radius:20px;
+      --shadow:none
     }
-    html,body{background:var(--page);color:var(--text);color-scheme:light}
+    html,body{background:var(--page);color:var(--text);color-scheme:light;font-size:13px}
     body{padding:0;background:var(--page)}
     button,select,input,textarea{font:inherit}
     button:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-    .shell{width:min(100%,1360px);max-width:none;margin:0 auto;padding:30px 28px 22px;border:0;border-radius:0;background:transparent;box-shadow:none}
-    .topbar{position:static;z-index:auto;min-height:70px;margin:0 0 26px;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none}
-    .brand{gap:11px}.brand-mark{width:38px;height:38px;border-radius:10px;background:var(--ink);color:var(--panel-strong);font-size:19px;box-shadow:none}
-    .brand h1{color:var(--text);font-size:20px;font-weight:820;letter-spacing:-.035em}.brand p{margin-top:3px;color:var(--muted);font-size:11px}
-    .controls{gap:7px}.segmented{padding:3px;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
-    .segmented button,.button,.select{min-height:42px;border-radius:8px}
-    .segmented button{padding:8px 13px;color:var(--text-soft)}.segmented button:hover{color:var(--text);background:rgba(255,255,255,.55)}
-    .segmented button.active{color:var(--panel-strong);background:var(--ink);font-weight:760;box-shadow:0 1px 2px rgba(24,24,23,.16)}
-    .select,.button{border:1px solid var(--line);color:var(--text);background:var(--panel-strong);box-shadow:0 1px 1px rgba(24,24,23,.025)}
+    .shell{width:min(100%,1280px);max-width:none;margin:0 auto;padding:40px 40px 28px;border:0;border-radius:0;background:transparent;box-shadow:none}
+    .topbar{position:static;z-index:auto;min-height:48px;margin:0 0 22px;padding:0;border:0;border-radius:0;background:transparent;backdrop-filter:none}
+    .brand{gap:10px}.brand-mark{width:32px;height:32px;border-radius:10px;background:var(--ink);color:var(--panel-strong);font-size:17px;box-shadow:none}
+    .brand h1{color:var(--text);font-size:18px;font-weight:650;letter-spacing:-.025em}.brand p{margin-top:3px;color:var(--muted);font-size:11px}
+    .controls{gap:8px}.segmented{padding:3px;border:0;border-radius:18px;background:var(--panel)}
+    .segmented button,.button,.select{min-height:36px;border-radius:18px;font-size:12px;font-weight:500}
+    .segmented button{padding:7px 12px;color:var(--muted)}.segmented button:hover{color:var(--text);background:var(--surface)}
+    .segmented button.active{color:var(--ink);background:var(--panel-strong);font-weight:600;box-shadow:0 1px 2px rgba(24,24,27,.08)}
+    .select,.button{border:1px solid var(--line-strong);color:var(--text);background:transparent;box-shadow:none}
     .select{max-width:216px}.button:hover{border-color:var(--line-strong);background:var(--surface)}
     .button.share-action{border-color:var(--ink);color:var(--panel-strong);background:var(--ink)}.button.share-action:hover{background:var(--ink-soft)}
     .live:before{background:var(--success);box-shadow:0 0 0 3px rgba(20,122,86,.12)}
     .error{margin-bottom:16px;border-color:rgba(180,59,52,.26);border-radius:12px;background:#faeae8;color:#7d2823}
-    .bento{grid-template-columns:repeat(12,minmax(0,1fr));grid-template-areas:"overview overview overview overview overview overview overview overview overview overview overview overview" "trend trend trend trend trend trend trend heat heat heat heat heat" "models models models models models models models models models models models models" "accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts";gap:16px;align-items:stretch}
+    .bento{grid-template-columns:repeat(12,minmax(0,1fr));grid-template-areas:"overview overview overview overview overview overview overview overview overview overview overview overview" "trend trend trend trend trend trend trend heat heat heat heat heat" "models models models models models models models models models models models models" "accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts";gap:12px;align-items:stretch}
     .column{display:contents}.left-column,.right-column{display:contents}
     .bento>.overview{grid-area:overview}.bento>.trend{grid-area:trend}.bento>.right-column>.heat{grid-area:heat}.bento>.right-column>.model-share{grid-area:models}.bento>.left-column>.accounts{grid-area:accounts}
-    .card{overflow:hidden;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
-    .card-head{padding:23px 24px 0}.card-head h2{color:var(--text);font-size:21px;font-weight:820;letter-spacing:-.04em}.card-head p{margin-top:5px;color:var(--muted);font-size:11px;opacity:1}.card-body{padding:19px 24px 24px}
-    .overview{height:auto;min-height:390px;background:var(--panel)}.overview .card-head{align-items:flex-start}.overview .card-body{flex:1}
-    .overview-main{grid-template-columns:minmax(0,1.08fr) minmax(390px,.92fr);gap:18px;align-items:stretch;min-height:290px}
-    .overview-stats{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:10px;height:auto}
-    .stat-slab{display:flex;min-height:94px;padding:14px 15px;border:1px solid var(--line);border-radius:13px;background:var(--surface);align-items:flex-start;flex-direction:column;justify-content:space-between}
-    .stat-slab span{color:var(--muted);font-size:10px;font-weight:680;opacity:1}.stat-slab strong{max-width:100%;color:var(--text);font-size:clamp(18px,1.6vw,25px);font-weight:820;text-align:left;letter-spacing:-.045em}
-    .period-pane{min-width:0;padding:18px 19px 16px;border:1px solid var(--line);border-radius:15px;background:var(--panel-strong)}
+    .card{overflow:visible;border:0;border-radius:var(--radius);background:var(--panel);color:var(--text);box-shadow:var(--shadow)}
+    .card-head{padding:18px 20px 0}.card-head h2{color:var(--text);font-size:14px;font-weight:600;line-height:1.4;letter-spacing:-.01em}.card-head p{margin-top:3px;color:var(--muted);font-size:11px;opacity:1;overflow-wrap:anywhere}.card-body{padding:14px 20px 20px;min-width:0}
+    .overview{height:auto;min-height:0;background:var(--panel)}.overview .card-head{align-items:flex-start}.overview .card-body{flex:1}
+    .overview-main{grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:16px;align-items:stretch;min-height:0}
+    .overview-stats{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:8px;height:auto}
+    .stat-slab{display:flex;min-height:76px;padding:11px 12px;border:0;border-radius:14px;background:var(--surface);gap:6px;align-items:flex-start;flex-direction:column;justify-content:center}
+    .stat-slab span{color:var(--text-soft);font-size:11px;font-weight:400;opacity:1}.stat-slab strong{max-width:100%;color:var(--text);font-size:22px;font-weight:600;line-height:1.1;text-align:left;letter-spacing:-.035em}.stat-slab small{color:var(--muted);font-size:10px;line-height:1.2}
+    .period-pane{min-width:0;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel-strong)}
     .period-summary{grid-template-columns:minmax(0,1fr) auto;gap:14px}.period-heading{gap:8px}.period-label{color:var(--muted);font-size:10px;font-weight:720;text-transform:uppercase;letter-spacing:.04em}
-    .range-badge{padding:6px 9px;border:1px solid var(--line);background:var(--surface);color:var(--text-soft);font-size:10px}
-    .hero-number strong{margin-top:8px;color:var(--text);font-size:clamp(44px,5vw,70px);font-weight:850;letter-spacing:-.075em}.hero-number small{margin-top:8px;color:var(--muted);font-weight:650;opacity:1}
-    .overview-bars{height:112px;margin-top:19px;border-bottom:1px solid var(--line-strong);gap:6px}.overview-bar{background:var(--surface-2);border-radius:4px 4px 0 0}.overview-bar:hover{background:var(--ink);transform:translateY(-2px)}
+    .range-badge{padding:4px 8px;border:0;background:var(--surface);color:var(--text-soft);font-size:10px;font-weight:500}
+    .hero-number strong{margin-top:12px;color:var(--text);font-size:clamp(34px,4vw,54px);font-weight:600;line-height:1.05;letter-spacing:-.055em}.hero-number small{margin-top:8px;color:var(--muted);font-weight:500;opacity:1}
+    .overview-bars{height:90px;margin-top:16px;border-bottom:1px solid var(--line-strong);gap:6px}.overview-bar{min-width:0;background:var(--surface-2);border-radius:3px 3px 0 0}.overview-bar:hover{background:var(--ink);transform:translateY(-2px)}
     .qr-block{grid-template-columns:auto 104px;gap:8px}.qr-caption{color:var(--muted);font-size:10px}.qr-trigger{width:104px;height:104px;padding:7px;border:1px solid var(--line);border-radius:13px;background:var(--surface)}
     .qr-image{border-radius:8px}.qr-trigger:hover,.qr-trigger:focus-visible{background:var(--panel-strong);box-shadow:0 10px 24px rgba(24,24,23,.11);transform:translateY(-2px)}
-    .trend{height:360px;background:var(--panel);color:var(--text)}.trend .card-head p,.trend .legend span{color:var(--muted);opacity:1}.trend .card-body{padding-top:15px}
-    .trend-metrics{gap:8px;margin-bottom:14px}.trend-metric{padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
-    .trend-metric span,.trend-metric small{color:var(--muted)}.trend-metric strong{color:var(--text);font-size:20px}.trend .chart{height:206px}
-    .trend-chart .grid-line{stroke:var(--line);stroke-width:1}.trend-chart .axis-label{fill:var(--muted)}.trend-chart .point{stroke:var(--panel);stroke-width:2}.trend-chart .point:focus{stroke:var(--focus)}
-    .legend{gap:13px}.legend span{color:var(--muted);font-size:9px}.legend i{border-radius:50%}
-    .heat{height:360px;background:var(--panel);color:var(--text)}.heat .card-head{padding-bottom:5px}.heat .card-body{padding-top:18px}.heatmap-wrap{padding:3px 0 8px}.heat-label,.hour,.heat-scale{color:var(--muted)}
-    .cell{border-radius:3px;background:rgba(var(--heat-cell-rgb),.07)}.cell:hover{outline-color:var(--ink)}.heat-scale i{background:rgba(var(--heat-cell-rgb),.9)}
-    .model-share{min-height:305px;background:var(--panel);color:var(--text)}.model-share-body{gap:12px}.model-share-main{grid-template-columns:minmax(220px,.5fr) minmax(0,1.5fr);gap:28px}
+    .trend{height:auto;min-height:350px;background:var(--panel);color:var(--text)}.trend .card-head p,.trend .legend span{color:var(--muted);opacity:1}.trend .card-body{display:flex;flex-direction:column;gap:12px;padding-top:14px;min-height:0}
+    #trendChart{position:relative;flex:1 0 230px;min-width:0;min-height:230px}.trend .chart{position:absolute;inset:0;height:100%;width:100%}
+    .trend-chart .grid-line{stroke:var(--line);stroke-width:1}.trend-chart .axis-label{fill:var(--muted);font-size:9px}.trend-chart .trend-line{stroke-width:2}.trend-chart .trend-area{opacity:.035}
+    .trend-chart .point{fill:transparent;stroke:transparent;stroke-width:1.6}.trend-chart .point.is-last,.trend-chart .point:hover,.trend-chart .point:focus{fill:var(--panel-strong);stroke:var(--series-color);outline:none}
+    .trend .legend{margin:0;gap:6px 12px;min-height:15px;line-height:15px;align-items:center}.legend span{color:var(--muted);font-size:10px;overflow-wrap:anywhere;min-width:0}.legend i{border-radius:50%}
+    /* finesse · component: daily-activity · register=product · tokens: inherited monochrome
+       Shared legend, plot and axis tracks with the trend chart; width determines calendar weeks. */
+    .heat{height:auto;min-height:350px;align-self:stretch;display:flex;flex-direction:column;background:var(--panel);color:var(--text)}.heat .card-head{padding-bottom:0}.heat .card-head>div{min-width:0}.heat .card-head p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.heat .card-body{display:flex;flex:1;flex-direction:column;gap:12px;padding-top:14px;min-height:0}.heatmap-wrap{position:relative;flex:1 0 230px;min-height:230px;width:100%;min-width:0;overflow:visible;padding:16px 0 30px}
+    .heat-calendar{--day-size:18px;--day-gap:6px;display:grid;grid-template-columns:repeat(var(--heat-weeks),var(--day-size));grid-template-rows:repeat(7,var(--day-size));column-gap:var(--day-gap);row-gap:0;width:100%;height:100%;min-width:0;align-content:space-between;justify-content:space-between}
+    .heat-axis{position:absolute;left:0;bottom:0;display:block;width:100%;height:30px;overflow:visible}.heat-month{fill:var(--muted);font-size:9px;font-variant-numeric:tabular-nums}
+    .heat-day{display:block;width:var(--day-size);height:var(--day-size);border-radius:4px;background:var(--heat-zero);outline:2px solid transparent;outline-offset:1px}.heat-day[data-level="1"]{background:var(--heat-1)}.heat-day[data-level="2"]{background:var(--heat-2)}.heat-day[data-level="3"]{background:var(--heat-3)}.heat-day[data-level="4"]{background:var(--heat-4)}.heat-day:focus-visible{outline-color:var(--heat-ink)}
+    .heat-day.outside{background:var(--heat-zero);opacity:.45}.heat-day.unknown{background:var(--heat-zero)}
+    @media(hover:hover){.heat-day:not(.outside):hover{outline-color:var(--heat-ink)}}
+    .heat-scale{color:var(--muted);margin-top:0;height:var(--chart-legend-height,15px);min-height:15px;flex-shrink:0;font-size:10px;line-height:15px;justify-content:flex-end;align-items:flex-start}.heat-scale i{align-self:flex-start;margin-top:3px;border-radius:3px;background:var(--heat-zero)}.heat-scale i:nth-of-type(2){background:var(--heat-1)}.heat-scale i:nth-of-type(3){background:var(--heat-2)}.heat-scale i:nth-of-type(4){background:var(--heat-3)}.heat-scale i:nth-of-type(5){background:var(--heat-4)}
+    .model-share{min-height:0;background:var(--panel);color:var(--text)}.model-share-body{gap:12px}.model-share-main{grid-template-columns:minmax(200px,.5fr) minmax(0,1.5fr);gap:28px}
     .donut-wrap{width:min(100%,210px)}.donut-track{stroke:var(--surface-2)}.donut-center strong{color:var(--text)}.donut-center span,.model-share-value small,.model-share-empty{color:var(--muted)}
-    .model-share-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:none;overflow:visible}.model-share-row{min-height:46px;padding:8px 10px;border:1px solid transparent;border-radius:10px}.model-share-row:nth-child(odd){background:var(--surface)}.model-share-row:nth-child(even){background:var(--panel-strong);border-color:var(--line)}
+    .model-share-list{grid-template-columns:minmax(0,1fr);gap:0;max-height:none;overflow:visible}.model-share-row{min-height:42px;padding:8px 0;border:0;border-bottom:1px solid var(--line);border-radius:0}.model-share-row:nth-child(odd),.model-share-row:nth-child(even){background:transparent}.model-share-row:last-child{border-bottom:0}.model-share-name{font-weight:500;font-size:12px}
     .accounts{background:var(--panel);color:var(--text)}.accounts .card-body{padding-top:18px}.accounts .card-head{align-items:center}.account-toolbar{align-items:center}
-    .quota-view-toggle,.auth-button{min-height:42px;border:1px solid var(--line);border-radius:9px;background:var(--panel-strong);color:var(--text);box-shadow:none}.quota-view-toggle:hover,.auth-button:hover:not(:disabled){border-color:var(--line-strong);background:var(--surface);box-shadow:none}
+    .quota-view-toggle,.auth-button{min-height:36px;border:1px solid var(--line-strong);border-radius:18px;background:transparent;color:var(--text);font-size:12px;font-weight:500;box-shadow:none}.quota-view-toggle:hover,.auth-button:hover:not(:disabled){border-color:var(--line-strong);background:var(--surface);box-shadow:none}
     .auth-button.primary{border-color:var(--ink);background:var(--ink);color:var(--panel-strong)}.auth-button.primary:hover:not(:disabled){background:var(--ink-soft)}.auth-button.add{min-width:190px}
     .account-stack{gap:16px}.provider-group{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.provider-group-title{grid-column:1/-1;margin:2px 0 1px;color:var(--muted);font-size:10px;font-weight:780;letter-spacing:.12em;text-transform:uppercase}.provider-group-title:after{background:var(--line)}
-    .account-row{padding:15px;border:1px solid var(--line);border-radius:13px;background:var(--panel-strong)}
-    .account-head{align-items:flex-start}.account-main b{color:var(--text);font-size:13px}.account-main small{display:block;margin-top:4px;color:var(--muted);font-size:10px}
+    .account-row{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--panel-strong)}
+    .account-head{align-items:flex-start}.account-main b{color:var(--text);font-size:12px;font-weight:600}.account-main small{display:block;margin-top:4px;color:var(--muted);font-size:10px}
     .account-head-side{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}.status{color:var(--text-soft);font-size:10px;white-space:nowrap}.dot{width:6px;height:6px}.ok{background:var(--success)}.warn{background:var(--warning)}.bad{background:var(--danger)}
-    .quota-groups{gap:8px;margin-top:13px;padding-top:13px;border-top-color:var(--line)}.quota-group{border:1px solid var(--line);border-radius:10px;background:var(--surface)}.quota-group-head b{color:var(--text)}.quota-group-head small,.quota-meta,.quota-bucket .quota-meta{color:var(--muted)}.quota-bucket-name{color:var(--text-soft)}
-    .quota{background:var(--surface-2)}.quota i{background:var(--ink)}
+    .quota-groups{gap:10px;margin-top:10px;padding-top:10px;border-top-color:var(--line)}.quota-group{padding:8px 0;border:0;border-radius:0;background:transparent}.quota-group+.quota-group{border-top:1px solid var(--line);padding-top:12px}.quota-group-head b{color:var(--text);font-weight:500}.quota-group-head small,.quota-meta,.quota-bucket .quota-meta{color:var(--muted)}.quota-bucket-name{color:var(--text-soft)}
+    .quota{height:5px;background:var(--surface-2)}.quota i{background:var(--ink)}.quota-number{font-weight:600}
     .account-health{gap:8px;margin-top:10px}.account-alert{border-color:rgba(180,59,52,.2);background:#faeae8;color:#7d2823}.account-actions{gap:6px}
-    .account-action{min-width:70px;min-height:34px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-strong);color:var(--text);font-size:10px}.account-action:hover{border-color:var(--line-strong);background:var(--surface)}
+    .account-action{min-width:70px;min-height:32px;padding:6px 10px;border:1px solid var(--line);border-radius:16px;background:transparent;color:var(--text);font-size:10px;font-weight:500}.account-action:hover{border-color:var(--line-strong);background:var(--surface)}
     .account-action.danger{border-color:rgba(180,59,52,.2);background:transparent;color:var(--danger)}.account-action.danger:hover{border-color:rgba(180,59,52,.4);background:#faeae8}
     .footer{margin-top:16px;padding:4px 2px;color:var(--muted)}
     .auth-dialog{border-color:var(--line);background:var(--panel-strong);color:var(--text);box-shadow:0 24px 70px rgba(24,24,23,.2)}.auth-dialog::backdrop{background:rgba(24,24,23,.62)}
@@ -124,19 +132,19 @@
     .save-overlay{background:rgba(241,241,239,.84)}.save-panel{border-color:var(--line);background:var(--panel-strong);box-shadow:0 24px 70px rgba(24,24,23,.2)}.save-head h2{color:var(--text)}.save-head p{color:var(--muted)}.save-close{border-color:var(--line);background:var(--surface);color:var(--text)}.save-preview{border-color:var(--line);background:var(--page)}
     .is-capturing .share-action,.is-capturing .account-toolbar,.is-capturing .account-action{visibility:hidden!important}.is-capturing.capture-canvas .card{border-color:var(--line);box-shadow:none}
     @media(max-width:1080px){
-      .shell{padding-inline:20px}.topbar{align-items:flex-start}.bento{grid-template-areas:"overview overview overview overview overview overview overview overview overview overview overview overview" "trend trend trend trend trend trend trend trend heat heat heat heat" "models models models models models models models models models models models models" "accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts accounts"}
-      .overview-main{grid-template-columns:minmax(0,1fr) minmax(360px,.9fr)}.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr))}.stat-slab{min-height:72px}.provider-group{grid-template-columns:minmax(0,1fr)}
+      .shell{padding-inline:20px}.topbar{align-items:flex-start;flex-wrap:wrap}.controls{justify-content:flex-start}.stat-slab{padding:10px}.stat-slab strong{font-size:19px}.provider-group{grid-template-columns:minmax(0,1fr)}
     }
     @media(max-width:900px){
-      .shell{padding:18px 14px}.topbar{display:grid;gap:16px;margin-bottom:18px}.controls{justify-content:flex-start}.bento{grid-template-columns:minmax(0,1fr);grid-template-areas:"overview" "trend" "heat" "models" "accounts"}.overview,.trend,.heat{height:auto;min-height:0}.overview-main{grid-template-columns:minmax(0,1fr);min-height:0}.period-pane{order:-1}.trend{min-height:350px}.heat{min-height:280px}.model-share-main{grid-template-columns:minmax(190px,.65fr) minmax(0,1.35fr)}
+      .heat-scale{height:15px}
+      .shell{padding:24px 16px}.topbar{display:grid;gap:16px;margin-bottom:18px}.controls{justify-content:flex-start}.bento{grid-template-columns:minmax(0,1fr);grid-template-areas:"overview" "trend" "heat" "models" "accounts"}.overview,.trend{height:auto;min-height:0}.overview-main{grid-template-columns:minmax(0,1fr);min-height:0}.period-pane{order:-1}.model-share-main{grid-template-columns:minmax(190px,.65fr) minmax(0,1.35fr)}
     }
     @media(max-width:680px){
       .shell{padding:14px 10px 18px}.topbar{display:grid}.brand-mark{width:36px;height:36px}.controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.segmented{grid-column:1/-1;width:100%}.select{max-width:none;width:100%}.controls .button{padding-inline:11px}.share-action{flex:auto}
-      .card{border-radius:14px}.card-head{padding:18px 16px 0}.card-body{padding:15px 16px 18px}.card-head h2{font-size:19px}.overview-main{gap:12px}.period-pane{padding:14px}.period-summary{grid-template-columns:minmax(0,1fr) auto}.hero-number strong{font-size:clamp(38px,11vw,52px)}.qr-block{grid-template-columns:auto 92px}.qr-trigger{width:92px;height:92px}.overview-stats{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:none}.stat-slab{min-height:78px}.stat-slab strong{font-size:18px}.overview-bars{height:90px}
-      .trend-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.trend-metric{padding:9px}.trend-metric strong{font-size:17px}.heatmap{min-width:510px}.model-share-main{grid-template-columns:minmax(0,1fr)}.model-share-list{grid-template-columns:minmax(0,1fr)}.account-toolbar{justify-content:flex-start;width:100%}.account-toolbar>*{flex:1}.auth-button.add{min-width:0}.account-head{grid-template-columns:minmax(0,1fr)}.account-head-side{justify-content:space-between}.account-health{flex-direction:column;align-items:stretch}.account-actions{order:-1;justify-content:flex-start}.quota-group-head{display:block}.quota-group-head small{display:block;margin-top:3px;text-align:left}.quota-bucket{grid-template-columns:minmax(0,1fr) max-content minmax(0,1.2fr);grid-template-areas:"name number meta" "bar bar bar"}.quota-bucket .quota-meta{text-align:right}
+      .card{border-radius:20px}.card-head{padding:18px 16px 0}.card-body{padding:14px 16px 18px}.card-head h2{font-size:14px}.overview-main{gap:12px}.period-pane{padding:14px}.period-summary{grid-template-columns:minmax(0,1fr) auto}.hero-number strong{font-size:clamp(32px,8vw,48px)}.qr-block{grid-template-columns:auto 104px}.qr-trigger{width:104px;height:104px}.overview-stats{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:6px}.stat-slab{min-height:74px;padding:9px 8px}.stat-slab span{font-size:9px}.stat-slab strong{font-size:17px}.overview-bars{height:76px}
+      .heatmap{min-width:0;grid-template-columns:32px repeat(24,minmax(0,1fr));gap:2px}.model-share-main{grid-template-columns:minmax(0,1fr)}.model-share-list{grid-template-columns:minmax(0,1fr)}.account-toolbar{justify-content:flex-start;width:100%}.account-toolbar>*{flex:1}.auth-button.add{min-width:0}.accounts .card-head{flex-wrap:wrap}.account-head{grid-template-columns:minmax(0,1fr)}.account-head-side{justify-content:space-between}.account-health{flex-direction:column;align-items:stretch}.account-actions{order:-1;justify-content:flex-start}.quota-group-head{display:block}.quota-group-head small{display:block;margin-top:3px;text-align:left}.quota-bucket{grid-template-columns:minmax(0,1fr) max-content minmax(0,1.2fr);grid-template-areas:"name number meta" "bar bar bar"}.quota-bucket .quota-meta{text-align:right}.button,.select,.segmented button,.account-action,.auth-button,.quota-view-toggle{min-height:44px}
     }
     @media(max-width:420px){
-      .controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.select{grid-column:1/-1}.controls .button{width:100%}.period-summary{grid-template-columns:minmax(0,1fr)}.qr-block{grid-template-columns:auto 112px;justify-self:start}.qr-trigger{width:112px;height:112px}.overview-stats{grid-template-columns:minmax(0,1fr)}.stat-slab{min-height:70px}.trend-metrics{grid-template-columns:minmax(0,1fr)}.account-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}.footer{display:block}
+      .controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.select{grid-column:1/-1}.controls .button{width:100%}.period-summary{grid-template-columns:minmax(0,1fr)}.qr-block{grid-template-columns:auto 112px;justify-self:start}.qr-trigger{width:112px;height:112px}.stat-slab strong{font-size:clamp(12px,3.8vw,14px);letter-spacing:-.04em}.stat-slab small{font-size:9px}.account-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}.footer{display:block}
     }
   </style>
 </head>
@@ -148,13 +156,29 @@
   </header>
   <div class="error" id="error"></div>
   <section class="bento">
-    <article class="card overview"><div class="card-head overview-head"><div><h2>Token 总览</h2><p id="tokenScope">所选账号与统计周期</p></div></div><div class="card-body overview-main"><div class="overview-stats" aria-label="历史累计指标"><div class="stat-slab"><span>历史总 Token</span><strong id="historyTotal">--</strong></div><div class="stat-slab"><span>历史总请求</span><strong id="historyRequests">0</strong></div><div class="stat-slab"><span>总输入 Token</span><strong id="inputTokens">--</strong></div><div class="stat-slab"><span>总输出 Token</span><strong id="outputTokens">--</strong></div><div class="stat-slab"><span>缓存 Token</span><strong id="cacheTotal">--</strong></div><div class="stat-slab"><span>缓存命中率</span><strong id="cacheRate">--</strong></div></div><div class="period-pane"><div class="period-summary"><div class="hero-number"><div class="period-heading"><span class="period-label">所选时段 Token</span><span class="range-badge" id="rangeBadge">最近 24 小时</span></div><strong id="periodTotal">--</strong><small><span id="requestCount">0</span> 次请求</small></div><div class="qr-block"><span class="qr-caption">反代教程</span><button class="qr-trigger" id="posterTrigger" type="button" aria-label="反代教程二维码，查看「 Token 自由社群」" aria-haspopup="dialog"><img class="qr-image" src="/dashboard/assets/community-qr.png" alt="反代教程二维码"></button></div></div><div class="overview-bars" id="overviewBars" aria-label="时段 Token 柱状图"></div></div></div></article>
-    <article class="card trend"><div class="card-head"><div><h2>模型调用趋势</h2><p>按所选周期聚合各模型 Token 用量</p></div></div><div class="card-body"><div class="trend-metrics"><div class="trend-metric"><span>上游调用</span><strong id="upstreamCalls">0</strong></div><div class="trend-metric"><span>缓存命中率</span><strong id="cacheRateTop">--</strong></div><div class="trend-metric"><span>失败率</span><strong id="failureRate">--</strong><small id="failureCount">0 次失败</small></div></div><div class="legend" id="trendLegend"></div><div id="trendChart"></div></div></article>
+    <article class="card overview">
+      <div class="card-head overview-head"><div><h2>Token 总览</h2><p id="tokenScope">所选账号与统计周期</p></div></div>
+      <div class="card-body overview-main">
+        <div class="overview-stats" aria-label="历史累计与所选周期指标">
+          <div class="stat-slab"><span>历史总 Token</span><strong id="historyTotal">--</strong></div>
+          <div class="stat-slab"><span>历史总请求</span><strong id="historyRequests">0</strong></div>
+          <div class="stat-slab"><span>总输入 Token</span><strong id="inputTokens">--</strong></div>
+          <div class="stat-slab"><span>总输出 Token</span><strong id="outputTokens">--</strong></div>
+          <div class="stat-slab"><span>缓存 Token</span><strong id="cacheTotal">--</strong></div>
+          <div class="stat-slab"><span>历史缓存命中率</span><strong id="cacheRate">--</strong></div>
+          <div class="stat-slab"><span>上游调用 · 时段</span><strong id="upstreamCalls">0</strong></div>
+          <div class="stat-slab"><span>缓存命中率 · 时段</span><strong id="cacheRateTop">--</strong></div>
+          <div class="stat-slab"><span>失败率 · 时段</span><strong id="failureRate">--</strong><small id="failureCount">0 次失败</small></div>
+        </div>
+        <div class="period-pane"><div class="period-summary"><div class="hero-number"><div class="period-heading"><span class="period-label">所选时段 Token</span><span class="range-badge" id="rangeBadge">最近 24 小时</span></div><strong id="periodTotal">--</strong><small><span id="requestCount">0</span> 次请求</small></div><div class="qr-block"><span class="qr-caption">反代教程</span><button class="qr-trigger" id="posterTrigger" type="button" aria-label="反代教程二维码，查看「 Token 自由社群」" aria-haspopup="dialog"><img class="qr-image" src="/dashboard/assets/community-qr.png" alt="反代教程二维码"></button></div></div><div class="overview-bars" id="overviewBars" aria-label="时段 Token 柱状图"></div></div>
+      </div>
+    </article>
+    <article class="card trend"><div class="card-head"><div><h2>模型调用趋势</h2><p>按所选周期聚合各模型 Token 用量</p></div></div><div class="card-body"><div class="legend" id="trendLegend"></div><div id="trendChart"></div></div></article>
     <div class="column left-column">
       <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><div class="account-toolbar"><button class="auth-button add" id="addAntigravityAccount" type="button" aria-haspopup="dialog" aria-controls="antigravityAuthDialog">添加 Antigravity 账号</button><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div></div><div class="card-body account-stack" id="accounts"></div></article>
     </div>
     <div class="column right-column">
-      <article class="card heat"><div class="card-head"><div><h2>小时活跃热力图</h2><p id="heatCaption">最近 1 天 · 每格 1 小时</p></div></div><div class="card-body"><div class="heatmap-wrap" id="heatmap"></div><div class="heat-scale" id="heatScale"><span>少</span><i style="opacity:.14"></i><i style="opacity:.32"></i><i style="opacity:.55"></i><i style="opacity:.78"></i><i></i><span>多</span></div></div></article>
+      <article class="card heat"><div class="card-head"><div><h2>Token 活动</h2><p id="heatCaption">连续日历 · 每格 1 天</p></div></div><div class="card-body"><div class="heat-scale" id="heatScale" aria-label="每日 Token 用量由少到多"><span>少</span><i></i><i></i><i></i><i></i><i></i><span>多</span></div><div class="heatmap-wrap" id="heatmap"></div></div></article>
       <article class="card model-share"><div class="card-head"><div><h2>模型消耗占比</h2><p>所选周期的模型份额与 Token 构成</p></div></div><div class="card-body model-share-body"><div class="model-share-main"><div id="modelDonut"></div><div class="model-share-list" id="modelShareList" aria-label="模型用量排名"></div></div></div></article>
     </div>
   </section>
@@ -243,12 +267,51 @@
     const providerGroup=(type,label)=>{const accounts=rows.filter((a)=>(a.providerType||'cloudcode')===type);return accounts.length?'<section class="provider-group"><div class="provider-group-title">'+label+'</div>'+accounts.map(accountCard).join('')+'</section>':''};
     $('accounts').innerHTML=providerGroup('cloudcode','Antigravity')+providerGroup('robin','Gemini')
   }
-  function heatDays(){const lookup=new Map(),dayCount=Math.max(1,Math.ceil(hours/24));for(const row of DATA.usage.history||[]){const d=new Date(row.at);lookup.set([d.getFullYear(),d.getMonth(),d.getDate(),d.getHours()].join('-'),row.at)}const result=[];for(let offset=dayCount-1;offset>=0;offset--){const day=new Date();day.setHours(0,0,0,0);day.setDate(day.getDate()-offset);const values=[];for(let hour=0;hour<24;hour++){const key=[day.getFullYear(),day.getMonth(),day.getDate(),hour].join('-'),at=lookup.get(key);values.push(!tokenScopeKnown()?null:at?(tokenHourly(at).totalTokens||0):0)}result.push({label:day.toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'}),values})}return result}
-  function renderHeatmap(){const known=tokenScopeKnown(),days=heatDays(),values=days.flatMap((x)=>x.values),max=Math.max(...values,1);$('heatScale').style.visibility=known?'':'hidden';let html='<div class="heatmap"><span></span>';for(let h=0;h<24;h++)html+='<span class="hour">'+String(h).padStart(2,'0')+'</span>';for(const day of days){html+='<span class="heat-label">'+day.label+'</span>';for(let h=0;h<24;h++){const n=day.values[h],alpha=n?(.26+.7*Math.sqrt(n/max)):.08,value=n===null?'Token 未提供':num(n)+' Token';html+='<i class="cell" title="'+day.label+' '+h+':00 · '+value+'" style="background:rgba(var(--heat-cell-rgb),'+alpha+')"></i>'}}$('heatmap').innerHTML=html+'</div>'}
+  function heatDays(weeks=6){
+    const known=tokenScopeKnown(),totals=new Map();
+    const key=(date)=>[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+    const now=Date.now(),today=new Date(now);today.setHours(0,0,0,0);
+    const start=new Date(today);start.setDate(start.getDate()-((start.getDay()+6)%7)-(weeks-1)*7);
+    // Sum actual hourly records by local calendar date, including both hours on a DST fallback day.
+    for(const row of DATA.usage.history||[]){const date=new Date(row.at);if(!Number.isFinite(date.getTime())||date<start||date.getTime()>now)continue;const id=key(date);totals.set(id,(totals.get(id)||0)+Math.max(0,Number(tokenHourly(row.at).totalTokens)||0))}
+    return Array.from({length:weeks*7},(_,index)=>{const date=new Date(start);date.setDate(date.getDate()+index);const id=key(date),inRange=date<=today;return {date:id,month:date.getMonth()+1,monthStart:date.getDate()===1,inRange,recorded:totals.has(id),total:inRange&&known&&totals.has(id)?totals.get(id):null}});
+  }
+  function heatWeekCount(width){return Math.max(1,Math.floor((Math.max(0,Number(width)||0)+6)/(18+6)))}
+  function renderHeatmap(){
+    const known=tokenScopeKnown(),width=$('heatmap').clientWidth||272,weeks=heatWeekCount(width),days=heatDays(weeks),max=Math.max(...days.map((day)=>day.total||0),1);
+    $('heatScale').style.visibility=known?'':'hidden';let html='<div class="heat-calendar" style="--heat-weeks:'+weeks+'" role="group" aria-label="每日 Token 活动，列为周，行为周一至周日">';
+    days.forEach((day,index)=>{const column=Math.floor(index/7)+1,row=index%7+1,position='grid-column:'+column+';grid-row:'+row+';';
+      if(!day.inRange){html+='<span class="heat-day outside" aria-hidden="true" style="'+position+'"></span>';return}
+      const level=day.total>0?Math.min(4,Math.max(1,Math.ceil(4*Math.sqrt(day.total/max)))):0,description=day.date+' · '+(!known?'Token 未提供':day.recorded?fullNum(day.total)+' Token':'无记录');
+      html+='<span class="heat-day'+(day.total===null?' unknown':'')+'" data-date="'+day.date+'" data-level="'+level+'" tabindex="0" role="img" aria-label="'+description+'" title="'+description+'" style="'+position+'"></span>';
+    });
+    const months=new Map([[0,days[0].month]]);days.forEach((day,index)=>{if(day.monthStart)months.set(Math.floor(index/7),day.month)});
+    let lastLabel=-2,axis='';for(const [week,month] of months){if(week-lastLabel>=2){const last=week===weeks-1,x=last?width:week*(width-18)/Math.max(weeks-1,1);axis+='<text class="heat-month" x="'+x.toFixed(2)+'" y="22" text-anchor="'+(last?'end':'start')+'">'+month+'月</text>';lastLabel=week}}
+    $('heatmap').innerHTML=html+'</div><svg class="heat-axis" viewBox="0 0 '+width+' 30" aria-hidden="true">'+axis+'</svg>';
+    const label=account==='all'?'全部账号':DATA.accounts.find((a)=>a.id===account)?.email||account;
+    $('heatCaption').textContent=(known?label:'Token 未提供')+' · 每格 1 天';
+    $('heatCaption').title=[label,days[0].date+' 至 '+days.filter((day)=>day.inRange).at(-1).date,tokenScopeNote(),'独立于顶部统计周期；灰色日期可能无记录，悬停查看'].filter(Boolean).join(' · ');
+  }
   function sparkline(values,color){const w=240,h=34,max=Math.max(...values,1),step=w/Math.max(values.length-1,1),pts=values.map((v,i)=>(i*step).toFixed(1)+','+(h-3-(v/max)*(h-7)).toFixed(1)).join(' '),id='g'+color.slice(1);return '<svg class="spark" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none"><defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop stop-color="'+color+'" stop-opacity=".34"/><stop offset="1" stop-color="'+color+'" stop-opacity="0"/></linearGradient></defs><polygon points="0,'+h+' '+pts+' '+w+','+h+'" fill="url(#'+id+')"/><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.7"/></svg>'}
   function renderModelShare(){const known=tokenScopeKnown(),list=Object.entries(selectedModels()).sort((a,b)=>(b[1].totalTokens||0)-(a[1].totalTokens||0));const total=list.reduce((sum,[,usage])=>sum+(Number(usage.totalTokens)||0),0);$('modelDonut').title=tokenScopeNote();if(!list.length||!total){$('modelDonut').innerHTML='<div class="model-share-empty">'+(known?'暂无模型用量':'Token 未提供')+'</div>';$('modelShareList').innerHTML='<div class="model-share-empty">'+(known?'选择其他周期或账号查看用量':'上游未提供用量，无法计算占比')+'</div>';return}const slices=list;const radius=78,circumference=2*Math.PI*radius;let offset=0;const arcs=slices.map(([name,usage],index)=>{const ratio=Math.max(0,Number(usage.totalTokens)||0)/total,length=Math.max(0,circumference*ratio-1.8),dashoffset=-offset;offset+=circumference*ratio;return '<circle class="donut-segment" cx="110" cy="110" r="'+radius+'" stroke="'+COLORS[index%COLORS.length]+'" stroke-dasharray="'+length+' '+(circumference-length)+'" stroke-dashoffset="'+dashoffset+'"><title>'+esc(name)+' · '+num(usage.totalTokens)+' Token · '+pct(usage.totalTokens,total,2)+'</title></circle>'}).join('');$('modelDonut').innerHTML='<div class="donut-wrap"><svg viewBox="0 0 220 220" role="img" aria-label="模型 Token 消耗占比环图"><circle class="donut-track" cx="110" cy="110" r="'+radius+'"/><g transform="rotate(-90 110 110)">'+arcs+'</g></svg><div class="donut-center"><strong>'+num(total)+'</strong><span>总消耗 Token</span></div></div>';$('modelShareList').innerHTML=list.map(([model,usage],index)=>'<div class="model-share-row"><i class="model-share-dot" style="background:'+COLORS[index%COLORS.length]+'" aria-hidden="true"></i><span class="model-share-name" title="'+esc(model)+'">'+esc(model)+'</span><span class="model-share-value">'+num(usage.totalTokens)+'<small>'+pct(usage.totalTokens,total,2)+'</small></span></div>').join('')}
-  const TREND_COLORS=['#20201f','#6e8379','#8a7966','#9a9a94'];
-  function smoothPath(points){if(points.length<2)return points.length?'M'+points[0].x.toFixed(2)+' '+points[0].y.toFixed(2):'';const slopes=[];for(let i=0;i<points.length-1;i++)slopes.push((points[i+1].y-points[i].y)/(points[i+1].x-points[i].x));const tangents=points.map((_,i)=>i===0?slopes[0]:i===points.length-1?slopes.at(-1):(slopes[i-1]+slopes[i])/2);for(let i=1;i<slopes.length;i++)if(slopes[i-1]*slopes[i]<=0)tangents[i]=0;for(let i=0;i<slopes.length;i++){if(!slopes[i]){tangents[i]=0;tangents[i+1]=0;continue}const a=tangents[i]/slopes[i],b=tangents[i+1]/slopes[i],magnitude=a*a+b*b;if(magnitude>9){const factor=3/Math.sqrt(magnitude);tangents[i]=factor*a*slopes[i];tangents[i+1]=factor*b*slopes[i]}}let path='M'+points[0].x.toFixed(2)+' '+points[0].y.toFixed(2);for(let i=0;i<points.length-1;i++){const p=points[i],q=points[i+1],dx=q.x-p.x;path+=' C'+(p.x+dx/3).toFixed(2)+' '+(p.y+tangents[i]*dx/3).toFixed(2)+' '+(q.x-dx/3).toFixed(2)+' '+(q.y-tangents[i+1]*dx/3).toFixed(2)+' '+q.x.toFixed(2)+' '+q.y.toFixed(2)}return path}
+  const TREND_COLORS=['#18181b','#60766b','#89735d','#71717a'];
+  // Adapted from baileyh8/antigravity-gateway manager/web/lib/chart-path.ts (MIT).
+  // Monotone interpolation passes through the observations without inventing peaks.
+  function smoothPath(points){
+    if(!points.length)return '';
+    const fmt=(n)=>Number(n.toFixed(3)),start='M'+fmt(points[0].x)+' '+fmt(points[0].y);
+    if(points.length===1)return start;
+    const slopes=points.slice(1).map((p,i)=>(p.y-points[i].y)/(p.x-points[i].x));
+    const tangent=points.map((_,i)=>{
+      if(!i)return slopes[0];if(i===points.length-1)return slopes[i-1];
+      const a=slopes[i-1],b=slopes[i];if(a*b<=0)return 0;
+      const h0=points[i].x-points[i-1].x,h1=points[i+1].x-points[i].x,w1=2*h1+h0,w2=h1+2*h0;
+      return (w1+w2)/(w1/a+w2/b);
+    });
+    return start+points.slice(1).map((p,i)=>{const previous=points[i],h=(p.x-previous.x)/3;return ' C'+fmt(previous.x+h)+' '+fmt(previous.y+tangent[i]*h)+' '+fmt(p.x-h)+' '+fmt(p.y-tangent[i+1]*h)+' '+fmt(p.x)+' '+fmt(p.y)}).join('');
+  }
+  function niceAxisMax(value){if(!Number.isFinite(value)||value<=0)return 1;const base=10**Math.floor(Math.log10(value));return ([1,1.5,2,2.5,3,4,5,10].find((n)=>value/base<=n)||10)*base}
+  function axisNumber(value){if(value===0)return '0';if(value>=1e8)return metricNum(value);if(value>=1e4)return Number((value/1e4).toFixed(1))+'万';return Number(value.toFixed(1)).toLocaleString('zh-CN')}
   function trendSvg(){
     if(!tokenScopeKnown()){$('trendLegend').innerHTML='';return '<div class="empty">上游未提供 Token 用量</div>'}
     const timeline=history(),ranked=Object.entries(selectedModels()).sort((a,b)=>(b[1].totalTokens||0)-(a[1].totalTokens||0));
@@ -259,28 +322,29 @@
     const binSize=Math.max(1,Math.ceil(timeline.length/72)),buckets=[];
     for(let i=0;i<timeline.length;i+=binSize){const rows=timeline.slice(i,i+binSize),date=new Date(rows.at(-1).at),label=hours<=24?date.toLocaleTimeString('zh-CN',{hour:'2-digit'}):hours<=168?date.toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit'}):date.toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'});buckets.push({label,indices:rows.map((_,index)=>i+index)})}
     const plotted=series.map((item)=>({...item,points:buckets.map((bucket)=>bucket.indices.reduce((sum,index)=>sum+(item.values[index]||0),0))}));
-    const max=Math.max(...plotted.flatMap((item)=>item.points),1),W=720,H=220,L=48,R=12,T=14,B=28,plotW=W-L-R,plotH=H-T-B;
+    const max=niceAxisMax(Math.max(...plotted.flatMap((item)=>item.points),1)),chart=$('trendChart'),W=Math.max(240,chart.clientWidth||720),H=Math.max(230,chart.clientHeight||230),L=54,R=12,T=16,B=30,plotW=W-L-R,plotH=H-T-B;
     const x=(index)=>L+index*plotW/Math.max(buckets.length-1,1),y=(value)=>T+plotH-(value/max)*plotH;
     let grid='';
-    for(let tick=0;tick<=3;tick++){const value=max*(1-tick/3),yy=T+plotH*tick/3;grid+='<line class="grid-line" x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'"/><text class="axis-label" x="'+(L-8)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+num(value)+'</text>'}
-    const tickCount=Math.min(5,buckets.length),tickIndexes=[...new Set(Array.from({length:tickCount},(_,index)=>Math.round(index*(buckets.length-1)/Math.max(tickCount-1,1))))];
-    for(const index of tickIndexes){grid+='<text class="axis-label" x="'+x(index).toFixed(1)+'" y="'+(H-7)+'" text-anchor="middle">'+esc(buckets[index].label)+'</text>'}
-    let marks='';
+    for(let tick=0;tick<=4;tick++){const value=max*(1-tick/4),yy=y(value);grid+='<line class="grid-line" x1="'+L+'" y1="'+yy.toFixed(1)+'" x2="'+(W-R)+'" y2="'+yy.toFixed(1)+'"/><text class="axis-label" x="'+(L-8)+'" y="'+(yy+3).toFixed(1)+'" text-anchor="end">'+axisNumber(value)+'</text>'}
+    const tickCount=Math.min(W<400?2:3,buckets.length),tickIndexes=[...new Set(Array.from({length:tickCount},(_,index)=>Math.round(index*(buckets.length-1)/Math.max(tickCount-1,1))))];
+    for(const index of tickIndexes){const anchor=index===0?'start':index===buckets.length-1?'end':'middle';grid+='<text class="axis-label" x="'+x(index).toFixed(1)+'" y="'+(H-8)+'" text-anchor="'+anchor+'">'+esc(buckets[index].label)+'</text>'}
+    let areas='',marks='';
     plotted.forEach((item,seriesIndex)=>{
       const points=item.points.map((value,index)=>({x:x(index),y:y(value),value,label:buckets[index].label}));
-      marks+='<path class="trend-line'+(item.other?' is-other':'')+'" d="'+smoothPath(points)+'" stroke="'+item.color+'"/>';
-      const every=Math.max(1,Math.ceil(points.length/24));
+      const curve=smoothPath(points),dash=seriesIndex?' stroke-dasharray="'+(['','6 3','2 3','8 3 2 3'][seriesIndex])+'"':'';
+      areas+='<path class="trend-area" d="'+curve+' L'+x(points.length-1).toFixed(2)+' '+(H-B)+' L'+x(0).toFixed(2)+' '+(H-B)+' Z" fill="'+item.color+'"/>';
+      marks+='<path class="trend-line'+(item.other?' is-other':'')+'" d="'+curve+'" stroke="'+item.color+'"'+dash+'/>';
       points.forEach((point,index)=>{
-        if(points.length>36&&index%every!==0&&index!==points.length-1)return;
         const label=esc(item.name+' · '+point.label+' · '+num(point.value)+' Token'),focus=' tabindex="0" aria-label="'+label+'"';
-        if(seriesIndex===2)marks+='<rect class="point" x="'+(point.x-2.8).toFixed(1)+'" y="'+(point.y-2.8).toFixed(1)+'" width="5.6" height="5.6" fill="'+item.color+'"'+focus+'><title>'+label+'</title></rect>';
-        else marks+='<circle class="point" cx="'+point.x.toFixed(1)+'" cy="'+point.y.toFixed(1)+'" r="3.2" fill="'+item.color+'"'+focus+'><title>'+label+'</title></circle>';
+        marks+='<circle class="point'+(index===points.length-1?' is-last':'')+'" cx="'+point.x.toFixed(1)+'" cy="'+point.y.toFixed(1)+'" r="3" style="--series-color:'+item.color+'"'+focus+'><title>'+label+'</title></circle>';
       });
     });
     $('trendLegend').innerHTML=plotted.map((item)=>'<span><i style="background:'+item.color+'"></i>'+esc(item.name)+'</span>').join('');
-    return '<svg class="chart trend-chart" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="各模型 Token 用量平滑折线图"><title>模型调用趋势</title><desc>根据所选周期聚合的模型 Token 用量，数据点可通过键盘聚焦查看数值。</desc>'+grid+marks+'</svg>';
+    return '<svg class="chart trend-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="各模型 Token 用量平滑折线图"><title>模型调用趋势</title><desc>根据所选周期聚合的模型 Token 用量，数据点可通过键盘聚焦查看数值。</desc>'+grid+areas+marks+'</svg>';
   }
-  function render(){renderKpis();renderAccounts();renderHeatmap();renderModelShare();$('trendChart').innerHTML=trendSvg();const label=account==='all'?'全部账号':DATA.accounts.find((a)=>a.id===account)?.email||account,dayCount=Math.max(1,Math.ceil(hours/24));$('heatCaption').textContent=!tokenScopeKnown()?'Token 未提供 · 每格 1 小时':label+' · 最近 '+dayCount+' 天 · 每格 1 小时';$('heatCaption').title=tokenScopeNote();$('freshness').textContent='数据更新时间：'+new Date(DATA.generatedAt).toLocaleString('zh-CN');$('subtitle').textContent='Antigravity Gateway v'+DATA.version+' · 本地实时统计 · '+label}
+  // Fit the SVG coordinate system to its actual panel, without stretching text or clipping axes.
+  if(typeof ResizeObserver!=='undefined'){let chartSize='',heatWidth=0;new ResizeObserver(([entry])=>{const size=Math.round(entry.contentRect.width)+'x'+Math.round(entry.contentRect.height);if(size!==chartSize){chartSize=size;if(DATA)$('trendChart').innerHTML=trendSvg()}}).observe($('trendChart'));new ResizeObserver(([entry])=>{const width=Math.floor(entry.contentRect.width);if(width!==heatWidth){heatWidth=width;if(DATA)renderHeatmap()}}).observe($('heatmap'));new ResizeObserver(([entry])=>{$('heatScale').style.setProperty('--chart-legend-height',entry.contentRect.height+'px')}).observe($('trendLegend'))}
+  function render(){renderKpis();renderAccounts();renderHeatmap();renderModelShare();$('trendChart').innerHTML=trendSvg();const label=account==='all'?'全部账号':DATA.accounts.find((a)=>a.id===account)?.email||account;$('freshness').textContent='数据更新时间：'+new Date(DATA.generatedAt).toLocaleString('zh-CN');$('subtitle').textContent='Antigravity Gateway v'+DATA.version+' · 本地实时统计 · '+label}
   async function load(){try{const res=await fetch('/dashboard/data',{cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);DATA=await res.json();$('error').classList.remove('show');const select=$('accountFilter'),value=select.value;select.innerHTML='<option value="all">全部账号</option>'+DATA.accounts.map((a)=>'<option value="'+esc(a.id)+'">'+esc(a.email||a.id)+'</option>').join('');select.value=[...select.options].some((o)=>o.value===value)?value:'all';account=select.value;render()}catch(e){$('error').textContent='看板数据读取失败：'+e.message;$('error').classList.add('show')}}
   async function handleAccountAction(event){
     const button=event.target.closest('[data-account-action]');if(!button)return;
@@ -302,7 +366,7 @@
   function blobDataUrl(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(reader.error||new Error('图片读取失败'));reader.readAsDataURL(blob)})}
   async function shareImageSources(original){return Promise.all([...original.querySelectorAll('img')].map(async(image)=>{const source=image.currentSrc||image.src;if(!source||source.startsWith('data:'))return source;try{const response=await fetch(source,{cache:'force-cache'});if(!response.ok)throw new Error('HTTP '+response.status);return await blobDataUrl(await response.blob())}catch{return source}}))}
   function canvasLooksRendered(canvas){if(!canvas?.width||!canvas?.height)return false;try{const probe=document.createElement('canvas');probe.width=16;probe.height=16;const context=probe.getContext('2d',{willReadFrequently:true});context.drawImage(canvas,0,0,16,16);const pixels=context.getImageData(0,0,16,16).data,colors=new Set();let visible=0;for(let index=0;index<pixels.length;index+=4){if(pixels[index+3]>8)visible++;colors.add((pixels[index]>>4)+','+(pixels[index+1]>>4)+','+(pixels[index+2]>>4)+','+(pixels[index+3]>>4))}return visible>32&&colors.size>3}catch{return true}}
-  async function captureDashboard(original,{foreignObjectRendering,imageSources}){const bounds=original.getBoundingClientRect(),width=Math.ceil(Math.max(bounds.width,original.scrollWidth)),height=Math.ceil(original.scrollHeight),scale=Math.max(1,Math.min(3,16000/width,16000/height,Math.sqrt(48000000/(width*height)))),documentLeft=bounds.left+window.scrollX,documentTop=bounds.top+window.scrollY,options={backgroundColor:'#f1f1ef',scale,useCORS:true,logging:false,width,height,scrollX:0,scrollY:0,foreignObjectRendering,onclone:async(doc)=>{prepareShareDocument(doc,{fallback:!foreignObjectRendering,imageSources});await Promise.all([...doc.querySelectorAll('.shell img')].map((image)=>image.decode?.().catch(()=>{})))}};if(foreignObjectRendering){options.x=-documentLeft;options.y=-documentTop}return html2canvas(original,options)}
+  async function captureDashboard(original,{foreignObjectRendering,imageSources}){const bounds=original.getBoundingClientRect(),width=Math.ceil(Math.max(bounds.width,original.scrollWidth)),height=Math.ceil(original.scrollHeight),scale=Math.max(1,Math.min(3,16000/width,16000/height,Math.sqrt(48000000/(width*height)))),documentLeft=bounds.left+window.scrollX,documentTop=bounds.top+window.scrollY,options={backgroundColor:getComputedStyle(document.body).backgroundColor,scale,useCORS:true,logging:false,width,height,scrollX:0,scrollY:0,foreignObjectRendering,onclone:async(doc)=>{prepareShareDocument(doc,{fallback:!foreignObjectRendering,imageSources});await Promise.all([...doc.querySelectorAll('.shell img')].map((image)=>image.decode?.().catch(()=>{})))}};if(foreignObjectRendering){options.x=-documentLeft;options.y=-documentTop}return html2canvas(original,options)}
   // Nested images can disappear from an otherwise valid foreignObject snapshot.
   // Paint the QR from its decoded source so a partial render cannot silently omit it.
   async function drawShareQr(canvas,original,imageSources){
