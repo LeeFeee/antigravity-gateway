@@ -243,6 +243,10 @@ class AccountPool {
   canUseFallback() { return this.removedIdentities.size === 0; }
 
   noAccountError(model = '') {
+    const quotaProtected = this.hasManagedAccounts()
+      ? [...this.entries.values()].some((entry) => entry.account.enabled !== false
+        && this.quotaManager?.isQuotaProtected?.(entry.account.id, model))
+      : this.quotaManager?.isQuotaProtected?.('local-agy-session', model);
     const now = this.now();
     if (now - this.lastUnavailableDiagnosticAt >= 10_000) {
       this.lastUnavailableDiagnosticAt = now;
@@ -250,11 +254,15 @@ class AccountPool {
       for (const entry of this.entries.values()) {
         const state = entry.account.enabled === false ? 'disabled'
           : entry.healthState !== 'available' ? entry.healthState
-            : entry.cooldownUntil > now ? 'cooldown' : 'available';
+            : entry.cooldownUntil > now ? 'cooldown'
+              : this.quotaManager?.protection?.(entry.account.id)?.protected ? 'quota_protected' : 'available';
         states[state] = (states[state] || 0) + 1;
       }
       this.reportDiagnostic('account_pool_unavailable', null, { model, states });
     }
+    if (quotaProtected) return new DirectProviderError('暂无满足条件的账号：Gemini 5 小时额度低于 10% 的账号已受保护，请等待额度恢复或使用其他可用账号。', {
+      code: 'account_quota_protected', status: 429
+    });
     return new DirectProviderError(model
       ? `当前没有可用于模型 ${model} 的 Antigravity 账号。`
       : '当前账号池没有可用的 Antigravity 账号。', {
@@ -433,6 +441,7 @@ class AccountPool {
       && !excluded.has(entry.account.id)
       && entry.cooldownUntil <= now
       && (entry.modelCooldowns.get(model) || 0) <= now
+      && !this.quotaManager?.isQuotaProtected?.(entry.account.id, model)
       && (!knownSupporters?.size || knownSupporters.has(entry.account.id))
       && (!(entry.supportedModels instanceof Set) || entry.supportedModels.has(model))
     );
@@ -547,7 +556,7 @@ class AccountPool {
       const bound = routingKey ? this.sessions.get(routingKey) : null;
       const sticky = bound ? this.entries.get(bound.accountId) : null;
       const active = affinityActive(bound, now);
-      // The hot path is an O(1) local-state lookup: no quota snapshots, sorting,
+      // Includes the precomputed quota-protection flag. No quota snapshots, sorting,
       // refresh I/O, or account-list scan occurs during a healthy affinity window.
       if (active && sticky && this.isEntryEligible(sticky, model, excluded, now)) return sticky;
       if (bound && routingKey) this.deleteSession(routingKey);
@@ -571,6 +580,7 @@ class AccountPool {
   async send(normalized, model, options = {}) {
     if (!this.hasManagedAccounts()) {
       if (!this.canUseFallback()) throw this.noAccountError(model);
+      if (this.quotaManager?.isQuotaProtected?.('local-agy-session', model)) throw this.noAccountError(model);
       options.onAccountSelected?.({
         accountId: 'local-agy-session',
         email: '',
@@ -650,6 +660,7 @@ class AccountPool {
     const model = 'gemini-3.1-flash-image';
     if (!this.hasManagedAccounts()) {
       if (!this.canUseFallback()) throw this.noAccountError(model);
+      if (this.quotaManager?.isQuotaProtected?.('local-agy-session', model)) throw this.noAccountError(model);
       options.onAccountSelected?.({ accountId: 'local-agy-session', email: '', source: 'local-agy-session', attempt: 1 });
       let responseSeen = false;
       const result = await this.fallbackProvider.generateImage(request, {
@@ -757,7 +768,9 @@ class AccountPool {
         ? 'disabled'
         : entry.healthState !== 'available'
           ? entry.healthState
-          : entry.cooldownUntil > now ? 'cooldown' : 'available',
+          : entry.cooldownUntil > now ? 'cooldown'
+            : this.quotaManager?.protection?.(entry.account.id)?.protected ? 'quota_protected' : 'available',
+      quotaProtection: this.quotaManager?.protection?.(entry.account.id) || null,
       healthReason: entry.healthReason,
       healthSince: entry.healthSince,
       healthMessage: entry.healthMessage,

@@ -50,6 +50,17 @@ function quotaGroups() {
   ];
 }
 
+test('quota protection is a warning state, not an authentication failure requiring recheck', () => {
+  const html = renderAccountHtml([{
+    id: 'protected', email: 'protected@example.com', providerType: 'cloudcode', enabled: true,
+    state: 'quota_protected', quota: { groups: quotaGroups() }
+  }]);
+  assert.match(html, /Gemini 额度保护/);
+  assert.match(html, /dot warn/);
+  assert.doesNotMatch(html, /data-account-action="recheck"|认证异常/);
+  assert.match(html, /Claude 和 GPT/);
+});
+
 test('Robin dashboard does not invent a subscription tier or full quota', () => {
   const html = renderAccountHtml([{
     id: 'robin-one', email: 'one@example.com', providerType: 'robin', enabled: true,

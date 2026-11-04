@@ -5,7 +5,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const { QUOTA_TTL_MS: REFRESH_INTERVAL_MS,
-  QUOTA_RETRY_MS: TARGETED_REFRESH_MIN_INTERVAL_MS } = require('./account-scheduling');
+  QUOTA_RETRY_MS: TARGETED_REFRESH_MIN_INTERVAL_MS,
+  LOW_QUOTA_REFRESH_MS, isGeminiQuotaModel, geminiQuotaProtection } = require('./account-scheduling');
 const LOAD_PATH = '/v1internal:loadCodeAssist';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const USAGE_PATH = '/v1internal:retrieveUserQuotaSummary';
@@ -53,7 +54,7 @@ function usageQuotaSnapshot(body) {
     const buckets = (Array.isArray(group?.buckets) ? group.buckets : []).flatMap((bucket, bucketIndex) => {
       const rawRemaining = bucket?.remainingFraction ?? bucket?.remaining_fraction;
       const remaining = rawRemaining == null || String(rawRemaining).trim() === '' || typeof rawRemaining === 'boolean' ? NaN : Number(rawRemaining);
-      if (!Number.isFinite(remaining)) return [];
+      if (!Number.isFinite(remaining) || remaining < 0 || remaining > 1) return [];
       return [{
         id: String(bucket?.bucketId || bucket?.bucket_id || `${groupIndex}-${bucketIndex}`),
         displayName: String(bucket?.displayName || bucket?.display_name || bucket?.window || ''),
@@ -111,7 +112,11 @@ class QuotaManager {
     this.directory = path.join(configDir, 'state');
     this.file = path.join(this.directory, 'quota.json');
     this.snapshots = this.load();
+    this.protections = new Map(Object.entries(this.snapshots).map(([id, snapshot]) => [id,
+      snapshot?.geminiQuotaProtection || geminiQuotaProtection(snapshot, null, snapshot?.groupsObservedAt || snapshot?.observedAt)
+    ]));
     this.timer = null;
+    this.lowQuotaTimer = null;
     this.startupTimer = null;
     this.refreshing = null;
     this.refreshingAccounts = new Map();
@@ -131,6 +136,8 @@ class QuotaManager {
     if (this.timer) return;
     this.timer = setInterval(() => { void this.refresh().catch(() => {}); }, this.intervalMs);
     this.timer.unref?.();
+    this.lowQuotaTimer = setInterval(() => { void this.refreshLowQuotas().catch(() => {}); }, LOW_QUOTA_REFRESH_MS);
+    this.lowQuotaTimer.unref?.();
     this.startupTimer = setTimeout(() => { this.startupTimer = null; void this.refresh().catch(() => {}); }, 1000);
     this.startupTimer.unref?.();
   }
@@ -140,6 +147,20 @@ class QuotaManager {
     this.startupTimer = null;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.lowQuotaTimer) clearInterval(this.lowQuotaTimer);
+    this.lowQuotaTimer = null;
+  }
+
+  protection(accountId) { return this.protections.get(accountId) || null; }
+
+  isQuotaProtected(accountId, model) {
+    return isGeminiQuotaModel(model) && this.protection(accountId)?.protected === true;
+  }
+
+  async refreshLowQuotas() {
+    await Promise.allSettled(this.activeEntries().filter((entry) => (
+      this.usableEntry(entry) && this.protection(entry.account.id)?.fastRefresh
+    )).map((entry) => this.refreshAccount(entry.account.id)));
   }
 
   async drain() {
@@ -183,10 +204,10 @@ class QuotaManager {
     const activeIds = new Set(allEntries.map((entry) => entry.account.id));
     let changed = false;
     for (const id of Object.keys(this.snapshots)) {
-      if (!activeIds.has(id)) { delete this.snapshots[id]; changed = true; }
+      if (!activeIds.has(id)) { delete this.snapshots[id]; this.protections.delete(id); changed = true; }
     }
     const results = await Promise.allSettled(allEntries.filter((entry) => this.usableEntry(entry)).map((entry) => (
-      this.refreshAccount(entry.account.id, { force: true, summaryOnly: false })
+      this.refreshAccount(entry.account.id, { force: !this.protection(entry.account.id)?.fastRefresh, summaryOnly: false })
     )));
     if (changed || results.some((result) => result.status === 'fulfilled' && result.value)) this.save();
     return this.snapshots;
@@ -208,7 +229,8 @@ class QuotaManager {
       return pending.promise;
     }
     const last = this.refreshAttempts.get(accountId);
-    if (!force && last?.provider === entry.provider && this.now() - last.at < TARGETED_REFRESH_MIN_INTERVAL_MS) {
+    const retryMs = this.protection(accountId)?.fastRefresh ? LOW_QUOTA_REFRESH_MS : TARGETED_REFRESH_MIN_INTERVAL_MS;
+    if (!force && last?.provider === entry.provider && this.now() - last.at < retryMs) {
       return Promise.resolve(this.snapshots[accountId] || null);
     }
     this.refreshAttempts.set(accountId, { at: this.now(), provider: entry.provider });
@@ -268,6 +290,9 @@ class QuotaManager {
       const groups = usageResult.status === 'fulfilled' ? usageQuotaSnapshot(usageResult.value) : previous.groups || [];
       const now = this.now();
       const observedAt = new Date(now).toISOString();
+      const protection = usageResult.status === 'fulfilled'
+        ? geminiQuotaProtection({ groups }, this.protection(accountId), observedAt)
+        : this.protection(accountId);
       const expiresAt = new Date(now + this.intervalMs).toISOString();
       const groupsExpiresAt = usageResult.status === 'fulfilled' ? expiresAt : previous.groupsExpiresAt || previous.expiresAt || '';
       const modelsExpiresAt = !summaryOnly && modelsResult.status === 'fulfilled' ? expiresAt : previous.modelsExpiresAt || previous.expiresAt || '';
@@ -290,9 +315,11 @@ class QuotaManager {
         ...credits,
         available,
         groups,
-        models
+        models,
+        geminiQuotaProtection: protection
       };
       this.snapshots[accountId] = snapshot;
+      this.protections.set(accountId, protection);
       // The periodic full-pool refresh persists its batch once, rather than
       // writing the complete quota file once for every account.
       if (!this.refreshing) this.save();
@@ -323,6 +350,7 @@ class QuotaManager {
 
   remove(accountId) {
     this.refreshAttempts.delete(accountId);
+    this.protections.delete(accountId);
     if (!Object.prototype.hasOwnProperty.call(this.snapshots, accountId)) return false;
     delete this.snapshots[accountId];
     this.save();

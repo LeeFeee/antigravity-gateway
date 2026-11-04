@@ -10,9 +10,9 @@ Antigravity Gateway 是一个本地 Anthropic/OpenAI 兼容网关。它复用官
 
 > 非 Google 官方项目，仅用于学习、兼容性研究与个人测试。模型权限、额度、地区限制和服务条款均以上游为准。
 
-当前版本：`v1.7.2`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
+当前版本：`v1.7.3`。详细更新记录见 [CHANGELOG.md](CHANGELOG.md)。
 
-v1.7.2 在面板“账号池与额度”新增“添加 Antigravity 账号”入口：复用现有 OAuth 和账号保存逻辑，支持本机自动回调、服务器部署时粘贴完整回调 URL、取消重试及刷新后继续。原终端和 Gemini 添加入口、模型路由及轮询额度策略保持不变。本版包含已合并的 PR #12–#16 修复与适配；759 项自动化测试及隔离账号数据的浏览器交互检查通过，未通过测试新增真实 Google 授权账号。
+v1.7.3 新增 Gemini 5 小时额度保护：剩余额度低于 10% 时跳过该账号，低于 15% 时每分钟刷新一次，成功确认恢复到 10% 及以上后自动解除；重启、查询失败或仅到达重置时间不会误解封。面板显示“Gemini 额度保护”，Claude/GPT 不受影响，其余轮询、权重与黏性策略保留。延续面板布局、图表与每日 Token 活动展示改进，并保留已合并的 PR #12–#16；788 项自动化测试通过。
 
 v1.7.1 修复 macOS Argon 工具连接失效后反复 409：原连接可用就回传原调用；连接丢失时，收到 agent 携带完整调用与结果历史的新请求，按该请求重新转发。网关不执行工具、不自行继续任务、不自动重做命令；只有孤立的工具结果无法凭空恢复上下文。账号轮询和额度策略不变，714 项本地回归通过。
 
@@ -437,6 +437,8 @@ python3 skills/antigravity-video-understanding/scripts/analyze_video.py \
 
 三条通道复用同一个选号模块，只读取本地保存的真实上游额度快照，不等待联网查询，也不根据 Token 用量推算余额。有效的 Gemini 周压力档位优先，未知压力账号随后，已知周额度耗尽账号保留为最终兜底。快照过期、周重置已到或字段缺失时按未知处理，并异步补刷新；同档未知的 5 小时重置时间仍退回加权轮询。后台保留约 30 分钟一次的完整刷新；缺失/失效快照及实际额度失败只补查相关账号的额度汇总，普通补刷新每账号至少间隔 5 分钟，重复请求合并；Cloud Code 的额度查询最多同时刷新两个账号，Gemini 后台批次逐个查询。新增账号、凭据变化及重新检测成功会触发该账号的完整刷新。额度汇总单独记录观测时间，套餐或模型目录查询成功不会把旧额度标记为最新。
 
+**Gemini 额度保护**：三条通道仅依据 Gemini **5 小时**剩余额度，低于 **10%** 时禁止继续分配 Gemini 请求（包括优先生图账号和普通黏性续接），低于 **15%** 时后台每账号每分钟补查一次额度，继续合并重复查询并限制并发。周额度压力排序、账号权重与固定 5 小时黏性窗口不变，Claude/GPT 请求不受该保护影响。看板显示“Gemini 额度保护”，不归类为认证异常、不计作上游失败；保护会持久保存，查询失败、字段缺失、缓存过期或重置时间到达均不自动解封，仅当新额度响应确认剩余恢复至 **10% 及以上**时解除。所有候选账号受保护时返回 `account_quota_protected`（HTTP 429），不会兜底耗用保留额度。已经发出的请求不强制中断；Gemini App 待续接的原生工具任务不能跨账号重放，因此保护期间保留任务并提示等待恢复。该机制依赖上游额度快照，不能保证已在途的大请求或并发请求不会继续消耗余额。
+
 支持客户端显式发送 `x-client-id`/`x-agent-id`、`x-session-id`/`x-conversation-id`、`x-parent-session-id` 和 `x-routing-affinity-id`；未提供时继续兼容现有 Claude、Codex、OpenAI 和 Anthropic 客户端字段。这些客户端原始标识仅用于本地散列路由，不写入模型提示词。Cloud Code 使用独立的原生 cascade/trajectory UUID 与已实抓的上游 sessionId，不把本地路由哈希冒充该字段；其他通道沿用各自的会话映射。日志中的 request、client、session 和 affinity 短标识可用于区分并发链路。
 
 ### 用量和额度
@@ -611,9 +613,9 @@ The captured Codex CLI 0.159.2 Responses profile also maps exec_command/run_comm
 
 > Unofficial and intended for learning, compatibility research, and personal testing. Upstream plans, quotas, regional restrictions, and terms still apply.
 
-Current version: `v1.7.2`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current version: `v1.7.3`. See [CHANGELOG.md](CHANGELOG.md) for release notes.
 
-Version 1.7.2 adds an Add Antigravity account entry to the dashboard using the existing OAuth flow and account store. It supports automatic local callbacks, full callback URL submission for remote servers, cancellation, retry and resuming after a page reload. Existing terminal and Gemini account entry points, model routing, rotation and quota policies remain unchanged. This release includes merged PRs #12–#16; all 759 automated tests and browser interaction checks with isolated account data pass. These checks do not add a real Google account.
+Version 1.7.3 adds Gemini five-hour quota protection: accounts below 10% remaining are skipped for Gemini requests, those below 15% refresh quota once per minute, and protection clears only after a successful reading of at least 10%. Restarts, failed queries and elapsed reset times cannot clear protection. The dashboard shows the protected state; Claude/GPT and other rotation, weight and affinity policies remain unchanged. This release also retains the dashboard layout, chart and daily Token activity improvements, along with merged PRs #12–#16. All 788 automated tests pass.
 
 Version 1.7.1 fixes repeated Robin 409 errors after a tool connection is lost. A live connection receives its original receipts; otherwise a new client request with complete call/result history can be forwarded as a fresh query. The gateway never executes tools, invents continuation prompts or independently restarts an agent task. Account rotation and quota policy are unchanged; all 714 local regressions pass.
 
@@ -861,6 +863,8 @@ All three transports share the same scheduling module. Soft affinity is persiste
 For new bindings and failover, retain current-model availability priority, then calculate Gemini-only weekly pressure bands as `floor(log2(remainingFraction / hoursUntilWeeklyReset))`, with a one-minute minimum denominator. The highest, adjacent, and remaining usable bands receive 4x, 2x, and 1x weights; the earliest Gemini five-hour reset within each band receives a further 2x boost before applying the configured account weight through smooth weighted rotation. Claude/GPT weekly quota does not affect pressure regardless of the requested model. Healthy sticky continuations and preferred image accounts skip recalculation and do not spend rotation weights. Failover rereads snapshots and tries each account at most once per request.
 
 Scheduling reads locally stored quota summaries without waiting for network queries or estimating quota from Token counts. Unknown/expired weekly data follows known positive pressure, and exhausted snapshots remain advisory fallbacks. Full background refreshes remain approximately half-hourly. Missing/expired data and live quota failures trigger asynchronous per-account summary refreshes, coalesced and throttled to once per five minutes (Cloud Code limits refresh concurrency to two; Gemini background batches are sequential); account additions, changed credentials and successful authentication rechecks trigger full account refreshes. Summary freshness is tracked independently, so successful plan/catalog queries cannot renew stale quota data.
+
+**Gemini quota reserve:** on all three transports, a confirmed Gemini **five-hour** balance below **10%** blocks new Gemini requests, including sticky continuations and preferred image accounts. Below **15%**, background summary refreshes run once per account per minute with coalescing and existing concurrency bounds. Weekly pressure, configured weights, fixed affinity windows and Claude/GPT requests are otherwise unchanged. The dashboard labels this `Gemini 额度保护`; it is not an authentication failure or a failed upstream call. The protection persists across restarts, failed/malformed queries, TTL expiry and reset timestamps; only a successful quota response confirming at least **10%** clears it. If no eligible account remains, the gateway returns HTTP 429 `account_quota_protected` rather than spending the reserve. In-flight requests are not interrupted. Pending native Gemini App tool tasks retain their owning account and wait for recovery instead of replaying tools on another account. Delayed upstream telemetry and in-flight concurrent/large requests mean this is not an absolute balance guarantee.
 
 Generated-image responses include a readable text receipt, Markdown, an accessible URL, the absolute path on the gateway host, and structured `artifacts` metadata for each protocol. Clients that ignore extension fields can still obtain the delivery address from the assistant text. File content supports both `GET` and `HEAD`.
 

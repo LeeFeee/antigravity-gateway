@@ -10,6 +10,9 @@ const SESSION_TTL_MS = Math.max(0, Number.isFinite(configuredSeconds)
 const SESSION_CAPACITY = 2000;
 const QUOTA_TTL_MS = 30 * 60_000;
 const QUOTA_RETRY_MS = 5 * 60_000;
+const LOW_QUOTA_REFRESH_MS = 60_000;
+const GEMINI_QUOTA_RESERVE = 0.10;
+const GEMINI_QUOTA_REFRESH_THRESHOLD = 0.15;
 const TRANSIENT_COOLDOWN_MS = 15_000;
 const DEFAULT_COOLDOWN_MS = 60_000;
 const MAX_COOLDOWN_MS = 7 * 24 * 60 * 60_000;
@@ -49,6 +52,31 @@ function geminiGroup(snapshot) {
   return (snapshot?.groups || []).find((group) => /gemini/i.test([
     group?.id, group?.displayName, group?.description
   ].filter(Boolean).join(' ')));
+}
+
+function isGeminiQuotaModel(model) {
+  return /^gemini(?:-|\/|$)/i.test(String(model || '').replace(/^models\//, ''));
+}
+
+// Update only from a successful quota-summary response. Missing/malformed data
+// keeps the last known state: neither TTL expiry nor a reset timestamp is proof
+// of recovery. Persist this small state separately from advisory rank freshness.
+function geminiQuotaProtection(snapshot, previous = null, observedAt = '') {
+  const buckets = geminiGroup(snapshot)?.buckets?.filter((bucket) => (
+    String(bucket?.window || '').toLowerCase() === '5h'
+    || String(bucket?.id || '').toLowerCase().endsWith('-5h')
+  )) || [];
+  if (buckets.length !== 1) return previous;
+  const bucket = buckets[0], raw = bucket.remainingFraction;
+  const remaining = raw == null || typeof raw === 'boolean' || String(raw).trim() === '' ? NaN : Number(raw);
+  if (!Number.isFinite(remaining) || remaining < 0 || remaining > 1) return previous;
+  return {
+    remainingFraction: remaining,
+    // Windows reports 1 - percentageUsed; tolerate binary rounding at 10/15%.
+    protected: remaining + Number.EPSILON < GEMINI_QUOTA_RESERVE,
+    fastRefresh: remaining + Number.EPSILON < GEMINI_QUOTA_REFRESH_THRESHOLD,
+    resetTime: String(bucket.resetTime || ''), observedAt
+  };
 }
 
 function geminiWeeklyPressure(snapshot, now) {
@@ -133,6 +161,8 @@ function weightedPickWithRanks(ranks, weights) {
 
 module.exports = {
   SESSION_TTL_MS, SESSION_CAPACITY, QUOTA_TTL_MS, QUOTA_RETRY_MS, TRANSIENT_COOLDOWN_MS,
+  LOW_QUOTA_REFRESH_MS, GEMINI_QUOTA_RESERVE, GEMINI_QUOTA_REFRESH_THRESHOLD,
+  isGeminiQuotaModel, geminiQuotaProtection,
   durationMs, retryDelay, affinityActive,
   geminiWeeklyPressure, geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks
 };

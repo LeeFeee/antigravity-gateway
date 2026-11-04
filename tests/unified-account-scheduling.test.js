@@ -10,7 +10,7 @@ const { AccountPool } = require('../src/account-pool');
 const { AccountStore } = require('../src/account-store');
 const { GeminiAccountStore } = require('../src/gemini-account-store');
 const { RobinAccountPool } = require('../src/robin-account-pool');
-const { SESSION_TTL_MS, QUOTA_TTL_MS, QUOTA_RETRY_MS } = require('../src/account-scheduling');
+const { SESSION_TTL_MS, QUOTA_TTL_MS, QUOTA_RETRY_MS, isGeminiQuotaModel, geminiQuotaProtection } = require('../src/account-scheduling');
 const { REFRESH_INTERVAL_MS, TARGETED_REFRESH_MIN_INTERVAL_MS } = require('../src/quota-manager');
 
 const NOW = Date.parse('2026-10-18T00:00:00Z');
@@ -62,6 +62,7 @@ function fixture(t, channel, definitions, send) {
     ? new AccountPool({ store, now: () => time, providerFactory: factory })
     : new RobinAccountPool({ store, now: () => time, providerFactory: factory });
   if (isCloud) pool.quotaManager = {
+    isQuotaProtected: (id, model) => isGeminiQuotaModel(model) && geminiQuotaProtection(snapshots.get(id))?.protected,
     get: id => {
       reads++;
       const quota = snapshots.get(id);
@@ -128,11 +129,11 @@ test('all channels preserve sticky bindings without quota reads, weight spending
   }
 });
 
-test('all channels skip depleted budgets with alternatives and retain the final fallback', t => {
+test('all channels retain weekly advisory fallback but never spend protected five-hour quota', t => {
   for (const channel of CHANNELS) {
     const state = fixture(t, channel, [{ fiveRemaining: 0 }, { remaining: 0 }, {}]);
     for (let i = 0; i < 10; i++) assert.equal(state.pick(), 'account-2', channel);
-    assert.equal(state.pick('', new Set(['account-1', 'account-2'])), 'account-0');
+    assert.equal(state.pick('', new Set(['account-1', 'account-2'])), undefined);
     assert.equal(state.pick('', new Set(['account-0', 'account-2'])), 'account-1');
     assert.equal(state.pick('', new Set(['account-0', 'account-1', 'account-2'])), undefined);
     assert.ok(state.pool.entries.size === 3, 'advisory exhaustion never removes credentials');

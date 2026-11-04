@@ -10,6 +10,7 @@ const { GeminiWindowsProvider } = require('./gemini-windows-provider');
 
 const { SESSION_TTL_MS: ROBIN_SESSION_TTL_MS, SESSION_CAPACITY,
   QUOTA_TTL_MS: ROBIN_QUOTA_TTL_MS, QUOTA_RETRY_MS: ROBIN_QUOTA_RETRY_MS,
+  LOW_QUOTA_REFRESH_MS, isGeminiQuotaModel, geminiQuotaProtection,
   TRANSIENT_COOLDOWN_MS, retryDelay, affinityActive, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
 
 function quotaKey(account) {
@@ -79,6 +80,7 @@ class RobinAccountPool {
     this.quotaRefreshes = new Map();
     this.quotaAttempts = new Map();
     this.quotaTimer = null;
+    this.lowQuotaTimer = null;
     this.quotaController = new AbortController();
     this.stateFile = path.join(path.dirname(store.directory), 'state', 'robin-account-pool.json');
     this.loadSessions();
@@ -123,6 +125,9 @@ class RobinAccountPool {
         lastError: ''
       });
       const entry = this.entries.get(account.id);
+      const quota = account.providerMetadata?.[quotaKey(account)];
+      entry.quotaProtection = account.providerMetadata?.[`${quotaKey(account)}Protection`]
+        || geminiQuotaProtection(quota, null, quota?.fetchedAt);
       const health = account.providerMetadata?.robinHealth;
       const validHealth = health && health.credentialFingerprint === credentialFingerprint(account);
       entry.unhealthyUntil = validHealth
@@ -143,6 +148,7 @@ class RobinAccountPool {
     const now = this.now();
     return [...this.entries.values()].filter((entry) => {
       if (!entry.account.enabled || excluded.has(entry.account.id) || entry.unhealthyUntil > now) return false;
+      if (isGeminiQuotaModel(model) && entry.quotaProtection?.protected) return false;
       if (!model) return true;
       return entry.models.has(model) || (!entry.catalogKnown && (entry.account.capabilities || []).includes(model));
     });
@@ -177,14 +183,13 @@ class RobinAccountPool {
 
   refreshAccountQuota(entry) {
     // Never await quota I/O on the request path. Refreshes coalesce and retain
-    // the same per-account five-minute throttle as Cloud Code.
+    // Cloud Code's five-minute throttle, shortened to one minute below 15%.
     void this.refreshQuota(entry.account.id, { refreshFresh: true }).catch(() => {});
   }
 
   selectAccount(model, routingKey, excluded = new Set(), { preferredAccountId = '', allowSticky = true } = {}) {
     this.cleanupSessions();
     const candidates = this.eligible(model, excluded);
-    if (!candidates.length) return null;
     if (allowSticky) {
       const preferred = preferredAccountId && candidates.find((entry) => entry.account.id === preferredAccountId);
       if (preferred) return preferred;
@@ -193,6 +198,7 @@ class RobinAccountPool {
       if (sticky && affinityActive(bound, this.now())) return sticky;
       if (bound) this.deleteSession(routingKey);
     }
+    if (!candidates.length) return null;
     return weightedPickWithRanks(this.quotaRanks(model, candidates), this.weights);
   }
 
@@ -235,12 +241,23 @@ class RobinAccountPool {
       this.activeTasks.delete(requestKey);
       throw new RobinProviderError('当前 Argon 任务的账号已被禁用或删除。', { code: 'robin_task_account_unavailable', status: 409 });
     }
+    if (taskAccount && isGeminiQuotaModel(model) && taskAccount.quotaProtection?.protected) {
+      // A pending client-tool task cannot move its upstream cursor/results to
+      // another account. Keep ownership intact, but do not spend the reserve.
+      if (routingKey) this.deleteSession(routingKey);
+      throw new RobinProviderError('当前 Argon 任务账号处于 Gemini 额度保护，请等待额度恢复后继续此任务。', {
+        code: 'account_quota_protected', status: 429
+      });
+    }
     let lastError = null, attempts = 0;
     while (true) {
       options.signal?.throwIfAborted();
       const entry = taskAccount || this.selectAccount(model, routingKey, excluded, { allowSticky: attempts === 0 });
       if (!entry) {
         if (lastError) throw lastError;
+        if (isGeminiQuotaModel(model) && [...this.entries.values()].some(candidate => candidate.account.enabled && candidate.quotaProtection?.protected)) {
+          throw new RobinProviderError('暂无满足条件的 Gemini 账号：5 小时额度低于 10% 的账号已受保护。', { code: 'account_quota_protected', status: 429 });
+        }
         throw new RobinProviderError(`没有可用于模型 ${model} 的 Gemini 账号。`, { code: 'robin_model_unavailable', status: 503 });
       }
       excluded.add(entry.account.id);
@@ -380,10 +397,11 @@ class RobinAccountPool {
       quota: this.quotaSnapshot(entry.account),
       models: [...entry.models],
       enabled: entry.account.enabled,
-      available: entry.account.enabled && entry.unhealthyUntil <= this.now(),
+      available: entry.account.enabled && entry.unhealthyUntil <= this.now() && !entry.quotaProtection?.protected,
+      quotaProtection: entry.quotaProtection,
       quotaDepleted: this.quotaDepleted(entry.account),
       state: !entry.account.enabled ? 'disabled' : entry.unhealthyUntil > this.now()
-        ? entry.healthState || 'unavailable' : 'available',
+        ? entry.healthState || 'unavailable' : entry.quotaProtection?.protected ? 'quota_protected' : 'available',
       healthMessage: entry.unhealthyUntil > this.now() ? entry.lastError : '',
       healthSince: entry.healthSince,
       modelCooldowns: [],
@@ -428,7 +446,8 @@ class RobinAccountPool {
     if (!entry?.account.enabled || entry.unhealthyUntil > this.now() || !entry.provider.getQuota) return null;
     const snapshot = this.quotaSnapshot(entry.account);
     if (snapshot && !snapshot.stale && !refreshFresh) return snapshot;
-    if (this.now() - (this.quotaAttempts.get(id) ?? -Infinity) < ROBIN_QUOTA_RETRY_MS) return snapshot;
+    const retryMs = entry.quotaProtection?.fastRefresh ? LOW_QUOTA_REFRESH_MS : ROBIN_QUOTA_RETRY_MS;
+    if (this.now() - (this.quotaAttempts.get(id) ?? -Infinity) < retryMs) return snapshot;
     this.quotaAttempts.set(id, this.now());
     const controllerSignal = this.quotaController.signal;
     const expectedAuthorization = entryAuthorizationKey(entry);
@@ -441,12 +460,17 @@ class RobinAccountPool {
         // Never resurrect deleted accounts or overwrite credentials refreshed
         // concurrently by the auth provider.
         if (!latest) return null;
+        const fetchedAt = new Date(this.now()).toISOString();
+        const protection = geminiQuotaProtection(quota, entry.quotaProtection, fetchedAt);
         entry.account = this.store.update(id, {
           ...(quota.planName ? { planName: quota.planName } : {}),
           providerMetadata: {
-            ...latest.providerMetadata, [quotaKey(latest)]: { ...quota, fetchedAt: new Date(this.now()).toISOString() }
+            ...latest.providerMetadata, [quotaKey(latest)]: { ...quota, fetchedAt },
+            // Reauthorizing may invalidate telemetry, not prove quota recovery.
+            [`${quotaKey(latest)}Protection`]: protection
           }
         });
+        entry.quotaProtection = protection;
         return this.quotaSnapshot(entry.account);
       } catch {
         // Optional quota telemetry must not disable an otherwise usable account.
@@ -468,11 +492,21 @@ class RobinAccountPool {
     }
   }
 
+  async refreshLowQuotas() {
+    this.reload();
+    for (const entry of this.entries.values()) {
+      if (this.quotaController.signal.aborted) break;
+      if (entry.quotaProtection?.fastRefresh) await this.refreshQuota(entry.account.id, { refreshFresh: true });
+    }
+  }
+
   start() {
     if (this.quotaTimer) return;
     if (this.quotaController.signal.aborted) this.quotaController = new AbortController();
     this.quotaTimer = setInterval(() => { void this.refreshQuotas().catch(() => {}); }, ROBIN_QUOTA_TTL_MS);
     this.quotaTimer.unref?.();
+    this.lowQuotaTimer = setInterval(() => { void this.refreshLowQuotas().catch(() => {}); }, LOW_QUOTA_REFRESH_MS);
+    this.lowQuotaTimer.unref?.();
     void this.refreshQuotas().catch(() => {});
   }
 
@@ -593,6 +627,8 @@ class RobinAccountPool {
   stop() {
     if (this.quotaTimer) clearInterval(this.quotaTimer);
     this.quotaTimer = null;
+    if (this.lowQuotaTimer) clearInterval(this.lowQuotaTimer);
+    this.lowQuotaTimer = null;
     this.quotaController.abort();
     for (const entry of this.entries.values()) entry.provider.stop?.();
     this.activeTasks.clear();

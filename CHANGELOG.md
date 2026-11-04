@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.7.3 - 2026-11-04
+
+- Protect the Gemini five-hour quota reserve across Cloud Code, Robin OAuth and Windows Gemini accounts: below 10% remaining, skip the account for Gemini requests, including sticky and preferred-image routes. Return a clear quota-protection error if no account is eligible instead of consuming the reserve. Claude/GPT routing is unchanged.
+- Refresh low Gemini five-hour quota below 15% once per minute using the existing coalescing and concurrency limits. Persist protection across restarts and clear it only after a successful, valid reading of at least 10%; missing/failed readings and elapsed reset timestamps do not release it.
+- Show Gemini quota protection in the existing dashboard without treating it as an authentication failure. Preserve weekly-pressure ranking, account weights and affinity for eligible accounts. Native tool continuations retain their original account and wait for recovery rather than replaying tools on another account; in-flight requests are not interrupted.
+- Include the dashboard visual/layout refinements, compact daily Token activity grid, chart alignment and account-removal access already shipped on main. Retain the existing authorization flows and merged PRs #12–#16.
+- Add quota boundary, recovery, restart, refresh-throttle, image routing, tool-continuation and dashboard regressions. All 788 automated tests pass.
+
 ## 1.7.2 - 2026-10-24
 
 - Add an Antigravity account entry in the dashboard's account pool section. Reuse the existing OAuth flow and account store; support automatic local callbacks and pasting the complete callback URL when the gateway runs on a remote server.

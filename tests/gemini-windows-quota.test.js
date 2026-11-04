@@ -159,7 +159,7 @@ test('Windows snapshots persist on their own accounts, appear in status and guid
   assert.ok(store.windows.list()[0].providerMetadata.geminiWindowsQuota);
   const status = pool.status();
   assert.equal(status.find(a => a.id === 'one').quotaDepleted, true);
-  assert.equal(status.find(a => a.id === 'one').state, 'available');
+  assert.equal(status.find(a => a.id === 'one').state, 'quota_protected');
   assert.equal(status.find(a => a.id === 'two').quota.groups[0].buckets[0].remainingFraction, 1);
   assert.equal(pool.selectAccount('gemini-4-argon', 'client', new Set([oauth.id])).account.id, 'two');
   assert.equal(pool.entries.get('one').unhealthyUntil, 0);
@@ -197,11 +197,11 @@ test('an expired five-hour window does not release an exhausted weekly window', 
   assert.equal(pool.status()[0].quotaDepleted, true);
 });
 
-test('Windows five-hour reset permits retry and does not manufacture a full balance', async t => {
+test('Windows five-hour reset alone never clears protection or manufactures a full balance', async t => {
   const value = usage(1, 0.1); value.pools[0].gxu.windowRefreshesAt = new Date(now + 60000).toISOString();
   const { pool, advance } = harness(t, () => windowsQuotaSnapshot(value, now));
   await pool.refreshQuota('one'); advance(61000);
-  assert.equal(pool.status()[0].state, 'available'); assert.equal(pool.status()[0].quota.stale, true);
+  assert.equal(pool.status()[0].state, 'quota_protected'); assert.equal(pool.status()[0].quota.stale, true);
   assert.equal(pool.status()[0].quotaDepleted, false);
   assert.equal(pool.status()[0].quota.groups[0].buckets[0].remainingFraction, 0);
 });
@@ -221,13 +221,18 @@ test('Windows async quota rejects deleted/replaced grants and coalesces refresh 
 });
 
 test('depleted Windows quota does not migrate a tool task already owned by that account', async t => {
-  const { pool } = harness(t);
+  const { pool, advance } = harness(t);
   await pool.refreshQuotas(); const options = { clientId: 'client', sessionId: 'tool-task' };
   pool.activeTasks.set(JSON.stringify(['client', 'tool-task']), 'one');
   pool.entries.get('one').provider.send = async (_normalized, _model, opts) => {
     assert.equal(opts.requireExistingTurn, true); return { text: 'done', toolCalls: [], usageKnown: false };
   };
   pool.entries.get('two').provider.send = async () => assert.fail('No tool replay');
+  await assert.rejects(pool.send({ messages: [], tools: [] }, 'gemini-4-argon', options), { code: 'account_quota_protected' });
+  assert.equal(pool.activeTasks.get(JSON.stringify(['client', 'tool-task'])), 'one');
+  advance(60000);
+  pool.entries.get('one').provider.getQuota = async () => windowsQuotaSnapshot(usage(0, 0), now);
+  await pool.refreshQuota('one', { refreshFresh: true });
   assert.equal((await pool.send({ messages: [], tools: [] }, 'gemini-4-argon', options)).accountId, 'one');
 });
 
