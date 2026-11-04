@@ -186,8 +186,8 @@ test('Robin five-hour depletion remains protected until confirmed recovery, with
   assert.equal(calls, 1);
 });
 
-test('Robin quota snapshot never breaks an already executing client tool task', async t => {
-  const { pool, store } = harness(t, async () => robinQuotaSnapshot(budget(2, 1), now));
+test('Robin weekly protection holds an existing tool task until weekly recovery', async t => {
+  const { pool, store, advance } = harness(t, async () => robinQuotaSnapshot(budget(2, 1), now));
   store.update('r', { capabilities: [ARGON_MODEL] });
   pool.entries.get('r').models.add(ARGON_MODEL);
   const options = { clientId: 'c', sessionId: 's' };
@@ -197,6 +197,11 @@ test('Robin quota snapshot never breaks an already executing client tool task', 
   };
   pool.activeTasks.set(JSON.stringify(['c', 's']), 'r');
   await pool.refreshQuota('r');
+  await assert.rejects(pool.send({ messages: [], tools: [] }, ARGON_MODEL, options), { code: 'account_quota_protected' });
+  assert.equal(pool.activeTasks.get(JSON.stringify(['c', 's'])), 'r');
+  pool.entries.get('r').provider.getQuota = async () => robinQuotaSnapshot(budget(2, 0.95), now);
+  advance(5 * 60000);
+  await pool.refreshQuota('r', { refreshFresh: true });
   const result = await pool.send({ messages: [], tools: [] }, ARGON_MODEL, options);
   assert.equal(result.text, 'done');
   assert.equal(pool.activeTasks.size, 0);

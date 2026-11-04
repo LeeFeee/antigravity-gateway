@@ -355,7 +355,7 @@
       const path='/dashboard/accounts/'+encodeURIComponent(id)+(action==='recheck'?'/recheck':'')+'?provider='+encodeURIComponent(provider);
       const response=await fetch(path,{method:action==='recheck'?'POST':'DELETE',headers:{accept:'application/json'},cache:'no-store'}),body=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(body?.error?.message||('HTTP '+response.status));
-      showToast(action==='recheck'?(body.recovered?'账号鉴权通过，已恢复路由':'账号当前无需重新检测'):'账号已从账号池彻底删除');
+      showToast(action==='recheck'?(body.recovered?((body.account?.state||body.state)==='quota_protected'?'推理检测通过，账号仍处于 Gemini 额度保护':'推理检测通过，已恢复路由'):'账号当前无需重新检测'):'账号已从账号池彻底删除');
       await load();
     }catch(error){showToast((action==='recheck'?'重新检测失败：':'删除失败：')+(error?.message||'请稍后重试'));if(action==='recheck')await load()}finally{if(button.isConnected){button.disabled=false;button.textContent=original}}
   }

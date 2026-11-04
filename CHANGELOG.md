@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.4 - 2026-11-04
+
+- Add an independent Gemini weekly quota reserve below 5% alongside the five-hour 10% reserve on all three transports. Persist each window separately, migrate v1.7.3 snapshots, require confirmed recovery of every protected window, and preserve the existing five-hour-only fast refresh trigger and scheduling weights.
+- Require actual, account-pinned text inference before a manual dashboard recheck clears quarantine. Model-catalog success alone cannot hide a generation-time 403/TOS_VIOLATION. Coalesce concurrent checks, bound them to 45 seconds, keep them out of client sessions, and retain quarantine across failed checks and credential renewal. Late replies cannot restore deleted, disabled or replaced accounts.
+- All 817 automated tests pass. A live check with the affected account reproduced catalog HTTP 200 followed by inference HTTP 403/TOS_VIOLATION; the new inference check rejected it rather than reporting recovery.
+
 ## 1.7.3 - 2026-11-04
 
 - Protect the Gemini five-hour quota reserve across Cloud Code, Robin OAuth and Windows Gemini accounts: below 10% remaining, skip the account for Gemini requests, including sticky and preferred-image routes. Return a clear quota-protection error if no account is eligible instead of consuming the reserve. Claude/GPT routing is unchanged.

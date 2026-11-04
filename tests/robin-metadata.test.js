@@ -167,7 +167,8 @@ test('ordinary directory refresh respects account quarantine and cooldown; an ex
     let queries = 0;
     const { pool } = poolHarness(t, () => ({
       auth: { get: async () => record },
-      listModels: async () => { queries++; return [ARGON_MODEL]; }
+      listModels: async () => { queries++; return [ARGON_MODEL]; },
+      send: async () => ({ text: 'OK', toolCalls: [] })
     }));
     const entry = pool.entries.get('a');
     pool.saveHealth(entry, category, category === 'account' ? 'authentication_error' : 'cooldown', 'temporarily unavailable',

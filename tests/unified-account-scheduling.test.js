@@ -110,7 +110,7 @@ test('all three channels produce the same complete weighted sequence, not just t
 
 test('all channels preserve sticky bindings without quota reads, weight spending, or sliding renewal', t => {
   for (const channel of CHANNELS) {
-    const state = fixture(t, channel, [{ remaining: 0 }, { remaining: 1, weeklyHours: 1 }]);
+    const state = fixture(t, channel, [{ remaining: 0.05 }, { remaining: 1, weeklyHours: 1 }]);
     state.bind('family', 'account-0');
     const beforeReads = state.reads(), beforeWeights = [...state.pool.weights];
     state.advance(1000);
@@ -129,12 +129,12 @@ test('all channels preserve sticky bindings without quota reads, weight spending
   }
 });
 
-test('all channels retain weekly advisory fallback but never spend protected five-hour quota', t => {
+test('all channels never spend protected weekly or five-hour quota', t => {
   for (const channel of CHANNELS) {
     const state = fixture(t, channel, [{ fiveRemaining: 0 }, { remaining: 0 }, {}]);
     for (let i = 0; i < 10; i++) assert.equal(state.pick(), 'account-2', channel);
     assert.equal(state.pick('', new Set(['account-1', 'account-2'])), undefined);
-    assert.equal(state.pick('', new Set(['account-0', 'account-2'])), 'account-1');
+    assert.equal(state.pick('', new Set(['account-0', 'account-2'])), undefined);
     assert.equal(state.pick('', new Set(['account-0', 'account-1', 'account-2'])), undefined);
     assert.ok(state.pool.entries.size === 3, 'advisory exhaustion never removes credentials');
   }

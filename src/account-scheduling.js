@@ -12,6 +12,7 @@ const QUOTA_TTL_MS = 30 * 60_000;
 const QUOTA_RETRY_MS = 5 * 60_000;
 const LOW_QUOTA_REFRESH_MS = 60_000;
 const GEMINI_QUOTA_RESERVE = 0.10;
+const GEMINI_WEEKLY_QUOTA_RESERVE = 0.05;
 const GEMINI_QUOTA_REFRESH_THRESHOLD = 0.15;
 const TRANSIENT_COOLDOWN_MS = 15_000;
 const DEFAULT_COOLDOWN_MS = 60_000;
@@ -61,21 +62,43 @@ function isGeminiQuotaModel(model) {
 // Update only from a successful quota-summary response. Missing/malformed data
 // keeps the last known state: neither TTL expiry nor a reset timestamp is proof
 // of recovery. Persist this small state separately from advisory rank freshness.
-function geminiQuotaProtection(snapshot, previous = null, observedAt = '') {
-  const buckets = geminiGroup(snapshot)?.buckets?.filter((bucket) => (
-    String(bucket?.window || '').toLowerCase() === '5h'
-    || String(bucket?.id || '').toLowerCase().endsWith('-5h')
-  )) || [];
-  if (buckets.length !== 1) return previous;
-  const bucket = buckets[0], raw = bucket.remainingFraction;
-  const remaining = raw == null || typeof raw === 'boolean' || String(raw).trim() === '' ? NaN : Number(raw);
-  if (!Number.isFinite(remaining) || remaining < 0 || remaining > 1) return previous;
+function geminiQuotaProtection(snapshot, previous = null, observedAt = '', { restore = false } = {}) {
+  const fraction = raw => raw == null || typeof raw === 'boolean' || String(raw).trim() === '' ? NaN : Number(raw);
+  const valid = value => Number.isFinite(value) && value >= 0 && value <= 1;
+  // v1.7.3 persisted only the five-hour state. Preserve it while bootstrapping
+  // the new weekly gate from the saved summary; never overwrite a persisted
+  // window with an older snapshot just because the process restarted.
+  const oldFive = previous?.fiveHour || (valid(fraction(previous?.remainingFraction)) ? {
+    remainingFraction: previous.remainingFraction,
+    protected: previous.protected === true, fastRefresh: previous.fastRefresh === true,
+    resetTime: previous.resetTime || '', observedAt: previous.observedAt || ''
+  } : null);
+  const readWindow = (window, reserve, known) => {
+    if (restore && known) return known;
+    const buckets = geminiGroup(snapshot)?.buckets?.filter(bucket => (
+      String(bucket?.window || '').toLowerCase() === window
+      || String(bucket?.id || '').toLowerCase().endsWith(`-${window}`)
+    )) || [];
+    if (buckets.length !== 1) return known;
+    const bucket = buckets[0], remaining = fraction(bucket.remainingFraction);
+    if (!valid(remaining)) return known;
+    return {
+      remainingFraction: remaining,
+      protected: remaining + Number.EPSILON < reserve,
+      fastRefresh: window === '5h' && remaining + Number.EPSILON < GEMINI_QUOTA_REFRESH_THRESHOLD,
+      resetTime: String(bucket.resetTime || ''), observedAt
+    };
+  };
+  const fiveHour = readWindow('5h', GEMINI_QUOTA_RESERVE, oldFive);
+  const weekly = readWindow('weekly', GEMINI_WEEKLY_QUOTA_RESERVE, previous?.weekly || null);
+  if (!fiveHour && !weekly) return previous;
   return {
-    remainingFraction: remaining,
-    // Windows reports 1 - percentageUsed; tolerate binary rounding at 10/15%.
-    protected: remaining + Number.EPSILON < GEMINI_QUOTA_RESERVE,
-    fastRefresh: remaining + Number.EPSILON < GEMINI_QUOTA_REFRESH_THRESHOLD,
-    resetTime: String(bucket.resetTime || ''), observedAt
+    // Keep existing five-hour fields for older dashboard/API consumers.
+    remainingFraction: fiveHour?.remainingFraction ?? null,
+    resetTime: fiveHour?.resetTime || '', observedAt: fiveHour?.observedAt || '',
+    fiveHour, weekly,
+    protected: Boolean(fiveHour?.protected || weekly?.protected),
+    fastRefresh: fiveHour?.fastRefresh === true
   };
 }
 
@@ -161,7 +184,7 @@ function weightedPickWithRanks(ranks, weights) {
 
 module.exports = {
   SESSION_TTL_MS, SESSION_CAPACITY, QUOTA_TTL_MS, QUOTA_RETRY_MS, TRANSIENT_COOLDOWN_MS,
-  LOW_QUOTA_REFRESH_MS, GEMINI_QUOTA_RESERVE, GEMINI_QUOTA_REFRESH_THRESHOLD,
+  LOW_QUOTA_REFRESH_MS, GEMINI_QUOTA_RESERVE, GEMINI_WEEKLY_QUOTA_RESERVE, GEMINI_QUOTA_REFRESH_THRESHOLD,
   isGeminiQuotaModel, geminiQuotaProtection,
   durationMs, retryDelay, affinityActive,
   geminiWeeklyPressure, geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks

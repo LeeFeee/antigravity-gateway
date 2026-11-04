@@ -7,6 +7,7 @@ const { RobinAccountAuthProvider, robinAuthorizationKey: authorizationKey,
 const { ARGON_MODEL, RobinProvider, RobinProviderError } = require('./robin-provider');
 const { GeminiWindowsAuthProvider } = require('./gemini-windows-auth');
 const { GeminiWindowsProvider } = require('./gemini-windows-provider');
+const { recheckSignal, probeAccountInference } = require('./account-recheck');
 
 const { SESSION_TTL_MS: ROBIN_SESSION_TTL_MS, SESSION_CAPACITY,
   QUOTA_TTL_MS: ROBIN_QUOTA_TTL_MS, QUOTA_RETRY_MS: ROBIN_QUOTA_RETRY_MS,
@@ -73,6 +74,7 @@ class RobinAccountPool {
       return new RobinProvider({ auth, fetchImpl, diagnosticReporter });
     });
     this.entries = new Map();
+    this.rechecks = new Map();
     this.sessions = new Map();
     this.weights = new Map();
     this.activeTasks = new Map();
@@ -126,10 +128,10 @@ class RobinAccountPool {
       });
       const entry = this.entries.get(account.id);
       const quota = account.providerMetadata?.[quotaKey(account)];
-      entry.quotaProtection = account.providerMetadata?.[`${quotaKey(account)}Protection`]
-        || geminiQuotaProtection(quota, null, quota?.fetchedAt);
+      entry.quotaProtection = geminiQuotaProtection(quota,
+        account.providerMetadata?.[`${quotaKey(account)}Protection`], quota?.fetchedAt, { restore: true });
       const health = account.providerMetadata?.robinHealth;
-      const validHealth = health && health.credentialFingerprint === credentialFingerprint(account);
+      const validHealth = health && (health.credentialFingerprint === credentialFingerprint(account) || this.rechecks.has(account.id));
       entry.unhealthyUntil = validHealth
         ? (health.category === 'account' ? Infinity : Number(health.until) || 0)
         : 0;
@@ -256,7 +258,7 @@ class RobinAccountPool {
       if (!entry) {
         if (lastError) throw lastError;
         if (isGeminiQuotaModel(model) && [...this.entries.values()].some(candidate => candidate.account.enabled && candidate.quotaProtection?.protected)) {
-          throw new RobinProviderError('暂无满足条件的 Gemini 账号：5 小时额度低于 10% 的账号已受保护。', { code: 'account_quota_protected', status: 429 });
+          throw new RobinProviderError('暂无满足条件的 Gemini 账号：5 小时额度低于 10% 或周额度低于 5% 的账号已受保护。', { code: 'account_quota_protected', status: 429 });
         }
         throw new RobinProviderError(`没有可用于模型 ${model} 的 Gemini 账号。`, { code: 'robin_model_unavailable', status: 503 });
       }
@@ -542,27 +544,58 @@ class RobinAccountPool {
   }
 
   async recheckAccount(id, { signal } = {}) {
+    if (this.rechecks.has(id)) return this.rechecks.get(id);
+    const pending = Promise.resolve().then(() => this.recheckEntry(id, recheckSignal(signal))).finally(() => {
+      if (this.rechecks.get(id) === pending) this.rechecks.delete(id);
+    });
+    this.rechecks.set(id, pending);
+    return pending;
+  }
+
+  async recheckEntry(id, signal) {
     this.reload();
     const entry = this.entries.get(id);
     if (!entry) throw new RobinProviderError(`找不到 Gemini 账号: ${id}`, { code: 'robin_account_not_found', status: 404 });
+    if (!entry.account.enabled) throw new RobinProviderError('账号已停用，无法重新检测。', { code: 'account_disabled', status: 409 });
     const expectedAuthorization = entryAuthorizationKey(entry);
-    await entry.provider.auth.get(signal, { forceRefresh: true });
-    const models = await this.discoverCapabilities(entry, signal);
-    const latest = this.currentAccount(entry, expectedAuthorization);
-    if (!latest) throw new RobinProviderError('Gemini 账号授权已更换，请重新检测当前账号。', {
-      code: 'robin_credentials_changed', status: 409
-    });
-    entry.models = new Set(models);
-    entry.catalogKnown = true;
-    const providerMetadata = { ...latest.providerMetadata };
-    delete providerMetadata.robinCapabilities;
-    entry.account = this.store.update(entry.account.id, { providerMetadata });
-    this.saveHealth(entry, '', '', '', 0, {
-      capabilities: models,
-      lastSuccessAt: new Date(this.now()).toISOString()
-    }, expectedAuthorization);
-    void this.refreshQuota(id).catch(() => {});
-    return { ...this.status().find((account) => account.id === id), recovered: true };
+    const previousHealth = entry.account.providerMetadata?.robinHealth;
+    try {
+      await entry.provider.auth.get(signal, { forceRefresh: true });
+      const models = await this.discoverCapabilities(entry, signal);
+      if (!this.currentAccount(entry, expectedAuthorization)) throw new RobinProviderError('Gemini 账号授权已更换，请重新检测当前账号。', {
+        code: 'robin_credentials_changed', status: 409
+      });
+      await probeAccountInference(entry.provider, models, signal);
+      const latest = this.currentAccount(entry, expectedAuthorization);
+      if (!latest || !latest.enabled) throw new RobinProviderError('Gemini 账号已停用或授权已更换，请重新检测当前账号。', {
+        code: 'robin_credentials_changed', status: 409
+      });
+      entry.models = new Set(models);
+      entry.catalogKnown = true;
+      const providerMetadata = { ...latest.providerMetadata };
+      delete providerMetadata.robinCapabilities;
+      entry.account = this.store.update(entry.account.id, { providerMetadata });
+      this.saveHealth(entry, '', '', '', 0, {
+        capabilities: models,
+        lastSuccessAt: new Date(this.now()).toISOString()
+      }, expectedAuthorization);
+      void this.refreshQuota(id).catch(() => {});
+      return { ...this.status().find((account) => account.id === id), recovered: true };
+    } catch (error) {
+      if (this.currentAccount(entry, expectedAuthorization)) {
+        if (robinErrorCategory(error) === 'account') {
+          const state = /verify your account/i.test(error.message || '') ? 'verification_required'
+            : Number(error.status) === 403 ? 'access_denied' : 'authentication_error';
+          this.saveHealth(entry, 'account', state, String(error.message || error), Infinity, {}, expectedAuthorization);
+        } else if (previousHealth) {
+          // Renewing OAuth/cookies during the check is not evidence of service
+          // recovery. Retain the existing quarantine on the refreshed grant.
+          this.saveHealth(entry, previousHealth.category, previousHealth.state, previousHealth.message,
+            previousHealth.category === 'account' ? Infinity : previousHealth.until, {}, expectedAuthorization);
+        }
+      }
+      throw error;
+    }
   }
 
   removeAccount(id) {

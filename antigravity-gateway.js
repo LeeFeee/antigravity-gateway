@@ -1625,7 +1625,7 @@ async function requestHandler(req, res) {
       try {
         const accountId = decodeURIComponent(accountRecheckMatch[1]);
         const pool = dashboardAccountPool(requestUrl, accountId);
-        const result = await pool.recheckAccount(accountId, { signal: AbortSignal.timeout(15_000) });
+        const result = await pool.recheckAccount(accountId, { signal: AbortSignal.timeout(45_000) });
         modelCache.at = 0;
         if (pool === ACCOUNT_POOL) cloudcodeModelCache.at = 0;
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });

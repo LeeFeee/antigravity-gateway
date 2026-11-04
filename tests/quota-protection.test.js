@@ -79,7 +79,7 @@ function fixture(t, channel, balances = [0.5, 0.5]) {
   };
 }
 
-test('strict 10/15% boundaries, decimal rounding, Gemini-only 5h and unknown values', () => {
+test('strict 10/15% boundaries, decimal rounding, Gemini-only quota and unknown values', () => {
   for (const [remaining, protectedState, fastRefresh] of [
     [0, true, true], [0.099, true, true], [0.1, false, true], [1 - 0.9, false, true],
     [0.1499, false, true], [0.15, false, false], [1 - 0.85, false, false], [1, false, false]
@@ -90,12 +90,78 @@ test('strict 10/15% boundaries, decimal rounding, Gemini-only 5h and unknown val
   const previous = geminiQuotaProtection(quota(0.05));
   for (const value of [null, undefined, '', true, false, -1, 1.1, 'bad', Infinity]) {
     const invalid = quota(); invalid.groups[0].buckets[0].remainingFraction = value;
-    assert.equal(geminiQuotaProtection(invalid, previous), previous);
+    assert.deepEqual(geminiQuotaProtection(invalid, previous), previous);
   }
-  assert.equal(geminiQuotaProtection(quota(0.6, 0)).protected, false, 'weekly depletion does not trigger protection');
+  assert.equal(geminiQuotaProtection(quota(0.6, 0)).protected, true, 'weekly depletion triggers independent protection');
   assert.equal(geminiQuotaProtection({ groups: [{ id: 'claude-gpt', buckets: quota(0).groups[0].buckets }] }), null);
-  assert.equal(geminiQuotaProtection({ groups: [] }, previous), previous);
+  assert.deepEqual(geminiQuotaProtection({ groups: [] }, previous), previous);
 });
+
+test('weekly 5% boundary and independent window recovery reject missing or malformed readings', () => {
+  for (const [weekly, blocked] of [[0, true], [0.04999, true], [0.05, false], [1 - 0.95, false], [1, false]]) {
+    const state = geminiQuotaProtection(quota(0.5, weekly));
+    assert.equal(state.protected, blocked); assert.equal(state.weekly.protected, blocked);
+    assert.equal(state.fastRefresh, false, 'weekly reserve does not change the five-hour fast-refresh threshold');
+  }
+  const previous = geminiQuotaProtection(quota(0.09, 0.04));
+  for (const raw of [null, undefined, '', true, false, -1, 1.1, 'bad', Infinity]) {
+    const invalid = quota(0.5); invalid.groups[0].buckets[1].remainingFraction = raw;
+    const next = geminiQuotaProtection(invalid, previous);
+    assert.equal(next.fiveHour.protected, false); assert.equal(next.weekly.protected, true);
+    assert.equal(next.protected, true);
+  }
+  const onlyWeekly = quota(0.5, 0.05); onlyWeekly.groups[0].buckets.shift();
+  const halfRecovered = geminiQuotaProtection(onlyWeekly, previous);
+  assert.equal(halfRecovered.weekly.protected, false); assert.equal(halfRecovered.protected, true);
+  const onlyFive = quota(0.1); onlyFive.groups[0].buckets.pop();
+  assert.equal(geminiQuotaProtection(onlyFive, halfRecovered).protected, false);
+  const duplicate = quota(0.5, 0.5); duplicate.groups[0].buckets.push({ ...duplicate.groups[0].buckets[1] });
+  assert.equal(geminiQuotaProtection(duplicate, previous).weekly.protected, true);
+});
+
+for (const channel of CHANNELS) {
+  test(`${channel}: weekly reserve beats affinity and cannot be cleared by five-hour recovery or expiry`, async t => {
+    const f = fixture(t, channel);
+    f.responses.set('a0', quota(0.5, 0.04)); f.responses.set('a1', quota(0.5, 0.03));
+    await f.refresh('a0'); await f.refresh('a1'); f.bind('family', 'a0');
+    assert.equal(f.pool.selectAccount(GEMINI, 'family', new Set(), { preferredAccountId: 'a0' }), null);
+    await assert.rejects(f.pool.send(input, GEMINI), { code: 'account_quota_protected' });
+    assert.equal(f.calls.length, 0);
+    assert.ok(f.pool.selectAccount(CLAUDE, 'other'));
+    f.advance(8 * 86400000); f.restart();
+    assert.equal(f.status('a0').state, 'quota_protected');
+    const incomplete = quota(1); incomplete.groups[0].buckets.pop();
+    f.responses.set('a0', incomplete); await f.refresh('a0');
+    assert.equal(f.status('a0').state, 'quota_protected');
+    f.restart(); assert.equal(f.status('a0').state, 'quota_protected');
+    f.responses.set('a1', quota(0.5, 0.05)); await f.refresh('a1');
+    assert.equal(f.pool.selectAccount(GEMINI, 'family', new Set(), { preferredAccountId: 'a0' }).account.id, 'a1');
+    assert.equal(f.status('a1').state, 'available');
+  });
+
+  test(`${channel}: startup migrates v1.7.3 five-hour state and retains newer per-window protection`, async t => {
+    const f = fixture(t, channel, [0.5]);
+    f.responses.set('a0', quota(0.5, 0.04)); await f.refresh('a0');
+    const legacy = { remainingFraction: 0.5, protected: false, fastRefresh: false, resetTime: '', observedAt: '' };
+    if (channel === 'cloudcode') {
+      f.manager.snapshots.a0.geminiQuotaProtection = legacy; f.manager.save();
+    } else {
+      const a = f.store.list()[0], key = channel === 'oauth' ? 'robinQuotaProtection' : 'geminiWindowsQuotaProtection';
+      f.store.update(a.id, { providerMetadata: { ...a.providerMetadata, [key]: legacy } });
+    }
+    f.restart(); assert.equal(f.status('a0').state, 'quota_protected');
+    // New persisted protection wins over stale legacy summary data on restart.
+    const state = f.status('a0').quotaProtection;
+    if (channel === 'cloudcode') {
+      f.manager.snapshots.a0.groups = quota(0.5, 0.8).groups;
+      f.manager.snapshots.a0.geminiQuotaProtection = state; f.manager.save();
+    } else {
+      const a = f.store.list()[0], key = channel === 'oauth' ? 'robinQuota' : 'geminiWindowsQuota';
+      f.store.update(a.id, { providerMetadata: { ...a.providerMetadata, [key]: quota(0.5, 0.8), [`${key}Protection`]: state } });
+    }
+    f.restart(); assert.equal(f.status('a0').state, 'quota_protected');
+  });
+}
 
 for (const channel of CHANNELS) {
   test(`${channel}: protection beats sticky/preferred selection, all-protected never falls back`, async t => {

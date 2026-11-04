@@ -88,6 +88,7 @@ test('actual Robin pool status and manual recheck never expose stored OAuth or s
   t.mock.method(AccountPool.prototype, 'status', () => []);
   t.mock.method(RobinAccountAuthProvider.prototype, 'get', async () => ({ accessToken: secrets[0], serverToken: secrets[3] }));
   t.mock.method(RobinProvider.prototype, 'listModels', async () => ['gemini-4-argon']);
+  t.mock.method(RobinProvider.prototype, 'send', async () => ({ text: `OK ${secrets.join(' ')}`, toolCalls: [] }));
   t.mock.method(RobinAccountPool.prototype, 'refreshQuota', async () => undefined);
   const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

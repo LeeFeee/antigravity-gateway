@@ -479,7 +479,7 @@ test('Google verification challenges mark the account unhealthy, persist the war
   assert.equal(restarted.status().find((entry) => entry.id === challenged.id).state, 'available');
 });
 
-test('manual account recheck clears health only after a successful lightweight probe', async (t) => {
+test('manual account recheck clears health only after successful authentication and inference', async (t) => {
   const store = tempStore(t);
   const saved = store.save(account('verify@example.com'));
   let result = 'success';
@@ -502,7 +502,8 @@ test('manual account recheck clears health only after a successful lightweight p
         }
         return { ok: true };
       },
-      listModels: async () => [], modelInfo: () => null
+      listModels: async () => ['gemini-test'], modelInfo: () => null,
+      send: async () => ({ text: 'OK', toolCalls: [] })
     })
   });
   const entry = pool.entries.get(saved.id);

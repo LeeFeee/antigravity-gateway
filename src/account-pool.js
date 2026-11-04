@@ -7,6 +7,7 @@ const { DirectAntigravityProvider, DirectProviderError } = require('./direct-pro
 const { nativeCloudCodeFetch } = require('./agy-native-transport');
 const { errorDetails, maskEmail } = require('./diagnostic-log');
 const { ManagedAccountAuthProvider } = require('./managed-account-auth');
+const { recheckSignal, probeAccountInference } = require('./account-recheck');
 
 const { SESSION_TTL_MS, SESSION_CAPACITY, TRANSIENT_COOLDOWN_MS, durationMs, retryDelay, affinityActive, geminiWeeklyPressure,
   geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
@@ -102,6 +103,7 @@ class AccountPool {
     this.entries = new Map();
     this.sessions = new Map();
     this.health = new Map();
+    this.rechecks = new Map();
     this.removedIdentities = new Set();
     this.weights = new Map();
     this.modelSupporters = new Map();
@@ -188,7 +190,7 @@ class AccountPool {
       if (account.providerType === 'robin' || account.accountType === 'gemini-app') continue;
       const previous = old.get(account.id);
       const persistedHealth = this.health.get(account.id);
-      if (persistedHealth && persistedHealth.accountFingerprint !== accountFingerprint(account)) {
+      if (persistedHealth && persistedHealth.accountFingerprint !== accountFingerprint(account) && !this.rechecks.has(account.id)) {
         this.health.delete(account.id);
         this.reportDiagnostic('account_health_cleared', account, {
           trigger: 'credential_fingerprint_changed',
@@ -260,7 +262,7 @@ class AccountPool {
       }
       this.reportDiagnostic('account_pool_unavailable', null, { model, states });
     }
-    if (quotaProtected) return new DirectProviderError('暂无满足条件的账号：Gemini 5 小时额度低于 10% 的账号已受保护，请等待额度恢复或使用其他可用账号。', {
+    if (quotaProtected) return new DirectProviderError('暂无满足条件的账号：Gemini 5 小时额度低于 10% 或周额度低于 5% 的账号已受保护，请等待额度恢复或使用其他可用账号。', {
       code: 'account_quota_protected', status: 429
     });
     return new DirectProviderError(model
@@ -367,6 +369,7 @@ class AccountPool {
   }
 
   async recheckAccount(accountId, { signal } = {}) {
+    if (this.rechecks.has(String(accountId))) return this.rechecks.get(String(accountId));
     const entry = this.entries.get(String(accountId || ''));
     if (!entry) throw new DirectProviderError('账号不存在或已被删除。', { code: 'account_not_found', status: 404 });
     if (entry.account.enabled === false) throw new DirectProviderError('账号已停用，无法重新检测。', { code: 'account_disabled', status: 409 });
@@ -374,6 +377,34 @@ class AccountPool {
       this.reportDiagnostic('account_recheck_skipped', entry.account, { state: entry.healthState, reason: 'account_not_unhealthy' });
       return { account: this.status().find((item) => item.id === entry.account.id), unchanged: true };
     }
+    const pending = Promise.resolve().then(() => this.recheckEntry(entry, recheckSignal(signal))).finally(() => {
+      if (this.rechecks.get(entry.account.id) === pending) this.rechecks.delete(entry.account.id);
+    });
+    this.rechecks.set(entry.account.id, pending);
+    return pending;
+  }
+
+  currentRecheckEntry(entry) {
+    const current = this.entries.get(entry.account.id);
+    const latest = this.store.list().find(account => account.id === entry.account.id);
+    const owned = entry.provider.localAuth?.account || entry.account;
+    if (!current || !latest || latest.enabled === false || accountFingerprint(latest) !== accountFingerprint(owned)) {
+      throw new DirectProviderError('账号已删除、停用或凭据已更换，请重新检测当前账号。', {
+        code: 'account_recheck_changed', status: 409
+      });
+    }
+    current.account = latest;
+    // Token renewal during a failed recheck is not service recovery. Keep the
+    // quarantine bound to the renewed credential instead of clearing on reload.
+    const health = this.health.get(latest.id);
+    if (health && health.accountFingerprint !== accountFingerprint(latest)) {
+      health.accountFingerprint = accountFingerprint(latest);
+      this.saveState();
+    }
+    return current;
+  }
+
+  async recheckEntry(entry, signal) {
     const startedAt = this.now();
     this.reportDiagnostic('account_recheck_started', entry.account, {
       state: entry.healthState,
@@ -384,18 +415,24 @@ class AccountPool {
     });
     try {
       await entry.provider.probeAuthentication(signal);
-      entry.lastSuccessAt = new Date(this.now()).toISOString();
-      this.clearAccountIssue(entry, { source: 'manual_recheck' });
-      this.refreshAccountQuota(entry, { force: true, summaryOnly: false });
-      this.reportDiagnostic('account_recheck_succeeded', entry.account, { durationMs: this.now() - startedAt });
+      const models = await entry.provider.listModels(signal, { force: true });
+      this.currentRecheckEntry(entry);
+      this.reportDiagnostic('account_recheck_inference_started', entry.account);
+      const { model } = await probeAccountInference(entry.provider, models, signal);
+      const current = this.currentRecheckEntry(entry);
+      current.lastSuccessAt = new Date(this.now()).toISOString();
+      this.clearAccountIssue(current, { source: 'manual_recheck' });
+      this.refreshAccountQuota(current, { force: true, summaryOnly: false });
+      this.reportDiagnostic('account_recheck_succeeded', current.account, { durationMs: this.now() - startedAt, model, inferenceVerified: true });
       return { account: this.status().find((item) => item.id === entry.account.id), recovered: true };
     } catch (error) {
+      const current = this.currentRecheckEntry(entry);
       const category = errorCategory(error);
-      if (category === 'account') this.observeAccountFailure(entry, error, { source: 'manual_recheck' });
+      if (category === 'account') this.observeAccountFailure(current, error, { source: 'manual_recheck' });
       this.reportDiagnostic('account_recheck_failed', entry.account, {
         durationMs: this.now() - startedAt,
         category,
-        retainedState: entry.healthState,
+        retainedState: current.healthState,
         ...errorDetails(error)
       });
       // Network and upstream failures deliberately keep the previous health

@@ -113,7 +113,7 @@ class QuotaManager {
     this.file = path.join(this.directory, 'quota.json');
     this.snapshots = this.load();
     this.protections = new Map(Object.entries(this.snapshots).map(([id, snapshot]) => [id,
-      snapshot?.geminiQuotaProtection || geminiQuotaProtection(snapshot, null, snapshot?.groupsObservedAt || snapshot?.observedAt)
+      geminiQuotaProtection(snapshot, snapshot?.geminiQuotaProtection, snapshot?.groupsObservedAt || snapshot?.observedAt, { restore: true })
     ]));
     this.timer = null;
     this.lowQuotaTimer = null;
