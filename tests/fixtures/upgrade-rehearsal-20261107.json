@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "startedAt": "2026-11-06T17:58:43.318Z",
+  "completedAt": "2026-11-06T17:58:50.348Z",
+  "node": "v22.23.4",
+  "npm": "10.9.9",
+  "platform": "darwin/arm64",
+  "evidenceRun": "upgrade-rehearsal-v3",
+  "oldInstallation": "read-only installed npm package; no pre-refactor source-only archive",
+  "packagePrefix": "<evidence>/npm-prefix",
+  "configDirectory": "<evidence>/config",
+  "commandFlags": [
+    "--global",
+    "--foreground-scripts",
+    "--allow-scripts=antigravity-gateway"
+  ],
+  "packages": {
+    "old": {
+      "name": "antigravity-gateway",
+      "version": "1.7.5",
+      "sha256": "aca8eddd74b05980cc127a00c1472c951a49bfd762a1d8bf6e7ec8bd98d3f526",
+      "packedAt": "2026-11-06T17:58:44.207Z",
+      "bytes": 18856955,
+      "packedFileCount": 85,
+      "nativeBinaries": [
+        "native/bin/agy-transport-darwin-arm64.gz",
+        "native/bin/agy-transport-darwin-x64.gz",
+        "native/bin/agy-transport-linux-arm64.gz",
+        "native/bin/agy-transport-linux-x64.gz",
+        "native/bin/agy-transport-win32-arm64.gz",
+        "native/bin/agy-transport-win32-x64.gz"
+      ],
+      "sourceInventorySha256": "012a1f3e0ba3d43d543be11090276e717b2723fa20e88af1f9bd4daaf3f7479d",
+      "sourceChangedDuringPack": false
+    },
+    "new": {
+      "name": "antigravity-gateway",
+      "version": "1.7.5",
+      "sha256": "ce16e1c7a4d6046ba91ccb49d9c2a17804973d4b5e922db8049a528220815380",
+      "packedAt": "2026-11-06T17:58:44.877Z",
+      "bytes": 18867241,
+      "packedFileCount": 85,
+      "nativeBinaries": [
+        "native/bin/agy-transport-darwin-arm64.gz",
+        "native/bin/agy-transport-darwin-x64.gz",
+        "native/bin/agy-transport-linux-arm64.gz",
+        "native/bin/agy-transport-linux-x64.gz",
+        "native/bin/agy-transport-win32-arm64.gz",
+        "native/bin/agy-transport-win32-x64.gz"
+      ],
+      "sourceInventorySha256": "0fb39512ebcfdbb3de5924312bf93ebb3877d9075f899e4de08dcee4bba3b1be",
+      "sourceChangedDuringPack": false
+    }
+  },
+  "stages": [
+    {
+      "stage": "old",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": true,
+      "versionLegacyAccessCount": 6,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    },
+    {
+      "stage": "upgrade",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": false,
+      "versionLegacyAccessCount": 0,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    },
+    {
+      "stage": "rollback",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": true,
+      "versionLegacyAccessCount": 10,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    }
+  ],
+  "removedRuntimeFiles": [
+    "src/agy-tool-adapter.js",
+    "src/agy-worker.js",
+    "src/gemini-account-store.js",
+    "src/gemini-windows-auth.js",
+    "src/gemini-windows-login.js",
+    "src/gemini-windows-protocol.js",
+    "src/gemini-windows-provider.js",
+    "src/gemini-windows-quota.js",
+    "src/local-account-importer.js",
+    "src/provider-router.js",
+    "src/robin-account-pool.js",
+    "src/robin-auth.js",
+    "src/robin-client-adapter.js",
+    "src/robin-conversations.js",
+    "src/robin-oauth-flow.js",
+    "src/robin-phenotype.js",
+    "src/robin-proto.js",
+    "src/robin-provider.js",
+    "src/robin-quota.js",
+    "src/robin-response.js"
+  ],
+  "oldInstallationUnchanged": true,
+  "runtimeNetwork": false,
+  "formalAccountDataRead": false,
+  "serviceExecution": "configuration rendering only; no service was started or restarted",
+  "boundaries": [
+    "Synthetic accounts, quota, usage, media and signatures only.",
+    "No formal daemon/launchd start, restart, stop or account API call.",
+    "Both package manifests still declare 1.7.5; archive hashes identify the compared implementations.",
+    "The current worktree may have changed after the recorded npm pack.",
+    "Session state was re-checkpointed by the new package and semantically recovered by the old package; other seeded files remained byte-identical."
+  ]
+}

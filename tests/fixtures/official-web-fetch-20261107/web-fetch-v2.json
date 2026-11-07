@@ -1,0 +1,1759 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "web-fetch",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [
+    "agent"
+  ],
+  "requestCount": 26,
+  "failure": null,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAdminControls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "models": {
+          "gemini-3.8-flash-low": {
+            "displayName": "Gemini 3.8 Flash (Low)",
+            "model": "MODEL_PLACEHOLDER_M320",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true,
+            "supportsThinking": true,
+            "minThinkingBudget": 32,
+            "thinkingLevel": 1,
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "image/png": true,
+              "video/mp4": true
+            }
+          },
+          "gemini-3.5-flash-lite": {
+            "displayName": "Synthetic search model",
+            "model": "MODEL_PLACEHOLDER_M50",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            }
+          },
+          "gemini-3.1-flash-image": {
+            "displayName": "Gemini 3.1 Flash Image",
+            "model": "MODEL_PLACEHOLDER_M21",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true
+          },
+          "synthetic-video-summary": {
+            "displayName": "Synthetic video summary model",
+            "model": "MODEL_PLACEHOLDER_M8",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "video/mp4": true
+            }
+          }
+        },
+        "defaultAgentModelId": "gemini-3.8-flash-low",
+        "agentModelSorts": [
+          {
+            "displayName": "Synthetic",
+            "groups": [
+              {
+                "modelIds": [
+                  "gemini-3.8-flash-low"
+                ]
+              }
+            ]
+          }
+        ],
+        "webSearchModelIds": [
+          "gemini-3.5-flash-lite"
+        ],
+        "imageGenerationModelIds": [
+          "gemini-3.1-flash-image"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:listExperiments",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "experiments": []
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "55"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "trajectoryId": "ce19a66c-3156-4ae0-a49a-ec686d6acbd6"
+      },
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:listExperiments",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "experiments": []
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Transfer-Encoding",
+          "chunked"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/2e270d88-5ebe-4129-9d72-f3280b22624e/1793994719526/ce19a66c-3156-4ae0-a49a-ec686d6acbd6/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nRead the synthetic article at https://example.invalid/article using read_url_content.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T03:51:59+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": ""
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "manage_task",
+                  "description": "Manage the background tasks of this conversation: 'list' the running tasks, check a task's 'status' and recent log output, 'send_input' to a running task, or 'kill' one. Refer to tasks by the TaskId that 'list' reports; keep task references human-readable when talking to the user.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Action": {
+                        "type": "STRING",
+                        "description": "'list' reports the running tasks; the other actions operate on the task named in TaskId.",
+                        "enum": [
+                          "list",
+                          "kill",
+                          "status",
+                          "send_input"
+                        ]
+                      },
+                      "Input": {
+                        "type": "STRING",
+                        "description": "Input to deliver to the task. Required for 'send_input'."
+                      },
+                      "TaskId": {
+                        "type": "STRING",
+                        "description": "Task to manage, as reported by 'list'. Required for 'kill', 'status' and 'send_input'."
+                      }
+                    },
+                    "required": [
+                      "Action"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "2e270d88-5ebe-4129-9d72-f3280b22624e",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M320",
+            "request_id": "ce19a66c-3156-4ae0-a49a-ec686d6acbd6-0",
+            "root_cascade_id": "2e270d88-5ebe-4129-9d72-f3280b22624e",
+            "trajectory_id": "ce19a66c-3156-4ae0-a49a-ec686d6acbd6",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "LOW"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-low",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "SYNTHETIC_TOOL_NOT_DECLARED"
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 20,
+            "candidatesTokenCount": 10,
+            "totalTokenCount": 30
+          },
+          "modelVersion": "synthetic-local-model",
+          "responseId": "synthetic-response"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "55"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "trajectoryId": "955ba2a6-720e-45fe-8a11-d05425b887fd"
+      },
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Transfer-Encoding",
+          "chunked"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/6889b9ce-60db-4da9-a2e9-35854ec7e5cf/1793994719575/955ba2a6-720e-45fe-8a11-d05425b887fd/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nSynthetic Hub startup fixture.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T03:51:59+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "<identity>\nYou are Antigravity, a powerful agentic AI coding assistant designed by the Google Deepmind team working on Advanced Agentic Coding.\nYou are pair programming with a USER to solve their coding task. The task may require creating a new codebase, modifying or debugging an existing codebase, or simply answering a question.\nThe USER will send you requests, which you must always prioritize addressing. User requests are enclosed within <USER_REQUEST> tags.\n</identity>\n<artifacts>\nArtifacts are special markdown (.md) documents that you can create to present structured information to the user.\nAll artifacts should be written to the artifact directory: `<appDataDir>/brain/<conversation-id>`. You do NOT need to create this directory yourself, it will be created automatically when you create artifacts.\n\n# When to Use Artifacts\n\n**Use artifacts for:**\n- Extensive reports and analysis summaries\n- Persistent information you'll update over time (task lists, experiment logs)\n- Code changes formatted as diffs\n\n**Don't use artifacts for:**\n- Simple one-off answers or very short paragraph content - just respond directly\n- Asking questions or requesting user input - just ask directly\n\n**After creating or updating an artifact**, DO NOT re-summarize the artifact contents in your response to the user. Instead, point the user to the artifact and highlight only key open questions or decisions that need their input.\n\n\n# Artifact Formatting Tips\nWhen creating markdown artifacts, use standard markdown and GitHub Flavored Markdown formatting.\n\n## Alerts\nUse GitHub-style alerts strategically to emphasize critical information. Do not place consecutively or nest:\n  > [!NOTE] Background context, implementation details, or explanations\n  > [!TIP] Performance optimizations, best practices, or efficiency suggestions\n  > [!IMPORTANT] Essential requirements, critical steps, or must-know information\n  > [!WARNING] Breaking changes, compatibility issues, or potential problems\n  > [!CAUTION] High-risk actions that could cause data loss or security vulnerabilities\n\n\n## Mermaid Diagrams\nCreate mermaid diagrams using fenced code blocks with language `mermaid` to visualize relationships, workflows, and architectures.\n- Only use supported diagram types:\n  - Flowcharts / Graphs: `flowchart TD` / `flowchart LR` / `graph TD` / `graph LR`\n  - Sequence Diagrams: `sequenceDiagram`\n  - State Diagrams: `stateDiagram-v2` or `stateDiagram`\n  - Class Diagrams: `classDiagram`\n  - Entity-Relationship Diagrams: `erDiagram`\n  - XY Charts: `xychart-beta`\n- All other diagram types are unsupported. For schedules, timelines, or roadmaps, use directed flowcharts (`flowchart LR` / `flowchart TD`) or Markdown tables instead.\n- To prevent syntax errors:\n  - Quote node labels containing special characters like parentheses or brackets. For example, `id[\"Label (Extra Info)\"]` instead of `id[Label (Extra Info)]`.\n  - Avoid HTML tags in labels.\n\n## File Links\n- Link to line ranges using [link text](file:///absolute/path/to/file#L123-L145) format.\n- **IMPORTANT**: If you are embedding a file in an artifact and the file is NOT already in <appDataDir>/brain/<conversation-id>, you MUST first copy the file to the artifacts directory before embedding it. Only embed files that are located in the artifacts directory. Always use its absolute path `![caption](/absolute/path)`.\n- **Use basenames for readability**: Use file basenames for the link text instead of the full path\n\n## Carousels\nUse ````carousel syntax with `<!-- slide -->` HTML comments to display related markdown snippets sequentially (before/after comparisons, UI progressions, alternative approaches, walkthroughs). Four backticks enable nesting code blocks within slides.\n\nExample:\n````carousel\n![Image description](/absolute/path/to/image1.png)\n<!-- slide -->\n```python\ndef example():\n    print(\"Code in carousel\")\n```\n````\n\n# Scratch Scripts and Files\n\nYou may find it useful to create scratch scripts or files for temporary purposes.\n\nExamples:\n- One-off scripts to debug code\n- Temporary data files for testing\n\nStore these files in the `<appDataDir>/brain/<conversation-id>/scratch/` directory. They will be persisted.\n\n</artifacts>\n<guidelines>\nFollow these behavioral guidelines at all times:\n- Maintain documentation integrity. Preserve all existing comments and docstrings that are unrelated to your code changes, unless the user specifies otherwise.\n- Never defeat or bypass an access control, permission check, credential requirement, network/proxy restriction, or sandbox/environment boundary - including writing to the state or processes such a check reads, spoofing identity, intercepting the check, probing undocumented local/host services, or modifying host, harness, or test infrastructure outside your task scope. Use documented, sanctioned paths only; if none of them work, you are blocked - report the error and stop.\n- Never solve, click through, wait out, compute, or bypass a CAPTCHA, \"verify you are human\" or anti-bot challenge, or proof-of-work gate (e.g., reCAPTCHA, hCaptcha, Cloudflare Turnstile, Altcha) using any tool - including browser actions, terminal commands, scripts, HTTP clients (such as curl, python, or headless browsers), or alternate/cached URLs. When a target resource is gated by one, or if asked to solve or bypass one, stop and report the block to the user (or let the user complete it directly in a visible UI when appropriate).\n\n</guidelines>\n<communication_style>\n- Keep your responses concise.\n- Format your responses in github-style markdown.\n- If you're unsure about the user's intent, ask for clarification rather than making assumptions.\n- You MUST create clickable links for all files and code symbols (classes, types, functions, structs). Use github style markdown links with the file:// scheme (e.g., [utils.py](file:///path/to/utils.py) or [`ClassName`](file:///path/to/utils.py#L10-L20)). For Windows, use forward slashes for paths.\n</communication_style>\n<slash_commands>\nSlash commands are user-facing shortcuts in the chat UI (e.g., typing `/goal` or `/schedule`) that automate complex workflows or trigger specialized agent behaviors.\n\nYou cannot execute these commands yourself. Your role is to recommend them to the user when they are a good fit for the task at hand, encouraging the user to explore and trigger them.\n\nTo recommend a slash command, suggest it clearly in your response (e.g., \"You can use the `/goal` command to...\").\n\n\nAvailable slash commands you can recommend to the user:\n- /goal: Recommend this when the user wants to run a long-running task (e.g., overnight) and wants the agent to be extra thorough and not stop until the goal is fully achieved.\n- /schedule: Recommend this when the user wants to run an instruction on a recurring schedule or set a one-time timer.\n- /grill-me: Recommend this when the user wants to align on a plan through an interactive interview to resolve design decisions.\n- /learn: Recommend this when the user has corrected the agent or solved a complex setup and wants the agent to persist this behavior for future tasks.\n\n\n</slash_commands>\n<messaging>\nYou are connected to a messaging system where you may receive messages from: background tasks, user-queued messages.\n\n## Receiving Messages\n\nYou receive messages automatically at the start of each invocation. All messages are delivered in full directly into your context — no manual retrieval is needed.\n\n## Reactive Wakeup (No Polling Needed)\n\nThe system automatically resumes your execution when:\n- A **background task** completes or sends you a notification\n- A **user-queued message** is ready to be dequeued\n\nThis means you do **NOT** need to poll in a loop while waiting for messages or updates. After launching anything that performs work asynchronously, you may continue other work or simply stop by calling no more tools. The system will notify you when there is something to process.\n</messaging>\n<user_information>\nThe USER's OS version is mac.\nActive Workspaces:\n- [TEMP_ROOT]/work\nCommand Working Directory: [TEMP_ROOT]/work\nCode relating to the user's requests should be written in the locations listed above. Avoid writing project code files to tmp, in the .gemini dir, or directly to the Desktop and similar folders unless explicitly asked.\nApp Data Directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nConversation ID: 6889b9ce-60db-4da9-a2e9-35854ec7e5cf\nArtifact Directory Path: [TEMP_ROOT]/home/.gemini/antigravity-cli/brain/6889b9ce-60db-4da9-a2e9-35854ec7e5cf\n</user_information>"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read the contents of a text, image, or video file. Each read returns at most 800 lines or 46080 bytes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "ByteOffset": {
+                        "type": "INTEGER",
+                        "description": "Byte offset into the line range. Use to continue reading when content is truncated by the byte limit."
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "description": "End line to read (inclusive). Omit to read until the end of the file, within the per-read limits."
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to read."
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "description": "Start line to read (inclusive). Omit to read from the beginning of the file."
+                      }
+                    },
+                    "required": [
+                      "Path"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "run_command",
+                  "description": "Execute a command in the workspace. Operating System: mac. Shell: zsh. Each command runs in a new session (working directory changes and environment variables do not persist across calls). Commands that do not finish within the specified wait time continue running in the background as tasks; the system will notify you when they finish, so do not poll their status or set timers to check on them.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "CommandLine": {
+                        "type": "STRING",
+                        "description": "The exact command line string to execute."
+                      },
+                      "IsDaemon": {
+                        "type": "BOOLEAN",
+                        "description": "Set to true for long-running support processes that are meant to keep running in the background indefinitely and are not expected to finish on their own (e.g., dev servers, file watchers, tunnels). Leave false (the default) for normal commands that are expected to terminate."
+                      },
+                      "WaitMsBeforeAsync": {
+                        "type": "INTEGER",
+                        "description": "Milliseconds to wait for the command to finish before backgrounding it (500 to 10000). Set to a larger value (e.g. 5000-10000) for commands expected to finish synchronously; set to 500 for commands intended to run in the background."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the command task. Capitalize like a sentence. Some examples: 'Git status check', 'Unit test execution', 'Package build', 'Dev server startup'."
+                      }
+                    },
+                    "required": [
+                      "CommandLine",
+                      "toolSummary",
+                      "WaitMsBeforeAsync"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "manage_task",
+                  "description": "Manage the background tasks of this conversation: 'list' the running tasks, check a task's 'status' and recent log output, 'send_input' to a running task, or 'kill' one. Refer to tasks by the TaskId that 'list' reports; keep task references human-readable when talking to the user.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Action": {
+                        "type": "STRING",
+                        "description": "'list' reports the running tasks; the other actions operate on the task named in TaskId.",
+                        "enum": [
+                          "list",
+                          "kill",
+                          "status",
+                          "send_input"
+                        ]
+                      },
+                      "Input": {
+                        "type": "STRING",
+                        "description": "Input to deliver to the task. Required for 'send_input'."
+                      },
+                      "TaskId": {
+                        "type": "STRING",
+                        "description": "Task to manage, as reported by 'list'. Required for 'kill', 'status' and 'send_input'."
+                      }
+                    },
+                    "required": [
+                      "Action"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "send_message",
+                  "description": "Send a message to another agent, such as a subagent or a peer. Not a channel to the user.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Message": {
+                        "type": "STRING",
+                        "description": "Content of the message.",
+                        "minLength": "1"
+                      },
+                      "Recipient": {
+                        "type": "STRING",
+                        "description": "Conversation ID of the agent to message.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Recipient",
+                      "Message"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "schedule",
+                  "description": "Schedule a one-shot timer (DurationSeconds) or a recurring cron job (CronExpression) that notifies you via Prompt. This tool call runs as a background task and returns immediately; end your turn (call no more tools) to wait for notifications. A timer with a TimerCondition is cancelled early by a matching message, which is itself your wakeup. Set IsDaemon only for a cron that should keep firing after the current task is done. Set ExactTiming only when a cron must fire at the exact wall-clock time without jitter. Use the manage_task tool to cancel active schedules, and never use a shell sleep command as a timer.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "CronExpression": {
+                        "type": "STRING",
+                        "description": "Standard 5-field cron expression for a recurring schedule (e.g. '*/5 * * * *' for every 5 minutes). Mutually exclusive with DurationSeconds."
+                      },
+                      "DurationSeconds": {
+                        "type": "INTEGER",
+                        "description": "Seconds to wait for a one-shot timer. Mutually exclusive with CronExpression."
+                      },
+                      "ExactTiming": {
+                        "type": "BOOLEAN",
+                        "description": "Cron only. Set true only when the user explicitly requires the schedule to fire at the exact wall-clock time without jitter. Leave false (the default) for polling, monitoring, or periodic tasks so triggers are jittered to avoid load spikes."
+                      },
+                      "IsDaemon": {
+                        "type": "BOOLEAN",
+                        "description": "Cron only. Set true only for an independent standing job that should keep firing after the current task is done."
+                      },
+                      "MaxIterations": {
+                        "type": "INTEGER",
+                        "description": "Cron only. Maximum number of triggers before the schedule stops; defaults to unlimited."
+                      },
+                      "Prompt": {
+                        "type": "STRING",
+                        "description": "Message sent to you as a high-priority notification when the timer fires or the cron triggers."
+                      },
+                      "TimerCondition": {
+                        "type": "STRING",
+                        "description": "Timer only. Cancels the timer early when a matching message arrives: 'never' (default), 'any' (any message), or a sender ID (a message from that subagent or background task)."
+                      }
+                    },
+                    "required": [
+                      "Prompt"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create a new file with the given contents, or append to an existing file when Append is true. Parent directories are created automatically. Fails if the file already exists unless Overwrite or Append is true. When creating an artifact, always provide ArtifactMetadata. When creating non-artifact files, do not provide it.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Append": {
+                        "type": "BOOLEAN",
+                        "description": "Whether to append Content to the end of the file (creating the file if it does not exist). Cannot be combined with Overwrite=true."
+                      },
+                      "ArtifactMetadata": {
+                        "type": "OBJECT",
+                        "description": "Metadata that defines artifact properties. ONLY provide when creating an artifact file in the artifact directory. Omit this field when creating non-artifact files.",
+                        "properties": {
+                          "RequestFeedback": {
+                            "type": "BOOLEAN",
+                            "description": "Whether to request user feedback on this artifact if its contents are executable (e.g., a plan). The user is given a 'Proceed' button to execute it."
+                          },
+                          "Summary": {
+                            "type": "STRING",
+                            "description": "Detailed multi-line summary of the artifact's contents and purpose."
+                          },
+                          "UserFacing": {
+                            "type": "BOOLEAN",
+                            "description": "Whether this artifact should be presented to the user."
+                          }
+                        },
+                        "required": [
+                          "Summary",
+                          "UserFacing",
+                          "RequestFeedback"
+                        ]
+                      },
+                      "Content": {
+                        "type": "STRING",
+                        "description": "The full contents to write to the file."
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Whether to overwrite an existing file, replacing its entire contents."
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to create.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "edit_file",
+                  "description": "Use this tool to edit an existing file. Follow these rules:\n1. Use this tool for a single contiguous block of edits. To edit multiple non-adjacent regions, make separate calls.\n2. Target must exactly match existing file text, including whitespace. Replacement must be a complete drop-in replacement for the Target.\n3. If Target appears multiple times in the file, every occurrence is replaced.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "ArtifactMetadata": {
+                        "type": "OBJECT",
+                        "description": "Metadata updates if updating an artifact file in the artifact directory. Omit this field when editing non-artifact files. Should be updated if the content is changing meaningfully.",
+                        "properties": {
+                          "RequestFeedback": {
+                            "type": "BOOLEAN",
+                            "description": "Whether to request user feedback on this artifact if its contents are executable (e.g., a plan). The user is given a 'Proceed' button to execute it."
+                          },
+                          "Summary": {
+                            "type": "STRING",
+                            "description": "Detailed multi-line summary of the artifact's contents and purpose."
+                          },
+                          "UserFacing": {
+                            "type": "BOOLEAN",
+                            "description": "Whether this artifact should be presented to the user."
+                          }
+                        },
+                        "required": [
+                          "Summary",
+                          "UserFacing",
+                          "RequestFeedback"
+                        ]
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to modify.",
+                        "minLength": "1"
+                      },
+                      "Replacement": {
+                        "type": "STRING",
+                        "description": "The content to replace the target with. Leave empty to delete the target."
+                      },
+                      "Target": {
+                        "type": "STRING",
+                        "description": "The exact string to be replaced. This must be the exact character-sequence to be replaced, including whitespace. Be very careful to include any leading whitespace otherwise this will not work at all. If the string appears multiple times in the file, every occurrence is replaced.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Target",
+                      "Replacement"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "generate_image",
+                  "description": "Generate an image, or edit existing images, from a text prompt.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "AspectRatio": {
+                        "type": "STRING",
+                        "description": "Defaults to 1:1.",
+                        "enum": [
+                          "1:1",
+                          "2:3",
+                          "3:2",
+                          "3:4",
+                          "4:3",
+                          "9:16",
+                          "16:9"
+                        ]
+                      },
+                      "ImageName": {
+                        "type": "STRING",
+                        "description": "Short descriptive name for the saved file.",
+                        "minLength": "1"
+                      },
+                      "ImagePaths": {
+                        "type": "ARRAY",
+                        "description": "Images to edit, combine, or use as references.",
+                        "items": {
+                          "type": "STRING"
+                        },
+                        "maxItems": "3"
+                      },
+                      "Prompt": {
+                        "type": "STRING",
+                        "description": "What the image should depict, or how to edit the given images.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Prompt",
+                      "ImageName"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "search_web",
+                  "description": "Performs a web search for a given query. Returns a summary of relevant information along with URL citations.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "domain": {
+                        "type": "STRING",
+                        "description": "Optional domain to recommend the search prioritize"
+                      },
+                      "query": {
+                        "type": "STRING"
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "ask_question",
+                  "description": "Ask the user one or more multiple-choice questions, e.g. to clarify requirements, and wait for the answers. Don't use it for trivial yes/no questions; ask those in plain text.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "questions": {
+                        "type": "ARRAY",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "is_multi_select": {
+                              "type": "BOOLEAN",
+                              "description": "Whether the user can select several options."
+                            },
+                            "options": {
+                              "type": "ARRAY",
+                              "description": "Answers to choose from, unnumbered and without an 'Other' option; the UI adds both. Put a recommended answer first, prefixed with '(Recommended)'.",
+                              "items": {
+                                "type": "STRING"
+                              },
+                              "minItems": "2"
+                            },
+                            "question": {
+                              "type": "STRING",
+                              "description": "The question, without 'select all that apply' or similar; the UI adds that.",
+                              "minLength": "1"
+                            }
+                          },
+                          "required": [
+                            "question",
+                            "options"
+                          ]
+                        },
+                        "minItems": "1"
+                      }
+                    },
+                    "required": [
+                      "questions"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "6889b9ce-60db-4da9-a2e9-35854ec7e5cf",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M320",
+            "request_id": "955ba2a6-720e-45fe-8a11-d05425b887fd-0",
+            "root_cascade_id": "6889b9ce-60db-4da9-a2e9-35854ec7e5cf",
+            "trajectory_id": "955ba2a6-720e-45fe-8a11-d05425b887fd",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "LOW"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-low",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "SYNTHETIC_TOOL_NOT_DECLARED"
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 20,
+            "candidatesTokenCount": 10,
+            "totalTokenCount": 30
+          },
+          "modelVersion": "synthetic-local-model",
+          "responseId": "synthetic-response"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "content-length",
+          "28992"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "content-length",
+          "105"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    }
+  ],
+  "acp": [
+    {
+      "localHubMethod": "StartCascade",
+      "request": {
+        "workspaceUris": [
+          "file://[TEMP_ROOT]/work"
+        ],
+        "requestedModel": "MODEL_PLACEHOLDER_M320",
+        "source": "CORTEX_TRAJECTORY_SOURCE_CLI",
+        "customAgentSpec": {
+          "cascadeConfig": {
+            "plannerConfig": {
+              "planModel": "MODEL_PLACEHOLDER_M320",
+              "declarativeMixinConfig": {
+                "tools": [
+                  {
+                    "name": "read_url_content",
+                    "builtin": true
+                  }
+                ]
+              },
+              "toolConfig": {
+                "readUrlContent": {
+                  "forceDisable": false
+                }
+              }
+            }
+          }
+        }
+      },
+      "status": 200,
+      "response": {
+        "cascadeId": "2e270d88-5ebe-4129-9d72-f3280b22624e"
+      }
+    },
+    {
+      "localHubMethod": "SendUserCascadeMessage",
+      "request": {
+        "cascadeId": "2e270d88-5ebe-4129-9d72-f3280b22624e",
+        "items": [
+          {
+            "text": "Read the synthetic article at https://example.invalid/article using read_url_content."
+          }
+        ],
+        "blocking": false
+      },
+      "status": 200,
+      "response": {}
+    }
+  ],
+  "stderr": "SYNTHETIC_TOOL_NOT_DECLARED\n",
+  "officialLog": "I1107 03:51:59.432818      22 server.go:2275] Starting language server process with pid 44126\nI1107 03:51:59.433540      22 server.go:2333] Language server version: 1.5.2\nI1107 03:51:59.433549      22 server.go:1077] Language server will attempt to listen on host localhost\nI1107 03:51:59.434003      22 server.go:1092] Language server listening on random port at 51308 for HTTPS (gRPC)\nI1107 03:51:59.434064      22 server.go:1100] Language server listening on random port at 51306 for HTTP\nI1107 03:51:59.434472      31 model_configs.go:195] Auth mode is unspecified, skipping fetchAvailableModels and returning empty response\nW1107 03:51:59.434640      67 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.434673      67 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.434840      31 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nI1107 03:51:59.435747      87 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nI1107 03:51:59.435768      87 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nW1107 03:51:59.436393      87 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nW1107 03:51:59.436407      87 cache.go:157] Cache(userInfo): Singleflight refresh failed: failed to get load code assist response: error getting token source: You are not logged into Antigravity.\nI1107 03:51:59.436913      22 server.go:2748] Generated and saved persistent installation UUID: f8145f0e-5668-42dd-9868-d9dfa5b9dab5\nW1107 03:51:59.437095     125 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.437106     125 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:51:59.445958      22 defaults.go:725] failed to get cs path: cs path /usr/bin/cs invalid\nI1107 03:51:59.445954      12 migrate.go:49] Migration marker [TEMP_ROOT]/home/.gemini/config/.migrated does not exist. Attempting migration from AppDataDir [TEMP_ROOT]/home/.gemini/antigravity-cli.\nI1107 03:51:59.445994      22 manager.go:119] Creating trajectory store manager with proto store and SQLite store\nI1107 03:51:59.446101      12 migrate.go:157] Migration complete, marked with [TEMP_ROOT]/home/.gemini/config/.migrated\nI1107 03:51:59.450300     154 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:51:59.450367     154 manager.go:113] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] starting\nI1107 03:51:59.450568     154 project_uris_migration.go:42] Starting ProjectUrisMigration\nI1107 03:51:59.450589     154 manager.go:133] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] completed successfully in 20.875µs\nI1107 03:51:59.450768     154 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:51:59.450803     154 manager.go:113] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] starting\nI1107 03:51:59.451033     154 manager.go:133] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] completed successfully in 43.458µs\nI1107 03:51:59.451208     154 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:51:59.451250     154 manager.go:113] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] starting\nI1107 03:51:59.451472     154 manager.go:133] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] completed successfully in 41.125µs\nI1107 03:51:59.451670     154 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:51:59.451680     154 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:51:59.451690     154 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:51:59.451705     154 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:51:59.467414      22 server.go:3543] initialized server successfully in 34.483375ms\nI1107 03:51:59.467434     222 server.go:4201] Auth succeeded, refreshing features and managers\nW1107 03:51:59.467579      54 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.467595      54 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:51:59.467595      53 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.467616      53 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:51:59.467639     222 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nW1107 03:51:59.467638      53 rpcs_plugin_auth.go:105] Not reloading plugin MCP servers: cannot get the signed-in user: error getting token source: You are not logged into Antigravity.\nW1107 03:51:59.467657       1 auto_updater.go:274] Directory /Users/leefee/.local/bin is not fully accessible (readable: false, writable: false), skipping update\nI1107 03:51:59.467666     222 server.go:4220] State refresh took 0ms\nI1107 03:51:59.467672     222 server.go:4233] [RemoteControl] Subscription callback triggered.\nI1107 03:51:59.467677       1 common.go:191] Launching CLI mode\nE1107 03:51:59.467685       1 launchsteps.go:95] Failed to resolve GeminiDir \".gemini\": .gemini must be an absolute path: path is not absolute, falling back to default\nI1107 03:51:59.467695       1 common.go:212] CLI app data directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nI1107 03:51:59.467707       1 server.go:313] Creating CLI server backend: product=antigravity workspaceDirs=[[TEMP_ROOT]/work] appDataDir=[TEMP_ROOT]/home/.gemini/antigravity-cli languageServer=true codeAssist=true\nI1107 03:51:59.467734     222 server.go:4236] [RemoteControl] RemoteControlEnabled value: false\nI1107 03:51:59.467739     222 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:51:59.467742     222 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:51:59.467752       1 auth_provider.go:954] [AuthProvider] SetEnableBusinessLogin called with enable: true\nI1107 03:51:59.467774     222 profiler.go:231] Continuous pprof profiling is disabled.\nI1107 03:51:59.467783      63 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:51:59.467826      63 manager.go:107] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:51:59.467831      63 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:51:59.467837      60 reconcile_summaries.go:94] [Summaries] reconcile checked 0 conversations, restored 0, cached 0, skipped 0, dropped 0, cancelled false in 0ms (resident: 0 -> 0)\nI1107 03:51:59.467863      63 manager.go:107] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:51:59.467867      63 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:51:59.467898      63 manager.go:107] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:51:59.467902      63 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:51:59.467905      63 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:51:59.467914      63 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:51:59.467917      63 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:51:59.468266     263 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nE1107 03:51:59.468326     263 server.go:3214] Failed to read conversations directory [TEMP_ROOT]/home/.gemini/antigravity/conversations: open [TEMP_ROOT]/home/.gemini/antigravity/conversations: no such file or directory\nI1107 03:51:59.468353     263 server.go:3116] ListConversations returning 0 summaries\nI1107 03:51:59.468358     263 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nI1107 03:51:59.468665       1 project.go:78] project: created project \"CLI Project\" (id=default-cli-project) at [TEMP_ROOT]/home/.gemini/config/projects/default-cli-project.json\nI1107 03:51:59.468673       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:51:59.468680       1 analytics.go:249] CLI startup completed (took 36.227875ms, phases [main_entered=0ms ls_start=0ms ls_ready=35ms launch_cli=35ms backend_created=35ms project_resolved=36ms])\nI1107 03:51:59.468694       1 printmode.go:208] Print mode: starting (promptLength=30, model=\"\", conversationID=\"\")\nI1107 03:51:59.468706       1 manager.go:549] Initializing CLI store manager for workspace [TEMP_ROOT]/work\nW1107 03:51:59.468771       1 cli_setting_manager.go:450] cli settings not available, using defaults: failed to read cli settings: open [TEMP_ROOT]/home/.gemini/antigravity-cli/settings.json: no such file or directory\nI1107 03:51:59.468784       1 cli_setting_manager.go:81] config.json not found or unreadable, using CLI settings only: open [TEMP_ROOT]/home/.gemini/config/config.json: no such file or directory\nI1107 03:51:59.468811       1 cli_setting_manager.go:96] CLI settings initialized: permissions=<nil>, toolPermission=request-review\nI1107 03:51:59.468999       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:51:59.469012       1 manager.go:723] CLI store manager initialized successfully\nI1107 03:51:59.469716     238 manager.go:1674] Reloading system slash commands and skills\nI1107 03:51:59.469726     238 manager.go:1630] Reloading system slash commands\nI1107 03:51:59.469735     238 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:51:59.469862       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:51:59.469872       1 printmode.go:409] Print mode: not authenticated, trying silent auth\nI1107 03:51:59.477407     329 keyring.go:64] keyringAuth: loaded token, expiry=2099-01-01 00:00:00 +0000 UTC expired=false\nI1107 03:51:59.491287       1 auth.go:157] ChainedAuth: authenticated via keyring (effective: keyring)\nI1107 03:51:59.491305       1 server_oauth.go:221] applyAuthResult: email=fixture@example.invalid, authMethod=consumer, quotaProject=\nI1107 03:51:59.491313       1 server_oauth.go:226] OAuth: authenticated successfully as fixture@example.invalid\nI1107 03:51:59.491317       1 server_oauth.go:235] b.codeAssistClient.AuthProvider (0x437ce14ad2c0) is same as b.cliAuth (0x437ce14ad2c0)\nW1107 03:51:59.491385     287 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nW1107 03:51:59.491398     375 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nI1107 03:51:59.500101     336 latency_breakdown.go:168] SEND_USER_CASCADE_MESSAGE_LATENCY latency breakdown: map[active_user_state_latency_ms:0 blocking:false cascade_id:2e270d88-5ebe-4129-9d72-f3280b22624e cascade_send_latency_ms:0 hydrate_slash_commands_latency_ms:0 load_trajectory_latency_ms:0 media_count:0 media_summaries_latency_ms:0 message_origin:AGENT_MESSAGE_ORIGIN_UNSPECIFIED resolve_agent_config_latency_ms:0 save_media_latency_ms:0 saved_media_count:0 status:OK total_latency_ms:0 trajectory_id:ce19a66c-3156-4ae0-a49a-ec686d6acbd6]\nE1107 03:51:59.500131     418 agent_config.go:414] No agent type specified in config\nI1107 03:51:59.501895     285 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.502770     285 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.514907     283 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels\nI1107 03:51:59.515228       1 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nI1107 03:51:59.515252     270 quota_manager.go:45] doRefreshQuota: starting reload (force=true)\nW1107 03:51:59.515853       1 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nI1107 03:51:59.515878       1 printmode.go:411] Print mode: silent auth succeeded\nI1107 03:51:59.515922     271 experiment_manager.go:66] Starting experiment refresh after login\nI1107 03:51:59.518187     391 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.518634     271 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:51:59.518644     271 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:51:59.518651     271 experiment_manager.go:70] Experiments refreshed after login\nI1107 03:51:59.518666     385 manager.go:1630] Reloading system slash commands\nI1107 03:51:59.520120     359 http_helpers.go:571] Failed to make code assist backend request (https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls): {\"error\": {\"code\": 404, \"message\": \"No forwarding: local request-type mock has no handler\"}}\nI1107 03:51:59.520266     391 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nW1107 03:51:59.524211     418 registry.go:70] Tool \"read_url_content\" is deprecated and has no effect\nI1107 03:51:59.524941     391 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.526078     391 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.526886     391 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nW1107 03:51:59.526899     391 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nI1107 03:51:59.526936     271 experiment_manager.go:66] Starting experiment refresh after login\nI1107 03:51:59.526945     270 quota_manager.go:45] doRefreshQuota: starting reload (force=true)\nI1107 03:51:59.528686     271 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:51:59.528692     271 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:51:59.528696     271 experiment_manager.go:70] Experiments refreshed after login\nI1107 03:51:59.528714     482 manager.go:1630] Reloading system slash commands\nI1107 03:51:59.529558     482 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:51:59.531091     455 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.537054     455 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:51:59.567976       1 conversation_manager.go:686] Starting new conversation (agent=false)\nI1107 03:51:59.568002       1 server.go:1199] Creating new cascade trajectory (agentScript=false)\nI1107 03:51:59.568020       1 server.go:1225] Conversation using project ID: default-cli-project\nI1107 03:51:59.570805       1 server.go:1242] Created conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (backend=BACKEND_TYPE_UNSPECIFIED)\nI1107 03:51:59.571223       1 server.go:3369] GetConversationDetail: found conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (active=true)\nI1107 03:51:59.571337       1 server.go:3369] GetConversationDetail: found conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (active=true)\nI1107 03:51:59.571342       1 conversation_manager.go:740] project: switching to conversation belonging to project ID: default-cli-project\nI1107 03:51:59.571374       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:51:59.571379       1 cli_setting_manager.go:226] ApplyProjectPermissionGrants: no grants for project \"CLI Project\", cleared project permissions\nI1107 03:51:59.571387       1 conversation_manager.go:756] project: synced active project to \"CLI Project\" (id=default-cli-project) from conversation switch\nI1107 03:51:59.571392       1 conversation_manager.go:1068] Streaming conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf\nI1107 03:51:59.571398     504 manager.go:1674] Reloading system slash commands and skills\nI1107 03:51:59.571407     504 manager.go:1630] Reloading system slash commands\nI1107 03:51:59.571494       1 server.go:3369] GetConversationDetail: found conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (active=true)\nI1107 03:51:59.571604       1 server.go:1260] Starting conversation update stream for 6889b9ce-60db-4da9-a2e9-35854ec7e5cf\nI1107 03:51:59.571614       1 session.go:201] Print mode: conversation=6889b9ce-60db-4da9-a2e9-35854ec7e5cf, sending message\nI1107 03:51:59.571620       1 manager.go:1630] Reloading system slash commands\nI1107 03:51:59.571825     462 http_helpers.go:571] Failed to make code assist backend request (https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls): {\"error\": {\"code\": 404, \"message\": \"No forwarding: local request-type mock has no handler\"}}\nI1107 03:51:59.572241     504 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:51:59.572336       1 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:51:59.572370       1 conversation_manager.go:875] Forwarding user message to conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (items=1, media=0)\nI1107 03:51:59.572375       1 server.go:1826] Sending user message to conversation 6889b9ce-60db-4da9-a2e9-35854ec7e5cf (items=1, media=0)\nI1107 03:51:59.572629       1 latency_breakdown.go:168] SEND_USER_CASCADE_MESSAGE_LATENCY latency breakdown: map[active_user_state_latency_ms:0 blocking:false cascade_id:6889b9ce-60db-4da9-a2e9-35854ec7e5cf cascade_send_latency_ms:0 hydrate_slash_commands_latency_ms:0 load_trajectory_latency_ms:0 media_count:0 media_summaries_latency_ms:0 message_origin:AGENT_MESSAGE_ORIGIN_UNSPECIFIED resolve_agent_config_latency_ms:0 save_media_latency_ms:0 saved_media_count:0 status:OK total_latency_ms:0 trajectory_id:955ba2a6-720e-45fe-8a11-d05425b887fd]\nI1107 03:51:59.577372     554 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse ResponseID: synthetic-response\nI1107 03:51:59.598308       1 manager.go:961] CLI store manager shutting down\nI1107 03:51:59.598730       1 conversation_manager.go:1020] Stopping conversation stream\nI1107 03:51:59.598766     514 server.go:1323] Stream goroutine exited for 6889b9ce-60db-4da9-a2e9-35854ec7e5cf, sending completion signal\nI1107 03:51:59.600705     506 server.go:3918] Language server shutting down\nI1107 03:51:59.600726     506 server.go:3940] Waiting for migrations to complete to prevent partial migration state...\nE1107 03:51:59.610720     506 server.go:4033] Failed to shutdown telemetry client: Clearcut responded with HTTP code: 404\n"
+}

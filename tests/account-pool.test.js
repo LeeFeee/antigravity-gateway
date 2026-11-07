@@ -49,6 +49,21 @@ test('implicit legacy account IDs stay stable while Robin receives an independen
   assert.equal(accountId({ ...identity, id: 'stored-id', providerType: 'robin' }), 'stored-id');
 });
 
+test('public model capabilities ignore disabled and unhealthy account metadata', t => {
+  const store = tempStore(t);
+  const disabled = store.save({ ...account('disabled@example.com'), enabled: false, createdAt: '2020-01-01T00:00:00.000Z' });
+  const unhealthy = store.save({ ...account('unhealthy@example.com'), createdAt: '2020-01-02T00:00:00.000Z' });
+  const available = store.save({ ...account('available@example.com'), createdAt: '2020-01-03T00:00:00.000Z' });
+  const pool = new AccountPool({ store, providerFactory: value => ({
+    modelInfo: () => ({ displayName: value.id, supportsVideo: value.id === available.id }),
+    listModels: async () => ['synthetic-model']
+  }) });
+  t.after(() => pool.stop());
+  pool.entries.get(unhealthy.id).healthState = 'authentication_error';
+  assert.equal(pool.entries.get(disabled.id).account.enabled, false);
+  assert.deepEqual(pool.modelInfo('synthetic-model'), { displayName: available.id, supportsVideo: true });
+});
+
 test('managed account refresh writes the new tokens back to its JSON record', async (t) => {
   const store = tempStore(t);
   const saved = store.save({
@@ -371,17 +386,51 @@ test('account pool reports the actual account selected for each upstream attempt
   assert.equal(result.text, selected[1].email);
 });
 
-test('account pool reports the official local agy session when no managed account exists', async (t) => {
+test('empty account pool never uses local credentials for inference, images or discovery', async (t) => {
   const store = tempStore(t);
   const selected = [];
+  let fallbackCalls = 0;
+  const unexpectedFallback = () => { fallbackCalls++; throw new Error('local credentials must not be used'); };
   const pool = new AccountPool({
     store,
     fallbackProvider: {
-      send: async () => ({ text: 'ok', toolCalls: [], usage: {} })
+      send: unexpectedFallback,
+      generateImage: unexpectedFallback,
+      listModels: unexpectedFallback,
+      modelInfo: unexpectedFallback
     }
   });
-  await pool.send({}, 'gemini-3.8-flash-high', { onAccountSelected: (value) => selected.push(value) });
-  assert.deepEqual(selected, [{ accountId: 'local-agy-session', email: '', source: 'local-agy-session', attempt: 1 }]);
+  t.after(() => pool.stop());
+  const options = { onAccountSelected: value => selected.push(value) };
+  await assert.rejects(pool.send({}, 'gemini-3.8-flash-high', options), { code: 'account_pool_unavailable' });
+  await assert.rejects(pool.generateImage({}, options), { code: 'account_pool_unavailable' });
+  await assert.rejects(pool.listModels(), { code: 'account_pool_unavailable' });
+  assert.equal(pool.modelInfo('gemini-3.8-flash-high'), null);
+  assert.equal(pool.canUseFallback(), false);
+  assert.deepEqual(selected, []);
+  assert.equal(fallbackCalls, 0);
+});
+
+for (const outputKind of ['onDelta', 'onThinkingDelta']) test(`partial ${outputKind} delivery cannot be followed by another account's answer`, async t => {
+  const store = tempStore(t);
+  store.save(account('stream-one@example.com'));
+  store.save(account('stream-two@example.com'));
+  const calls = [], received = [];
+  const pool = new AccountPool({ store, providerFactory: record => ({
+    listModels: async () => ['gemini-3.8-flash-high'],
+    modelInfo: () => null,
+    send: async (_input, _model, options) => {
+      calls.push(record.id);
+      options[outputKind]('partial');
+      throw Object.assign(new Error('socket closed after content'), { code: 'ECONNRESET' });
+    }
+  }) });
+  t.after(() => pool.stop());
+  await assert.rejects(pool.send({}, 'gemini-3.8-flash-high', {
+    sessionId: 'interrupted', [outputKind]: delta => received.push(delta)
+  }), { code: 'ECONNRESET' });
+  assert.equal(calls.length, 1);
+  assert.deepEqual(received, ['partial']);
 });
 
 test('account pool fails over quota errors without changing the requested model', async (t) => {

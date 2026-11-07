@@ -1,0 +1,78 @@
+{
+  "agent": "claude",
+  "version": "2.1.318",
+  "scenario": "write",
+  "recordedAt": "2026-11-06T18:27:10.913Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "sourceBefore": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "sourceAfter": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "isolation": "fresh HOME; fake account; CLI explicit loopback ports; writes only private root; gateway forbidden to write client work directory",
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/claude",
+    "-p",
+    "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Write",
+    "--permission-prompts",
+    "none",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-turns",
+    "6",
+    "--setting-sources",
+    "",
+    "--tools",
+    "Write"
+  ],
+  "plan": [
+    {
+      "name": "Write",
+      "arguments": {
+        "file_path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_claude_VERIFIED\n"
+      }
+    }
+  ],
+  "issued": [],
+  "clientCalls": [],
+  "outcome": {
+    "error": "Gateway did not become ready"
+  },
+  "checks": {
+    "clientCallArgumentsRestored": false,
+    "clientSucceeded": false,
+    "gatewayHTTP": false,
+    "allPlannedToolsIssued": false,
+    "allClientReceiptsReturned": true,
+    "exactDiskContents": false,
+    "finalAnswer": false,
+    "noUpstreamError": true,
+    "sourceStable": true
+  },
+  "passed": false,
+  "disk": {
+    "file": "/tmp/client-gateway-verify/work/created.txt",
+    "before": null,
+    "expected": "WRITE_claude_VERIFIED\n",
+    "actual": null
+  },
+  "errors": [],
+  "clientHTTP": [],
+  "upstream": [],
+  "stdout": "",
+  "stderr": "",
+  "gatewayStderr": "[Antigravity Gateway Error] 数据目录已被正在运行的网关进程独占（守护端口 51430 冲突）。\n"
+}

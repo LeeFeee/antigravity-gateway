@@ -1,0 +1,738 @@
+{
+  "version": "codex-cli 0.164.0",
+  "binarySha256": "d8990e3ee7acfbc26f91265b12a1a83f0fee40d0e0f8f1f40a37d4ec21f499cf",
+  "recordedAt": "2026-11-06T21:54:36.021Z",
+  "evidence": "actual-codex-cli-loopback-capture",
+  "realModelValidated": false,
+  "catalogRequested": true,
+  "catalogBody": {
+    "object": "list",
+    "data": [
+      {
+        "id": "gemini-3.8-flash-low",
+        "object": "model",
+        "created": 0,
+        "owned_by": "antigravity",
+        "display_name": "gemini-3.8-flash-low",
+        "input_modalities": [
+          "text"
+        ],
+        "supports_images": false,
+        "supports_video": false,
+        "supports_audio": false,
+        "supported_mime_types": {},
+        "default_reasoning_level": "low",
+        "supported_reasoning_levels": [
+          {
+            "effort": "low",
+            "description": "Fixed by model name: gemini-3.8-flash-low"
+          }
+        ],
+        "fixed_thinking_config": {
+          "includeThoughts": true,
+          "thinkingLevel": "LOW"
+        }
+      }
+    ],
+    "models": [
+      {
+        "slug": "gemini-3.8-flash-low",
+        "display_name": "gemini-3.8-flash-low",
+        "description": "Model provided through the local Antigravity Gateway.",
+        "prefer_websockets": false,
+        "support_verbosity": false,
+        "default_verbosity": "low",
+        "apply_patch_tool_type": "freeform",
+        "web_search_tool_type": "text_and_image",
+        "input_modalities": [
+          "text"
+        ],
+        "supports_images": false,
+        "supports_video": false,
+        "supports_audio": false,
+        "supported_mime_types": {},
+        "supports_image_detail_original": false,
+        "truncation_policy": {
+          "mode": "tokens",
+          "limit": 10000
+        },
+        "supports_parallel_tool_calls": true,
+        "tool_mode": "direct",
+        "multi_agent_version": "v1",
+        "use_responses_lite": false,
+        "include_skills_usage_instructions": true,
+        "include_plugin_usage_instructions": true,
+        "include_apps_usage_instructions": true,
+        "auto_review_model_override": null,
+        "context_window": 1048576,
+        "max_context_window": 1048576,
+        "max_output_tokens": null,
+        "auto_compact_token_limit": null,
+        "comp_hash": "antigravity-gateway-1.7.5",
+        "base_instructions": "Follow the client instructions and use only client-provided tools when needed.",
+        "reasoning_summary_format": "experimental",
+        "default_reasoning_summary": "none",
+        "default_reasoning_level": "low",
+        "supported_reasoning_levels": [
+          {
+            "effort": "low",
+            "description": "Fixed by model name: gemini-3.8-flash-low"
+          }
+        ],
+        "fixed_thinking_config": {
+          "includeThoughts": true,
+          "thinkingLevel": "LOW"
+        },
+        "shell_type": "shell_command",
+        "visibility": "list",
+        "minimal_client_version": "0.0.0",
+        "supported_in_api": true,
+        "availability_nux": null,
+        "upgrade": null,
+        "priority": 0,
+        "model_messages": null,
+        "experimental_supported_tools": [],
+        "available_in_plans": [],
+        "supports_search_tool": false,
+        "default_service_tier": null,
+        "service_tiers": [],
+        "additional_speed_tiers": [],
+        "supports_reasoning_summaries": false
+      }
+    ]
+  },
+  "isolation": "ephemeral; ignore-user-config/rules; HOME and CODEX_HOME unchanged; Seatbelt auth/config deny, only installation_id metadata RW exception, one loopback endpoint, other writes temporary only",
+  "installationBefore": {
+    "sha256": "5fb780cce768f2a6c0e92f7113458678b80ee078366dfca2f415244b9b750777",
+    "mtimeMs": 1777446807154.2512
+  },
+  "installationAfter": {
+    "sha256": "5fb780cce768f2a6c0e92f7113458678b80ee078366dfca2f415244b9b750777",
+    "mtimeMs": 1777446807154.2512
+  },
+  "installationIdContentUnchanged": true,
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex",
+    "--no-daemon",
+    "exec",
+    "--ignore-user-config",
+    "--ignore-rules",
+    "--ephemeral",
+    "--skip-git-repo-check",
+    "--json",
+    "--color",
+    "never",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/codex-probe/work",
+    "-c",
+    "model_provider=\"local-probe\"",
+    "-c",
+    "model=\"gemini-3.8-flash-low\"",
+    "-c",
+    "web_search=\"disabled\"",
+    "-c",
+    "cli_auth_credentials_store=\"ephemeral\"",
+    "-c",
+    "sqlite_home=\"/tmp/codex-probe/db\"",
+    "-c",
+    "log_dir=\"/tmp/codex-probe/logs\"",
+    "-c",
+    "model_providers.local-probe.name=\"Isolated protocol probe\"",
+    "-c",
+    "model_providers.local-probe.base_url=\"http://127.0.0.1:PROBE_PORT/v1\"",
+    "-c",
+    "model_providers.local-probe.env_key=\"CODEX_PROBE_FAKE_KEY\"",
+    "-c",
+    "model_providers.local-probe.wire_api=\"responses\"",
+    "-c",
+    "model_providers.local-probe.requires_openai_auth=false",
+    "-c",
+    "model_providers.local-probe.supports_websockets=false",
+    "-c",
+    "model_providers.local-probe.request_max_retries=0",
+    "-c",
+    "model_providers.local-probe.stream_max_retries=0",
+    "-c",
+    "analytics.enabled=false",
+    "-c",
+    "history.persistence=\"none\"",
+    "-c",
+    "shell_environment_policy.inherit=\"none\"",
+    "-c",
+    "model_providers.local-probe.model_catalog_url=\"http://127.0.0.1:PROBE_PORT/v1/models\"",
+    "-c",
+    "approval_policy=\"never\"",
+    "This is a controlled local protocol probe. Reply exactly CODEX_CAPTURE_OK. Do not use tools."
+  ],
+  "captures": [
+    {
+      "method": "GET",
+      "path": "/v1/models?client_version=0.164.0",
+      "headers": {
+        "authorization": "<FAKE_CREDENTIAL>",
+        "originator": "codex_exec",
+        "user-agent": "codex_exec/0.164.0 (Mac OS 15.7.0; arm64) dumb",
+        "accept": "*/*",
+        "host": "127.0.0.1:PROBE_PORT"
+      },
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models?client_version=0.164.0",
+      "headers": {
+        "authorization": "<FAKE_CREDENTIAL>",
+        "originator": "codex_exec",
+        "user-agent": "codex_exec/0.164.0 (Mac OS 15.7.0; arm64) dumb (codex_exec; 0.164.0)",
+        "accept": "*/*",
+        "host": "127.0.0.1:PROBE_PORT"
+      },
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "x-codex-beta-features": "remote_compaction_v2",
+        "x-codex-window-id": "01a1b2db-4036-7041-a46f-8ec62fb98843:0",
+        "x-codex-turn-metadata": "{\"installation_id\":\"<REDACTED_INSTALLATION_METADATA>\",\"session_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843\",\"thread_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843\",\"agent_name\":\"/root\",\"turn_id\":\"01a1b2db-4096-7830-810a-cd72ea234fef\",\"window_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843:0\",\"window_number\":0,\"context_window_id\":\"01a1b2db-403c-7af0-807b-824e5ddc42ef\",\"request_kind\":\"turn\",\"history_initialization\":\"new\",\"root_turn_id\":\"01a1b2db-4096-7830-810a-cd72ea234fef\",\"thread_source\":\"user\",\"turn_trigger\":\"exec\",\"sandbox\":\"seatbelt\",\"sandbox_mode\":\"workspace-write\",\"auto_review_enabled\":false,\"node_repl_auto_review_required\":false,\"node_repl_disabled\":false,\"turn_started_at_unix_ms\":1794002075803,\"analytics_enabled\":false,\"model\":\"gemini-3.8-flash-low\",\"reasoning_effort\":\"low\"}",
+        "x-client-request-id": "01a1b2db-4036-7041-a46f-8ec62fb98843",
+        "session-id": "01a1b2db-4036-7041-a46f-8ec62fb98843",
+        "thread-id": "01a1b2db-4036-7041-a46f-8ec62fb98843",
+        "accept": "text/event-stream",
+        "content-type": "application/json",
+        "authorization": "<FAKE_CREDENTIAL>",
+        "originator": "codex_exec",
+        "user-agent": "codex_exec/0.164.0 (Mac OS 15.7.0; arm64) dumb (codex_exec; 0.164.0)",
+        "host": "127.0.0.1:PROBE_PORT",
+        "content-length": "21864"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-low",
+        "stream": true,
+        "input": [
+          {
+            "type": "message",
+            "id": "msg_006f2214-8a7d-586d-a151-f06d80c8db44",
+            "role": "developer",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Follow the client instructions and use only client-provided tools when needed."
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "id": "msg_01a1b2db-40ac-7d62-b631-e5893ecf3998",
+            "role": "developer",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "<permissions instructions>\nFilesystem sandboxing defines which files can be read or written. `sandbox_mode` is `workspace-write`: The sandbox permits reading files, and editing files in `cwd` and `writable_roots`. Editing files in other directories requires approval. Network access is restricted.\nApproval policy is currently never. Do not provide the `sandbox_permissions` for any reason, commands will be rejected.\n The writable roots are `/private/tmp`, `/tmp/codex-probe/tmp`, `/tmp/codex-probe/work`.\n</permissions instructions>"
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "id": "msg_01a1b2db-40ac-7d62-b631-e59a68a53149",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "# AGENTS.md instructions for /tmp/codex-probe/work\n\n<INSTRUCTIONS>\nUser project rule: preserve PROBE_USER_RULE exactly. Work only on the explicitly named local fixture.\n\n</INSTRUCTIONS>"
+              },
+              {
+                "type": "input_text",
+                "text": "<environment_context>\n  <cwd>/tmp/codex-probe/work</cwd>\n  <shell>zsh</shell>\n  <current_date>2026-11-07</current_date>\n  <timezone>Asia/Kuala_Lumpur</timezone>\n  <filesystem><workspace_roots><root>/tmp/codex-probe/work</root></workspace_roots><permission_profile type=\"managed\"><file_system type=\"restricted\"><entry access=\"read\"><special>:root</special></entry><entry access=\"write\"><path>/tmp/codex-probe/work</path></entry><entry access=\"write\"><special>:slash_tmp</special></entry><entry access=\"write\"><special>:tmpdir</special></entry><entry access=\"read\"><path>/tmp/codex-probe/work/.git</path></entry><entry access=\"read\"><path>/tmp/codex-probe/work/.agents</path></entry><entry access=\"read\"><path>/tmp/codex-probe/work/.codex</path></entry><entry access=\"read\"><path>/tmp/codex-probe/work/.aws</path></entry></file_system></permission_profile></filesystem>\n</environment_context>"
+              }
+            ]
+          },
+          {
+            "type": "message",
+            "id": "msg_01a1b2db-40ae-78c1-9b2f-51f1da004c04",
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "This is a controlled local protocol probe. Reply exactly CODEX_CAPTURE_OK. Do not use tools."
+              }
+            ]
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "name": "exec_command",
+            "description": "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "cmd": {
+                  "type": "string",
+                  "description": "Shell command to execute."
+                },
+                "justification": {
+                  "type": "string",
+                  "description": "User-facing approval question for `require_escalated`; omit otherwise."
+                },
+                "login": {
+                  "type": "boolean",
+                  "description": "True runs the shell with -l/-i semantics; false disables them. Defaults to true."
+                },
+                "max_output_tokens": {
+                  "type": "number",
+                  "description": "Output token budget. Defaults to 10000 tokens; larger requests may be capped by policy."
+                },
+                "prefix_rule": {
+                  "type": "array",
+                  "description": "Reusable approval prefix for `cmd`, only with `sandbox_permissions: \"require_escalated\"`; for example [\"git\", \"pull\"].",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "sandbox_permissions": {
+                  "type": "string",
+                  "description": "Per-command sandbox override. Defaults to `use_default`; use `require_escalated` for unsandboxed execution.",
+                  "enum": [
+                    "use_default",
+                    "require_escalated"
+                  ]
+                },
+                "shell": {
+                  "type": "string",
+                  "description": "Shell binary to launch. Defaults to the user's default shell."
+                },
+                "tty": {
+                  "type": "boolean",
+                  "description": "True allocates a PTY for the command; false or omitted uses plain pipes."
+                },
+                "workdir": {
+                  "type": "string",
+                  "description": "Working directory for the command. Defaults to the turn cwd."
+                },
+                "yield_time_ms": {
+                  "type": "number",
+                  "description": "Wait before yielding output. Defaults to 10000 ms; effective range is 250-30000 ms."
+                }
+              },
+              "required": [
+                "cmd"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "write_stdin",
+            "description": "Writes characters to an existing unified exec session and returns recent output.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "chars": {
+                  "type": "string",
+                  "description": "Bytes to write to stdin. Defaults to empty, which polls without writing."
+                },
+                "max_output_tokens": {
+                  "type": "number",
+                  "description": "Output token budget. Defaults to 10000 tokens; larger requests may be capped by policy."
+                },
+                "session_id": {
+                  "type": "number",
+                  "description": "Identifier of the running unified exec session."
+                },
+                "yield_time_ms": {
+                  "type": "number",
+                  "description": "Wait before yielding output. Non-empty writes default to 250 ms and cap at 30000 ms; empty polls wait 5000-300000 ms by default."
+                }
+              },
+              "required": [
+                "session_id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "request_user_input",
+            "description": "Request user input for one to three short questions and wait for the response. This tool is only available in Plan mode.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "questions": {
+                  "type": "array",
+                  "description": "Questions to show the user. Prefer 1 and do not exceed 3",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "header": {
+                        "type": "string",
+                        "description": "Short header label shown in the UI (12 or fewer chars)."
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "Stable identifier for mapping answers (snake_case)."
+                      },
+                      "options": {
+                        "type": "array",
+                        "description": "Provide 2-3 mutually exclusive choices. Put the recommended option first and suffix its label with \"(Recommended)\". Do not include an \"Other\" option in this list; the client will add a free-form \"Other\" option automatically.",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "description": {
+                              "type": "string",
+                              "description": "One short sentence explaining impact/tradeoff if selected."
+                            },
+                            "label": {
+                              "type": "string",
+                              "description": "User-facing label (1-5 words)."
+                            }
+                          },
+                          "required": [
+                            "label",
+                            "description"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "question": {
+                        "type": "string",
+                        "description": "Single-sentence prompt shown to the user."
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "header",
+                      "question",
+                      "options"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "questions"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "custom",
+            "name": "apply_patch",
+            "description": "The `apply_patch` tool can be used to edit files. This is a FREEFORM tool, so do not wrap the patch in JSON.",
+            "format": {
+              "type": "grammar",
+              "syntax": "lark",
+              "definition": "start: begin_patch hunk+ end_patch\nbegin_patch: \"*** Begin Patch\" LF\nend_patch: \"*** End Patch\" LF?\n\nhunk: add_hunk | delete_hunk | update_hunk\nadd_hunk: \"*** Add File: \" filename LF add_line+\ndelete_hunk: \"*** Delete File: \" filename LF\nupdate_hunk: \"*** Update File: \" filename LF change_move? change?\n\nfilename: /(.+)/\nadd_line: \"+\" /(.*)/ LF -> line\n\nchange_move: \"*** Move to: \" filename LF\nchange: (change_context | change_line)+ eof_line?\nchange_context: (\"@@\" | \"@@ \" /(.+)/) LF\nchange_line: (\"+\" | \"-\" | \" \") /(.*)/ LF\neof_line: \"*** End of File\" LF\n\n%import common.LF\n"
+            }
+          },
+          {
+            "type": "function",
+            "name": "view_image",
+            "description": "View a local image file from the filesystem when visual inspection is needed. Use this for images already available on disk.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Local filesystem path to an image file."
+                }
+              },
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "namespace",
+            "name": "multi_agent_v1",
+            "description": "Tools for spawning and managing sub-agents.",
+            "tools": [
+              {
+                "type": "function",
+                "name": "close_agent",
+                "description": "Close an agent and any open descendants when they are no longer needed, and return the target agent's previous status before shutdown was requested. Completed agents remain open and count toward the concurrency limit until closed. Don't keep agents open for too long if they are not needed anymore.",
+                "strict": false,
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "target": {
+                      "type": "string",
+                      "description": "Agent id to close (from spawn_agent)."
+                    }
+                  },
+                  "required": [
+                    "target"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "function",
+                "name": "resume_agent",
+                "description": "Resume a previously closed agent by id so it can receive send_input and wait_agent calls.",
+                "strict": false,
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Agent id to resume."
+                    }
+                  },
+                  "required": [
+                    "id"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "function",
+                "name": "send_input",
+                "description": "Send a message to an existing agent. Use interrupt=true to redirect work immediately. You should reuse the agent by send_input if you believe your assigned task is highly dependent on the context of a previous task.",
+                "strict": false,
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "interrupt": {
+                      "type": "boolean",
+                      "description": "True interrupts the current task and handles this message immediately; false or omitted queues it."
+                    },
+                    "items": {
+                      "type": "array",
+                      "description": "Structured input items. Use this to pass explicit mentions (for example app:// connector paths).",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "audio_url": {
+                            "type": "string",
+                            "description": "Audio data URL when type is audio."
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "description": "Image URL when type is image."
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name when type is skill or mention."
+                          },
+                          "path": {
+                            "type": "string",
+                            "description": "Path when type is local_image/local_audio/skill, or structured mention target such as app://<connector-id> or plugin://<plugin-name>@<marketplace-name> when type is mention."
+                          },
+                          "text": {
+                            "type": "string",
+                            "description": "Text content when type is text."
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Input item type: text, image, local_image, audio, local_audio, skill, or mention."
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Legacy plain-text message to send to the agent. Use either message or items."
+                    },
+                    "target": {
+                      "type": "string",
+                      "description": "Agent id to message (from spawn_agent)."
+                    }
+                  },
+                  "required": [
+                    "target"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "function",
+                "name": "spawn_agent",
+                "description": "\n        \n        Available model overrides (optional; inherited parent model is preferred):\n- `gemini-3.8-flash-low`: Model provided through the local Antigravity Gateway. Reasoning efforts: low (default).\n        Spawn a sub-agent for a well-scoped task. Returns the spawned agent id plus the user-facing nickname when available. Spawned agents inherit your current model by default. Omit `model` to use that preferred default; set `model` only when an explicit override is needed.\nThis spawn_agent tool provides you access to sub-agents that inherit your current model by default. Do not set the `model` field unless the user explicitly asks for a different model. You should follow the rules and guidelines below to use this tool.\n\nDo not spawn sub-agents unless the user or applicable AGENTS.md/skill instructions explicitly ask for sub-agents, delegation, or parallel agent work.\nRequests for depth, thoroughness, research, investigation, or detailed codebase analysis do not count as permission to spawn.\nAgent-role guidance below only helps choose which agent to use after spawning is already authorized; it never authorizes spawning by itself.\n\n### When to delegate vs. do the subtask yourself\n- First, quickly analyze the overall user task and form a succinct high-level plan. Identify which tasks are immediate blockers on the critical path, and which tasks are sidecar tasks that are needed but can run in parallel without blocking the next local step. As part of that plan, explicitly decide what immediate task you should do locally right now. Do this planning step before delegating to agents so you do not hand off the immediate blocking task to a submodel and then waste time waiting on it.\n- Use a subagent when a subtask is easy enough for it to handle and can run in parallel with your local work. Prefer delegating concrete, bounded sidecar tasks that materially advance the main task without blocking your immediate next local step.\n- Do not delegate urgent blocking work when your immediate next step depends on that result. If the very next action is blocked on that task, the main rollout should usually do it locally to keep the critical path moving.\n- Keep work local when the subtask is too difficult to delegate well and when it is tightly coupled, urgent, or likely to block your immediate next step.\n\n### Designing delegated subtasks\n- Subtasks must be concrete, well-defined, and self-contained.\n- Delegated subtasks must materially advance the main task.\n- Do not duplicate work between the main rollout and delegated subtasks.\n- Avoid issuing multiple delegate calls on the same unresolved thread unless the new delegated task is genuinely different and necessary.\n- Narrow the delegated ask to the concrete output you need next.\n- For coding tasks, prefer delegating concrete code-change worker subtasks over read-only explorer analysis when the subagent can make a bounded patch in a clear write scope.\n- When delegating coding work, instruct the submodel to edit files directly in its forked workspace and list the file paths it changed in the final answer.\n- For code-edit subtasks, decompose work so each delegated task has a disjoint write set.\n\n### After you delegate\n- Call wait_agent very sparingly. Only call wait_agent when you need the result immediately for the next critical-path step and you are blocked until it returns.\n- Do not redo delegated subagent tasks yourself; focus on integrating results or tackling non-overlapping work.\n- While the subagent is running in the background, do meaningful non-overlapping work immediately.\n- Do not repeatedly wait by reflex.\n- When a delegated coding task returns, quickly review the uploaded changes, then integrate or refine them.\n\n### Parallel delegation patterns\n- Run multiple independent information-seeking subtasks in parallel when you have distinct questions that can be answered independently.\n- Split implementation into disjoint codebase slices and spawn multiple agents for them in parallel when the write scopes do not overlap.\n- Delegate verification only when it can run in parallel with ongoing implementation and is likely to catch a concrete risk before final integration.\n- The key is to find opportunities to spawn multiple independent subtasks in parallel within the same round, while ensuring each subtask is well-defined, self-contained, and materially advances the main task.",
+                "strict": false,
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "fork_context": {
+                      "type": "boolean",
+                      "description": "True forks the current thread history into the new agent; false or omitted starts with only the initial prompt."
+                    },
+                    "items": {
+                      "type": "array",
+                      "description": "Structured input items. Use this to pass explicit mentions (for example app:// connector paths).",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "audio_url": {
+                            "type": "string",
+                            "description": "Audio data URL when type is audio."
+                          },
+                          "image_url": {
+                            "type": "string",
+                            "description": "Image URL when type is image."
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Display name when type is skill or mention."
+                          },
+                          "path": {
+                            "type": "string",
+                            "description": "Path when type is local_image/local_audio/skill, or structured mention target such as app://<connector-id> or plugin://<plugin-name>@<marketplace-name> when type is mention."
+                          },
+                          "text": {
+                            "type": "string",
+                            "description": "Text content when type is text."
+                          },
+                          "type": {
+                            "type": "string",
+                            "description": "Input item type: text, image, local_image, audio, local_audio, skill, or mention."
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Initial plain-text task for the new agent. Use either message or items."
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Model override for the new agent. Omit unless an explicit override is needed."
+                    },
+                    "reasoning_effort": {
+                      "type": "string",
+                      "description": "Reasoning effort override for the new agent. Omit to inherit the parent effort."
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              {
+                "type": "function",
+                "name": "wait_agent",
+                "description": "Wait for agents to reach a final status. Completed statuses may include the agent's final message. Returns empty status when timed out. Once the agent reaches a final status, a notification message will be received containing the same completed status.",
+                "strict": false,
+                "parameters": {
+                  "type": "object",
+                  "properties": {
+                    "targets": {
+                      "type": "array",
+                      "description": "Agent ids to wait on. Pass multiple ids to wait for whichever finishes first.",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "timeout_ms": {
+                      "type": "number",
+                      "description": "Timeout in milliseconds. Defaults to 30000, min 10000, max 3600000. Prefer longer waits (minutes) to avoid busy polling."
+                    }
+                  },
+                  "required": [
+                    "targets"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            ]
+          },
+          {
+            "type": "function",
+            "name": "get_goal",
+            "description": "Get the current goal for this thread, including status, budgets, token and elapsed-time usage, and remaining token budget.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {},
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "create_goal",
+            "description": "Create a goal only when explicitly requested by the user or system/developer instructions; do not infer goals from ordinary tasks.\nSet token_budget only when an explicit token budget is requested. Fails if an unfinished goal exists; use update_goal only for status.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "objective": {
+                  "type": "string",
+                  "description": "Required. The concrete objective to start pursuing. This starts a new active goal when no goal exists or replaces the current goal when it is complete."
+                },
+                "token_budget": {
+                  "type": "integer",
+                  "description": "Positive token budget for the new goal. Omit unless explicitly requested."
+                }
+              },
+              "required": [
+                "objective"
+              ],
+              "additionalProperties": false
+            }
+          },
+          {
+            "type": "function",
+            "name": "update_goal",
+            "description": "Update the existing goal.\nSet status to `paused` only at the user's explicit request to pause this goal, never on your own initiative. Ask if unclear; a later resume revokes that request. Report the returned status and stop goal work. Budget limits take precedence over pausing.\nSet status to `complete` only when the objective has actually been achieved and no required work remains.\nSet status to `blocked` only when the same blocking condition has repeated for at least three consecutive goal turns, counting the original/user-triggered turn and any automatic continuations, and the agent cannot make meaningful progress without user input or an external-state change.\nIf the user resumes a goal that was previously marked `blocked`, treat the resumed run as a fresh blocked audit. If the same blocking condition then repeats for at least three consecutive resumed goal turns, set status to `blocked` again.\nOnce the blocked threshold is satisfied, do not keep reporting that you are still blocked while leaving the goal active; set status to `blocked`.\nDo not use `blocked` merely because the work is hard, slow, uncertain, incomplete, or would benefit from clarification.\nDo not mark a goal complete merely because its budget is nearly exhausted or because you are stopping work.\nYou cannot use this tool to resume, budget-limit, or usage-limit a goal; those status changes are controlled by the user or system.\nWhen marking a budgeted goal achieved with status `complete`, report the final token usage from the tool result to the user.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "description": "Required. `paused` requires an explicit user request. Set to `complete` only when the objective is achieved and no required work remains. Set to `blocked` only after the same blocking condition has recurred for at least three consecutive goal turns and the agent is at an impasse. After a previously blocked goal is resumed, the resumed run starts a fresh blocked audit.",
+                  "enum": [
+                    "complete",
+                    "blocked",
+                    "paused"
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "tool_choice": "auto",
+        "parallel_tool_calls": true,
+        "reasoning": {
+          "effort": "low"
+        },
+        "store": false,
+        "include": [
+          "reasoning.encrypted_content"
+        ],
+        "prompt_cache_key": "01a1b2db-4036-7041-a46f-8ec62fb98843",
+        "client_metadata": {
+          "root_turn_id": "01a1b2db-4096-7830-810a-cd72ea234fef",
+          "x-codex-window-id": "01a1b2db-4036-7041-a46f-8ec62fb98843:0",
+          "turn_id": "01a1b2db-4096-7830-810a-cd72ea234fef",
+          "x-codex-turn-metadata": "{\"installation_id\":\"<REDACTED_INSTALLATION_METADATA>\",\"session_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843\",\"thread_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843\",\"agent_name\":\"/root\",\"turn_id\":\"01a1b2db-4096-7830-810a-cd72ea234fef\",\"window_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843:0\",\"window_number\":0,\"context_window_id\":\"01a1b2db-403c-7af0-807b-824e5ddc42ef\",\"request_kind\":\"turn\",\"history_initialization\":\"new\",\"root_turn_id\":\"01a1b2db-4096-7830-810a-cd72ea234fef\",\"thread_source\":\"user\",\"turn_trigger\":\"exec\",\"sandbox\":\"seatbelt\",\"sandbox_mode\":\"workspace-write\",\"auto_review_enabled\":false,\"node_repl_auto_review_required\":false,\"node_repl_disabled\":false,\"turn_started_at_unix_ms\":1794002075803,\"analytics_enabled\":false,\"model\":\"gemini-3.8-flash-low\",\"reasoning_effort\":\"low\"}",
+          "x-codex-installation-id": "<REDACTED_INSTALLATION_METADATA>",
+          "session_id": "01a1b2db-4036-7041-a46f-8ec62fb98843",
+          "thread_id": "01a1b2db-4036-7041-a46f-8ec62fb98843"
+        }
+      }
+    }
+  ],
+  "result": {
+    "code": 0,
+    "signal": null
+  },
+  "stdout": "{\"type\":\"thread.started\",\"thread_id\":\"01a1b2db-4036-7041-a46f-8ec62fb98843\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_0\",\"type\":\"error\",\"message\":\"Failed to read global AGENTS.md instructions from `/home/probe/.codex/AGENTS.md`: Operation not permitted (os error 1)\"}}\n{\"type\":\"turn.started\"}\n{\"type\":\"item.completed\",\"item\":{\"id\":\"item_1\",\"type\":\"agent_message\",\"text\":\"CODEX_CAPTURE_OK\"}}\n{\"type\":\"turn.completed\",\"usage\":{\"input_tokens\":128,\"cached_input_tokens\":0,\"cache_write_input_tokens\":0,\"output_tokens\":12,\"reasoning_output_tokens\":0}}\n",
+  "stderr": "WARNING: proceeding, even though we could not create PATH aliases: Operation not permitted (os error 1)\nReading additional input from stdin...\n2026-11-06T21:54:35.683136Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Operation not permitted (os error 1)\n2026-11-06T21:54:35.701413Z ERROR codex_models_manager::manager: failed to write models cache: Operation not permitted (os error 1)\n2026-11-06T21:54:35.706397Z ERROR codex_models_manager::manager: failed to load models cache: Operation not permitted (os error 1)\n2026-11-06T21:54:35.707089Z ERROR codex_models_manager::manager: failed to write models cache: Operation not permitted (os error 1)\n2026-11-06T21:54:35.725965Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Operation not permitted (os error 1)\n2026-11-06T21:54:35.732775Z ERROR codex_skills_extension::loader::host: failed to scan skill path file:///home/probe/.codex/skills: Operation not permitted (os error 1)\n2026-11-06T21:54:35.732789Z ERROR codex_skills_extension::loader::host: failed to scan skill path file:///home/probe/.mirasim/skills: Operation not permitted (os error 1)\n2026-11-06T21:54:35.732793Z ERROR codex_skills_extension::loader::host: failed to scan skill path file:///home/probe/.codex/skills/.system: Operation not permitted (os error 1)\n2026-11-06T21:54:35.784307Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Operation not permitted (os error 1)\n2026-11-06T21:54:35.800629Z ERROR codex_skills_extension::host_service: failed to install system skills: io error while remove existing system skills dir: Operation not permitted (os error 1)\n",
+  "errors": [],
+  "temporaryDirectoryRemoved": true,
+  "passed": true
+}

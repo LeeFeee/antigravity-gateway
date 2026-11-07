@@ -32,17 +32,32 @@
   function render(job) {
     current = job;
     const waiting = job.status === 'waiting', active = pending.has(job.status);
+    $('Url').value = '';
+    $('Open').removeAttribute('href');
+    $('Copy').disabled = true;
+    $('Login').hidden = $('Form').hidden = true;
+    let authorizationUrl = '';
+    if (waiting) {
+      // The official agy 1.5.2 flow uses /o/oauth2/auth, not the old v2 path.
+      // Validate before exposing controls so a rejected URL cannot leave an
+      // empty copy field or an anchor without a target visible to the user.
+      let url;
+      try { url = new URL(job.url); } catch {}
+      if (!url || url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/auth'
+        || url.username || url.password || !url.searchParams.get('client_id') || !url.searchParams.get('state')) {
+        throw Object.assign(new Error('授权链接无效，请取消后重新授权。'), { code: 'invalid_authorization_url' });
+      }
+      authorizationUrl = url.href;
+    }
     $('Login').hidden = !waiting;
     $('Form').hidden = !waiting;
     $('Retry').hidden = active || job.status === 'completed';
     $('Close').textContent = active ? '取消授权' : '关闭';
     if (waiting) {
-      // Do not turn an unexpected server value into a clickable navigation target.
-      const url = new URL(job.url);
-      if (url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/v2/auth') throw new Error('授权链接无效，请重新授权。');
-      $('Url').value = url.href;
-      $('Open').href = url.href;
-    } else { $('Url').value = ''; $('Open').removeAttribute('href'); }
+      $('Url').value = authorizationUrl;
+      $('Open').href = authorizationUrl;
+      $('Copy').disabled = false;
+    }
     if (job.status !== 'waiting') $('Callback').value = '';
     const texts = { starting: '正在创建授权链接…', waiting: '等待 Google 授权，请在 5 分钟内完成。',
       processing: '正在验证授权并保存账号，请稍候…', cancelled: '本次授权已取消，未保存账号。' };
@@ -71,6 +86,7 @@
     catch (error) {
       if (!dialog.open || busy || current?.id !== id) { schedule(); return; }
       if (expired(error)) render({ id, status: 'failed', message: error.message });
+      else if (error.code === 'invalid_authorization_url') message(error.message, 'error');
       else message('暂时无法读取授权状态，正在重试。也可以取消后重新授权。', 'error');
     }
     schedule();
@@ -143,6 +159,7 @@
     } finally { lock(false); schedule(); }
   });
   $('Copy').addEventListener('click', async () => {
+    if (!$('Url').value || $('Copy').disabled) return;
     try { await navigator.clipboard.writeText($('Url').value); message('授权链接已复制，请在浏览器中打开并完成授权。'); }
     catch { $('Url').focus(); $('Url').select(); message('链接已选中，请使用系统复制功能，然后在浏览器中打开。'); }
   });

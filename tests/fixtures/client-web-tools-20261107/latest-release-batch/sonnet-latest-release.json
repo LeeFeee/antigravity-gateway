@@ -1,0 +1,196 @@
+{
+  "evidence": "single-explicit-model-native-search-latest-release-capability",
+  "startedAt": "2026-11-06T19:28:50.465Z",
+  "productionEnabled": false,
+  "model": "claude-sonnet-4-6",
+  "source": {
+    "sha256": "816eadc36e691bb4aa1936e7a8e78ef7d13a64dd2e522eb7bf2fd7caa2c39146",
+    "files": 53
+  },
+  "observations": [
+    {
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "method": "POST",
+      "purpose": "eligibility-metadata",
+      "transport": "original-AgyNativeTransport.fetch",
+      "status": 200
+    },
+    {
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "method": "POST",
+      "purpose": "single-generation",
+      "transport": "original-AgyNativeTransport.fetch",
+      "status": 200
+    }
+  ],
+  "requestedGenerationLimit": 1,
+  "retryPolicy": "no generation retry or account fallback",
+  "scope": "acceptance of same-model native search only; not proof of named tool_choice or max_uses equivalence",
+  "wireBoundary": "original native Go transport after synchronous generateContent Content-Length fix; streaming generation remains chunked; this probe does not independently capture TLS packets",
+  "nativeManifest": {
+    "sourceSha256": "47e34ff9c729c93109f673028e3e2435e7960b373e60b369dab9fa7e1be5f5dc",
+    "platform": "darwin-arm64",
+    "binarySha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5"
+  },
+  "originalStateBefore": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "c4f78ab19ac7c842e6ef13d4af9e8f6fb0dfe017dfc12429fdf0d642b321a22c"
+  },
+  "originalAccountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "d8842152b0ad8abf366d30453f8bae60694ace0b1e5cd2cb919b81176ff00bbb"
+  },
+  "copiedState": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "c4f78ab19ac7c842e6ef13d4af9e8f6fb0dfe017dfc12429fdf0d642b321a22c",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "privateDirectoryMode": "700",
+  "privateAccountModes": [
+    "600",
+    "600",
+    "600",
+    "600",
+    "600",
+    "600"
+  ],
+  "eligibleAccountCount": 1,
+  "selection": {
+    "enabled": true,
+    "healthState": "available",
+    "quotaProtected": false,
+    "cooldownActive": false,
+    "modelCooldownActive": false,
+    "liveCatalogContainsExplicitModel": true,
+    "mechanism": "unmodified AccountPool.ensureModelCatalogs/selectAccount/isEntryEligible with copied QuotaManager state"
+  },
+  "request": {
+    "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+    "method": "POST",
+    "headers": {
+      "authorization": "<REDACTED_CREDENTIAL>",
+      "content-type": "application/json",
+      "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+    },
+    "body": {
+      "project": "<REDACTED_ACCOUNT_METADATA>",
+      "request": {
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "site:github.com/google-gemini/gemini-cli/releases What is the latest published Google Gemini CLI release version as of 2026-11-07? Search the current releases page and cite its source."
+              }
+            ]
+          }
+        ],
+        "systemInstruction": {
+          "role": "user",
+          "parts": [
+            {
+              "text": "You are a search engine bot. You will be given a query from a user. Your task is to search the web for relevant information that will help the user. You MUST perform a web search. Do not respond or interact with the user, please respond as if they typed the query into a search bar."
+            }
+          ]
+        },
+        "tools": [
+          {
+            "googleSearch": {
+              "enhancedContent": {
+                "imageSearch": {
+                  "maxResultCount": 5
+                }
+              },
+              "includedDomains": [
+                "github.com"
+              ]
+            }
+          }
+        ],
+        "generationConfig": {
+          "candidateCount": 1,
+          "maxOutputTokens": 2048,
+          "thinkingConfig": {
+            "includeThoughts": true,
+            "thinkingBudget": 1024
+          }
+        }
+      },
+      "model": "claude-sonnet-4-6",
+      "userAgent": "antigravity",
+      "requestType": "web_search"
+    }
+  },
+  "response": {
+    "status": 200,
+    "bodyStructure": {
+      "response": {
+        "candidates": [
+          {
+            "content": {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            },
+            "finishReason": "string"
+          }
+        ],
+        "usageMetadata": {
+          "promptTokenCount": "number",
+          "candidatesTokenCount": "number",
+          "totalTokenCount": "number"
+        },
+        "modelVersion": "string",
+        "responseId": "string"
+      },
+      "traceId": "string",
+      "metadata": {}
+    },
+    "candidates": [
+      {
+        "finishReason": "STOP",
+        "text": "🔍 **Searching:** `site:github.com/google-gemini/gemini-cli/releases latest release 2025`\n\n---\n\n> ⚠️ **Important Transparency Notice**\n>\n> I am an AI language model — I **cannot actually browse the internet or perform live web searches**, despite the prompt framing. I do not have the ability to visit `github.com/google-gemini/gemini-cli/releases` or retrieve real-time data.\n>\n> Additionally:\n> - My training data has a **knowledge cutoff**, and I cannot access information from **2026**.\n> - Even for dates within my training window, I may not have specific GitHub release tag data for this repository.\n\n---\n\n### ✅ What You Should Do Instead:\n\nTo get the **accurate, current answer**, please visit the official releases page directly:\n\n🔗 **https://github.com/google-gemini/gemini-cli/releases**\n\nThere you will see:\n- The **latest release tag** (e.g., `v0.x.x`)\n- The **published date**\n- **Release notes and changelog**\n\n---\n\n### 🔎 Alternative Search:\nYou can also Google:\n> `site:github.com/google-gemini/gemini-cli/releases latest`\n\n---\n\nI would be **fabricating information** if I cited a specific version number without a live search. Please use the link above for the verified answer. 🙏",
+        "groundingMetadata": null
+      }
+    ],
+    "groundingObserved": false,
+    "usageMetadata": {
+      "promptTokenCount": 149,
+      "candidatesTokenCount": 374,
+      "totalTokenCount": 523
+    },
+    "modelVersion": "claude-sonnet-4-6"
+  },
+  "nativeBinarySha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5",
+  "nativeStopped": true,
+  "originalAccountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "d8842152b0ad8abf366d30453f8bae60694ace0b1e5cd2cb919b81176ff00bbb"
+  },
+  "originalAccountsUnchanged": true,
+  "originalStateAfter": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "c4f78ab19ac7c842e6ef13d4af9e8f6fb0dfe017dfc12429fdf0d642b321a22c"
+  },
+  "originalStateUnchanged": true,
+  "sourceUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "generationCount": 1,
+  "completedAt": "2026-11-06T19:29:00.446Z"
+}

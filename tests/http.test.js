@@ -3,18 +3,31 @@
 require('./helpers/gateway-environment');
 
 const assert = require('node:assert/strict');
-const path = require('node:path');
 const test = require('node:test');
-
-const fakeAgy = path.join(__dirname, 'fixtures', 'fake-agy.js');
-process.env.ANTIGRAVITY_CLI_PATH = process.execPath;
-process.env.ANTIGRAVITY_CLI_PREFIX_ARGS = JSON.stringify([fakeAgy]);
+const { AccountPool } = require('../src/account-pool');
+const { DirectProviderError } = require('../src/direct-provider');
 process.env.ANTIGRAVITY_DEFAULT_MODEL = 'gemini-test-high';
 process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '2000';
 delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
-// The developer machine may have a real local agy login. Keep protocol tests
-// deterministic and exercise the official subprocess fallback here.
+// Retired settings cannot reactivate a subprocess transport.
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
+const fixtureModels = ['claude-opus-4-6-thinking', 'claude-sonnet-4-6', 'gemini-test-high', 'gemini-test-low'];
+test.beforeEach(t => {
+  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', () => true);
+  t.mock.method(AccountPool.prototype, 'listModels', async () => fixtureModels);
+  t.mock.method(AccountPool.prototype, 'send', async (normalized, model, options) => {
+    const input = JSON.stringify(normalized.messages);
+    if (input.includes('FAIL')) throw new DirectProviderError('Antigravity 上游请求失败：simulated failure', {
+      code: 'direct_upstream_error', status: 502, details: 'simulated failure'
+    });
+    const tool = input.includes('RETURN_TOOL');
+    const text = tool ? '' : normalized.autoMode ? 'Verdict: <block>no</block>' : 'hello-1';
+    if (!tool) { options.onDelta?.(text.slice(0, 3)); options.onDelta?.(text.slice(3)); }
+    return { text, streamedText: options.onDelta ? text : '',
+      toolCalls: tool ? [{ id: 'call-fixture', name: 'shell', arguments: { command: 'pwd' } }] : [],
+      usage: { input_tokens: 100, output_tokens: 10, thinking_tokens: 2, cache_read_tokens: 3, total_tokens: 112 } };
+  });
+});
 
 const {
   claudeConfigBody,
@@ -83,7 +96,7 @@ test('untrusted browser origins are rejected including text/plain and preflight'
   assert.equal((await fetch(`${base}/api/hello`, { headers: { origin: base } })).status, 200);
 });
 
-test('model endpoint reflects agy models', async (t) => {
+test('model endpoint reflects the managed API account catalog', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/models`);
   assert.equal(response.status, 200);
@@ -244,7 +257,7 @@ test('Anthropic non-stream and stream responses are protocol-shaped', async (t) 
   assert.match(text, /"text":"lo-1"/);
   // Live text streaming sends message_start before usage exists, so the
   // cumulative message_delta must carry input and cache counts as well.
-  // fake-agy turn 1: prompt 100 (incl. cache 3), output 10 + thinking 2.
+  // Fixture usage: prompt 100 (incl. cache 3), output 10 + thinking 2.
   assert.deepEqual(body.usage, { input_tokens: 97, output_tokens: 12, cache_creation_input_tokens: 0, cache_read_input_tokens: 3 });
   const delta = text.split('\n\n').find((frame) => frame.startsWith('event: message_delta'));
   assert.deepEqual(JSON.parse(delta.split('data: ')[1]).usage, body.usage);
@@ -281,7 +294,7 @@ test('buffered tool streams repeat the complete cumulative usage in message_delt
   const frames = (await response.text()).split('\n\n');
   const data = (event) => JSON.parse(frames.find((frame) => frame.startsWith(`event: ${event}`)).split('data: ')[1]);
   assert.equal(data('message_delta').delta.stop_reason, 'tool_use');
-  // fake-agy turn 1: prompt 100 (incl. cache 3), output 10 + thinking 2.
+  // Fixture usage: prompt 100 (incl. cache 3), output 10 + thinking 2.
   const expected = { input_tokens: 97, output_tokens: 12, cache_creation_input_tokens: 0, cache_read_input_tokens: 3 };
   assert.deepEqual(data('message_start').message.usage, expected);
   assert.deepEqual(data('message_delta').usage, expected);
@@ -373,15 +386,15 @@ test('Claude Code Auto mode output is normalized to XML only', async (t) => {
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.content[0].text, '<block>no</block>');
-  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-3.8-flash-low');
 });
 
-test('current Claude Code Auto mode output-format contract uses the fast route', async (t) => {
+test('explicit High classifier model remains fixed outside the built-in Sonnet 5 compatibility route', async (t) => {
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/messages`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-5',
+      model: 'gemini-3.8-flash-high',
       system: 'Auto Mode evaluator. If the action should be blocked: <block>yes</block>. If the action should be allowed: <block>no</block>.',
       messages: [{ role: 'user', content: 'classify safe action' }]
     })
@@ -389,7 +402,7 @@ test('current Claude Code Auto mode output-format contract uses the fast route',
   const body = await response.json();
   assert.equal(response.status, 200);
   assert.equal(body.content[0].text, '<block>no</block>');
-  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-3.8-flash-high');
 });
 
 test('normal Claude model IDs are never silently replaced', async (t) => {
@@ -405,7 +418,7 @@ test('normal Claude model IDs are never silently replaced', async (t) => {
   assert.equal(response.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
 });
 
-test('Chat Completions and Responses preserve exact client model IDs', async (t) => {
+test('retired Chat Completions returns an upgrade error while Responses preserves the model ID', async (t) => {
   const base = await withServer(t);
   const chat = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -414,8 +427,8 @@ test('Chat Completions and Responses preserve exact client model IDs', async (t)
       messages: [{ role: 'user', content: 'chat request' }]
     })
   });
-  assert.equal(chat.status, 200);
-  assert.equal(chat.headers.get('x-antigravity-model'), 'claude-sonnet-4-6');
+  assert.equal(chat.status, 410);
+  assert.equal((await chat.json()).error.code, 'unsupported_api');
 
   const responses = await fetch(`${base}/v1/responses`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -452,7 +465,7 @@ test('upstream model failures keep the provider error and add an advisory catalo
   });
   const body = await response.json();
   assert.equal(response.status, 502);
-  assert.equal(body.error.type, 'agy_upstream_error');
+  assert.equal(body.error.type, 'direct_upstream_error');
   assert.match(body.error.message, /^Antigravity 上游请求失败：simulated failure/);
   assert.match(body.error.message, /网关诊断：/);
   assert.match(body.error.message, /请求模型 gpt-5\.6-sol 未出现在当前发现的 Antigravity 模型目录中/);
@@ -541,4 +554,26 @@ test('in-flight transactions settle on failure or cancellation without unhandled
     body: JSON.stringify({ model: 'gemini-test-high', messages: [{ role: 'user', content: 'hello' }] })
   });
   assert.equal(okResp.status, 200);
+});
+
+
+test('an auxiliary request without a model can use the configured fast default', async t => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ system: 'Auto Mode evaluator. If the action should be blocked: <block>yes</block>. If the action should be allowed: <block>no</block>.',
+      messages: [{ role: 'user', content: 'classify safe action' }] }) });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-low');
+  assert.equal((await response.json()).content[0].text, '<block>no</block>');
+});
+
+test('an explicit high tier remains high for an auxiliary request despite a conflicting effort', async t => {
+  const base = await withServer(t);
+  const response = await fetch(`${base}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gemini-test-high', reasoning_effort: 'low',
+      system: 'Auto Mode evaluator. If the action should be blocked: <block>yes</block>. If the action should be allowed: <block>no</block>.',
+      messages: [{ role: 'user', content: 'classify safe action' }] }) });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-antigravity-model'), 'gemini-test-high');
+  assert.equal((await response.json()).content[0].text, '<block>no</block>');
 });

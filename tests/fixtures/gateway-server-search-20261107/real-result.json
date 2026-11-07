@@ -1,0 +1,826 @@
+{
+  "evidence": "captured-claude-request-replay-real-http-gateway-native-helper",
+  "actualCliExecuted": false,
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T20:43:41.915Z",
+  "sourceBefore": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57
+  },
+  "scriptSha256": "1bfeb9645bdfb533118c0e31b4b50a7b6949c2efbea71cf2ca5754ded96de623",
+  "captured": {
+    "sourceFixture": "tests/fixtures/client-web-tools-20261107/claude-web-search.json",
+    "sourceFixtureSha256": "a7af4ebd6fa0a7125fd79dff3e09ed724af83016013f6b1555e8e37010bf1163",
+    "captureIndex": 2,
+    "modifications": [
+      "remove nonempty strict domain filter",
+      "replace only the user query with the fixed public query"
+    ],
+    "request": {
+      "method": "POST",
+      "path": "/v1/messages?beta=true",
+      "headers": {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "claude-cli/2.1.318 (external, sdk-cli)",
+        "x-claude-code-session-id": "92cec980-791c-4380-b8d4-c5ac81a682b7",
+        "x-stainless-arch": "arm64",
+        "x-stainless-lang": "js",
+        "x-stainless-os": "MacOS",
+        "x-stainless-package-version": "0.128.0",
+        "x-stainless-retry-count": "0",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v26.12.1",
+        "x-stainless-timeout": "600",
+        "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,thinking-token-count-2026-05-13,effort-2025-11-24",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "<REDACTED_CREDENTIAL>",
+        "x-app": "cli",
+        "connection": "keep-alive",
+        "host": "127.0.0.1:PROBE_PORT",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "1019"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Perform a web search for the query: site:example.com Example Domain"
+              }
+            ]
+          }
+        ],
+        "system": [
+          {
+            "type": "text",
+            "text": "x-anthropic-billing-header: cc_version=2.1.318.8fb; cc_entrypoint=sdk-cli;"
+          },
+          {
+            "type": "text",
+            "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+          },
+          {
+            "type": "text",
+            "text": "You run a web search for another Claude model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+          }
+        ],
+        "tools": [
+          {
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 8
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "web_search"
+        },
+        "metadata": {
+          "user_id": "{\"device_id\":\"608d7eb1e7b8a6ea40fdf407614efab38792b8ffc78c61b5c17caf6c7944b0ee\",\"account_uuid\":\"\",\"session_id\":\"92cec980-791c-4380-b8d4-c5ac81a682b7\"}"
+        },
+        "max_tokens": 32000,
+        "thinking": {
+          "type": "disabled"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "high"
+        },
+        "stream": true
+      }
+    },
+    "prepared": {
+      "query": "site:example.com Example Domain",
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Perform a web search for the query: site:example.com Example Domain"
+            }
+          ]
+        }
+      ],
+      "instructions": "You run a web search for another model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results.",
+      "generationConfig": {
+        "maxOutputTokens": 32000,
+        "temperature": 1
+      },
+      "identityMetadata": {
+        "profile": {
+          "client": "claude",
+          "templateVersion": "2.1.318",
+          "evidence": [
+            "claude-sdk-search-helper-template"
+          ]
+        },
+        "rules": [
+          "claude-billing-marker",
+          "claude-sdk-identity",
+          "claude-search-helper-model-identity"
+        ]
+      }
+    }
+  },
+  "physicalGenerationLimit": 1,
+  "boundaries": "one HTTP request; no main-model invocation, webpage fetch, retry, fallback generation or lower-budget substitute",
+  "originalStateBefore": {
+    "state/account-pool.json": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+    "state/quota.json": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6"
+  },
+  "originalAccountsBefore": {
+    "fileCount": 4,
+    "jsonCount": 4,
+    "digest": "8b11924bd6ac5b3e21ab83650f24914a6a890f7ed462a7791573a9b77c34e014"
+  },
+  "copiedState": {
+    "accounts": 4,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "privateDirectoryMode": "700",
+  "privateAccountModes": [
+    "600",
+    "600",
+    "600",
+    "600"
+  ],
+  "clientRequest": {
+    "method": "POST",
+    "path": "/v1/messages?beta=true",
+    "headers": {
+      "accept": "application/json",
+      "content-type": "application/json",
+      "user-agent": "claude-cli/2.1.318 (external, sdk-cli)",
+      "x-claude-code-session-id": "92cec980-791c-4380-b8d4-c5ac81a682b7",
+      "x-stainless-arch": "arm64",
+      "x-stainless-lang": "js",
+      "x-stainless-os": "MacOS",
+      "x-stainless-package-version": "0.128.0",
+      "x-stainless-retry-count": "0",
+      "x-stainless-runtime": "node",
+      "x-stainless-runtime-version": "v26.12.1",
+      "x-stainless-timeout": "600",
+      "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,thinking-token-count-2026-05-13,effort-2025-11-24",
+      "anthropic-dangerous-direct-browser-access": "true",
+      "anthropic-version": "2023-06-01",
+      "x-api-key": "<REDACTED_CREDENTIAL>",
+      "x-app": "cli"
+    },
+    "body": {
+      "model": "claude-sonnet-4-6",
+      "messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Perform a web search for the query: site:example.com Example Domain"
+            }
+          ]
+        }
+      ],
+      "system": [
+        {
+          "type": "text",
+          "text": "x-anthropic-billing-header: cc_version=2.1.318.8fb; cc_entrypoint=sdk-cli;"
+        },
+        {
+          "type": "text",
+          "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+        },
+        {
+          "type": "text",
+          "text": "You run a web search for another Claude model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+        }
+      ],
+      "tools": [
+        {
+          "type": "web_search_20250305",
+          "name": "web_search",
+          "max_uses": 8
+        }
+      ],
+      "tool_choice": {
+        "type": "tool",
+        "name": "web_search"
+      },
+      "metadata": {
+        "user_id": "{\"device_id\":\"608d7eb1e7b8a6ea40fdf407614efab38792b8ffc78c61b5c17caf6c7944b0ee\",\"account_uuid\":\"\",\"session_id\":\"92cec980-791c-4380-b8d4-c5ac81a682b7\"}"
+      },
+      "max_tokens": 32000,
+      "thinking": {
+        "type": "disabled"
+      },
+      "temperature": 1,
+      "output_config": {
+        "effort": "high"
+      },
+      "stream": true
+    }
+  },
+  "http": {
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+      "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+      "cache-control": "no-cache",
+      "connection": "keep-alive",
+      "content-type": "text/event-stream; charset=utf-8",
+      "date": "Fri, 06 Nov 2026 20:43:43 GMT",
+      "transfer-encoding": "chunked",
+      "x-accel-buffering": "no",
+      "x-antigravity-model": "gemini-3.5-flash-lite"
+    },
+    "rawSse": ": antigravity-gateway keep-alive\n\nevent: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_acb760e441854772994b718ba1a17e21\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.5-flash-lite\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":112,\"output_tokens\":110,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"server_tool_use\":{\"web_search_requests\":1}}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"server_tool_use\",\"id\":\"srvtoolu_160a4105022c4725a34c2149ee746a81\",\"name\":\"web_search\",\"input\":{}}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"query\\\":\\\"site:example.com Example Domain\\\"}\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"web_search_tool_result\",\"tool_use_id\":\"srvtoolu_160a4105022c4725a34c2149ee746a81\",\"content\":[{\"type\":\"web_search_result\",\"url\":\"https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1es4QH9LFqWpI4EHhPm2uTMfzLNdySm-Jl7iMbAZwvO7EpWPJqIAUtoB8yJ-rBK9iR8AP1sVbPxif_XEdI_7pTNH0EaHs32Uwf3mL_2cnxtjjOvXTGIHtRsti9cDhWBXRql78tdwXnaWutY85_YaxrXE9mA==\",\"title\":\"impress.co.jp\",\"page_age\":null,\"encrypted_content\":\"agyws1.r.ZZbc-0ayIuh97DLM.hcBaRyqbccDcxWZIaFYjPB-5jWpn2w4k9S2TtJkmYxVW6iTsBg48BPtZLOnaqg1lzPRchxfVa2AwnfaSCs9bcD2-y7VkBBEpDCdWwbCoWAF-_goO6lpg0oa0M3fUyAE0wtVR39l6kWI3vOJ5xk-biWIVu6O9ttibz9Hbl5AlfmZUU_25FENCyRLgAPzb68LU8lTZNXC_kIblPK_-ROnex5UHCeKa3-mUg6s_dJyiywJvI_jmj56_4Rs8xXnTupkvdawTIow4ifBvuXQHHgJOmHWc4UjXFZ4EpxDH9twpHIpVTNH3IJ2YeHerW3QKr8JTDmRhaSh2xTSX4fMczZjy9mQ5Ohrs0DaXe_AixVHsU_4tiaSRpDlMqSF4FvqzgsVZW2eMxUJrX400NQkE8aiMptPck3XvC2JD2rzmTS3gfgycZiG7WfQBjY2xFnMZmPWTInRvIoJX4MXtQB1sFofDMraSdmuPdZ__sVrAPJnSQ_WlVote1M_rWnctFczPE97qliNeURsVrMEx7cULJTX_ntI-6RLgfmXQ9JrCsfav0U9wj498d3C035vOg6lQjhWLqJFzJ5BHcAcrytNnVJAxHaR9H1lF7F-DAvxQNyULxzWrljO8LyUuo8ioTt8W1v6SByyVJqWJEiLcsnG5c5hTCnPO1kxTDgSOE2Cau1fk9faHeD0OifCd-ILfzxyFsxAiAnFPnEMKUFCpbOfuzQ6SKuF0QKDercMYfWRmJNxm3diG4AwdC9M5uzXcE0uFt7GPvLFvFgUaAUWrIEzw3V1ho-US1pJimejfvt0FmosemZlwq-ciHkaR3ac6Dp2Gn3EDNcfAr2bAtgB9iFV_wF1JTEWO2pUgBdUEdDS4a44GOGz4QUKGOyi2T1Fv-hz0E_FKabj5qCjb-nVzRoVDbdEiYDSYjV_NWOxl9Q9vT26N5gYQaJhMBIgpS01l36nwaKT8lgaXFrxpYW3piLg5ejccA8xVwuxjk05UDfAFNBh7tY2UF3uzRyrZG1oXuN4h3ptEEWnl0Yb6ltKZV2y9Beju0-Sh_G477GaK7YKbGqH4zhf0uTVRJIzUVWOlm1Vc9i35T0rj9ydjI5InUZi3hgrTNLe6DkiuqXj4SWaBhISIHBUDQwI9lSQReBFe1aiq9SDyz6-5zeeessjlNlezxBwoRFuT3srYOsgNwjlibMRvaVWx0_VnQs5LpHFoua5rgSyPINdLe6on7Hive59iy1db.S8Paq635P6cxvKJ6kdQ6xw\"},{\"type\":\"web_search_result\",\"url\":\"https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJ6ClLk1sS8QIE5xKEEeoOaBMb6GwwKFrTze_3xKi0JjlFynBOIjSatssgSTzxK_Um9ajCmlmtI4Hgspa4oWybIzFagkJVHCVg_LYQE_bv8CrD1w9OKUqPf3k8aAh4BQ==\",\"title\":\"wikipedia.org\",\"page_age\":null,\"encrypted_content\":\"agyws1.r.TbolCpR2mZwNC0c2.H-6yo3v73xcaD0RdJw6w_4zaw5UhNb5Jp_z_Fy2125pODpxpc_loCbvIJvhfkNHU0qUTViRnhqOGxYcAd-b0Ov6ylQnOLMR6_xxz7C8h5dKz91z-xuTy35VRAYLJ_5yOqkibUIFmx_iS1pnMqs4vWFVICxEAh3ibIe4jetZvtkf5PRDzOGdlQm2Uu17MKvkhNzo6vgMWJhnDGnbKiPxwvLqef5yWAKeuzhzGqST_68xNVOcjIJZCaOTKBYS7207TjniAM7IPJB47_RcEL_Do3W09uL15hL1B3NdBgMg-dGqBQYYlgidF-ZUZAsdrB-e2rohi9dMMmZUujpcV7offPcNUHI7q4u4ZpQuNqkyPq_8HDKLDJ7tE2aGgHowEhElsNlREfOla4e8a5ELQ9MBXPsZsHeh4swJMk9VO6HlcP-OKKzuJZktrfCxhazk7wVuWGPNymCJAB5TxQ2rBQsgfS8-59UIvKXG2dxW00muZJfQ-oX5NISeaE2Y2B2scRVMeJ_tb03CtKBn9yE3ZY94NZ6EKCqnDSUo61-BOjqICy5VtztTRPhdOAbE2vDJ0TW2i2aPIA7wbvu-FJld1oDzEZJHKkKVqBhSjoNCeGHh21MrUKL7XN5ykHxPrt8F-orok0TleAKsjn9d9i8uFA5EpvGqCFMkziIHM-JaEPrTc51OiTXulNbJBaC826lOAzUCVSvKF4lrbYdfY4-b7DovZr9fMNyTSAVA26BQClsG5K6OeBKBzg8zUq9OuOo9ECqSQmb5Ot7LNZ4su1sLWzKcgfguRmffbEIkO692aCTyiesFNQ9dqqo6Jppgb0V6tXfcQN7sl_m59NvSup0815Tcni72vasONGCJUlKWxdSpM9nXRLe7vAr4Hc3U0Mrbma5mN28IaDBgZAlPoNFrTlA20GCGmxsJMqQqC5a40H-IhkU4XH2NFO2xUtH3HvDEqeORk59BHwFRSslcvrW-F04eOBNhzOKHZj0rXq-AMr63a30J4zQx-G650b_vPgnPhAxTFO2oc9r_K_oElGUUGRIuZlXE9o0wq61YFf8xRAUeb1N0j_Oq0MIyV5lnKn2moQWs_Vlxto-aC-u4sgtFSQE6988jQazU8XqAoeXc6H_AtAq3R4VDl4DowMbyxTRb4EfXIGgE-yUtNRw._NYHPisUw3Zqytcw14f4Aw\"},{\"type\":\"web_search_result\",\"url\":\"https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJE4MzlQvA9h4302r89wnVM0I4nC23Sw_Ix-AO1RMOc3reGrI00E4_uW1sUoonx8LxtZUio5UlusIZH79kXbxxFCWhYy8-1mSUFizsSElPacQXfM3WfTfqdIDWKgNmyA==\",\"title\":\"wikipedia.org\",\"page_age\":null,\"encrypted_content\":\"agyws1.r.qu1SvA5dl05KPnu7.fyGSv9JODMG06T8oNvrSDzIaGL6RshjuHOVrG85IBguloucOkCIcK13t0fzJXI-g-KuRuP_zbLcoxtduWZsBSiNlzgk5-G-X8oFo73GBSc1XOY661P9AUqmoc9wClHLAXtPJMZmUx2GDg5NNipb61u_yRvvt6p9Xf2WG_cQONfxK7oNZKAfyGx5DeGPEtJeYW1zjysMkyUfs-l0DykfCPoO9Th8xDMi9i1cPgrh2X1C3CFlpJ2upow1b45L7N4FS4SNjI4VKAk71z0jVHuvuqHCN7dz-GOEZwOffBxTFmfjxmvsO9D60dZNaRoGJeJlPP99c8LtVQW9K502vGzpBroxiIy7D_lYuVLvqsJC5o_QX-XEYhl0TQrU8UjV-vu1xg4y1DXGThWa8G_JDfHimFSCox6FPbM_7I1OenZ5ISz-qILoifbTPbicfJh1tzNhU51rAPO32lGnWgyQnSyn5TVrr11Bi1LvU4faUC88fY_ot9_8bA8NGd4_6iv-fk2kBKZFqTFRsLHQW_J9QeY1m_GafJPCk67_bL2QjwTN6VSSi1l4WwOkerswrWeIdY-XJ3hOOb78YTT1avzCCvZaX_Fk_0NXYbvdAFCcuGOYQLKFmp1yYXX1GsxA3liPb9xqETcIeMZtdqBVZJwikyTEumn-oxf5EpJAXoEulnLv81ret-lPOiTmhfoSxIkf0XMhKQ6BfouMLlQ042r0xpUwN8Yg2fXTMjIGox_NF1MVFusl6HtyeWkW31KgVaBEJOfcygLDy8C-WWhDpFDpsJl8kJ_vHOCslC5DDQEtdWw87ZwDZoO85BGjAZoqVQnYB6poUvGkojBnrVizGBNiV00Qi_PyfKaYviuTh6VGTD14UW6G15QRolxxR7VL6J5QIuXChUboimFDLfWKcL_hdt634kjk2i3ObffkGHYcOx3sBIU57kwkLvAYSyl3ZW4BDoZwCVCTe7pTcO9dcDpZSRW-qwXLig9nhdQy86HSeu1Y46Zggf_zwW_orDgR01gpq2Z19PJBx2bruM83Df1bdbJy6RWS0E1aLPPRkznYXLPhccFZD4T4ChxiNhgLTNIRxzaem0wcJ1ts1lH_sfkCUeiKNMZEzV2kg2_SvpC3ymoKnEv8DTZjLL3RpFkHncJhHIJdmsvda6VYmcw.5Q9sWSLZFcGv4VN0Jtxr9A\"},{\"type\":\"web_search_result\",\"url\":\"https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9dfz7fak1RQQRyiJ2DEbq3gmj9bD1Np6p-KlZWPsMCm3-k8ijgpK5EV6oIQ2zeE0kdm6us2bDXNkIv1rlckx16Ed54_k-Jfi0_nvwNCw=\",\"title\":\"example.com\",\"page_age\":null,\"encrypted_content\":\"agyws1.r.aPF8_9vwx5xleRck.cHjRhdhAAlwVv8g8oVHLR3E9kuvTnOvA9jIRF1jkWU4EZr92IQhvi_Eib35WHb6kLndoMFNH3m6FiWD0AReldUXq7RcaIpIhSIP04YL23wea29rh02zvWkA4DzQu67ICre2ydm3qFaxmFQczooZV124avYV8npOhDuwnmTNsx1xrh4XsTMzNVoavLA1zV1JcK79PksGjxF_NmoTzXkHAaWAbplzhK4NqhMCXKBOXqpDRKXO-Pvyel024TAh1aOg6LMo8hoEUU9V9QT0cADGfJT9LdcEVEp2QhOXoMjHa5mZXonc1hXv02Nd_SJhQ5kAoWZ6TVSW5gDnGRkFygnNUYNbS2u8uIE8k84T-SbH4yAeZw9H0ZdO2J4B-gVDb-yI6Cwq3dlnoWEf0TAxXQlgaixQNyaWxypwpKSN2WRFjJswOoOOzJJF1UTWrqFPsgW34LQtFZ4XKUagXcQiqedhXQ1w7KrBpIs-tw-DxS0nMxVGxVdIAVxP2MfpXVKzdvGzTK5_CpWPZcWCOmD8omrEq9Gc4zFrAkRC9cjufPfo35ilAxFvz6tHzmu88OH3DJi4nJcWjYssb_0lMhLDAICSpZzEVrJaGxOOKmPVjMUitRH1N6BDz-JMACB1KrcJG98o5BfsTPtkO6_ZPIQZHfW8GUFYNO3GZLqEbfVgFq1YNDmjKNvBk05id_pzlV-zwDNTqRCqG_n1Cl7AluyUlaWDcTsOUWxbUGRptIuAPngkVN8Fyt9HHRzV311e-6azffOkD6VXEq-PRF6XPwv6lgv8uKVfATUwqfmo6Uh0Fr_GNJ5ccZBG-JW8O4q1y4FQQrI5tPc_Z5Viq7mTSFcXPUyb0ii6H0aunXFoyLmSXbjcMmvcTbln6e93zrjxWcTUjoWkVE8xlTE4FcI5wIddKKg3P9sHvLKfkeZFVFHtPqyRbAEU3InWKxTL5uHzSF9uUgg1JIfTzUT8er0y4fnjXBnL1PYMzrtukO2vsgi8s_T-__DDBQp_l9HIO3e34qK3WNtvhoCKXvj9IE5E-ClV2Xtqc7VOyfdlavSOI4AUdaEhdu127kGBTemOhU1GNEMAoTEw_6nSdF54.hTfkdWhMJe18QuzHJrYAyA\"},{\"type\":\"web_search_result\",\"url\":\"https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_MjlRdPupq-KZgjq2HZCTdD7I7Sx05YcMlPeQlXUWHGVa8yBYZx0D2d1QI7K6vVatySXejFo_sA9vdVjgi44nxvZB1r7AhhGsRMYtNWMdzZnmWHCXVzDeeFd0\",\"title\":\"i-3-i.info\",\"page_age\":null,\"encrypted_content\":\"agyws1.r.gS94HRG5IagixuPt.WbZaKZyiAZ2vA0PNxoG1lUS1t7hTcvVsvWojUGIcQtOoQ813-vG83efORRO_mawIkEzMdvfQkeKO3iPBpTtdzE1C0F-eKy3OSTIUNMEQjZBCWbHwPeO9HM_yq6u081-7dBL7Xbsdm-aZb1EuEDVZyHEkomggk7Szzz6yJL6ctxRsyVM89CS-xtQFuAh6rzhtovb4NW_zY-LgTVFUo915js1dzGsVib3OlEVnOY5Xgw-6dOYxdtDVmYK2IFw641ME5JGOoC3KLf-P2qjVilkNu0q2CRKnVeqmtIoBj-KUrfHshesrGJ-dYfkXRCpBB-s4NZZ5MSCphMkQOfs8KuitmZCSxNVOM6W7g-E_QmORHwCgurifn9q4LgMERaY4QaVOvDCtVwsXp4sNiw3OZ9xj7TMkvl6NMBMqvjANTmygZaNy43DFJqMSPdCjCAXot111rbcjhSZalD9du-27J6adieX0h1rW4T34scavPTQBva_dLIff9qWHZrYXrkR8P4bu5e8x8hLcYOJgfp_zqpGZXh6dO5nkvCDIlVbITLOvKI-5Jq_gHqn4dp6ot_MUWabG1RWGe30DbnyCq1EV-4sOqiBqqNdcdZ_4zK7fMih7feAeKZ34R8oB-Y4lUiz8qQY_3_haqbW_dB0F_-UbzwmvpN4E7o_gQd0z8_mzgLfKZcLkFPov_icLBH6lX1ZohsRExfOnawDRDexToQ28lwRSl4Hju_Y8BEdH_181gb5mj2ady9pIW9QP_FL16CnvYzeITNj-HniQ6A-sXN2w25QHqXs1bHh0UXV7s-cAp5qhZnmvlBJuz4rPPgYQl4FfW3SXwJJAIjRDp4B9HSG2fmWKw28-8VF827EfT09xgNgsBaBm5LsMvfxgRMozvJDDOEGbFYtp6_qwbxh-iGKJ_sg3PD_iTZCIPm5q_IZOX_Pi9JyhRRSxE9IR4VdyOAdBmhyokTA9kqQ8TyF2qcmIUefuVo1s6ki8oSQHs8ntTDmXov8wmCcR-x8fUdA4FrXKJkfKHv3yM2WqZOuv2EX-t2rg2IN4Jd7t1g2BGyXCexEY5hfLK8hDNtkWQ-PyciMPTrfZYoRjhuTdreC-Ggv2y1L45LeEKmb7IjfG0VA8RlkqwSUut2wX.lgDAe5-5HU7Vkvv5vn-Fnw\"}]}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":2,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":2,\"delta\":{\"type\":\"text_delta\",\"text\":\"example.comは、インターネットの文書やチュートリアル、テスト環境などで、例示用（プレースホルダー）として使用するためにIANA（Internet Assigned Numbers Authority）によって予約されているドメイン名です。\\n\\n実在しないドメインとして安全に利用でき、ドキュメントやコード内にURLやメールアドレスのサンプルを記載する際に許可なく自由に使用することができます。\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":2}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":112,\"output_tokens\":110,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"server_tool_use\":{\"web_search_requests\":1}}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n",
+    "events": [
+      {
+        "event": "message_start",
+        "data": {
+          "type": "message_start",
+          "message": {
+            "id": "msg_acb760e441854772994b718ba1a17e21",
+            "type": "message",
+            "role": "assistant",
+            "model": "gemini-3.5-flash-lite",
+            "content": [],
+            "stop_reason": null,
+            "stop_sequence": null,
+            "usage": {
+              "input_tokens": 112,
+              "output_tokens": 110,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0,
+              "server_tool_use": {
+                "web_search_requests": 1
+              }
+            }
+          }
+        }
+      },
+      {
+        "event": "content_block_start",
+        "data": {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "server_tool_use",
+            "id": "srvtoolu_160a4105022c4725a34c2149ee746a81",
+            "name": "web_search",
+            "input": {}
+          }
+        }
+      },
+      {
+        "event": "content_block_delta",
+        "data": {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"query\":\"site:example.com Example Domain\"}"
+          }
+        }
+      },
+      {
+        "event": "content_block_stop",
+        "data": {
+          "type": "content_block_stop",
+          "index": 0
+        }
+      },
+      {
+        "event": "content_block_start",
+        "data": {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "web_search_tool_result",
+            "tool_use_id": "srvtoolu_160a4105022c4725a34c2149ee746a81",
+            "content": [
+              {
+                "type": "web_search_result",
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1es4QH9LFqWpI4EHhPm2uTMfzLNdySm-Jl7iMbAZwvO7EpWPJqIAUtoB8yJ-rBK9iR8AP1sVbPxif_XEdI_7pTNH0EaHs32Uwf3mL_2cnxtjjOvXTGIHtRsti9cDhWBXRql78tdwXnaWutY85_YaxrXE9mA==",
+                "title": "impress.co.jp",
+                "page_age": null,
+                "encrypted_content": "agyws1.r.ZZbc-0ayIuh97DLM.hcBaRyqbccDcxWZIaFYjPB-5jWpn2w4k9S2TtJkmYxVW6iTsBg48BPtZLOnaqg1lzPRchxfVa2AwnfaSCs9bcD2-y7VkBBEpDCdWwbCoWAF-_goO6lpg0oa0M3fUyAE0wtVR39l6kWI3vOJ5xk-biWIVu6O9ttibz9Hbl5AlfmZUU_25FENCyRLgAPzb68LU8lTZNXC_kIblPK_-ROnex5UHCeKa3-mUg6s_dJyiywJvI_jmj56_4Rs8xXnTupkvdawTIow4ifBvuXQHHgJOmHWc4UjXFZ4EpxDH9twpHIpVTNH3IJ2YeHerW3QKr8JTDmRhaSh2xTSX4fMczZjy9mQ5Ohrs0DaXe_AixVHsU_4tiaSRpDlMqSF4FvqzgsVZW2eMxUJrX400NQkE8aiMptPck3XvC2JD2rzmTS3gfgycZiG7WfQBjY2xFnMZmPWTInRvIoJX4MXtQB1sFofDMraSdmuPdZ__sVrAPJnSQ_WlVote1M_rWnctFczPE97qliNeURsVrMEx7cULJTX_ntI-6RLgfmXQ9JrCsfav0U9wj498d3C035vOg6lQjhWLqJFzJ5BHcAcrytNnVJAxHaR9H1lF7F-DAvxQNyULxzWrljO8LyUuo8ioTt8W1v6SByyVJqWJEiLcsnG5c5hTCnPO1kxTDgSOE2Cau1fk9faHeD0OifCd-ILfzxyFsxAiAnFPnEMKUFCpbOfuzQ6SKuF0QKDercMYfWRmJNxm3diG4AwdC9M5uzXcE0uFt7GPvLFvFgUaAUWrIEzw3V1ho-US1pJimejfvt0FmosemZlwq-ciHkaR3ac6Dp2Gn3EDNcfAr2bAtgB9iFV_wF1JTEWO2pUgBdUEdDS4a44GOGz4QUKGOyi2T1Fv-hz0E_FKabj5qCjb-nVzRoVDbdEiYDSYjV_NWOxl9Q9vT26N5gYQaJhMBIgpS01l36nwaKT8lgaXFrxpYW3piLg5ejccA8xVwuxjk05UDfAFNBh7tY2UF3uzRyrZG1oXuN4h3ptEEWnl0Yb6ltKZV2y9Beju0-Sh_G477GaK7YKbGqH4zhf0uTVRJIzUVWOlm1Vc9i35T0rj9ydjI5InUZi3hgrTNLe6DkiuqXj4SWaBhISIHBUDQwI9lSQReBFe1aiq9SDyz6-5zeeessjlNlezxBwoRFuT3srYOsgNwjlibMRvaVWx0_VnQs5LpHFoua5rgSyPINdLe6on7Hive59iy1db.S8Paq635P6cxvKJ6kdQ6xw"
+              },
+              {
+                "type": "web_search_result",
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJ6ClLk1sS8QIE5xKEEeoOaBMb6GwwKFrTze_3xKi0JjlFynBOIjSatssgSTzxK_Um9ajCmlmtI4Hgspa4oWybIzFagkJVHCVg_LYQE_bv8CrD1w9OKUqPf3k8aAh4BQ==",
+                "title": "wikipedia.org",
+                "page_age": null,
+                "encrypted_content": "agyws1.r.TbolCpR2mZwNC0c2.H-6yo3v73xcaD0RdJw6w_4zaw5UhNb5Jp_z_Fy2125pODpxpc_loCbvIJvhfkNHU0qUTViRnhqOGxYcAd-b0Ov6ylQnOLMR6_xxz7C8h5dKz91z-xuTy35VRAYLJ_5yOqkibUIFmx_iS1pnMqs4vWFVICxEAh3ibIe4jetZvtkf5PRDzOGdlQm2Uu17MKvkhNzo6vgMWJhnDGnbKiPxwvLqef5yWAKeuzhzGqST_68xNVOcjIJZCaOTKBYS7207TjniAM7IPJB47_RcEL_Do3W09uL15hL1B3NdBgMg-dGqBQYYlgidF-ZUZAsdrB-e2rohi9dMMmZUujpcV7offPcNUHI7q4u4ZpQuNqkyPq_8HDKLDJ7tE2aGgHowEhElsNlREfOla4e8a5ELQ9MBXPsZsHeh4swJMk9VO6HlcP-OKKzuJZktrfCxhazk7wVuWGPNymCJAB5TxQ2rBQsgfS8-59UIvKXG2dxW00muZJfQ-oX5NISeaE2Y2B2scRVMeJ_tb03CtKBn9yE3ZY94NZ6EKCqnDSUo61-BOjqICy5VtztTRPhdOAbE2vDJ0TW2i2aPIA7wbvu-FJld1oDzEZJHKkKVqBhSjoNCeGHh21MrUKL7XN5ykHxPrt8F-orok0TleAKsjn9d9i8uFA5EpvGqCFMkziIHM-JaEPrTc51OiTXulNbJBaC826lOAzUCVSvKF4lrbYdfY4-b7DovZr9fMNyTSAVA26BQClsG5K6OeBKBzg8zUq9OuOo9ECqSQmb5Ot7LNZ4su1sLWzKcgfguRmffbEIkO692aCTyiesFNQ9dqqo6Jppgb0V6tXfcQN7sl_m59NvSup0815Tcni72vasONGCJUlKWxdSpM9nXRLe7vAr4Hc3U0Mrbma5mN28IaDBgZAlPoNFrTlA20GCGmxsJMqQqC5a40H-IhkU4XH2NFO2xUtH3HvDEqeORk59BHwFRSslcvrW-F04eOBNhzOKHZj0rXq-AMr63a30J4zQx-G650b_vPgnPhAxTFO2oc9r_K_oElGUUGRIuZlXE9o0wq61YFf8xRAUeb1N0j_Oq0MIyV5lnKn2moQWs_Vlxto-aC-u4sgtFSQE6988jQazU8XqAoeXc6H_AtAq3R4VDl4DowMbyxTRb4EfXIGgE-yUtNRw._NYHPisUw3Zqytcw14f4Aw"
+              },
+              {
+                "type": "web_search_result",
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJE4MzlQvA9h4302r89wnVM0I4nC23Sw_Ix-AO1RMOc3reGrI00E4_uW1sUoonx8LxtZUio5UlusIZH79kXbxxFCWhYy8-1mSUFizsSElPacQXfM3WfTfqdIDWKgNmyA==",
+                "title": "wikipedia.org",
+                "page_age": null,
+                "encrypted_content": "agyws1.r.qu1SvA5dl05KPnu7.fyGSv9JODMG06T8oNvrSDzIaGL6RshjuHOVrG85IBguloucOkCIcK13t0fzJXI-g-KuRuP_zbLcoxtduWZsBSiNlzgk5-G-X8oFo73GBSc1XOY661P9AUqmoc9wClHLAXtPJMZmUx2GDg5NNipb61u_yRvvt6p9Xf2WG_cQONfxK7oNZKAfyGx5DeGPEtJeYW1zjysMkyUfs-l0DykfCPoO9Th8xDMi9i1cPgrh2X1C3CFlpJ2upow1b45L7N4FS4SNjI4VKAk71z0jVHuvuqHCN7dz-GOEZwOffBxTFmfjxmvsO9D60dZNaRoGJeJlPP99c8LtVQW9K502vGzpBroxiIy7D_lYuVLvqsJC5o_QX-XEYhl0TQrU8UjV-vu1xg4y1DXGThWa8G_JDfHimFSCox6FPbM_7I1OenZ5ISz-qILoifbTPbicfJh1tzNhU51rAPO32lGnWgyQnSyn5TVrr11Bi1LvU4faUC88fY_ot9_8bA8NGd4_6iv-fk2kBKZFqTFRsLHQW_J9QeY1m_GafJPCk67_bL2QjwTN6VSSi1l4WwOkerswrWeIdY-XJ3hOOb78YTT1avzCCvZaX_Fk_0NXYbvdAFCcuGOYQLKFmp1yYXX1GsxA3liPb9xqETcIeMZtdqBVZJwikyTEumn-oxf5EpJAXoEulnLv81ret-lPOiTmhfoSxIkf0XMhKQ6BfouMLlQ042r0xpUwN8Yg2fXTMjIGox_NF1MVFusl6HtyeWkW31KgVaBEJOfcygLDy8C-WWhDpFDpsJl8kJ_vHOCslC5DDQEtdWw87ZwDZoO85BGjAZoqVQnYB6poUvGkojBnrVizGBNiV00Qi_PyfKaYviuTh6VGTD14UW6G15QRolxxR7VL6J5QIuXChUboimFDLfWKcL_hdt634kjk2i3ObffkGHYcOx3sBIU57kwkLvAYSyl3ZW4BDoZwCVCTe7pTcO9dcDpZSRW-qwXLig9nhdQy86HSeu1Y46Zggf_zwW_orDgR01gpq2Z19PJBx2bruM83Df1bdbJy6RWS0E1aLPPRkznYXLPhccFZD4T4ChxiNhgLTNIRxzaem0wcJ1ts1lH_sfkCUeiKNMZEzV2kg2_SvpC3ymoKnEv8DTZjLL3RpFkHncJhHIJdmsvda6VYmcw.5Q9sWSLZFcGv4VN0Jtxr9A"
+              },
+              {
+                "type": "web_search_result",
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9dfz7fak1RQQRyiJ2DEbq3gmj9bD1Np6p-KlZWPsMCm3-k8ijgpK5EV6oIQ2zeE0kdm6us2bDXNkIv1rlckx16Ed54_k-Jfi0_nvwNCw=",
+                "title": "example.com",
+                "page_age": null,
+                "encrypted_content": "agyws1.r.aPF8_9vwx5xleRck.cHjRhdhAAlwVv8g8oVHLR3E9kuvTnOvA9jIRF1jkWU4EZr92IQhvi_Eib35WHb6kLndoMFNH3m6FiWD0AReldUXq7RcaIpIhSIP04YL23wea29rh02zvWkA4DzQu67ICre2ydm3qFaxmFQczooZV124avYV8npOhDuwnmTNsx1xrh4XsTMzNVoavLA1zV1JcK79PksGjxF_NmoTzXkHAaWAbplzhK4NqhMCXKBOXqpDRKXO-Pvyel024TAh1aOg6LMo8hoEUU9V9QT0cADGfJT9LdcEVEp2QhOXoMjHa5mZXonc1hXv02Nd_SJhQ5kAoWZ6TVSW5gDnGRkFygnNUYNbS2u8uIE8k84T-SbH4yAeZw9H0ZdO2J4B-gVDb-yI6Cwq3dlnoWEf0TAxXQlgaixQNyaWxypwpKSN2WRFjJswOoOOzJJF1UTWrqFPsgW34LQtFZ4XKUagXcQiqedhXQ1w7KrBpIs-tw-DxS0nMxVGxVdIAVxP2MfpXVKzdvGzTK5_CpWPZcWCOmD8omrEq9Gc4zFrAkRC9cjufPfo35ilAxFvz6tHzmu88OH3DJi4nJcWjYssb_0lMhLDAICSpZzEVrJaGxOOKmPVjMUitRH1N6BDz-JMACB1KrcJG98o5BfsTPtkO6_ZPIQZHfW8GUFYNO3GZLqEbfVgFq1YNDmjKNvBk05id_pzlV-zwDNTqRCqG_n1Cl7AluyUlaWDcTsOUWxbUGRptIuAPngkVN8Fyt9HHRzV311e-6azffOkD6VXEq-PRF6XPwv6lgv8uKVfATUwqfmo6Uh0Fr_GNJ5ccZBG-JW8O4q1y4FQQrI5tPc_Z5Viq7mTSFcXPUyb0ii6H0aunXFoyLmSXbjcMmvcTbln6e93zrjxWcTUjoWkVE8xlTE4FcI5wIddKKg3P9sHvLKfkeZFVFHtPqyRbAEU3InWKxTL5uHzSF9uUgg1JIfTzUT8er0y4fnjXBnL1PYMzrtukO2vsgi8s_T-__DDBQp_l9HIO3e34qK3WNtvhoCKXvj9IE5E-ClV2Xtqc7VOyfdlavSOI4AUdaEhdu127kGBTemOhU1GNEMAoTEw_6nSdF54.hTfkdWhMJe18QuzHJrYAyA"
+              },
+              {
+                "type": "web_search_result",
+                "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_MjlRdPupq-KZgjq2HZCTdD7I7Sx05YcMlPeQlXUWHGVa8yBYZx0D2d1QI7K6vVatySXejFo_sA9vdVjgi44nxvZB1r7AhhGsRMYtNWMdzZnmWHCXVzDeeFd0",
+                "title": "i-3-i.info",
+                "page_age": null,
+                "encrypted_content": "agyws1.r.gS94HRG5IagixuPt.WbZaKZyiAZ2vA0PNxoG1lUS1t7hTcvVsvWojUGIcQtOoQ813-vG83efORRO_mawIkEzMdvfQkeKO3iPBpTtdzE1C0F-eKy3OSTIUNMEQjZBCWbHwPeO9HM_yq6u081-7dBL7Xbsdm-aZb1EuEDVZyHEkomggk7Szzz6yJL6ctxRsyVM89CS-xtQFuAh6rzhtovb4NW_zY-LgTVFUo915js1dzGsVib3OlEVnOY5Xgw-6dOYxdtDVmYK2IFw641ME5JGOoC3KLf-P2qjVilkNu0q2CRKnVeqmtIoBj-KUrfHshesrGJ-dYfkXRCpBB-s4NZZ5MSCphMkQOfs8KuitmZCSxNVOM6W7g-E_QmORHwCgurifn9q4LgMERaY4QaVOvDCtVwsXp4sNiw3OZ9xj7TMkvl6NMBMqvjANTmygZaNy43DFJqMSPdCjCAXot111rbcjhSZalD9du-27J6adieX0h1rW4T34scavPTQBva_dLIff9qWHZrYXrkR8P4bu5e8x8hLcYOJgfp_zqpGZXh6dO5nkvCDIlVbITLOvKI-5Jq_gHqn4dp6ot_MUWabG1RWGe30DbnyCq1EV-4sOqiBqqNdcdZ_4zK7fMih7feAeKZ34R8oB-Y4lUiz8qQY_3_haqbW_dB0F_-UbzwmvpN4E7o_gQd0z8_mzgLfKZcLkFPov_icLBH6lX1ZohsRExfOnawDRDexToQ28lwRSl4Hju_Y8BEdH_181gb5mj2ady9pIW9QP_FL16CnvYzeITNj-HniQ6A-sXN2w25QHqXs1bHh0UXV7s-cAp5qhZnmvlBJuz4rPPgYQl4FfW3SXwJJAIjRDp4B9HSG2fmWKw28-8VF827EfT09xgNgsBaBm5LsMvfxgRMozvJDDOEGbFYtp6_qwbxh-iGKJ_sg3PD_iTZCIPm5q_IZOX_Pi9JyhRRSxE9IR4VdyOAdBmhyokTA9kqQ8TyF2qcmIUefuVo1s6ki8oSQHs8ntTDmXov8wmCcR-x8fUdA4FrXKJkfKHv3yM2WqZOuv2EX-t2rg2IN4Jd7t1g2BGyXCexEY5hfLK8hDNtkWQ-PyciMPTrfZYoRjhuTdreC-Ggv2y1L45LeEKmb7IjfG0VA8RlkqwSUut2wX.lgDAe5-5HU7Vkvv5vn-Fnw"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "event": "content_block_stop",
+        "data": {
+          "type": "content_block_stop",
+          "index": 1
+        }
+      },
+      {
+        "event": "content_block_start",
+        "data": {
+          "type": "content_block_start",
+          "index": 2,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        }
+      },
+      {
+        "event": "content_block_delta",
+        "data": {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "text_delta",
+            "text": "example.comは、インターネットの文書やチュートリアル、テスト環境などで、例示用（プレースホルダー）として使用するためにIANA（Internet Assigned Numbers Authority）によって予約されているドメイン名です。\n\n実在しないドメインとして安全に利用でき、ドキュメントやコード内にURLやメールアドレスのサンプルを記載する際に許可なく自由に使用することができます。"
+          }
+        }
+      },
+      {
+        "event": "content_block_stop",
+        "data": {
+          "type": "content_block_stop",
+          "index": 2
+        }
+      },
+      {
+        "event": "message_delta",
+        "data": {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null
+          },
+          "usage": {
+            "input_tokens": 112,
+            "output_tokens": 110,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0,
+            "server_tool_use": {
+              "web_search_requests": 1
+            }
+          }
+        }
+      },
+      {
+        "event": "message_stop",
+        "data": {
+          "type": "message_stop"
+        }
+      }
+    ]
+  },
+  "trace": [
+    {
+      "type": "native-manifest",
+      "sourceSha256": "47e34ff9c729c93109f673028e3e2435e7960b373e60b369dab9fa7e1be5f5dc",
+      "platform": "darwin-arm64",
+      "binarySha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5"
+    },
+    {
+      "type": "worker-ready",
+      "entry": "real gateway.createServer",
+      "source": {
+        "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+        "files": 57
+      },
+      "identity": {
+        "profile": {
+          "client": "claude",
+          "templateVersion": "2.1.318",
+          "evidence": [
+            "claude-sdk-search-helper-template"
+          ]
+        },
+        "rules": [
+          "claude-billing-marker",
+          "claude-sdk-identity",
+          "claude-search-helper-model-identity"
+        ]
+      }
+    },
+    {
+      "type": "pool-search-entered",
+      "request": {
+        "query": "site:example.com Example Domain",
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Perform a web search for the query: site:example.com Example Domain"
+              }
+            ]
+          }
+        ],
+        "instructions": "You run a web search for another model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results.",
+        "generationConfig": {
+          "maxOutputTokens": 32000,
+          "temperature": 1
+        }
+      }
+    },
+    {
+      "type": "native-request",
+      "id": "3077d29d-86ca-492a-ad38-673b04757905",
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "method": "POST",
+      "purpose": "eligibility-metadata",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      }
+    },
+    {
+      "type": "native-response",
+      "id": "3077d29d-86ca-492a-ad38-673b04757905",
+      "status": 200,
+      "purpose": "eligibility-metadata",
+      "binary": "/tmp/real-client-gateway/config/native/agy-transport-b0b55da8685bb1b6389c"
+    },
+    {
+      "type": "catalog",
+      "id": "3077d29d-86ca-492a-ad38-673b04757905",
+      "webSearchModelIds": [
+        "gemini-3.5-flash-lite"
+      ]
+    },
+    {
+      "type": "account-selected",
+      "model": "gemini-3.5-flash-lite",
+      "declaredModels": [
+        "gemini-3.5-flash-lite"
+      ],
+      "attempt": 1,
+      "enabled": true,
+      "healthState": "available",
+      "quotaProtected": false,
+      "cooldownActive": false,
+      "modelCooldownActive": false
+    },
+    {
+      "type": "native-request",
+      "id": "5df99448-74b9-4a0c-87ed-45ea8ad68ae4",
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "method": "POST",
+      "purpose": "helper-generation",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Perform a web search for the query: site:example.com Example Domain"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You are a search engine bot. You will be given a query from a user. Your task is to search the web for relevant information that will help the user. You MUST perform a web search. Do not respond or interact with the user, please respond as if they typed the query into a search bar."
+              },
+              {
+                "text": "You run a web search for another model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+              }
+            ]
+          },
+          "tools": [
+            {
+              "googleSearch": {
+                "enhancedContent": {
+                  "imageSearch": {
+                    "maxResultCount": 5
+                  }
+                }
+              }
+            }
+          ],
+          "generationConfig": {
+            "candidateCount": 1,
+            "maxOutputTokens": 32000,
+            "temperature": 1
+          }
+        },
+        "model": "gemini-3.5-flash-lite",
+        "userAgent": "antigravity",
+        "requestType": "web_search"
+      },
+      "expectedEnvelopeMatched": true
+    },
+    {
+      "type": "native-response",
+      "id": "5df99448-74b9-4a0c-87ed-45ea8ad68ae4",
+      "status": 200,
+      "purpose": "helper-generation",
+      "binary": "/tmp/real-client-gateway/config/native/agy-transport-b0b55da8685bb1b6389c"
+    },
+    {
+      "type": "generation-body",
+      "id": "5df99448-74b9-4a0c-87ed-45ea8ad68ae4",
+      "status": 200,
+      "byteLength": 9381,
+      "rawBodySha256": "c023ab99fbaa3f344c826ea33b1cd2cbb5ff966f38593385b7adfd755025c9e9",
+      "body": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "thoughtSignature": "EmcKZQFpFH0TUeA9vA73Se0+N3VO2bojFW0dmMT9R2HGwpNQR1PKakw/aZy2I559ZTrifVKc3TsVH1mQWMkk8Ljz/L/o29Jt5wVaXuYkMIsKtUamLRNQttCnb613KLiGqWPT9pG8JRTM",
+                    "text": "example.comは、インターネットの文書やチュートリアル、テスト環境などで、例示用（プレースホルダー）として使用するためにIANA（Internet Assigned Numbers Authority）によって予約されているドメイン名です。\n\n実在しないドメインとして安全に利用でき、ドキュメントやコード内にURLやメールアドレスのサンプルを記載する際に許可なく自由に使用することができます。"
+                  }
+                ]
+              },
+              "finishReason": "STOP",
+              "groundingMetadata": {
+                "webSearchQueries": [
+                  "site example com Example Domain"
+                ],
+                "searchEntryPoint": {
+                  "renderedContent": "<style>\n.container {\n  align-items: center;\n  border-radius: 8px;\n  display: flex;\n  font-family: Google Sans, Roboto, sans-serif;\n  font-size: 14px;\n  line-height: 20px;\n  padding: 8px 12px;\n}\n.chip {\n  display: inline-block;\n  border: solid 1px;\n  border-radius: 16px;\n  min-width: 14px;\n  padding: 5px 16px;\n  text-align: center;\n  user-select: none;\n  margin: 0 8px;\n  -webkit-tap-highlight-color: transparent;\n}\n.carousel {\n  overflow: auto;\n  scrollbar-width: none;\n  white-space: nowrap;\n  margin-right: -12px;\n}\n.headline {\n  display: flex;\n  margin-right: 4px;\n}\n.gradient-container {\n  position: relative;\n}\n.gradient {\n  position: absolute;\n  transform: translate(3px, -9px);\n  height: 36px;\n  width: 9px;\n}\n@media (prefers-color-scheme: light) {\n  .container {\n    background-color: #fafafa;\n    box-shadow: 0 0 0 1px #0000000f;\n  }\n  .headline-label {\n    color: #1f1f1f;\n  }\n  .chip {\n    background-color: #ffffff;\n    border-color: #d2d2d2;\n    color: #5e5e5e;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #f2f2f2;\n  }\n  .chip:focus {\n    background-color: #f2f2f2;\n  }\n  .chip:active {\n    background-color: #d8d8d8;\n    border-color: #b6b6b6;\n  }\n  .logo-dark {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #fafafa 15%, #fafafa00 100%);\n  }\n}\n@media (prefers-color-scheme: dark) {\n  .container {\n    background-color: #1f1f1f;\n    box-shadow: 0 0 0 1px #ffffff26;\n  }\n  .headline-label {\n    color: #fff;\n  }\n  .chip {\n    background-color: #2c2c2c;\n    border-color: #3c4043;\n    color: #fff;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #353536;\n  }\n  .chip:focus {\n    background-color: #353536;\n  }\n  .chip:active {\n    background-color: #464849;\n    border-color: #53575b;\n  }\n  .logo-light {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #1f1f1f 15%, #1f1f1f00 100%);\n  }\n}\n</style>\n<div class=\"container\">\n  <div class=\"headline\">\n    <svg class=\"logo-light\" width=\"18\" height=\"18\" viewBox=\"9 9 35 35\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M42.8622 27.0064C42.8622 25.7839 42.7525 24.6084 42.5487 23.4799H26.3109V30.1568H35.5897C35.1821 32.3041 33.9596 34.1222 32.1258 35.3448V39.6864H37.7213C40.9814 36.677 42.8622 32.2571 42.8622 27.0064V27.0064Z\" fill=\"#4285F4\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 43.8555C30.9659 43.8555 34.8687 42.3195 37.7213 39.6863L32.1258 35.3447C30.5898 36.3792 28.6306 37.0061 26.3109 37.0061C21.8282 37.0061 18.0195 33.9811 16.6559 29.906H10.9194V34.3573C13.7563 39.9841 19.5712 43.8555 26.3109 43.8555V43.8555Z\" fill=\"#34A853\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M16.6559 29.8904C16.3111 28.8559 16.1074 27.7588 16.1074 26.6146C16.1074 25.4704 16.3111 24.3733 16.6559 23.3388V18.8875H10.9194C9.74388 21.2072 9.06992 23.8247 9.06992 26.6146C9.06992 29.4045 9.74388 32.022 10.9194 34.3417L15.3864 30.8621L16.6559 29.8904V29.8904Z\" fill=\"#FBBC05\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 16.2386C28.85 16.2386 31.107 17.1164 32.9095 18.8091L37.8466 13.8719C34.853 11.082 30.9659 9.3736 26.3109 9.3736C19.5712 9.3736 13.7563 13.245 10.9194 18.8875L16.6559 23.3388C18.0195 19.2636 21.8282 16.2386 26.3109 16.2386V16.2386Z\" fill=\"#EA4335\"/>\n    </svg>\n    <svg class=\"logo-dark\" width=\"18\" height=\"18\" viewBox=\"0 0 48 48\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"24\" cy=\"23\" fill=\"#FFF\" r=\"22\"/>\n      <path d=\"M33.76 34.26c2.75-2.56 4.49-6.37 4.49-11.26 0-.89-.08-1.84-.29-3H24.01v5.99h8.03c-.4 2.02-1.5 3.56-3.07 4.56v.75l3.91 2.97h.88z\" fill=\"#4285F4\"/>\n      <path d=\"M15.58 25.77A8.845 8.845 0 0 0 24 31.86c1.92 0 3.62-.46 4.97-1.31l4.79 3.71C31.14 36.7 27.65 38 24 38c-5.93 0-11.01-3.4-13.45-8.36l.17-1.01 4.06-2.85h.8z\" fill=\"#34A853\"/>\n      <path d=\"M15.59 20.21a8.864 8.864 0 0 0 0 5.58l-5.03 3.86c-.98-2-1.53-4.25-1.53-6.64 0-2.39.55-4.64 1.53-6.64l1-.22 3.81 2.98.22 1.08z\" fill=\"#FBBC05\"/>\n      <path d=\"M24 14.14c2.11 0 4.02.75 5.52 1.98l4.36-4.36C31.22 9.43 27.81 8 24 8c-5.93 0-11.01 3.4-13.45 8.36l5.03 3.85A8.86 8.86 0 0 1 24 14.14z\" fill=\"#EA4335\"/>\n    </svg>\n    <div class=\"gradient-container\"><div class=\"gradient\"></div></div>\n  </div>\n  <div class=\"carousel\">\n<a class=\"chip\" href=\"https://www.google.com/search?q=site+example+com+Example+Domain&client=app-vertex-grounding&safesearch=active\">site example com Example Domain</a>\n  </div>\n</div>"
+                },
+                "groundingChunks": [
+                  {
+                    "web": {
+                      "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1es4QH9LFqWpI4EHhPm2uTMfzLNdySm-Jl7iMbAZwvO7EpWPJqIAUtoB8yJ-rBK9iR8AP1sVbPxif_XEdI_7pTNH0EaHs32Uwf3mL_2cnxtjjOvXTGIHtRsti9cDhWBXRql78tdwXnaWutY85_YaxrXE9mA==",
+                      "title": "impress.co.jp"
+                    }
+                  },
+                  {
+                    "web": {
+                      "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJ6ClLk1sS8QIE5xKEEeoOaBMb6GwwKFrTze_3xKi0JjlFynBOIjSatssgSTzxK_Um9ajCmlmtI4Hgspa4oWybIzFagkJVHCVg_LYQE_bv8CrD1w9OKUqPf3k8aAh4BQ==",
+                      "title": "wikipedia.org"
+                    }
+                  },
+                  {
+                    "web": {
+                      "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJE4MzlQvA9h4302r89wnVM0I4nC23Sw_Ix-AO1RMOc3reGrI00E4_uW1sUoonx8LxtZUio5UlusIZH79kXbxxFCWhYy8-1mSUFizsSElPacQXfM3WfTfqdIDWKgNmyA==",
+                      "title": "wikipedia.org"
+                    }
+                  },
+                  {
+                    "web": {
+                      "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9dfz7fak1RQQRyiJ2DEbq3gmj9bD1Np6p-KlZWPsMCm3-k8ijgpK5EV6oIQ2zeE0kdm6us2bDXNkIv1rlckx16Ed54_k-Jfi0_nvwNCw=",
+                      "title": "example.com"
+                    }
+                  },
+                  {
+                    "web": {
+                      "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_MjlRdPupq-KZgjq2HZCTdD7I7Sx05YcMlPeQlXUWHGVa8yBYZx0D2d1QI7K6vVatySXejFo_sA9vdVjgi44nxvZB1r7AhhGsRMYtNWMdzZnmWHCXVzDeeFd0",
+                      "title": "i-3-i.info"
+                    }
+                  }
+                ],
+                "groundingSupports": [
+                  {
+                    "segment": {
+                      "endIndex": 269,
+                      "text": "example.comは、インターネットの文書やチュートリアル、テスト環境などで、例示用（プレースホルダー）として使用するためにIANA（Internet Assigned Numbers Authority）によって予約されているドメイン名です"
+                    },
+                    "groundingChunkIndices": [
+                      0,
+                      1
+                    ]
+                  },
+                  {
+                    "segment": {
+                      "startIndex": 274,
+                      "endIndex": 331,
+                      "text": "実在しないドメインとして安全に利用でき"
+                    },
+                    "groundingChunkIndices": [
+                      2
+                    ]
+                  },
+                  {
+                    "segment": {
+                      "startIndex": 274,
+                      "endIndex": 487,
+                      "text": "実在しないドメインとして安全に利用でき、ドキュメントやコード内にURLやメールアドレスのサンプルを記載する際に許可なく自由に使用することができます"
+                    },
+                    "groundingChunkIndices": [
+                      3,
+                      4
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 112,
+            "candidatesTokenCount": 110,
+            "totalTokenCount": 222
+          },
+          "modelVersion": "gemini-3.5-flash-lite",
+          "responseId": "-jvuaqvwMLTS1e8Pxc2Y4A4"
+        },
+        "traceId": "1b994068489e21a1",
+        "metadata": {}
+      }
+    },
+    {
+      "type": "worker-cleanup",
+      "nativeStopped": true,
+      "generationCount": 1,
+      "poolUsage": [
+        {
+          "clientRequests": 1,
+          "upstreamCalls": 1,
+          "successfulUpstreamCalls": 1,
+          "failedUpstreamCalls": 0,
+          "inputTokens": 112,
+          "outputTokens": 110,
+          "thinkingTokens": 0,
+          "cachedTokens": 0,
+          "totalTokens": 222
+        }
+      ]
+    }
+  ],
+  "workerOutcome": {
+    "code": 0,
+    "signal": null
+  },
+  "workerStdout": "PROBE_READY:53907\n[Antigravity Gateway] 搜索账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.5-flash-lite attempt=1 request=req_bbf265 client=claude-cli/2.1.318_external_sdk-cli_ session=b0b35f1d34 affinity=34eece6482\n",
+  "workerStderr": "",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "http200": true,
+      "actualNative200": true,
+      "nativeBinaryObserved": true,
+      "originalBudget32000": true,
+      "selectedCatalogHelper": true,
+      "actualModelDisplayed": true,
+      "helperSseHeaders": true,
+      "completeSse": true,
+      "protocolNormalEnd": true,
+      "oneLogicalSearch": true,
+      "correctCallResult": true,
+      "rawSummaryPreserved": true,
+      "rawLinksPreserved": true,
+      "noFabricatedCitations": true,
+      "usageMatches": true,
+      "exactIdentityAndEnvelope": true,
+      "noMainModelOrOtherGeneration": true
+    },
+    "message": {
+      "id": "msg_acb760e441854772994b718ba1a17e21",
+      "type": "message",
+      "role": "assistant",
+      "model": "gemini-3.5-flash-lite",
+      "content": [
+        {
+          "type": "server_tool_use",
+          "id": "srvtoolu_160a4105022c4725a34c2149ee746a81",
+          "name": "web_search",
+          "input": {
+            "query": "site:example.com Example Domain"
+          }
+        },
+        {
+          "type": "web_search_tool_result",
+          "tool_use_id": "srvtoolu_160a4105022c4725a34c2149ee746a81",
+          "content": [
+            {
+              "type": "web_search_result",
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1es4QH9LFqWpI4EHhPm2uTMfzLNdySm-Jl7iMbAZwvO7EpWPJqIAUtoB8yJ-rBK9iR8AP1sVbPxif_XEdI_7pTNH0EaHs32Uwf3mL_2cnxtjjOvXTGIHtRsti9cDhWBXRql78tdwXnaWutY85_YaxrXE9mA==",
+              "title": "impress.co.jp",
+              "page_age": null,
+              "encrypted_content": "agyws1.r.ZZbc-0ayIuh97DLM.hcBaRyqbccDcxWZIaFYjPB-5jWpn2w4k9S2TtJkmYxVW6iTsBg48BPtZLOnaqg1lzPRchxfVa2AwnfaSCs9bcD2-y7VkBBEpDCdWwbCoWAF-_goO6lpg0oa0M3fUyAE0wtVR39l6kWI3vOJ5xk-biWIVu6O9ttibz9Hbl5AlfmZUU_25FENCyRLgAPzb68LU8lTZNXC_kIblPK_-ROnex5UHCeKa3-mUg6s_dJyiywJvI_jmj56_4Rs8xXnTupkvdawTIow4ifBvuXQHHgJOmHWc4UjXFZ4EpxDH9twpHIpVTNH3IJ2YeHerW3QKr8JTDmRhaSh2xTSX4fMczZjy9mQ5Ohrs0DaXe_AixVHsU_4tiaSRpDlMqSF4FvqzgsVZW2eMxUJrX400NQkE8aiMptPck3XvC2JD2rzmTS3gfgycZiG7WfQBjY2xFnMZmPWTInRvIoJX4MXtQB1sFofDMraSdmuPdZ__sVrAPJnSQ_WlVote1M_rWnctFczPE97qliNeURsVrMEx7cULJTX_ntI-6RLgfmXQ9JrCsfav0U9wj498d3C035vOg6lQjhWLqJFzJ5BHcAcrytNnVJAxHaR9H1lF7F-DAvxQNyULxzWrljO8LyUuo8ioTt8W1v6SByyVJqWJEiLcsnG5c5hTCnPO1kxTDgSOE2Cau1fk9faHeD0OifCd-ILfzxyFsxAiAnFPnEMKUFCpbOfuzQ6SKuF0QKDercMYfWRmJNxm3diG4AwdC9M5uzXcE0uFt7GPvLFvFgUaAUWrIEzw3V1ho-US1pJimejfvt0FmosemZlwq-ciHkaR3ac6Dp2Gn3EDNcfAr2bAtgB9iFV_wF1JTEWO2pUgBdUEdDS4a44GOGz4QUKGOyi2T1Fv-hz0E_FKabj5qCjb-nVzRoVDbdEiYDSYjV_NWOxl9Q9vT26N5gYQaJhMBIgpS01l36nwaKT8lgaXFrxpYW3piLg5ejccA8xVwuxjk05UDfAFNBh7tY2UF3uzRyrZG1oXuN4h3ptEEWnl0Yb6ltKZV2y9Beju0-Sh_G477GaK7YKbGqH4zhf0uTVRJIzUVWOlm1Vc9i35T0rj9ydjI5InUZi3hgrTNLe6DkiuqXj4SWaBhISIHBUDQwI9lSQReBFe1aiq9SDyz6-5zeeessjlNlezxBwoRFuT3srYOsgNwjlibMRvaVWx0_VnQs5LpHFoua5rgSyPINdLe6on7Hive59iy1db.S8Paq635P6cxvKJ6kdQ6xw"
+            },
+            {
+              "type": "web_search_result",
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJ6ClLk1sS8QIE5xKEEeoOaBMb6GwwKFrTze_3xKi0JjlFynBOIjSatssgSTzxK_Um9ajCmlmtI4Hgspa4oWybIzFagkJVHCVg_LYQE_bv8CrD1w9OKUqPf3k8aAh4BQ==",
+              "title": "wikipedia.org",
+              "page_age": null,
+              "encrypted_content": "agyws1.r.TbolCpR2mZwNC0c2.H-6yo3v73xcaD0RdJw6w_4zaw5UhNb5Jp_z_Fy2125pODpxpc_loCbvIJvhfkNHU0qUTViRnhqOGxYcAd-b0Ov6ylQnOLMR6_xxz7C8h5dKz91z-xuTy35VRAYLJ_5yOqkibUIFmx_iS1pnMqs4vWFVICxEAh3ibIe4jetZvtkf5PRDzOGdlQm2Uu17MKvkhNzo6vgMWJhnDGnbKiPxwvLqef5yWAKeuzhzGqST_68xNVOcjIJZCaOTKBYS7207TjniAM7IPJB47_RcEL_Do3W09uL15hL1B3NdBgMg-dGqBQYYlgidF-ZUZAsdrB-e2rohi9dMMmZUujpcV7offPcNUHI7q4u4ZpQuNqkyPq_8HDKLDJ7tE2aGgHowEhElsNlREfOla4e8a5ELQ9MBXPsZsHeh4swJMk9VO6HlcP-OKKzuJZktrfCxhazk7wVuWGPNymCJAB5TxQ2rBQsgfS8-59UIvKXG2dxW00muZJfQ-oX5NISeaE2Y2B2scRVMeJ_tb03CtKBn9yE3ZY94NZ6EKCqnDSUo61-BOjqICy5VtztTRPhdOAbE2vDJ0TW2i2aPIA7wbvu-FJld1oDzEZJHKkKVqBhSjoNCeGHh21MrUKL7XN5ykHxPrt8F-orok0TleAKsjn9d9i8uFA5EpvGqCFMkziIHM-JaEPrTc51OiTXulNbJBaC826lOAzUCVSvKF4lrbYdfY4-b7DovZr9fMNyTSAVA26BQClsG5K6OeBKBzg8zUq9OuOo9ECqSQmb5Ot7LNZ4su1sLWzKcgfguRmffbEIkO692aCTyiesFNQ9dqqo6Jppgb0V6tXfcQN7sl_m59NvSup0815Tcni72vasONGCJUlKWxdSpM9nXRLe7vAr4Hc3U0Mrbma5mN28IaDBgZAlPoNFrTlA20GCGmxsJMqQqC5a40H-IhkU4XH2NFO2xUtH3HvDEqeORk59BHwFRSslcvrW-F04eOBNhzOKHZj0rXq-AMr63a30J4zQx-G650b_vPgnPhAxTFO2oc9r_K_oElGUUGRIuZlXE9o0wq61YFf8xRAUeb1N0j_Oq0MIyV5lnKn2moQWs_Vlxto-aC-u4sgtFSQE6988jQazU8XqAoeXc6H_AtAq3R4VDl4DowMbyxTRb4EfXIGgE-yUtNRw._NYHPisUw3Zqytcw14f4Aw"
+            },
+            {
+              "type": "web_search_result",
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFJE4MzlQvA9h4302r89wnVM0I4nC23Sw_Ix-AO1RMOc3reGrI00E4_uW1sUoonx8LxtZUio5UlusIZH79kXbxxFCWhYy8-1mSUFizsSElPacQXfM3WfTfqdIDWKgNmyA==",
+              "title": "wikipedia.org",
+              "page_age": null,
+              "encrypted_content": "agyws1.r.qu1SvA5dl05KPnu7.fyGSv9JODMG06T8oNvrSDzIaGL6RshjuHOVrG85IBguloucOkCIcK13t0fzJXI-g-KuRuP_zbLcoxtduWZsBSiNlzgk5-G-X8oFo73GBSc1XOY661P9AUqmoc9wClHLAXtPJMZmUx2GDg5NNipb61u_yRvvt6p9Xf2WG_cQONfxK7oNZKAfyGx5DeGPEtJeYW1zjysMkyUfs-l0DykfCPoO9Th8xDMi9i1cPgrh2X1C3CFlpJ2upow1b45L7N4FS4SNjI4VKAk71z0jVHuvuqHCN7dz-GOEZwOffBxTFmfjxmvsO9D60dZNaRoGJeJlPP99c8LtVQW9K502vGzpBroxiIy7D_lYuVLvqsJC5o_QX-XEYhl0TQrU8UjV-vu1xg4y1DXGThWa8G_JDfHimFSCox6FPbM_7I1OenZ5ISz-qILoifbTPbicfJh1tzNhU51rAPO32lGnWgyQnSyn5TVrr11Bi1LvU4faUC88fY_ot9_8bA8NGd4_6iv-fk2kBKZFqTFRsLHQW_J9QeY1m_GafJPCk67_bL2QjwTN6VSSi1l4WwOkerswrWeIdY-XJ3hOOb78YTT1avzCCvZaX_Fk_0NXYbvdAFCcuGOYQLKFmp1yYXX1GsxA3liPb9xqETcIeMZtdqBVZJwikyTEumn-oxf5EpJAXoEulnLv81ret-lPOiTmhfoSxIkf0XMhKQ6BfouMLlQ042r0xpUwN8Yg2fXTMjIGox_NF1MVFusl6HtyeWkW31KgVaBEJOfcygLDy8C-WWhDpFDpsJl8kJ_vHOCslC5DDQEtdWw87ZwDZoO85BGjAZoqVQnYB6poUvGkojBnrVizGBNiV00Qi_PyfKaYviuTh6VGTD14UW6G15QRolxxR7VL6J5QIuXChUboimFDLfWKcL_hdt634kjk2i3ObffkGHYcOx3sBIU57kwkLvAYSyl3ZW4BDoZwCVCTe7pTcO9dcDpZSRW-qwXLig9nhdQy86HSeu1Y46Zggf_zwW_orDgR01gpq2Z19PJBx2bruM83Df1bdbJy6RWS0E1aLPPRkznYXLPhccFZD4T4ChxiNhgLTNIRxzaem0wcJ1ts1lH_sfkCUeiKNMZEzV2kg2_SvpC3ymoKnEv8DTZjLL3RpFkHncJhHIJdmsvda6VYmcw.5Q9sWSLZFcGv4VN0Jtxr9A"
+            },
+            {
+              "type": "web_search_result",
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQF9dfz7fak1RQQRyiJ2DEbq3gmj9bD1Np6p-KlZWPsMCm3-k8ijgpK5EV6oIQ2zeE0kdm6us2bDXNkIv1rlckx16Ed54_k-Jfi0_nvwNCw=",
+              "title": "example.com",
+              "page_age": null,
+              "encrypted_content": "agyws1.r.aPF8_9vwx5xleRck.cHjRhdhAAlwVv8g8oVHLR3E9kuvTnOvA9jIRF1jkWU4EZr92IQhvi_Eib35WHb6kLndoMFNH3m6FiWD0AReldUXq7RcaIpIhSIP04YL23wea29rh02zvWkA4DzQu67ICre2ydm3qFaxmFQczooZV124avYV8npOhDuwnmTNsx1xrh4XsTMzNVoavLA1zV1JcK79PksGjxF_NmoTzXkHAaWAbplzhK4NqhMCXKBOXqpDRKXO-Pvyel024TAh1aOg6LMo8hoEUU9V9QT0cADGfJT9LdcEVEp2QhOXoMjHa5mZXonc1hXv02Nd_SJhQ5kAoWZ6TVSW5gDnGRkFygnNUYNbS2u8uIE8k84T-SbH4yAeZw9H0ZdO2J4B-gVDb-yI6Cwq3dlnoWEf0TAxXQlgaixQNyaWxypwpKSN2WRFjJswOoOOzJJF1UTWrqFPsgW34LQtFZ4XKUagXcQiqedhXQ1w7KrBpIs-tw-DxS0nMxVGxVdIAVxP2MfpXVKzdvGzTK5_CpWPZcWCOmD8omrEq9Gc4zFrAkRC9cjufPfo35ilAxFvz6tHzmu88OH3DJi4nJcWjYssb_0lMhLDAICSpZzEVrJaGxOOKmPVjMUitRH1N6BDz-JMACB1KrcJG98o5BfsTPtkO6_ZPIQZHfW8GUFYNO3GZLqEbfVgFq1YNDmjKNvBk05id_pzlV-zwDNTqRCqG_n1Cl7AluyUlaWDcTsOUWxbUGRptIuAPngkVN8Fyt9HHRzV311e-6azffOkD6VXEq-PRF6XPwv6lgv8uKVfATUwqfmo6Uh0Fr_GNJ5ccZBG-JW8O4q1y4FQQrI5tPc_Z5Viq7mTSFcXPUyb0ii6H0aunXFoyLmSXbjcMmvcTbln6e93zrjxWcTUjoWkVE8xlTE4FcI5wIddKKg3P9sHvLKfkeZFVFHtPqyRbAEU3InWKxTL5uHzSF9uUgg1JIfTzUT8er0y4fnjXBnL1PYMzrtukO2vsgi8s_T-__DDBQp_l9HIO3e34qK3WNtvhoCKXvj9IE5E-ClV2Xtqc7VOyfdlavSOI4AUdaEhdu127kGBTemOhU1GNEMAoTEw_6nSdF54.hTfkdWhMJe18QuzHJrYAyA"
+            },
+            {
+              "type": "web_search_result",
+              "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH_MjlRdPupq-KZgjq2HZCTdD7I7Sx05YcMlPeQlXUWHGVa8yBYZx0D2d1QI7K6vVatySXejFo_sA9vdVjgi44nxvZB1r7AhhGsRMYtNWMdzZnmWHCXVzDeeFd0",
+              "title": "i-3-i.info",
+              "page_age": null,
+              "encrypted_content": "agyws1.r.gS94HRG5IagixuPt.WbZaKZyiAZ2vA0PNxoG1lUS1t7hTcvVsvWojUGIcQtOoQ813-vG83efORRO_mawIkEzMdvfQkeKO3iPBpTtdzE1C0F-eKy3OSTIUNMEQjZBCWbHwPeO9HM_yq6u081-7dBL7Xbsdm-aZb1EuEDVZyHEkomggk7Szzz6yJL6ctxRsyVM89CS-xtQFuAh6rzhtovb4NW_zY-LgTVFUo915js1dzGsVib3OlEVnOY5Xgw-6dOYxdtDVmYK2IFw641ME5JGOoC3KLf-P2qjVilkNu0q2CRKnVeqmtIoBj-KUrfHshesrGJ-dYfkXRCpBB-s4NZZ5MSCphMkQOfs8KuitmZCSxNVOM6W7g-E_QmORHwCgurifn9q4LgMERaY4QaVOvDCtVwsXp4sNiw3OZ9xj7TMkvl6NMBMqvjANTmygZaNy43DFJqMSPdCjCAXot111rbcjhSZalD9du-27J6adieX0h1rW4T34scavPTQBva_dLIff9qWHZrYXrkR8P4bu5e8x8hLcYOJgfp_zqpGZXh6dO5nkvCDIlVbITLOvKI-5Jq_gHqn4dp6ot_MUWabG1RWGe30DbnyCq1EV-4sOqiBqqNdcdZ_4zK7fMih7feAeKZ34R8oB-Y4lUiz8qQY_3_haqbW_dB0F_-UbzwmvpN4E7o_gQd0z8_mzgLfKZcLkFPov_icLBH6lX1ZohsRExfOnawDRDexToQ28lwRSl4Hju_Y8BEdH_181gb5mj2ady9pIW9QP_FL16CnvYzeITNj-HniQ6A-sXN2w25QHqXs1bHh0UXV7s-cAp5qhZnmvlBJuz4rPPgYQl4FfW3SXwJJAIjRDp4B9HSG2fmWKw28-8VF827EfT09xgNgsBaBm5LsMvfxgRMozvJDDOEGbFYtp6_qwbxh-iGKJ_sg3PD_iTZCIPm5q_IZOX_Pi9JyhRRSxE9IR4VdyOAdBmhyokTA9kqQ8TyF2qcmIUefuVo1s6ki8oSQHs8ntTDmXov8wmCcR-x8fUdA4FrXKJkfKHv3yM2WqZOuv2EX-t2rg2IN4Jd7t1g2BGyXCexEY5hfLK8hDNtkWQ-PyciMPTrfZYoRjhuTdreC-Ggv2y1L45LeEKmb7IjfG0VA8RlkqwSUut2wX.lgDAe5-5HU7Vkvv5vn-Fnw"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "text": "example.comは、インターネットの文書やチュートリアル、テスト環境などで、例示用（プレースホルダー）として使用するためにIANA（Internet Assigned Numbers Authority）によって予約されているドメイン名です。\n\n実在しないドメインとして安全に利用でき、ドキュメントやコード内にURLやメールアドレスのサンプルを記載する際に許可なく自由に使用することができます。"
+        }
+      ],
+      "stop_reason": "end_turn",
+      "stop_sequence": null,
+      "usage": {
+        "input_tokens": 112,
+        "output_tokens": 110,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "server_tool_use": {
+          "web_search_requests": 1
+        }
+      }
+    },
+    "expectedUsage": {
+      "input_tokens": 112,
+      "output_tokens": 110,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0
+    },
+    "actualModel": "gemini-3.5-flash-lite"
+  },
+  "nativeStopped": true,
+  "originalAccountsAfter": {
+    "fileCount": 4,
+    "jsonCount": 4,
+    "digest": "8b11924bd6ac5b3e21ab83650f24914a6a890f7ed462a7791573a9b77c34e014"
+  },
+  "originalAccountsUnchanged": true,
+  "originalStateAfter": {
+    "state/account-pool.json": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+    "state/quota.json": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6"
+  },
+  "originalStateUnchanged": true,
+  "sourceAfter": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57
+  },
+  "sourceUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "completedAt": "2026-11-06T20:43:46.085Z",
+  "passed": true
+}

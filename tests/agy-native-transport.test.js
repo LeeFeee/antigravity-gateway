@@ -88,15 +88,48 @@ test('native metadata RPCs use captured Content-Length and retain exact UTF-8 by
   }
 });
 
-test('metadata framing selection does not change generation or uncaptured paths', async t => {
+test('fixed-length framing selection does not change streaming generation or uncaptured paths', async t => {
   const seen = [];
   const { transport, url } = await fixture(t, (req, res) => {
     req.resume(); req.on('end', () => { seen.push(req.headers); res.end('OK'); });
   });
-  for (const endpoint of ['streamGenerateContent?alt=sse', 'generateContent', 'fetchAvailableModelsExtra']) {
+  for (const endpoint of ['streamGenerateContent?alt=sse', 'generateContentExtra', 'fetchAvailableModelsExtra']) {
     assert.equal(await (await transport.fetch(`${url}/v1internal:${endpoint}`, { method: 'POST', body: '{"test":true}' })).text(), 'OK');
     assert.equal(seen.at(-1)['transfer-encoding'], 'chunked');
     assert.equal(seen.at(-1)['content-length'], undefined);
+  }
+});
+
+test('packaged native synchronous generation matches official search, image and edit Content-Length framing', async t => {
+  const seen = [];
+  const { transport, url } = await fixture(t, (req, res) => {
+    const parts = [];
+    req.on('data', part => parts.push(part));
+    req.on('end', () => {
+      seen.push({ headers: req.headers, rawHeaders: req.rawHeaders, bytes: Buffer.concat(parts), version: req.httpVersion });
+      res.writeHead(204); res.end();
+    });
+  });
+  for (const scenario of ['web-search-v2', 'image-tool-v1', 'image-edit-v1']) {
+    const capture = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/official-request-types-20261107', `${scenario}.json`)));
+    const request = capture.requests.find(entry => new URL(entry.url).pathname === '/v1internal:generateContent');
+    assert.ok(request, `${scenario} has a real official synchronous request`);
+    const capturedHeaders = Object.fromEntries(request.headers.map(([key, value]) => [key.toLowerCase(), value]));
+    assert.equal(request.version, 'HTTP/1.1');
+    assert.ok(Number(capturedHeaders['content-length']) > 0);
+    assert.equal(capturedHeaders['transfer-encoding'], undefined);
+    const body = JSON.stringify(request.body);
+    const response = await transport.fetch(`${url}/v1internal:generateContent`, { method: request.method, body,
+      headers: { authorization: 'Bearer local-test', 'user-agent': capturedHeaders['user-agent'], 'content-type': 'application/json',
+        // The JS bridge must discard caller framing; Go derives it from the endpoint and actual bytes.
+        'content-length': '1', 'transfer-encoding': 'chunked' } });
+    assert.equal(response.status, 204);
+    const actual = seen.at(-1);
+    assert.equal(actual.version, '1.1');
+    assert.equal(actual.headers['content-length'], String(Buffer.byteLength(body)));
+    assert.equal(actual.headers['transfer-encoding'], undefined);
+    assert.deepEqual(actual.bytes, Buffer.from(body));
+    assert.deepEqual(actual.rawHeaders.filter((_, i) => i % 2 === 0), request.headers.map(([key]) => key));
   }
 });
 
@@ -149,8 +182,62 @@ test('native executable cache is verified before execution', async t => {
   assert.throws(() => resolveNativeBinary({ cacheDir: directory }), { code: 'native_transport_integrity' });
 });
 
+test('packaged native helper selects HTTP2 ALPN for both captured OAuth endpoints', async t => {
+  for (const endpoint of ['https://oauth2.googleapis.com/token', 'https://www.googleapis.com/oauth2/v2/userinfo']) {
+    await t.test(new URL(endpoint).hostname, async t => {
+      const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-native-oauth-hello-'));
+      const sockets = new Set();
+      let receive;
+      const hello = new Promise(resolve => { receive = resolve; });
+      const proxy = net.createServer(socket => {
+        sockets.add(socket); socket.on('close', () => sockets.delete(socket));
+        let connected = false, buffer = Buffer.alloc(0);
+        socket.on('data', chunk => {
+          buffer = Buffer.concat([buffer, chunk]);
+          if (!connected) {
+            const end = buffer.indexOf('\r\n\r\n');
+            if (end < 0) return;
+            assert.ok(buffer.subarray(0, end).toString().startsWith(`CONNECT ${new URL(endpoint).hostname}:443 HTTP/1.1`));
+            buffer = buffer.subarray(end + 4); connected = true;
+            socket.write('HTTP/1.1 200 Connection established\r\n\r\n');
+          }
+          if (buffer.length >= 5 && buffer.length >= 5 + buffer.readUInt16BE(3)) receive(buffer.subarray(5, 5 + buffer.readUInt16BE(3)));
+        });
+      });
+      await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
+      const transport = new AgyNativeTransport({ binaryPath: resolveNativeBinary({ cacheDir: directory }), env: { ...process.env,
+        HTTPS_PROXY: `http://127.0.0.1:${proxy.address().port}`, NO_PROXY: '', no_proxy: '' } });
+      t.after(async () => {
+        transport.close(); for (const socket of sockets) socket.destroy();
+        await new Promise(resolve => proxy.close(resolve)); fs.rmSync(directory, { recursive: true, force: true });
+      });
+      const controller = new AbortController();
+      const rejected = assert.rejects(transport.fetch(endpoint, { signal: controller.signal }), { name: 'AbortError' });
+      const handshake = await Promise.race([hello, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('no OAuth ClientHello')), 5000); timer.unref(); })]);
+      controller.abort(); await rejected;
+      assert.equal(handshake[0], 1);
+      const raw = handshake.subarray(4);
+      let offset = 34;
+      offset += 1 + raw[offset];
+      offset += 2 + raw.readUInt16BE(offset);
+      offset += 1 + raw[offset];
+      const end = offset + 2 + raw.readUInt16BE(offset); offset += 2;
+      let protocols;
+      while (offset < end) {
+        const type = raw.readUInt16BE(offset), length = raw.readUInt16BE(offset + 2);
+        const value = raw.subarray(offset + 4, offset + 4 + length); offset += 4 + length;
+        if (type === 16) {
+          protocols = [];
+          for (let index = 2; index < value.length;) { const size = value[index++]; protocols.push(value.subarray(index, index + size).toString()); index += size; }
+        }
+      }
+      assert.deepEqual(protocols, ['h2', 'http/1.1']);
+    });
+  }
+});
+
 test('native TLS matches captured agy extensions, including signature algorithms beyond JA3', async t => {
-  const expected = require('./fixtures/agy-1.4.2-tls.json');
+  const expected = require('./fixtures/agy-1.5.2-tls.json');
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-native-hello-'));
   const binary = resolveNativeBinary({ cacheDir: directory });
   const sockets = new Set();

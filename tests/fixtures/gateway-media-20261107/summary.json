@@ -1,0 +1,269 @@
+{
+  "recordedAt": "2026-11-06T18:11:18.428Z",
+  "source": {
+    "sha256": "a2130573e4378eca57dd9647a6aa9a85ffcb1a3dba33e16822187f720bf7acd0",
+    "files": 53,
+    "verifierSha256": "c2fc226068d55b865a249892e3e24c7d26053ea597ad57fbc3283f8a8a06b4af"
+  },
+  "models": [
+    "gemini-3.8-flash-low",
+    "gemini-3.1-flash-image"
+  ],
+  "scenarios": [
+    "video-messages",
+    "video-responses",
+    "image-messages",
+    "image-file-responses",
+    "image-generation",
+    "image-edit"
+  ],
+  "inputs": {
+    "image": {
+      "filename": "image-fixture.png",
+      "mimeType": "image/png",
+      "bytes": 186,
+      "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7",
+      "streams": [
+        {
+          "codec_name": "png",
+          "codec_type": "video",
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "video": {
+      "filename": "video-fixture.mp4",
+      "mimeType": "video/mp4",
+      "bytes": 8999,
+      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 128,
+          "height": 96
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "16000",
+          "channels": 1
+        }
+      ],
+      "duration": "2.000000"
+    }
+  },
+  "accountDataRead": true,
+  "realRequestsSent": true,
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "productionAccountsUnchanged": true,
+  "productionStateUnchanged": true,
+  "accountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "accountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "stateBefore": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9"
+  },
+  "stateAfter": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9"
+  },
+  "sourceAfter": {
+    "sha256": "a2130573e4378eca57dd9647a6aa9a85ffcb1a3dba33e16822187f720bf7acd0",
+    "files": 53
+  },
+  "sourceUnchanged": true,
+  "startup": {
+    "status": 200,
+    "modelIds": [
+      "gemini-3.8-flash-high",
+      "claude-opus-4-6-thinking",
+      "claude-sonnet-4-6",
+      "gemini-3.1-flash-image",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
+      "gemini-3.8-flash-tiered",
+      "gemini-3.1-flash-lite",
+      "gemini-3-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash-thinking",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "chat_20706",
+      "chat_23310",
+      "gemini-3.5-flash-lite",
+      "gemini-4-argon-disabled",
+      "gpt-oss-120b-medium",
+      "tab_flash_lite_preview",
+      "tab_jump_flash_lite_preview"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "video-messages",
+      "model": "gemini-3.8-flash-low",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "mediaUnderstood": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": "Red, blue"
+      },
+      "status": 200,
+      "blocked": false
+    },
+    {
+      "scenario": "video-responses",
+      "model": "gemini-3.8-flash-low",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "mediaUnderstood": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": "Red, Blue"
+      },
+      "status": 200,
+      "blocked": false
+    },
+    {
+      "scenario": "image-messages",
+      "model": "gemini-3.8-flash-low",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "mediaUnderstood": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": "Red"
+      },
+      "status": 200,
+      "blocked": false
+    },
+    {
+      "scenario": "image-file-responses",
+      "model": "gemini-3.8-flash-low",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "mediaUnderstood": true,
+          "fileUploadRoundTrip": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": "Red"
+      },
+      "status": 200,
+      "blocked": false
+    },
+    {
+      "scenario": "image-generation",
+      "model": "gemini-3.1-flash-image",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "imageEnvelope": true,
+          "savedFileReadBack": true,
+          "decodableImage": true,
+          "requestedColor": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": ""
+      },
+      "status": 200,
+      "blocked": false
+    },
+    {
+      "scenario": "image-edit",
+      "model": "gemini-3.1-flash-image",
+      "assessment": {
+        "passed": false,
+        "checks": {
+          "gatewayHTTP": false,
+          "requestedModelPreserved": true,
+          "originalGoTLS": false,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "imageEnvelope": true,
+          "savedFileReadBack": false,
+          "decodableImage": false,
+          "requestedColor": false
+        },
+        "nativeGenerations": 2,
+        "nativeStatuses": [
+          429
+        ],
+        "answer": ""
+      },
+      "status": null,
+      "blocked": true,
+      "aborted": true
+    }
+  ],
+  "gatewayStdout": "[Antigravity Gateway] 看板来源：仅本机\n=================================================================\n 🚀 Antigravity Gateway 已启动\n-----------------------------------------------------------------\n 网关版本: v1.7.5\n BaseURL:\n    Anthropic: http://127.0.0.1:60441\n    OpenAI: http://127.0.0.1:60441/v1\n API Key: 已配置（使用 ANTIGRAVITY_GATEWAY_API_KEY 的值）\n 本地密钥: /tmp/real-client-gateway/gateway-data/accounts（6 个账号）\n 上游协议: Google Antigravity API（agy 1.5.2）\n 可用模型:\n    gemini-3.8-flash-high\n    claude-opus-4-6-thinking\n    claude-sonnet-4-6\n    gemini-3.8-flash-medium\n    gemini-3.8-flash-low\n    gemini-3.8-flash-tiered\n 更多模型: antigravity-gateway --models\n Claude Code 模型配置: antigravity-gateway --claude-config-path\n Token 看板: antigravity-gateway stats\n=================================================================\n-----------------------------------------------------------------\n 账号状态: 1/6 可用，1/1 额度可用\n 历史总量: 0 Token  请求 0  上游调用 0\n 输入: 0  输出: 0  缓存: 0  命中率: --\n 最近24小时：▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  合计 0 Token\n 统计更新: 2026-11-06T18:11:18.501Z（总量24小时、图表1小时、磁盘5分钟）\n-----------------------------------------------------------------\n[Antigravity Gateway] /v1/messages model=gemini-3.8-flash-low requested=gemini-3.8-flash-low class=client chars=12354 tools=0 maxOut=2048 stream=false request=req_7908c5 client=gateway-media-verifier session=a19fbb24d1 affinity=6d4f905545\n[Antigravity Gateway] 路由账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.8-flash-low attempt=1 request=req_7908c5 client=gateway-media-verifier session=a19fbb24d1 affinity=6d4f905545\n[Antigravity Gateway] /v1/responses model=gemini-3.8-flash-low requested=gemini-3.8-flash-low chars=12345 tools=0 stream=false request=req_cc1657 client=gateway-media-verifier session=f143c2e8f8 affinity=0ff38a2924\n[Antigravity Gateway] 路由账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.8-flash-low attempt=1 request=req_cc1657 client=gateway-media-verifier session=f143c2e8f8 affinity=0ff38a2924\n[Antigravity Gateway] /v1/messages model=gemini-3.8-flash-low requested=gemini-3.8-flash-low class=client chars=547 tools=0 maxOut=2048 stream=false request=req_b90a88 client=gateway-media-verifier session=442b223214 affinity=312d930914\n[Antigravity Gateway] 路由账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.8-flash-low attempt=1 request=req_b90a88 client=gateway-media-verifier session=442b223214 affinity=312d930914\n[Antigravity Gateway] /v1/responses model=gemini-3.8-flash-low requested=gemini-3.8-flash-low chars=303 tools=0 stream=false request=req_3475d4 client=gateway-media-verifier session=271b42af1c affinity=4b6d0b0848\n[Antigravity Gateway] 路由账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.8-flash-low attempt=1 request=req_3475d4 client=gateway-media-verifier session=271b42af1c affinity=4b6d0b0848\n[Antigravity Gateway] 生图账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.1-flash-image attempt=1 request=req_454957 client=gateway-media-verifier session=c53b3e9659 affinity=2e198e7ef4\n[Antigravity Gateway] 生图账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.1-flash-image attempt=1 request=req_1dd271 client=gateway-media-verifier session=c6dfa86537 affinity=7c9e97c970\n",
+  "gatewayStderr": "",
+  "boundary": "Owned temporary foreground gateway only. No formal service start/restart; no protection reset; exact MP4 includes audio but audio semantics are not independently verified."
+}

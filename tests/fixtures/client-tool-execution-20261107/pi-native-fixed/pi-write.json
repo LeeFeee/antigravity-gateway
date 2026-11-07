@@ -1,0 +1,697 @@
+{
+  "agent": "pi",
+  "version": "1.5.0",
+  "scenario": "write",
+  "recordedAt": "2026-11-06T18:27:11.290Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "sourceBefore": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "sourceAfter": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "isolation": "fresh HOME; fake account; CLI explicit loopback ports; writes only private root; gateway forbidden to write client work directory",
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/pi",
+    "-p",
+    "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.",
+    "--provider",
+    "local-probe",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--mode",
+    "json",
+    "--no-extensions",
+    "--no-mcp",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--offline",
+    "--tools",
+    "write"
+  ],
+  "plan": [
+    {
+      "name": "write",
+      "arguments": {
+        "path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_pi_VERIFIED\n"
+      }
+    }
+  ],
+  "issued": [
+    {
+      "id": "controlled_pi_write_0",
+      "name": "write_file",
+      "args": {
+        "Path": "/tmp/client-gateway-verify/work/created.txt",
+        "Content": "WRITE_pi_VERIFIED\n",
+        "Overwrite": true
+      }
+    }
+  ],
+  "clientCalls": [
+    {
+      "id": "controlled_pi_write_0",
+      "name": "write",
+      "arguments": {
+        "path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_pi_VERIFIED\n"
+      }
+    }
+  ],
+  "outcome": {
+    "code": 0,
+    "signal": null
+  },
+  "checks": {
+    "clientCallArgumentsRestored": true,
+    "clientSucceeded": true,
+    "gatewayHTTP": true,
+    "allPlannedToolsIssued": true,
+    "allClientReceiptsReturned": true,
+    "exactDiskContents": true,
+    "finalAnswer": true,
+    "noUpstreamError": true,
+    "sourceStable": true
+  },
+  "passed": true,
+  "disk": {
+    "file": "/tmp/client-gateway-verify/work/created.txt",
+    "before": null,
+    "expected": "WRITE_pi_VERIFIED\n",
+    "actual": "WRITE_pi_VERIFIED\n"
+  },
+  "errors": [],
+  "clientHTTP": [
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-timeout": "300",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "user-agent": "pi/1.5.0 (darwin; node/v22.23.4; arm64)",
+        "session_id": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "x-client-request-id": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "2759"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\n\n<tools>\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+              }
+            ]
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (relative or absolute)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Content to write to the file"
+                }
+              }
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_0a88b8262b6d473480fd704f43110d10\",\"object\":\"response\",\"created_at\":1793989631,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"fc_1c94293883ee4d419552e0083e20c9d1\",\"type\":\"function_call\",\"status\":\"in_progress\",\"call_id\":\"controlled_pi_write_0\",\"name\":\"write\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\"},\"sequence_number\":1}\n\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_1c94293883ee4d419552e0083e20c9d1\",\"output_index\":0,\"delta\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\",\"sequence_number\":2}\n\ndata: {\"type\":\"response.function_call_arguments.done\",\"item_id\":\"fc_1c94293883ee4d419552e0083e20c9d1\",\"output_index\":0,\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"fc_1c94293883ee4d419552e0083e20c9d1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_pi_write_0\",\"name\":\"write\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\"},\"sequence_number\":4}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":5,\"response\":{\"id\":\"resp_0a88b8262b6d473480fd704f43110d10\",\"object\":\"response\",\"created_at\":1793989631,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"fc_1c94293883ee4d419552e0083e20c9d1\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_pi_write_0\",\"name\":\"write\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\"}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-timeout": "300",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "user-agent": "pi/1.5.0 (darwin; node/v22.23.4; arm64)",
+        "session_id": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "x-client-request-id": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "3143"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\n\n<tools>\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+              }
+            ]
+          },
+          {
+            "type": "function_call",
+            "id": "fc_1c94293883ee4d419552e0083e20c9d1",
+            "call_id": "controlled_pi_write_0",
+            "name": "write",
+            "arguments": "{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}"
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "controlled_pi_write_0",
+            "output": "Successfully wrote to /tmp/client-gateway-verify/work/created.txt"
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "01a1b21d-5c8f-7704-905f-880ff4accdf1",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (relative or absolute)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Content to write to the file"
+                }
+              }
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_419ed4c00a65488898362252a77e451a\",\"object\":\"response\",\"created_at\":1793989631,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"output_index\":0,\"content_index\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"output_index\":0,\"content_index\":0,\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":7,\"response\":{\"id\":\"resp_419ed4c00a65488898362252a77e451a\",\"object\":\"response\",\"created_at\":1793989631,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_c3722ebe33354c219d3ac101eca35570\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    }
+  ],
+  "upstream": [
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "6413"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/030a2ab0-f575-4845-a2ae-8c090f231d67/1793989631199/5108b63b-772c-4a52-b528-b4a3b86ef1d6/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:27:11+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help users inspect files, run commands, and modify code.\n\n<tools>\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (relative or absolute)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_e77d01061ffdbc75_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "030a2ab0-f575-4845-a2ae-8c090f231d67",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "5108b63b-772c-4a52-b528-b4a3b86ef1d6-0",
+            "root_cascade_id": "030a2ab0-f575-4845-a2ae-8c090f231d67",
+            "trajectory_id": "5108b63b-772c-4a52-b528-b4a3b86ef1d6",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "issuedToolCall": {
+        "id": "controlled_pi_write_0",
+        "name": "write_file",
+        "args": {
+          "Path": "/tmp/client-gateway-verify/work/created.txt",
+          "Content": "WRITE_pi_VERIFIED\n",
+          "Overwrite": true
+        }
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "6875"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/030a2ab0-f575-4845-a2ae-8c090f231d67/1793989631236/5108b63b-772c-4a52-b528-b4a3b86ef1d6/3",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:27:11+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "controlled_pi_write_0",
+                    "name": "write_file",
+                    "args": {
+                      "Content": "WRITE_pi_VERIFIED\n",
+                      "Overwrite": true,
+                      "Path": "/tmp/client-gateway-verify/work/created.txt"
+                    }
+                  },
+                  "thoughtSignature": "synthetic_controlled_pi_write_0"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "controlled_pi_write_0",
+                    "name": "write_file",
+                    "response": {
+                      "output": "Successfully wrote to /tmp/client-gateway-verify/work/created.txt"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help users inspect files, run commands, and modify code.\n\n<tools>\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (relative or absolute)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_e77d01061ffdbc75_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "030a2ab0-f575-4845-a2ae-8c090f231d67",
+            "last_step_index": "2",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "5108b63b-772c-4a52-b528-b4a3b86ef1d6-1",
+            "root_cascade_id": "030a2ab0-f575-4845-a2ae-8c090f231d67",
+            "trajectory_id": "5108b63b-772c-4a52-b528-b4a3b86ef1d6",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    }
+  ],
+  "stdout": "{\"type\":\"session\",\"version\":3,\"id\":\"01a1b21d-5c8f-7704-905f-880ff4accdf1\",\"timestamp\":\"2026-11-06T18:27:11.119Z\",\"cwd\":\"/tmp/client-gateway-verify/work\"}\n{\"type\":\"agent_start\"}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793989631153,\"toolsAdded\":[{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793989631153,\"toolsAdded\":[{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\"}],\"timestamp\":1793989631153}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\"}],\"timestamp\":1793989631153}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1793989631167}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"toolcall_start\",\"contentIndex\":0,\"id\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"toolcall_delta\",\"contentIndex\":0,\"delta\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_pi_VERIFIED\\\\n\\\"}\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"toolcall_end\",\"contentIndex\":0,\"toolCall\":{\"type\":\"toolCall\",\"id\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"name\":\"write\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}}}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"name\":\"write\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793989631167,\"responseId\":\"resp_0a88b8262b6d473480fd704f43110d10\",\"rawStopReason\":\"completed\",\"durationMs\":60,\"thinkingLevel\":\"medium\"}}\n{\"type\":\"tool_execution_start\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"args\":{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}}\n{\"type\":\"tool_execution_end\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"Successfully wrote to /tmp/client-gateway-verify/work/created.txt\"}]},\"isError\":false,\"durationMs\":1}\n{\"type\":\"message_start\",\"message\":{\"role\":\"toolResult\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"content\":[{\"type\":\"text\",\"text\":\"Successfully wrote to /tmp/client-gateway-verify/work/created.txt\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793989631230}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"toolResult\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"content\":[{\"type\":\"text\",\"text\":\"Successfully wrote to /tmp/client-gateway-verify/work/created.txt\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793989631230}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"name\":\"write\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793989631167,\"responseId\":\"resp_0a88b8262b6d473480fd704f43110d10\",\"rawStopReason\":\"completed\",\"durationMs\":60,\"thinkingLevel\":\"medium\"},\"toolResults\":[{\"role\":\"toolResult\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"content\":[{\"type\":\"text\",\"text\":\"Successfully wrote to /tmp/client-gateway-verify/work/created.txt\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793989631230}]}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1793989631231}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"text_start\",\"contentIndex\":0}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"CLIENT_EXECUTION_VERIFIED\"}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_c3722ebe33354c219d3ac101eca35570\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793989631231,\"responseId\":\"resp_419ed4c00a65488898362252a77e451a\",\"rawStopReason\":\"completed\",\"durationMs\":11,\"thinkingLevel\":\"medium\"}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_c3722ebe33354c219d3ac101eca35570\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793989631231,\"responseId\":\"resp_419ed4c00a65488898362252a77e451a\",\"rawStopReason\":\"completed\",\"durationMs\":11,\"thinkingLevel\":\"medium\"},\"toolResults\":[]}\n{\"type\":\"agent_end\",\"messages\":[{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793989631153,\"toolsAdded\":[{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\"}],\"timestamp\":1793989631153},{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"name\":\"write\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_pi_VERIFIED\\n\"}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793989631167,\"responseId\":\"resp_0a88b8262b6d473480fd704f43110d10\",\"rawStopReason\":\"completed\",\"durationMs\":60,\"thinkingLevel\":\"medium\"},{\"role\":\"toolResult\",\"toolCallId\":\"controlled_pi_write_0|fc_1c94293883ee4d419552e0083e20c9d1\",\"toolName\":\"write\",\"content\":[{\"type\":\"text\",\"text\":\"Successfully wrote to /tmp/client-gateway-verify/work/created.txt\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793989631230},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_c3722ebe33354c219d3ac101eca35570\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793989631231,\"responseId\":\"resp_419ed4c00a65488898362252a77e451a\",\"rawStopReason\":\"completed\",\"durationMs\":11,\"thinkingLevel\":\"medium\"}],\"willRetry\":false}\n{\"type\":\"agent_settled\",\"aborted\":false}\n",
+  "stderr": "",
+  "gatewayStderr": ""
+}

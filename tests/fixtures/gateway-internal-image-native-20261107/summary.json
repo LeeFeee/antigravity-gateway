@@ -1,0 +1,172 @@
+{
+  "recordedAt": "2026-11-06T20:47:26.248Z",
+  "source": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57,
+    "verifierSha256": "2ad99791e15d341bfb1de5e15d43e1307c1deeeaac8b1ee8543ae70ddc53571a"
+  },
+  "models": [
+    "gemini-3.8-flash-low",
+    "gemini-3.1-flash-image"
+  ],
+  "scenarios": [
+    "internal-image"
+  ],
+  "inputs": {
+    "image": {
+      "filename": "image-fixture.png",
+      "mimeType": "image/png",
+      "bytes": 186,
+      "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7",
+      "streams": [
+        {
+          "codec_name": "png",
+          "codec_type": "video",
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "video": {
+      "filename": "video-fixture.mp4",
+      "mimeType": "video/mp4",
+      "bytes": 8999,
+      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 128,
+          "height": 96
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "16000",
+          "channels": 1
+        }
+      ],
+      "duration": "2.000000"
+    }
+  },
+  "generationBudget": 3,
+  "accountDataRead": true,
+  "realRequestsSent": true,
+  "accountSnapshot": {
+    "accounts": 4,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "productionAccountsUnchanged": true,
+  "productionStateUnchanged": true,
+  "accountsBefore": {
+    "fileCount": 4,
+    "jsonCount": 4,
+    "digest": "8b11924bd6ac5b3e21ab83650f24914a6a890f7ed462a7791573a9b77c34e014"
+  },
+  "accountsAfter": {
+    "fileCount": 4,
+    "jsonCount": 4,
+    "digest": "8b11924bd6ac5b3e21ab83650f24914a6a890f7ed462a7791573a9b77c34e014"
+  },
+  "stateBefore": {
+    "state/account-pool.json": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+    "state/quota.json": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6"
+  },
+  "stateAfter": {
+    "state/account-pool.json": "9e7d6f1e824c4a636efd818ea3a67c0b3d9cdb54eb010a18e75feaaf1d0b84d4",
+    "state/quota.json": "fb15689463aef48b6007e5f4b10134c94b19d99291b00f86b8ad1990f9cd34a6"
+  },
+  "sourceAfter": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57
+  },
+  "sourceUnchanged": true,
+  "startup": {
+    "status": 200,
+    "modelIds": [
+      "gemini-3.8-flash-high",
+      "claude-opus-4-6-thinking",
+      "claude-sonnet-4-6",
+      "gemini-3.1-flash-image",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
+      "gemini-3.8-flash-tiered",
+      "gemini-3.1-flash-lite",
+      "gemini-3-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash-thinking",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "chat_20706",
+      "chat_23310",
+      "gemini-3.5-flash-lite",
+      "gemini-4-argon-disabled",
+      "gpt-oss-120b-medium",
+      "tab_flash_lite_preview",
+      "tab_jump_flash_lite_preview"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "internal-image",
+      "model": "gemini-3.8-flash-low",
+      "assessment": {
+        "passed": false,
+        "checks": {
+          "exactlyThreeGenerations": false,
+          "gatewayHTTP": false,
+          "clientCompleted": false,
+          "nativeHTTP": false,
+          "originalGoTLS": false,
+          "modelsAndRequestTypes": false,
+          "fixedLowThinking": false,
+          "sameNativeTrajectory": false,
+          "stepsOneTwoThree": false,
+          "sameAccountCredential": false,
+          "originalToolCallRetained": false,
+          "observedSignatureRetained": false,
+          "realImageReceipt": false,
+          "officialReceiptText": false,
+          "savedFileReadBack": false,
+          "decodableImage": false,
+          "noPrivateToolLeak": false,
+          "noGuardFailure": false,
+          "officialUA": false
+        },
+        "nativeGenerations": 2,
+        "nativeStatuses": [
+          200,
+          429
+        ],
+        "internalToolCallObserved": true,
+        "toolWireName": "generate_image",
+        "upstreamToolSignatureObserved": true,
+        "imageSubrequestAccepted": false,
+        "imageFinishMessages": [],
+        "answer": ""
+      },
+      "status": 500,
+      "blocked": true
+    }
+  ],
+  "supportingNativeHTTP": [],
+  "gatewayStdout": "[Antigravity Gateway] 看板来源：仅本机\n=================================================================\n 🚀 Antigravity Gateway 已启动\n-----------------------------------------------------------------\n 网关版本: v1.7.5\n BaseURL:\n    Anthropic: http://127.0.0.1:54306\n    OpenAI: http://127.0.0.1:54306/v1\n API Key: 已配置（使用 ANTIGRAVITY_GATEWAY_API_KEY 的值）\n 本地密钥: /tmp/real-client-gateway/gateway-data/accounts（4 个账号）\n 上游协议: Google Antigravity API（agy 1.5.2）\n 可用模型:\n    gemini-3.8-flash-high\n    claude-opus-4-6-thinking\n    claude-sonnet-4-6\n    gemini-3.8-flash-medium\n    gemini-3.8-flash-low\n    gemini-3.8-flash-tiered\n 更多模型: antigravity-gateway --models\n Claude Code 模型配置: antigravity-gateway --claude-config-path\n Token 看板: antigravity-gateway stats\n=================================================================\n-----------------------------------------------------------------\n 账号状态: 1/4 可用，1/1 额度可用\n 历史总量: 0 Token  请求 0  上游调用 0\n 输入: 0  输出: 0  缓存: 0  命中率: --\n 最近24小时：▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  合计 0 Token\n 统计更新: 2026-11-06T20:47:26.331Z（总量24小时、图表1小时、磁盘5分钟）\n-----------------------------------------------------------------\n[Antigravity Gateway] /v1/messages model=gemini-3.8-flash-low requested=gemini-3.8-flash-low class=client chars=426 tools=0 maxOut=2048 stream=false request=req_003975 client=gateway-media-verifier session=17e499d689 affinity=2dc7f37a4d\n[Antigravity Gateway] 路由账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.8-flash-low attempt=1 request=req_003975 client=gateway-media-verifier session=17e499d689 affinity=2dc7f37a4d\n[Antigravity Gateway] 生图账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.1-flash-image attempt=1 request=req_003975 client=gateway-media-verifier session=17e499d689 affinity=2dc7f37a4d\n",
+  "gatewayStderr": "[Antigravity Gateway Error] Antigravity Gateway 内部错误。\n",
+  "boundary": "One Messages request; original internal image extension explicitly enabled; Gemini Low -> image model -> Gemini Low only. Three physical generations maximum, fixed account/trajectory/steps, no retry after failure. No formal service or protection changes.",
+  "nativeGenerationRequests": 2,
+  "generationBudgetRespected": true,
+  "temporaryCredentialsRemoved": true,
+  "ownedGatewayStopped": true
+}

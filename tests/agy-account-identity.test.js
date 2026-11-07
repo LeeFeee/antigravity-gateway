@@ -37,7 +37,7 @@ test('email fallback is normalized; missing identities are isolated by grant rat
 test('managed auth refresh preserves known identity namespace and its restarted representation', async () => {
   let saved;
   const provider = new ManagedAccountAuthProvider({ account: { ...account, expiresAt: '2000-01-01', clientId: 'client', clientSecret: 'secret' },
-    store: { save: value => (saved = value) },
+    store: { updateCredentials: (current, tokens) => (saved = { ...current, ...tokens }) },
     fetchImpl: async () => new Response(JSON.stringify({ access_token: 'new-access', refresh_token: 'new-refresh', expires_in: 3600 })) });
   const before = provider.load().sourcePath;
   const record = await provider.get();
@@ -87,12 +87,18 @@ test('unbound legacy private cache is not silently adopted after upgrade', async
   assert.equal(fs.readdirSync(f.directory).filter(n => n.endsWith('.json')).length, 2, 'old state remains recoverable until normal cleanup');
 });
 
-test('client supplied tool signatures remain intact when the Google identity changes', async t => {
+test('client supplied tool history reaches either Google identity without local ownership admission', async t => {
   const f = fixture(t);
   const history = { messages: [{ role: 'user', text: 'Read.' },
     { role: 'assistant', parts: [{ type: 'tool_call', id: 'read-1', name: 'Read', arguments: { path: 'owned.txt' }, thoughtSignature: 'client-owned-signature' }] },
     { role: 'user', parts: [{ type: 'tool_result', id: 'read-1', content: 'amber' }] }] };
   await f.send({}, history, [{ text: 'amber' }]);
   await f.send({ subjectId: 'google-B' }, history, [{ text: 'amber' }]);
-  for (const r of f.requests)assert.equal(r.request.contents[1].parts.find(p => p.functionCall).thoughtSignature, 'client-owned-signature');
+  assert.equal(f.requests.length, 2);
+  assert.notEqual(f.requests[0].request.labels.cascade_id, f.requests[1].request.labels.cascade_id);
+  for (const request of f.requests) {
+    assert.match(JSON.stringify(request.request.contents), /client-owned-signature/);
+    assert.equal(request.request.contents.flatMap(c => c.parts).filter(p => p.functionCall).length, 1);
+    assert.equal(request.request.contents.flatMap(c => c.parts).filter(p => p.functionResponse).length, 1);
+  }
 });

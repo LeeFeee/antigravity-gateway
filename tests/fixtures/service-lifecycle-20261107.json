@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-11-06T18:16:17.696Z",
+  "platform": "darwin/arm64",
+  "label": "io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb",
+  "port": 61111,
+  "productionLabel": "io.github.leefeee.antigravity-gateway",
+  "accounts": 0,
+  "realModelRequests": false,
+  "actions": [
+    {
+      "command": "bootout",
+      "arguments": [
+        "gui/501",
+        "[TEMP_ROOT]/home/Library/LaunchAgents/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb.plist"
+      ],
+      "code": 5
+    },
+    {
+      "command": "bootstrap",
+      "arguments": [
+        "gui/501",
+        "[TEMP_ROOT]/home/Library/LaunchAgents/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb.plist"
+      ],
+      "code": 0
+    },
+    {
+      "command": "print",
+      "arguments": [
+        "gui/501/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb"
+      ],
+      "code": 0
+    },
+    {
+      "command": "kickstart",
+      "arguments": [
+        "-k",
+        "gui/501/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb"
+      ],
+      "code": 0
+    },
+    {
+      "command": "bootout",
+      "arguments": [
+        "gui/501",
+        "[TEMP_ROOT]/home/Library/LaunchAgents/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb.plist"
+      ],
+      "code": 0
+    },
+    {
+      "command": "print",
+      "arguments": [
+        "gui/501/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb"
+      ],
+      "code": 113
+    },
+    {
+      "command": "bootout",
+      "arguments": [
+        "gui/501",
+        "[TEMP_ROOT]/home/Library/LaunchAgents/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb.plist"
+      ],
+      "code": 5
+    },
+    {
+      "command": "print",
+      "arguments": [
+        "gui/501/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb"
+      ],
+      "code": 113
+    },
+    {
+      "command": "bootout",
+      "arguments": [
+        "gui/501",
+        "[TEMP_ROOT]/home/Library/LaunchAgents/io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb.plist"
+      ],
+      "code": 5
+    }
+  ],
+  "checks": {
+    "guiDomainPresent": true,
+    "temporaryConfigurationUsed": true,
+    "restartChangedRunnerAndGatewayPids": true,
+    "restartRetiredPreviousProcesses": true,
+    "restartPreservedConfiguration": true,
+    "stoppedProcessesExited": true,
+    "stopPreservedConfiguration": true,
+    "uninstallRemovedConfiguration": true,
+    "finalTargetAbsent": true,
+    "finalPortClosed": true,
+    "productionServiceUnchanged": true,
+    "temporaryRootRemoved": true
+  },
+  "evidence": "actual-macos-launchctl-isolated-service-lifecycle",
+  "sourceHashes": {
+    "antigravity-gateway.js": "e6f489a42d6286134d03699a87b0bab26fa898b862d30cc68b92a124066d156d",
+    "src/service-manager.js": "959eb76808a18cfeef3e6f56dd5c926d3ee15c5edb24d78d19bdfdfe06395509",
+    "src/service-runner.js": "edcf57033447a98c0d7ed66d31510d92f8c96c714f8523682c6d6e4c276f02ac"
+  },
+  "productionBefore": {
+    "present": true,
+    "state": "running",
+    "pid": 2219,
+    "children": [
+      2220
+    ],
+    "plistSha256": "7354a8ca2ded81fe01cb117c8a62ca33a48480e32e5a8f584c61c45d48651c67",
+    "configurationSha256": "e291d75a1a534288ba08f87a940ba21b6768a2a1a9a95a6e8c3c7f1db48af196"
+  },
+  "start": "后台保活模式已启动：io.github.leefeee.antigravity-gateway-verify-e8b2ba1d114adabb",
+  "initialHealth": {
+    "status": 200,
+    "body": {
+      "name": "antigravity-gateway",
+      "status": "ok",
+      "version": "1.7.5",
+      "listen": "http://127.0.0.1:61111",
+      "managedAccounts": 0,
+      "usageFile": "[TEMP_ROOT]/config/usage/usage-state.json",
+      "codexModelCatalog": "[TEMP_ROOT]/config/codex-models.json"
+    }
+  },
+  "initialService": {
+    "present": true,
+    "state": "running",
+    "pid": 34175,
+    "children": [
+      34176
+    ]
+  },
+  "status": "配置状态: 已配置\n运行状态: 运行中",
+  "restart": "后台服务已重启。",
+  "restartedService": {
+    "present": true,
+    "state": "running",
+    "pid": 34194,
+    "children": [
+      34196
+    ]
+  },
+  "restartedHealth": {
+    "status": 200,
+    "body": {
+      "name": "antigravity-gateway",
+      "status": "ok",
+      "version": "1.7.5",
+      "listen": "http://127.0.0.1:61111",
+      "managedAccounts": 0,
+      "usageFile": "[TEMP_ROOT]/config/usage/usage-state.json",
+      "codexModelCatalog": "[TEMP_ROOT]/config/codex-models.json"
+    }
+  },
+  "stop": "后台服务已停止；配置仍保留，下次登录会自动启动。",
+  "stoppedStatus": "配置状态: 已配置\n运行状态: 未运行",
+  "uninstall": "后台服务已卸载，历史日志保留。",
+  "uninstalledStatus": "配置状态: 未配置\n运行状态: 未运行",
+  "productionAfter": {
+    "present": true,
+    "state": "running",
+    "pid": 2219,
+    "children": [
+      2220
+    ],
+    "plistSha256": "7354a8ca2ded81fe01cb117c8a62ca33a48480e32e5a8f584c61c45d48651c67",
+    "configurationSha256": "e291d75a1a534288ba08f87a940ba21b6768a2a1a9a95a6e8c3c7f1db48af196"
+  },
+  "passed": true,
+  "sourceUnchanged": true,
+  "completedAt": "2026-11-06T18:16:29.010Z"
+}

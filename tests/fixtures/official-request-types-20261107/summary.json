@@ -1,0 +1,65 @@
+{
+  "recordedAt": "2026-11-06T19:23:28.212490+00:00",
+  "officialBinarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "officialVersion": "1.5.2",
+  "realGoogleRequests": false,
+  "realAccountRead": false,
+  "microphoneUsed": false,
+  "gatewayRuntimeChangedByThisProbe": false,
+  "isolatedTemporaryDirectoriesRemoved": true,
+  "successfulScenarios": [
+    {
+      "file": "web-search-v2.json",
+      "sha256": "56cc9bdafebea2cf10a4ee9fb5f7ad351b5c3589c087a5e1e8995832521211a1",
+      "requestCount": 13,
+      "requestTypes": [
+        "agent",
+        "checkpoint",
+        "web_search"
+      ],
+      "failure": null,
+      "newRequestCount": 1,
+      "mockOnly": true
+    },
+    {
+      "file": "image-tool-v1.json",
+      "sha256": "089150dba0ee91d52ca2546a88e28926b16352c5851ce0c4ebad08195da548f2",
+      "requestCount": 13,
+      "requestTypes": [
+        "agent",
+        "checkpoint",
+        "image_gen"
+      ],
+      "failure": null,
+      "newRequestCount": 1,
+      "mockOnly": true
+    },
+    {
+      "file": "image-edit-v1.json",
+      "sha256": "a08595fe1b8227f8c4e1cf56de4cef2c5b77faa26b285c4b3efcc2d7c55209eb",
+      "requestCount": 13,
+      "requestTypes": [
+        "agent",
+        "checkpoint",
+        "image_gen"
+      ],
+      "failure": null,
+      "newRequestCount": 1,
+      "mockOnly": true
+    },
+    {
+      "file": "video-summary-v7.json",
+      "sha256": "4c2eb8a32d1ee2211ddc3f2925e1c00481c8024398ad06159c52377ee95b2867",
+      "requestCount": 26,
+      "requestTypes": [
+        "agent",
+        "video_summarization"
+      ],
+      "failure": null,
+      "newRequestCount": 1,
+      "mockOnly": true
+    }
+  ],
+  "attemptArtifactsPreserved": true,
+  "evidenceBoundary": "Unmodified official CLI emitted requests to loopback all-response mock; mock response acceptance is not Google acceptance. Synthetic M8 catalog is required for this video-summary reproduction."
+}

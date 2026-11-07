@@ -1,0 +1,821 @@
+{
+  "agent": "claude",
+  "version": "2.1.318",
+  "scenario": "write",
+  "recordedAt": "2026-11-06T18:27:18.968Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "sourceBefore": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "sourceAfter": {
+    "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+    "files": 53
+  },
+  "isolation": "fresh HOME; fake account; CLI explicit loopback ports; writes only private root; gateway forbidden to write client work directory",
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/claude",
+    "-p",
+    "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--permission-mode",
+    "dontAsk",
+    "--allowedTools",
+    "Write",
+    "--permission-prompts",
+    "none",
+    "--output-format",
+    "stream-json",
+    "--verbose",
+    "--max-turns",
+    "6",
+    "--setting-sources",
+    "",
+    "--tools",
+    "Write"
+  ],
+  "plan": [
+    {
+      "name": "Write",
+      "arguments": {
+        "file_path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_claude_VERIFIED\n"
+      }
+    }
+  ],
+  "issued": [
+    {
+      "id": "controlled_claude_write_0",
+      "name": "write_file",
+      "args": {
+        "Path": "/tmp/client-gateway-verify/work/created.txt",
+        "Content": "WRITE_claude_VERIFIED\n",
+        "Overwrite": true
+      }
+    }
+  ],
+  "clientCalls": [
+    {
+      "id": "controlled_claude_write_0",
+      "name": "Write",
+      "arguments": {
+        "file_path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_claude_VERIFIED\n"
+      }
+    }
+  ],
+  "outcome": {
+    "code": 0,
+    "signal": null
+  },
+  "checks": {
+    "clientCallArgumentsRestored": true,
+    "clientSucceeded": true,
+    "gatewayHTTP": true,
+    "allPlannedToolsIssued": true,
+    "allClientReceiptsReturned": true,
+    "exactDiskContents": true,
+    "finalAnswer": true,
+    "noUpstreamError": true,
+    "sourceStable": true
+  },
+  "passed": true,
+  "disk": {
+    "file": "/tmp/client-gateway-verify/work/created.txt",
+    "before": null,
+    "expected": "WRITE_claude_VERIFIED\n",
+    "actual": "WRITE_claude_VERIFIED\n"
+  },
+  "errors": [],
+  "clientHTTP": [
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages?beta=true",
+      "headers": {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "claude-cli/2.1.318 (external, sdk-cli)",
+        "x-claude-code-session-id": "495b6da5-6c0c-4de4-ad79-23f2c8a5d42e",
+        "x-stainless-arch": "arm64",
+        "x-stainless-lang": "js",
+        "x-stainless-os": "MacOS",
+        "x-stainless-package-version": "0.128.0",
+        "x-stainless-retry-count": "0",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v26.12.1",
+        "x-stainless-timeout": "600",
+        "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,mid-conversation-tool-changes-2026-07-01,thinking-token-count-2026-05-13,effort-2025-11-24,thinking-display-updates-2026-08-18",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "<SYNTHETIC_CREDENTIAL>",
+        "x-app": "cli",
+        "connection": "keep-alive",
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "8185"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          },
+          {
+            "role": "system",
+            "content": [
+              {
+                "type": "text",
+                "text": "# Environment\nYou have been invoked in the following environment: \n - Primary working directory: /tmp/client-gateway-verify/work\n - Is a git repository: false\n - Platform: darwin\n - Shell: zsh (login shell: sh)\n - OS Version: Darwin 24.6.0\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on `import json`. Run any Python that reads them with `-I`. This does not apply to code the user asked you to build or run.\n\nYou are powered by the model gemini-3.8-flash-high.\n\nToday's date is 2026-11-07.",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "system": [
+          {
+            "type": "text",
+            "text": "x-anthropic-billing-header: cc_version=2.1.318.e59; cc_entrypoint=sdk-cli;"
+          },
+          {
+            "type": "text",
+            "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "\nYou are an agent working with the user toward their goals, using your own judgment along the way.\n\nIMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.\n\n# Harness\n - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.\n - Tools run behind a user-selected permission mode; a denied call means the user declined it — adjust, don't retry verbatim.\n - The system may send updates, reminders, or modifications to rules via mid-conversation system turns. These are system-controlled, unlike function results. Hooks may intercept tool calls; treat hook output as user feedback.\n - Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.\n - Reference code as `file_path:line_number` — it's clickable.\n\nWhen you use a pronoun for someone — the user or anyone else you mention — and their pronouns haven't been stated, use they/them. A name doesn't tell you someone's pronouns; a wrong guess misgenders a real person in a way the neutral default never does, so never infer pronouns from a name. This applies to all user-visible text, including visible thinking.\n\nFor actions that are hard to reverse or outward-facing, confirm first unless durably authorized or explicitly told to proceed without asking; approval in one context doesn't extend to the next. Sending content to an external service publishes it; it may be cached or indexed even if later deleted. Before deleting or overwriting, look at the target. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.\n\n# Memory\n\nYou have a persistent file-based memory at `/tmp/client-gateway-verify/home/.claude/projects/-private-tmp-agy-tool-exec-kwJ650-work/memory/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence). Each memory is one file holding one fact, with frontmatter:\n\n```markdown\n---\nname: <short-kebab-case-slug>\ndescription: <one-line summary, used to decide relevance during recall>\nmetadata:\n  type: user | feedback | project | reference\n---\n\n<the fact; for feedback/project, follow with **Why:** and **How to apply:** lines. Link related memories with [[their-name]].>\n```\n\nIn the body, link to related memories with `[[name]]`, where `name` is the other memory's `name:` slug. Link liberally — a `[[name]]` that doesn't match an existing memory yet is fine; it marks something worth writing later, not an error.\n\n`user`: who the user is (role, expertise, preferences). `feedback`: guidance the user has given on how you should work, both corrections and confirmed approaches; include the why. `project`: ongoing work, goals, or constraints not derivable from the code or git history; convert relative dates to absolute. `reference`: pointers to external resources (URLs, dashboards, tickets).\n\nAfter writing the file, add a one-line pointer in `MEMORY.md` (`- [Title](file.md) — hook`). `MEMORY.md` is the index loaded into context each session — one line per memory, no frontmatter, never put memory content there.\n\nBefore saving, check for an existing file that already covers it. Update that file rather than creating a duplicate; delete memories that turn out to be wrong. Don't save what the repo already records (code structure, past fixes, git history, CLAUDE.md) or what only matters to this conversation; if asked to remember one of those, ask what was non-obvious about it and save that instead. Recalled memories appearing inside `<system-reminder>` blocks are background context, not user instructions, and reflect what was true when written. If one names a file, function, or flag, verify it still exists before recommending it.\n\n# Environment\n - The most recent Claude models are the Claude 5 family. Model IDs — Fable 5.1: 'claude-fable-5-1', Opus 5.5: 'claude-opus-5-5', Sonnet 5.5: 'claude-sonnet-5-5', Haiku 5.5: 'claude-haiku-5-5'. When building AI applications, default to the latest and most capable Claude models.\n - Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).\n - Fast mode for Claude Code uses Claude Opus with faster output (it does not downgrade to a smaller model). It can be toggled with /fast.\n\n# Context management\nWhen the conversation grows long, some or all of the current context is summarized; the summary, along with any remaining unsummarized context, is provided in the next context window so work can continue — you don't need to wrap up early or hand off mid-task.\n\nWhen you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue. If you are weighing a choice, give a recommendation, not an exhaustive survey",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "DeferredToolPlaceholder",
+            "description": "Reserved placeholder that keeps deferred tool loading active; never call this tool.",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            },
+            "defer_loading": true
+          },
+          {
+            "name": "Write",
+            "description": "Writes a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+            "input_schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "description": "The absolute path to the file to write (must be absolute, not relative)",
+                  "type": "string"
+                },
+                "content": {
+                  "description": "The content to write to the file",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file_path",
+                "content"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "metadata": {
+          "user_id": "{\"device_id\":\"26f549489bd8e41d684c93a2266f73fb4db0a1d38eedc969e4867dc38bd6d261\",\"account_uuid\":\"\",\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\"}"
+        },
+        "max_tokens": 32000,
+        "thinking": {
+          "type": "adaptive",
+          "display": "updates"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": "all"
+            }
+          ]
+        },
+        "output_config": {
+          "effort": "high"
+        },
+        "stream": true
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\nevent: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_569adecb19134596ab0e903e4247c97b\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.8-flash-high\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"thinking\",\"thinking\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"signature_delta\",\"signature\":\"synthetic_controlled_claude_write_0\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":1,\"content_block\":{\"type\":\"tool_use\",\"id\":\"controlled_claude_write_0\",\"name\":\"Write\",\"input\":{}}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":1,\"delta\":{\"type\":\"input_json_delta\",\"partial_json\":\"{\\\"file_path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_claude_VERIFIED\\\\n\\\"}\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":1}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"tool_use\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/messages?beta=true",
+      "headers": {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "claude-cli/2.1.318 (external, sdk-cli)",
+        "x-claude-code-session-id": "495b6da5-6c0c-4de4-ad79-23f2c8a5d42e",
+        "x-stainless-arch": "arm64",
+        "x-stainless-lang": "js",
+        "x-stainless-os": "MacOS",
+        "x-stainless-package-version": "0.128.0",
+        "x-stainless-retry-count": "0",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v26.12.1",
+        "x-stainless-timeout": "600",
+        "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,mid-conversation-tool-changes-2026-07-01,thinking-token-count-2026-05-13,effort-2025-11-24,thinking-display-updates-2026-08-18",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "<SYNTHETIC_CREDENTIAL>",
+        "x-app": "cli",
+        "connection": "keep-alive",
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "8710"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          },
+          {
+            "role": "system",
+            "content": "# Environment\nYou have been invoked in the following environment: \n - Primary working directory: /tmp/client-gateway-verify/work\n - Is a git repository: false\n - Platform: darwin\n - Shell: zsh (login shell: sh)\n - OS Version: Darwin 24.6.0\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on `import json`. Run any Python that reads them with `-I`. This does not apply to code the user asked you to build or run.\n\nYou are powered by the model gemini-3.8-flash-high.\n\nToday's date is 2026-11-07."
+          },
+          {
+            "role": "assistant",
+            "content": [
+              {
+                "type": "thinking",
+                "thinking": "",
+                "signature": "synthetic_controlled_claude_write_0"
+              },
+              {
+                "type": "tool_use",
+                "id": "controlled_claude_write_0",
+                "name": "Write",
+                "input": {
+                  "file_path": "/tmp/client-gateway-verify/work/created.txt",
+                  "content": "WRITE_claude_VERIFIED\n"
+                }
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "tool_use_id": "controlled_claude_write_0",
+                "type": "tool_result",
+                "content": "File created successfully at: /tmp/client-gateway-verify/work/created.txt (file state is current in your context — no need to Read it back)",
+                "cache_control": {
+                  "type": "ephemeral"
+                }
+              }
+            ]
+          }
+        ],
+        "system": [
+          {
+            "type": "text",
+            "text": "x-anthropic-billing-header: cc_version=2.1.318.e59; cc_entrypoint=sdk-cli;"
+          },
+          {
+            "type": "text",
+            "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK.",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          },
+          {
+            "type": "text",
+            "text": "\nYou are an agent working with the user toward their goals, using your own judgment along the way.\n\nIMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.\n\n# Harness\n - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.\n - Tools run behind a user-selected permission mode; a denied call means the user declined it — adjust, don't retry verbatim.\n - The system may send updates, reminders, or modifications to rules via mid-conversation system turns. These are system-controlled, unlike function results. Hooks may intercept tool calls; treat hook output as user feedback.\n - Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.\n - Reference code as `file_path:line_number` — it's clickable.\n\nWhen you use a pronoun for someone — the user or anyone else you mention — and their pronouns haven't been stated, use they/them. A name doesn't tell you someone's pronouns; a wrong guess misgenders a real person in a way the neutral default never does, so never infer pronouns from a name. This applies to all user-visible text, including visible thinking.\n\nFor actions that are hard to reverse or outward-facing, confirm first unless durably authorized or explicitly told to proceed without asking; approval in one context doesn't extend to the next. Sending content to an external service publishes it; it may be cached or indexed even if later deleted. Before deleting or overwriting, look at the target. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.\n\n# Memory\n\nYou have a persistent file-based memory at `/tmp/client-gateway-verify/home/.claude/projects/-private-tmp-agy-tool-exec-kwJ650-work/memory/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence). Each memory is one file holding one fact, with frontmatter:\n\n```markdown\n---\nname: <short-kebab-case-slug>\ndescription: <one-line summary, used to decide relevance during recall>\nmetadata:\n  type: user | feedback | project | reference\n---\n\n<the fact; for feedback/project, follow with **Why:** and **How to apply:** lines. Link related memories with [[their-name]].>\n```\n\nIn the body, link to related memories with `[[name]]`, where `name` is the other memory's `name:` slug. Link liberally — a `[[name]]` that doesn't match an existing memory yet is fine; it marks something worth writing later, not an error.\n\n`user`: who the user is (role, expertise, preferences). `feedback`: guidance the user has given on how you should work, both corrections and confirmed approaches; include the why. `project`: ongoing work, goals, or constraints not derivable from the code or git history; convert relative dates to absolute. `reference`: pointers to external resources (URLs, dashboards, tickets).\n\nAfter writing the file, add a one-line pointer in `MEMORY.md` (`- [Title](file.md) — hook`). `MEMORY.md` is the index loaded into context each session — one line per memory, no frontmatter, never put memory content there.\n\nBefore saving, check for an existing file that already covers it. Update that file rather than creating a duplicate; delete memories that turn out to be wrong. Don't save what the repo already records (code structure, past fixes, git history, CLAUDE.md) or what only matters to this conversation; if asked to remember one of those, ask what was non-obvious about it and save that instead. Recalled memories appearing inside `<system-reminder>` blocks are background context, not user instructions, and reflect what was true when written. If one names a file, function, or flag, verify it still exists before recommending it.\n\n# Environment\n - The most recent Claude models are the Claude 5 family. Model IDs — Fable 5.1: 'claude-fable-5-1', Opus 5.5: 'claude-opus-5-5', Sonnet 5.5: 'claude-sonnet-5-5', Haiku 5.5: 'claude-haiku-5-5'. When building AI applications, default to the latest and most capable Claude models.\n - Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).\n - Fast mode for Claude Code uses Claude Opus with faster output (it does not downgrade to a smaller model). It can be toggled with /fast.\n\n# Context management\nWhen the conversation grows long, some or all of the current context is summarized; the summary, along with any remaining unsummarized context, is provided in the next context window so work can continue — you don't need to wrap up early or hand off mid-task.\n\nWhen you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue. If you are weighing a choice, give a recommendation, not an exhaustive survey",
+            "cache_control": {
+              "type": "ephemeral"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "DeferredToolPlaceholder",
+            "description": "Reserved placeholder that keeps deferred tool loading active; never call this tool.",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            },
+            "defer_loading": true
+          },
+          {
+            "name": "Write",
+            "description": "Writes a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+            "input_schema": {
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "description": "The absolute path to the file to write (must be absolute, not relative)",
+                  "type": "string"
+                },
+                "content": {
+                  "description": "The content to write to the file",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file_path",
+                "content"
+              ],
+              "additionalProperties": false
+            }
+          }
+        ],
+        "metadata": {
+          "user_id": "{\"device_id\":\"26f549489bd8e41d684c93a2266f73fb4db0a1d38eedc969e4867dc38bd6d261\",\"account_uuid\":\"\",\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\"}"
+        },
+        "max_tokens": 32000,
+        "thinking": {
+          "type": "adaptive",
+          "display": "updates"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": "all"
+            }
+          ]
+        },
+        "output_config": {
+          "effort": "high"
+        },
+        "stream": true
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\nevent: message_start\ndata: {\"type\":\"message_start\",\"message\":{\"id\":\"msg_d0669eb96e774ffbb633d6904607c6e0\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.8-flash-high\",\"content\":[],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0}}}\n\nevent: content_block_start\ndata: {\"type\":\"content_block_start\",\"index\":0,\"content_block\":{\"type\":\"text\",\"text\":\"\"}}\n\nevent: content_block_delta\ndata: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"CLIENT_EXECUTION_VERIFIED\"}}\n\nevent: content_block_stop\ndata: {\"type\":\"content_block_stop\",\"index\":0}\n\nevent: message_delta\ndata: {\"type\":\"message_delta\",\"delta\":{\"stop_reason\":\"end_turn\",\"stop_sequence\":null},\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0}}\n\nevent: message_stop\ndata: {\"type\":\"message_stop\"}\n\n"
+    }
+  ],
+  "upstream": [
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "11593"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/c13bf4fb-4502-4dff-8b87-85478ed6614c/1793989638883/1fea0063-56da-41f3-bbaf-0d276057ff2b/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:27:18+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You are an agent working with the user toward their goals, using your own judgment along the way.\n\nIMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.\n\n# Harness\n - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.\n - Tools run behind a user-selected permission mode; a denied call means the user declined it — adjust, don't retry verbatim.\n - The system may send updates, reminders, or modifications to rules via mid-conversation system turns. These are system-controlled, unlike function results. Hooks may intercept tool calls; treat hook output as user feedback.\n - Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.\n - Reference code as `file_path:line_number` — it's clickable.\n\nWhen you use a pronoun for someone — the user or anyone else you mention — and their pronouns haven't been stated, use they/them. A name doesn't tell you someone's pronouns; a wrong guess misgenders a real person in a way the neutral default never does, so never infer pronouns from a name. This applies to all user-visible text, including visible thinking.\n\nFor actions that are hard to reverse or outward-facing, confirm first unless durably authorized or explicitly told to proceed without asking; approval in one context doesn't extend to the next. Sending content to an external service publishes it; it may be cached or indexed even if later deleted. Before deleting or overwriting, look at the target. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.\n\n# Memory\n\nYou have a persistent file-based memory at `/tmp/client-gateway-verify/home/.claude/projects/-private-tmp-agy-tool-exec-kwJ650-work/memory/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence). Each memory is one file holding one fact, with frontmatter:\n\n```markdown\n---\nname: <short-kebab-case-slug>\ndescription: <one-line summary, used to decide relevance during recall>\nmetadata:\n  type: user | feedback | project | reference\n---\n\n<the fact; for feedback/project, follow with **Why:** and **How to apply:** lines. Link related memories with [[their-name]].>\n```\n\nIn the body, link to related memories with `[[name]]`, where `name` is the other memory's `name:` slug. Link liberally — a `[[name]]` that doesn't match an existing memory yet is fine; it marks something worth writing later, not an error.\n\n`user`: who the user is (role, expertise, preferences). `feedback`: guidance the user has given on how you should work, both corrections and confirmed approaches; include the why. `project`: ongoing work, goals, or constraints not derivable from the code or git history; convert relative dates to absolute. `reference`: pointers to external resources (URLs, dashboards, tickets).\n\nAfter writing the file, add a one-line pointer in `MEMORY.md` (`- [Title](file.md) — hook`). `MEMORY.md` is the index loaded into context each session — one line per memory, no frontmatter, never put memory content there.\n\nBefore saving, check for an existing file that already covers it. Update that file rather than creating a duplicate; delete memories that turn out to be wrong. Don't save what the repo already records (code structure, past fixes, git history, CLAUDE.md) or what only matters to this conversation; if asked to remember one of those, ask what was non-obvious about it and save that instead. Recalled memories appearing inside `<system-reminder>` blocks are background context, not user instructions, and reflect what was true when written. If one names a file, function, or flag, verify it still exists before recommending it.\n\n# Environment\n - The most recent Claude models are the Claude 5 family. Model IDs — Fable 5.1: 'claude-fable-5-1', Opus 5.5: 'claude-opus-5-5', Sonnet 5.5: 'claude-sonnet-5-5', Haiku 5.5: 'claude-haiku-5-5'. When building AI applications, default to the latest and most capable Claude models.\n - Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).\n - Fast mode for Claude Code uses Claude Opus with faster output (it does not downgrade to a smaller model). It can be toggled with /fast.\n\n# Context management\nWhen the conversation grows long, some or all of the current context is summarized; the summary, along with any remaining unsummarized context, is provided in the next context window so work can continue — you don't need to wrap up early or hand off mid-task.\n\nWhen you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue. If you are weighing a choice, give a recommendation, not an exhaustive survey\n\n# Environment\nYou have been invoked in the following environment: \n - Primary working directory: /tmp/client-gateway-verify/work\n - Is a git repository: false\n - Platform: darwin\n - Shell: zsh (login shell: sh)\n - OS Version: Darwin 24.6.0\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on `import json`. Run any Python that reads them with `-I`. This does not apply to code the user asked you to build or run.\n\nToday's date is 2026-11-07.\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"DeferredToolPlaceholder\": mcp_gateway_tool_79301c8f703808d2 (mcp-direct), mcp_gateway_tool_2d64a6b2366d2191_json (mcp-json)\n\"Write\": mcp_gateway_tool_a5203de58464d488 (mcp-direct), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_79301c8f703808d2",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_2d64a6b2366d2191_json; toolSummary is transport metadata only in this view.\nReserved placeholder that keeps deferred tool loading active; never call this tool.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_2d64a6b2366d2191_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nReserved placeholder that keeps deferred tool loading active; never call this tool.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a5203de58464d488",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. toolSummary is transport metadata only in this view.\nWrites a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "The absolute path to the file to write (must be absolute, not relative)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "The content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_a5203de58464d488 for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrites a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "c13bf4fb-4502-4dff-8b87-85478ed6614c",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "1fea0063-56da-41f3-bbaf-0d276057ff2b-0",
+            "root_cascade_id": "c13bf4fb-4502-4dff-8b87-85478ed6614c",
+            "trajectory_id": "1fea0063-56da-41f3-bbaf-0d276057ff2b",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 32000,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "issuedToolCall": {
+        "id": "controlled_claude_write_0",
+        "name": "write_file",
+        "args": {
+          "Path": "/tmp/client-gateway-verify/work/created.txt",
+          "Content": "WRITE_claude_VERIFIED\n",
+          "Overwrite": true
+        }
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "12147"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/c13bf4fb-4502-4dff-8b87-85478ed6614c/1793989638940/1fea0063-56da-41f3-bbaf-0d276057ff2b/3",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:27:18+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "controlled_claude_write_0",
+                    "name": "write_file",
+                    "args": {
+                      "Content": "WRITE_claude_VERIFIED\n",
+                      "Overwrite": true,
+                      "Path": "/tmp/client-gateway-verify/work/created.txt"
+                    }
+                  },
+                  "thoughtSignature": "synthetic_controlled_claude_write_0"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "controlled_claude_write_0",
+                    "name": "write_file",
+                    "response": {
+                      "output": "File created successfully at: /tmp/client-gateway-verify/work/created.txt (file state is current in your context — no need to Read it back)"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You are an agent working with the user toward their goals, using your own judgment along the way.\n\nIMPORTANT: Assist with authorized security testing, defensive security, CTF challenges, and educational contexts. Refuse requests for destructive techniques, DoS attacks, mass targeting, supply chain compromise, or detection evasion for malicious purposes. Dual-use security tools (C2 frameworks, credential testing, exploit development) require clear authorization context: pentesting engagements, CTF competitions, security research, or defensive use cases.\n\n# Harness\n - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.\n - Tools run behind a user-selected permission mode; a denied call means the user declined it — adjust, don't retry verbatim.\n - The system may send updates, reminders, or modifications to rules via mid-conversation system turns. These are system-controlled, unlike function results. Hooks may intercept tool calls; treat hook output as user feedback.\n - Prefer the dedicated file/search tools over shell commands when one fits. Independent tool calls can run in parallel in one response.\n - Reference code as `file_path:line_number` — it's clickable.\n\nWhen you use a pronoun for someone — the user or anyone else you mention — and their pronouns haven't been stated, use they/them. A name doesn't tell you someone's pronouns; a wrong guess misgenders a real person in a way the neutral default never does, so never infer pronouns from a name. This applies to all user-visible text, including visible thinking.\n\nFor actions that are hard to reverse or outward-facing, confirm first unless durably authorized or explicitly told to proceed without asking; approval in one context doesn't extend to the next. Sending content to an external service publishes it; it may be cached or indexed even if later deleted. Before deleting or overwriting, look at the target. Report outcomes faithfully: if tests fail, say so with the output; if a step was skipped, say that; when something is done and verified, state it plainly without hedging.\n\n# Memory\n\nYou have a persistent file-based memory at `/tmp/client-gateway-verify/home/.claude/projects/-private-tmp-agy-tool-exec-kwJ650-work/memory/`. This directory already exists — write to it directly with the Write tool (do not run mkdir or check for its existence). Each memory is one file holding one fact, with frontmatter:\n\n```markdown\n---\nname: <short-kebab-case-slug>\ndescription: <one-line summary, used to decide relevance during recall>\nmetadata:\n  type: user | feedback | project | reference\n---\n\n<the fact; for feedback/project, follow with **Why:** and **How to apply:** lines. Link related memories with [[their-name]].>\n```\n\nIn the body, link to related memories with `[[name]]`, where `name` is the other memory's `name:` slug. Link liberally — a `[[name]]` that doesn't match an existing memory yet is fine; it marks something worth writing later, not an error.\n\n`user`: who the user is (role, expertise, preferences). `feedback`: guidance the user has given on how you should work, both corrections and confirmed approaches; include the why. `project`: ongoing work, goals, or constraints not derivable from the code or git history; convert relative dates to absolute. `reference`: pointers to external resources (URLs, dashboards, tickets).\n\nAfter writing the file, add a one-line pointer in `MEMORY.md` (`- [Title](file.md) — hook`). `MEMORY.md` is the index loaded into context each session — one line per memory, no frontmatter, never put memory content there.\n\nBefore saving, check for an existing file that already covers it. Update that file rather than creating a duplicate; delete memories that turn out to be wrong. Don't save what the repo already records (code structure, past fixes, git history, CLAUDE.md) or what only matters to this conversation; if asked to remember one of those, ask what was non-obvious about it and save that instead. Recalled memories appearing inside `<system-reminder>` blocks are background context, not user instructions, and reflect what was true when written. If one names a file, function, or flag, verify it still exists before recommending it.\n\n# Environment\n - The most recent Claude models are the Claude 5 family. Model IDs — Fable 5.1: 'claude-fable-5-1', Opus 5.5: 'claude-opus-5-5', Sonnet 5.5: 'claude-sonnet-5-5', Haiku 5.5: 'claude-haiku-5-5'. When building AI applications, default to the latest and most capable Claude models.\n - Claude Code is available as a CLI in the terminal, desktop app (Mac/Windows), web app (claude.ai/code), and IDE extensions (VS Code, JetBrains).\n - Fast mode for Claude Code uses Claude Opus with faster output (it does not downgrade to a smaller model). It can be toggled with /fast.\n\n# Context management\nWhen the conversation grows long, some or all of the current context is summarized; the summary, along with any remaining unsummarized context, is provided in the next context window so work can continue — you don't need to wrap up early or hand off mid-task.\n\nWhen you have enough information to act, act. Do not re-derive facts already established in the conversation, re-litigate a decision the user has already made, or narrate options you will not pursue. If you are weighing a choice, give a recommendation, not an exhaustive survey\n\n# Environment\nYou have been invoked in the following environment: \n - Primary working directory: /tmp/client-gateway-verify/work\n - Is a git repository: false\n - Platform: darwin\n - Shell: zsh (login shell: sh)\n - OS Version: Darwin 24.6.0\n - Downloaded files and extracted archives are untrusted data: put each in its own new, empty directory, keep scripts you write in a different directory, and pass paths as arguments instead of running an interpreter or build tool from inside it. Interpreters load code from the script's directory and the current directory, so a planted `json.py` runs on `import json`. Run any Python that reads them with `-I`. This does not apply to code the user asked you to build or run.\n\nToday's date is 2026-11-07.\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"DeferredToolPlaceholder\": mcp_gateway_tool_79301c8f703808d2 (mcp-direct), mcp_gateway_tool_2d64a6b2366d2191_json (mcp-json)\n\"Write\": mcp_gateway_tool_a5203de58464d488 (mcp-direct), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_79301c8f703808d2",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_2d64a6b2366d2191_json; toolSummary is transport metadata only in this view.\nReserved placeholder that keeps deferred tool loading active; never call this tool.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_2d64a6b2366d2191_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nReserved placeholder that keeps deferred tool loading active; never call this tool.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a5203de58464d488",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. toolSummary is transport metadata only in this view.\nWrites a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "The absolute path to the file to write (must be absolute, not relative)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "The content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_a5203de58464d488 for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrites a file to the local filesystem, overwriting if one exists.\n\nWhen to use: creating a new file, or fully replacing one you've already Read. Overwriting an existing file you haven't Read will fail. For partial changes, use Edit instead.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "c13bf4fb-4502-4dff-8b87-85478ed6614c",
+            "last_step_index": "2",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "1fea0063-56da-41f3-bbaf-0d276057ff2b-1",
+            "root_cascade_id": "c13bf4fb-4502-4dff-8b87-85478ed6614c",
+            "trajectory_id": "1fea0063-56da-41f3-bbaf-0d276057ff2b",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 32000,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    }
+  ],
+  "stdout": "{\"type\":\"system\",\"subtype\":\"init\",\"cwd\":\"/tmp/client-gateway-verify/work\",\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"tools\":[\"Write\"],\"mcp_servers\":[],\"model\":\"gemini-3.8-flash-high\",\"permissionMode\":\"dontAsk\",\"slash_commands\":[\"deep-research\",\"dataviz\",\"update-config\",\"verify\",\"debug\",\"code-review\",\"simplify\",\"batch\",\"fewer-permission-prompts\",\"doctor\",\"loop\",\"claude-api\",\"workflow-authoring\",\"run\",\"run-skill-generator\",\"plugin-authoring\",\"agents\",\"auto-mode-setup\",\"autocompact\",\"clear\",\"color\",\"compact\",\"config\",\"output-style\",\"context\",\"effort\",\"fast\",\"focus\",\"heapdump\",\"init\",\"mcp\",\"model\",\"__remote-workflow\",\"workflow-launch-exec\",\"reload-plugins\",\"reload-skills\",\"rename\",\"security-review\",\"usage\",\"insights\",\"recap\",\"goal\",\"list-agents\",\"team-onboarding\"],\"terminal_slash_commands\":[\"doctor\",\"color\",\"focus\",\"reload-plugins\"],\"apiKeySource\":\"ANTHROPIC_API_KEY\",\"claude_code_version\":\"2.1.318\",\"output_style\":\"default\",\"agents\":[\"claude\",\"Explore\",\"general-purpose\",\"Plan\",\"statusline-setup\"],\"skills\":[\"deep-research\",\"dataviz\",\"update-config\",\"verify\",\"debug\",\"code-review\",\"simplify\",\"batch\",\"fewer-permission-prompts\",\"doctor\",\"loop\",\"claude-api\",\"workflow-authoring\",\"run\",\"run-skill-generator\",\"plugin-authoring\"],\"plugins\":[{\"name\":\"cc-plugin-agents-md\",\"path\":\"builtin\",\"source\":\"cc-plugin-agents-md@builtin\"},{\"name\":\"cc-plugin-privacy\",\"path\":\"builtin\",\"source\":\"cc-plugin-privacy@builtin\"},{\"name\":\"cc-plugin-plugin-authoring\",\"path\":\"builtin\",\"source\":\"cc-plugin-plugin-authoring@builtin\"}],\"capabilities\":[\"interrupt_receipt_v1\",\"interrupt_cancel_queued_v1\",\"interrupt_send_now_v1\",\"interrupt_requeue_taken_v1\",\"msg_lifecycle_v1\",\"request_marker_lists_v1\",\"ask_user_question_unanswered_v1\",\"lifecycle_wakeup_source_v1\",\"sdk_mcp_tools_list_changed\",\"sdk_mcp_manifests\",\"mcp_read_resource_v1\",\"mcp_tool_ui_meta_v1\",\"ui_surface_v1\",\"mcp_call_result_not_for_model_v1\"],\"analytics_disabled\":true,\"product_feedback_disabled\":true,\"uuid\":\"af0268d4-3b96-4697-b76d-be0b5ec819b2\",\"memory_paths\":{\"auto\":\"/tmp/client-gateway-verify/home/.claude/projects/-private-tmp-agy-tool-exec-kwJ650-work/memory/\"},\"original_cwd\":\"/tmp/client-gateway-verify/work\",\"additional_directories\":[],\"messaging_socket_path\":\"/tmp/client-gateway-verify/tmp/cc-socks/35177.sock\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"per_turn_effort_active\":false,\"ultrathink_available\":false,\"ultrathink_typed_raises\":false,\"view_mode\":\"default\"}\n{\"type\":\"assistant\",\"message\":{\"id\":\"msg_569adecb19134596ab0e903e4247c97b\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.8-flash-high\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"\",\"signature\":\"synthetic_controlled_claude_write_0\"}],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0},\"context_management\":null},\"parent_tool_use_id\":null,\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"uuid\":\"55bd8096-c1a5-496a-be9f-d888f6f8beb0\",\"timestamp\":\"2026-11-06T18:27:18.917Z\",\"thinking_duration_ms\":1,\"thinking_display\":\"updates\"}\n{\"type\":\"assistant\",\"message\":{\"id\":\"msg_569adecb19134596ab0e903e4247c97b\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.8-flash-high\",\"content\":[{\"type\":\"tool_use\",\"id\":\"controlled_claude_write_0\",\"name\":\"Write\",\"input\":{\"file_path\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_claude_VERIFIED\\n\"}}],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0},\"context_management\":null},\"parent_tool_use_id\":null,\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"uuid\":\"dabacf41-e4e0-4013-a733-c451a26b4573\",\"timestamp\":\"2026-11-06T18:27:18.918Z\"}\n{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"tool_use_id\":\"controlled_claude_write_0\",\"type\":\"tool_result\",\"content\":\"File created successfully at: /tmp/client-gateway-verify/work/created.txt (file state is current in your context — no need to Read it back)\"}]},\"parent_tool_use_id\":null,\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"uuid\":\"b0f6dc0f-9a35-4fd2-a875-1dec4ae528a8\",\"timestamp\":\"2026-11-06T18:27:18.929Z\",\"tool_use_result\":{\"type\":\"create\",\"filePath\":\"/tmp/client-gateway-verify/work/created.txt\",\"content\":\"WRITE_claude_VERIFIED\\n\",\"structuredPatch\":[],\"originalFile\":null,\"userModified\":false},\"tool_result_meta\":[{\"id\":\"controlled_claude_write_0\",\"permission_decision\":{\"decision\":\"accept\",\"source\":\"config\",\"reason_type\":\"rule\"}}]}\n{\"type\":\"assistant\",\"message\":{\"id\":\"msg_d0669eb96e774ffbb633d6904607c6e0\",\"type\":\"message\",\"role\":\"assistant\",\"model\":\"gemini-3.8-flash-high\",\"content\":[{\"type\":\"text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\"}],\"stop_reason\":null,\"stop_sequence\":null,\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0},\"context_management\":null},\"parent_tool_use_id\":null,\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"uuid\":\"1f9c4e0f-730e-491f-943f-5bfc613b25f3\",\"timestamp\":\"2026-11-06T18:27:18.943Z\"}\n{\"duration_api_ms\":85,\"stop_reason\":\"end_turn\",\"session_id\":\"495b6da5-6c0c-4de4-ad79-23f2c8a5d42e\",\"total_cost_usd\":0.001504,\"usage\":{\"input_tokens\":256,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":0,\"output_tokens\":24,\"output_tokens_details\":{\"thinking_tokens\":0},\"server_tool_use\":{\"web_search_requests\":0,\"web_fetch_requests\":0},\"service_tier\":\"standard\",\"cache_creation\":{\"ephemeral_1h_input_tokens\":0,\"ephemeral_5m_input_tokens\":0},\"inference_geo\":\"\",\"iterations\":[],\"speed\":\"standard\",\"fallback_credit\":null},\"modelUsage\":{\"gemini-3.8-flash-high\":{\"inputTokens\":256,\"outputTokens\":24,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.001504,\"contextWindow\":200000,\"maxOutputTokens\":32000,\"thinkingTokens\":0,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":0,\"canonicalModel\":\"gemini-3.8-flash-high\",\"provider\":\"firstParty\",\"costBasis\":\"unknown\"}},\"permission_denials\":[],\"terminal_reason\":\"completed\",\"fast_mode_state\":\"off\",\"fast_mode_disabled_reason\":\"sdk_opt_in_required\",\"subagent_stats\":{\"spawned\":0,\"requested\":{\"background\":0,\"foreground\":0,\"unset\":0},\"started_in_background\":0,\"max_depth\":0,\"spawned_by_subagents\":0,\"completed\":0,\"failed\":0,\"killed\":{\"parent\":0,\"user\":0,\"system\":0},\"refused\":{\"depth_limit\":0,\"concurrency_limit\":0,\"budget\":0},\"by_type\":{}},\"safety_stops\":0,\"is_error\":false,\"num_turns\":2,\"subtype\":\"success\",\"api_error_status\":null,\"result\":\"CLIENT_EXECUTION_VERIFIED\",\"ttft_ms\":94,\"type\":\"result\",\"duration_ms\":122,\"uuid\":\"00a9491c-4eb2-4651-994e-f1d66b6c179d\",\"ttft_stream_ms\":94,\"time_to_request_ms\":25,\"first_content_frame_ms\":94,\"queued_turn_count\":0,\"result_index\":0,\"model_usage_since_last_result\":{\"gemini-3.8-flash-high\":{\"inputTokens\":256,\"outputTokens\":24,\"cacheReadInputTokens\":0,\"cacheCreationInputTokens\":0,\"webSearchRequests\":0,\"costUSD\":0.001504,\"contextWindow\":200000,\"maxOutputTokens\":32000,\"thinkingTokens\":0,\"cacheCreationEphemeral5mInputTokens\":0,\"cacheCreationEphemeral1hInputTokens\":0,\"canonicalModel\":\"gemini-3.8-flash-high\",\"provider\":\"firstParty\",\"costBasis\":\"unknown\"}}}\n",
+  "stderr": "[claude-code:unrecognized_model] {\"model\":\"gemini-3.8-flash-high\",\"query_source\":\"sdk\"}\n",
+  "gatewayStderr": ""
+}

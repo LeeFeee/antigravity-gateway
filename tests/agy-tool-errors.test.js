@@ -4,6 +4,7 @@ const {nativeClientToolResponse,NATIVE_ERROR_PREFIX}=require('../src/agy-tool-re
 const {normalizeAnthropic,normalizeChat,normalizeResponses}=require('../src/protocol');
 const {buildDirectRequest,DirectAntigravityProvider}=require('../src/direct-provider');
 const {AgySessionStore}=require('../src/agy-session-state');
+const {declaredParts,fixtureTools}=require('./helpers/declared-tool-fixture');
 const model='gemini-3.8-flash-high',call={id:'read-one',name:'view_file',args:{AbsolutePath:'/owned/missing.txt'}};
 const initial={role:'user',content:'Read the file.'},assistant={role:'assistant',content:[{type:'tool_use',id:call.id,name:call.name,input:call.args}]};
 function normalized(error,content){return normalizeAnthropic({messages:[initial,assistant,{role:'user',content:[{type:'tool_result',tool_use_id:call.id,is_error:error,content}]}]});}
@@ -57,10 +58,10 @@ test('error result keeps attached binary data and issued parallel result orderin
 test('native error history, call signature, answer signature and steps survive actual state-file restarts',async t=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'agy-tool-error-state-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
  const seen=[],replies=[[{functionCall:call,thoughtSignature:'actual-call-signature'}],[{text:'FAILED',thoughtSignature:'actual-answer-signature'}],[{text:'FAILED'}]];
- async function send(n){const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory}),accessToken:'token',projectId:'p',maxRetries:0,localAuth:{isConfigured:()=>false,load:()=>({sourcePath:'managed-account:one'})},fetchImpl:async(_url,o)=>{seen.push(JSON.parse(o.body));return new Response(JSON.stringify({candidates:[{content:{parts:replies.shift()}}]}),{headers:{'content-type':'application/json'}});}});return provider.send(n,model,{sessionId:'same'});}
+ async function send(n){const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory}),accessToken:'token',projectId:'p',maxRetries:0,localAuth:{isConfigured:()=>false,load:()=>({sourcePath:'managed-account:one'})},fetchImpl:async(_url,o)=>{seen.push(JSON.parse(o.body));return new Response(JSON.stringify({candidates:[{content:{parts:declaredParts(seen.at(-1),replies.shift())}}]}),{headers:{'content-type':'application/json'}});}});return provider.send({...n,tools:fixtureTools('view_file')},model,{sessionId:'same'});}
  await send(normalizeAnthropic({messages:[initial]}));const n=normalized(true,'false');await send(n);
  n.messages.push({role:'assistant',text:'FAILED'},{role:'user',text:'Recall.'});await send(n);
  assert.deepEqual(seen.map(b=>Number(b.requestId.split('/').at(-1))),[1,3,5]);
- assert.deepEqual(seen[2].request.contents[2],seen[1].request.contents[2]);assert.equal(seen[2].request.contents[2].parts[0].functionResponse.response.output,NATIVE_ERROR_PREFIX+'false');
+ assert.deepEqual(seen[2].request.contents[2],seen[1].request.contents[2]);assert.equal(seen[2].request.contents[2].parts[0].functionResponse.response.error,'false');
  assert.equal(seen[2].request.contents[1].parts[0].thoughtSignature,'actual-call-signature');assert.equal(seen[2].request.contents[3].parts[0].thoughtSignature,'actual-answer-signature');
 });

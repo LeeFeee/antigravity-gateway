@@ -11,9 +11,8 @@ const {
   createServer, createAnthropicTextEmitter, createChatTextEmitter, createResponsesTextEmitter,
   emitAnthropicStream, emitChatStream, emitResponsesStream
 } = require('../antigravity-gateway');
+const { AccountPool } = require('../src/account-pool');
 const { AccountStore } = require('../src/account-store');
-const { RobinAccountPool } = require('../src/robin-account-pool');
-const { ARGON_MODEL } = require('../src/robin-provider');
 
 const unknown = { text: 'done', toolCalls: [], usage: null, usageKnown: false };
 const known = { text: 'done', toolCalls: [], usage: { input_tokens: 9, output_tokens: 3, total_tokens: 12 } };
@@ -27,12 +26,12 @@ function harness() {
 }
 
 test('unknown usage is explicit without fictitious measured zeros in either OpenAI protocol', () => {
-  const a = anthropicResponse(ARGON_MODEL, unknown);
+  const a = anthropicResponse('gemini-3.8-flash-high', unknown);
   assert.equal(a.usage_known, false);
   assert.equal(a.usage.input_tokens, 0); assert.equal(a.usage.output_tokens, 0);
-  const c = chatResponse(ARGON_MODEL, unknown);
+  const c = chatResponse('gemini-3.8-flash-high', unknown);
   assert.equal(c.usage_known, false); assert.equal(Object.hasOwn(c, 'usage'), false);
-  const r = responsesResponse(ARGON_MODEL, unknown, 'resp_1');
+  const r = responsesResponse('gemini-3.8-flash-high', unknown, 'resp_1');
   assert.equal(r.usage_known, false); assert.equal(r.usage, null);
 });
 
@@ -79,16 +78,16 @@ test('buffered and live Anthropic/Responses streaming preserve the unavailable-u
 });
 
 test('actual gateway handlers propagate unknown usage for JSON, live SSE and buffered tool SSE', async t => {
-  t.mock.method(RobinAccountPool.prototype, 'listModels', async () => [ARGON_MODEL]);
-  t.mock.method(RobinAccountPool.prototype, 'send', async (_normalized, _model, options) => {
+  t.mock.method(AccountPool.prototype, 'listModels', async () => ['gemini-3.8-flash-high']);
+  t.mock.method(AccountPool.prototype, 'send', async (_normalized, _model, options) => {
     options.onDelta?.('do'); return unknown;
   });
   const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
-  for (const protocol of ['messages', 'chat/completions', 'responses']) for (const variant of ['json', 'live', 'buffered']) {
+  for (const protocol of ['messages', 'responses']) for (const variant of ['json', 'live', 'buffered']) {
     const stream = variant !== 'json';
-    const payload = { model: ARGON_MODEL, stream,
+    const payload = { model: 'gemini-3.8-flash-high', stream,
       ...(protocol === 'responses' ? { input: 'hello' } : { messages: [{ role: 'user', content: 'hello' }] }),
       ...(protocol === 'chat/completions' ? { stream_options: { include_usage: true } } : {}) };
     if (variant === 'buffered') payload.tools = protocol === 'messages'
@@ -114,17 +113,16 @@ test('actual gateway handlers propagate unknown usage for JSON, live SSE and buf
 });
 
 test('unknown native usage still counts successful upstream calls without recording a token measurement', async t => {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'robin-unknown-usage-'));
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'api-unknown-usage-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  const store = new AccountStore({ configDir: directory, directoryName: 'robin-accounts' });
-  store.save({ id: 'r', accessToken: 'test', providerType: 'robin', accountType: 'gemini-app', capabilities: [ARGON_MODEL] });
+  const store = new AccountStore({ configDir: directory });
+  store.save({ id: 'r', accessToken: 'test', providerType: 'cloudcode', accountType: 'antigravity', capabilities: ['gemini-3.8-flash-high'] });
   const measurements = [];
-  const pool = new RobinAccountPool({ store, providerFactory: () => ({ send: async () => unknown }),
+  const pool = new AccountPool({ store, providerFactory: () => ({ send: async () => unknown }),
     usageStore: { recordUpstream: record => measurements.push(record) } });
   t.after(() => pool.stop());
-  await pool.send({ messages: [], tools: [] }, ARGON_MODEL, { sessionId: 'unknown' });
-  assert.equal(measurements.length, 1);
-  assert.equal(measurements[0].count, true);
-  assert.equal(measurements[0].success, true);
-  assert.equal(Object.hasOwn(measurements[0], 'usage'), false);
+  await pool.send({ messages: [], tools: [] }, 'gemini-3.8-flash-high', { sessionId: 'unknown' });
+  assert.equal(measurements.filter(record => record.count).length, 1);
+  assert.ok(measurements.every(record => record.success));
+  assert.ok(measurements.every(record => record.usage == null), 'unknown usage never becomes a measured token value');
 });

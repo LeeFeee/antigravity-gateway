@@ -6,15 +6,13 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { AccountStore } = require('../src/account-store');
-const { GeminiAccountStore } = require('../src/gemini-account-store');
 const { AccountPool } = require('../src/account-pool');
-const { RobinAccountPool } = require('../src/robin-account-pool');
 const { QuotaManager } = require('../src/quota-manager');
 const { geminiQuotaProtection, LOW_QUOTA_REFRESH_MS, QUOTA_RETRY_MS } = require('../src/account-scheduling');
 
 const NOW = Date.parse('2026-11-04T00:00:00Z'), MINUTE = 60_000;
-const GEMINI = 'gemini-4-argon', CLAUDE = 'claude-sonnet-5-5-high';
-const CHANNELS = ['cloudcode', 'oauth', 'windows'];
+const GEMINI = 'gemini-3.8-flash-high', CLAUDE = 'claude-sonnet-5-5-high';
+const CHANNELS = ['api'];
 const input = { messages: [], tools: [] };
 function quota(five = 0.5, weekly = 0.5) {
   return { groups: [{ id: 'gemini', groupId: 'gemini', buckets: [
@@ -25,8 +23,7 @@ function quota(five = 0.5, weekly = 0.5) {
 
 function fixture(t, channel, balances = [0.5, 0.5]) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'agw-quota-protection-'));
-  const cloud = channel === 'cloudcode';
-  const store = cloud ? new AccountStore({ configDir: dir }) : new GeminiAccountStore({ configDir: dir });
+  const store = new AccountStore({ configDir: dir });
   const responses = new Map(), calls = [], quotaCalls = [];
   let time = NOW;
   const factory = account => ({
@@ -52,28 +49,25 @@ function fixture(t, channel, balances = [0.5, 0.5]) {
     const id = `a${index}`;
     responses.set(id, quota(balance));
     store.save({ id, email: `${id}@example.com`, subjectId: id, accessToken: 'test-token', projectId: 'test',
-      providerType: cloud ? 'cloudcode' : 'robin', accountType: cloud ? 'antigravity' : 'gemini-app',
+      providerType: 'cloudcode', accountType: 'antigravity',
       capabilities: [GEMINI, CLAUDE, 'gemini-3.1-flash-image'],
-      authMethod: channel === 'windows' ? 'gemini-windows-session' : 'oauth',
-      providerMetadata: channel === 'windows' ? { geminiWindows: { cookies: [{ name: 'SID', value: 'test', domain: '.google.com' }] } } : {}
+      authMethod: 'oauth'
     });
   });
   let pool, manager;
   const create = () => {
-    if (cloud) {
-      pool = new AccountPool({ store, now: () => time, providerFactory: factory });
-      manager = new QuotaManager({ configDir: dir, accountPool: pool, now: () => time });
-      pool.quotaManager = manager;
-    } else pool = new RobinAccountPool({ store, now: () => time, providerFactory: factory });
+    pool = new AccountPool({ store, now: () => time, providerFactory: factory });
+    manager = new QuotaManager({ configDir: dir, accountPool: pool, now: () => time });
+    pool.quotaManager = manager;
   };
   create();
   t.after(() => { manager?.stop(); pool.stop(); fs.rmSync(dir, { recursive: true, force: true }); });
   return {
     get pool() { return pool; }, get manager() { return manager; }, store, responses, calls, quotaCalls,
     advance: ms => { time += ms; },
-    refresh: id => cloud ? manager.refreshAccount(id) : pool.refreshQuota(id, { refreshFresh: true }),
-    fastRefresh: () => cloud ? manager.refreshLowQuotas() : pool.refreshLowQuotas(),
-    bind: (key, id) => cloud ? pool.bindSession(key, id) : pool.bind(key, id),
+    refresh: id => manager.refreshAccount(id),
+    fastRefresh: () => manager.refreshLowQuotas(),
+    bind: (key, id) => pool.bindSession(key, id),
     restart: () => { manager?.stop(); pool.stop(); create(); },
     status: id => pool.status().find(account => account.id === id)
   };
@@ -143,22 +137,12 @@ for (const channel of CHANNELS) {
     const f = fixture(t, channel, [0.5]);
     f.responses.set('a0', quota(0.5, 0.04)); await f.refresh('a0');
     const legacy = { remainingFraction: 0.5, protected: false, fastRefresh: false, resetTime: '', observedAt: '' };
-    if (channel === 'cloudcode') {
-      f.manager.snapshots.a0.geminiQuotaProtection = legacy; f.manager.save();
-    } else {
-      const a = f.store.list()[0], key = channel === 'oauth' ? 'robinQuotaProtection' : 'geminiWindowsQuotaProtection';
-      f.store.update(a.id, { providerMetadata: { ...a.providerMetadata, [key]: legacy } });
-    }
+    f.manager.snapshots.a0.geminiQuotaProtection = legacy; f.manager.save();
     f.restart(); assert.equal(f.status('a0').state, 'quota_protected');
     // New persisted protection wins over stale legacy summary data on restart.
     const state = f.status('a0').quotaProtection;
-    if (channel === 'cloudcode') {
-      f.manager.snapshots.a0.groups = quota(0.5, 0.8).groups;
-      f.manager.snapshots.a0.geminiQuotaProtection = state; f.manager.save();
-    } else {
-      const a = f.store.list()[0], key = channel === 'oauth' ? 'robinQuota' : 'geminiWindowsQuota';
-      f.store.update(a.id, { providerMetadata: { ...a.providerMetadata, [key]: quota(0.5, 0.8), [`${key}Protection`]: state } });
-    }
+    f.manager.snapshots.a0.groups = quota(0.5, 0.8).groups;
+    f.manager.snapshots.a0.geminiQuotaProtection = state; f.manager.save();
     f.restart(); assert.equal(f.status('a0').state, 'quota_protected');
   });
 }
@@ -218,8 +202,7 @@ for (const channel of CHANNELS) {
     await f.refresh('a0'); await f.refresh('a1');
     f.store.update('a0', { enabled: false }); f.pool.reload();
     const entry = f.pool.entries.get('a1');
-    if (channel === 'cloudcode') f.pool.markAccountIssue(entry, { status: 401, message: 'invalid_grant' });
-    else f.pool.saveHealth(entry, 'account', 'authentication_error', 'reauthorize', Infinity);
+    f.pool.markAccountIssue(entry, { status: 401, message: 'invalid_grant' });
     f.advance(MINUTE); await f.fastRefresh();
     assert.equal(f.quotaCalls.length, 2);
     assert.equal(f.status('a0').state, 'disabled');
@@ -227,8 +210,8 @@ for (const channel of CHANNELS) {
   });
 }
 
-test('Cloud Code sticky hot path reads only the protection flag, never snapshots, network or ranking', async t => {
-  const f = fixture(t, 'cloudcode', [0.5]);
+test('Google Antigravity API sticky hot path reads only the protection flag, never snapshots, network or ranking', async t => {
+  const f = fixture(t, 'api', [0.5]);
   await f.refresh('a0'); f.bind('family', 'a0');
   f.manager.get = f.manager.getSchedulingSnapshot = () => { throw new Error('unexpected quota read'); };
   f.pool.quotaRanks = () => { throw new Error('unexpected sorting'); };
@@ -236,19 +219,20 @@ test('Cloud Code sticky hot path reads only the protection flag, never snapshots
   assert.equal(f.quotaCalls.length, 1);
 });
 
-test('Cloud Code preferred image and local-session fallback cannot bypass the reserve', async t => {
-  const f = fixture(t, 'cloudcode', [0.08]); await f.refresh('a0');
+test('preferred image cannot bypass the reserve and an empty pool does not become a local session', async t => {
+  const f = fixture(t, 'api', [0.08]); await f.refresh('a0');
   // Image generation has a distinct preferred-account route but shares the gate.
   await assert.rejects(f.pool.generateImage({}, { accountId: 'a0' }), { code: 'account_quota_protected' });
   assert.equal(f.calls.length, 0);
   f.pool.entries.clear();
   f.manager.protections.set('local-agy-session', geminiQuotaProtection(quota(0.08)));
-  await assert.rejects(f.pool.send(input, GEMINI), { code: 'account_quota_protected' });
-  await assert.rejects(f.pool.generateImage({}), { code: 'account_quota_protected' });
+  assert.deepEqual(f.manager.activeEntries(), []);
+  await assert.rejects(f.pool.send(input, GEMINI), { code: 'account_pool_unavailable' });
+  await assert.rejects(f.pool.generateImage({}), { code: 'account_pool_unavailable' });
 });
 
-test('Cloud Code preferred image account switches to a healthy alternate without rebinding its parent', async t => {
-  const f = fixture(t, 'cloudcode', [0.08, 0.5]);
+test('Google Antigravity API preferred image account switches to a healthy alternate without rebinding its parent', async t => {
+  const f = fixture(t, 'api', [0.08, 0.5]);
   await f.refresh('a0'); await f.refresh('a1'); f.bind('parent', 'a0');
   const result = await f.pool.generateImage({}, { accountId: 'a0', routingKey: 'parent', bindRouting: false });
   assert.equal(result.accountId, 'a1'); assert.deepEqual(f.calls, [{ id: 'a1', model: 'image' }]);
@@ -256,38 +240,17 @@ test('Cloud Code preferred image account switches to a healthy alternate without
   assert.notEqual(f.pool.selectAccount(GEMINI, 'parent', new Set()).account.id, 'a0');
 });
 
-for (const channel of ['oauth', 'windows']) test(`${channel}: invalidating telemetry during reauthorization cannot clear the reserve`, async t => {
-  const f = fixture(t, channel, [0.08]); await f.refresh('a0');
-  const account = f.store.list()[0], metadata = { ...account.providerMetadata };
-  delete metadata.robinQuota; delete metadata.geminiWindowsQuota;
-  f.store.update('a0', { providerMetadata: metadata }); f.restart();
-  assert.equal(f.status('a0').state, 'quota_protected');
-  assert.equal(f.pool.selectAccount(GEMINI, '', new Set()), null);
-});
-
-for (const channel of ['oauth', 'windows']) test(`${channel}: a protected pending tool task is held, never replayed on another account`, async t => {
-  const f = fixture(t, channel, [0.08, 0.5]);
-  await f.refresh('a0'); await f.refresh('a1');
-  const key = JSON.stringify(['client', 'task']);
-  f.pool.activeTasks.set(key, 'a0'); f.bind('family', 'a0');
-  const options = { clientId: 'client', sessionId: 'task', routingKey: 'family' };
-  await assert.rejects(f.pool.send(input, GEMINI, options), { code: 'account_quota_protected' });
-  assert.equal(f.calls.length, 0); assert.equal(f.pool.activeTasks.get(key), 'a0');
-  f.advance(MINUTE); f.responses.set('a0', quota(0.5)); await f.refresh('a0');
-  assert.equal((await f.pool.send(input, GEMINI, options)).text, 'a0');
-});
-
-test('fast-refresh timers are registered and removed on stop in both quota managers', async t => {
+test('fast-refresh timers are registered and removed on stop in the API quota manager', async t => {
   const timers = [], cleared = [];
   t.mock.method(global, 'setInterval', (callback, ms) => { const timer = { callback, ms, unref() {} }; timers.push(timer); return timer; });
   t.mock.method(global, 'clearInterval', timer => cleared.push(timer));
-  for (const channel of ['cloudcode', 'oauth']) {
+  for (const channel of CHANNELS) {
     const f = fixture(t, channel, [0.08]); await f.refresh('a0');
     const scheduler = f.manager || f.pool;
     scheduler.start();
     assert.equal(scheduler.lowQuotaTimer.ms, MINUTE);
     scheduler.stop(); assert.equal(scheduler.lowQuotaTimer, null);
   }
-  assert.equal(timers.filter(timer => timer.ms === MINUTE).length, 2);
-  assert.equal(cleared.length, 4);
+  assert.equal(timers.filter(timer => timer.ms === MINUTE).length, 1);
+  assert.equal(cleared.length, 2);
 });

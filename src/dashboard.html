@@ -227,7 +227,7 @@
   const accountHourly=(at)=>account==='all'?DATA.usage.history.find((x)=>x.at===at)||ZERO:DATA.usage.hourlyByAccount?.[at]?.[account]||ZERO;
   const selectedTotals=()=>history().reduce((sum,row)=>add(sum,accountHourly(row.at)),{...ZERO});
   const lifetimeTotals=()=>account==='all'?DATA.usage.lifetime:DATA.usage.byAccount?.[account]||ZERO;
-  const accountTokensKnown=(a)=>typeof a?.tokenUsageKnown==='boolean'?a.tokenUsageKnown:a?.providerType!=='robin';
+  const accountTokensKnown=(a)=>typeof a?.tokenUsageKnown==='boolean'?a.tokenUsageKnown:true;
   const meteredAccounts=()=>(DATA.accounts||[]).filter(accountTokensKnown);
   const hasUnmeteredAccounts=()=>(DATA.accounts||[]).some((a)=>!accountTokensKnown(a));
   const tokenScopeKnown=()=>account==='all'?(!hasUnmeteredAccounts()||meteredAccounts().length>0):accountTokensKnown((DATA.accounts||[]).find((a)=>a.id===account));
@@ -255,17 +255,15 @@
     if(!rows.length){$('accounts').innerHTML='<div class="empty">账号池中暂无可展示账号</div>';return}
     const accountCard=(a)=>{
       const u=DATA.usage.byAccount?.[a.id]||ZERO,q=a.quota||{},state=!a.enabled?'disabled':a.state||'available',cls=state==='available'?'ok':['cooldown','quota_protected'].includes(state)?'warn':'bad',visibleGroups=quotaOverview?(q.groups||[]).filter(isGeminiGroup):(q.groups||[]);
-      const robin=a.providerType==='robin';
       const renderBuckets=(buckets)=>(buckets||[]).map((bucket)=>{const remaining=bucket.remainingFraction==null?NaN:Number(bucket.remainingFraction),known=Number.isFinite(remaining),quotaText=known?quotaPercent(remaining):'暂无快照';return '<div class="quota-bucket"><div class="quota-bucket-name">'+esc(bucketName(bucket))+'</div><div class="quota '+(known?(q.stale?'stale':''):'missing')+'"><i style="width:'+(known?Math.max(0,Math.min(100,remaining*100)):0)+'%"></i></div><div class="quota-number">'+quotaText+'</div><div class="quota-meta">'+esc(resetText(bucket,q.stale))+'</div></div>'}).join('');
-      const robinBuckets=(q.groups||[]).flatMap((group)=>group.buckets||[]);
-      const groups=robin?'<div class="quota-group"><div class="quota-group-head"><b>Gemini App</b><small>'+esc(a.planName||'订阅信息待同步')+'</small></div><div class="quota-meta">Argon '+(state==='available'?((a.models||[]).includes('gemini-4-argon')?'可用':'未确认'):'不可用')+'</div>'+(robinBuckets.length?renderBuckets(robinBuckets):'<div class="quota missing"><i></i></div><div class="quota-meta">Robin 暂未返回可展示的额度明细</div>')+'</div>':visibleGroups.map((group)=>'<div class="quota-group"><div class="quota-group-head"><b>'+esc(groupName(group))+'</b><small>'+esc(group.description||'')+'</small></div>'+renderBuckets(group.buckets)+'</div>').join('')||'<div class="quota-meta">'+(quotaOverview?'暂无 Gemini 模型组额度快照':'暂无 /usage 额度快照')+'</div>';
+      const groups=visibleGroups.map((group)=>'<div class="quota-group"><div class="quota-group-head"><b>'+esc(groupName(group))+'</b><small>'+esc(group.description||'')+'</small></div>'+renderBuckets(group.buckets)+'</div>').join('')||'<div class="quota-meta">'+(quotaOverview?'暂无 Gemini 模型组额度快照':'暂无 /usage 额度快照')+'</div>';
       const unhealthy=['verification_required','authentication_error','access_denied','unavailable'].includes(state);
       const deleteAction='<button class="account-action danger" type="button" data-account-action="delete" data-account-id="'+esc(a.id)+'" data-account-provider="'+esc(a.providerType||'cloudcode')+'" data-account-label="'+esc(a.email||a.id)+'">删除账号</button>';
       const health=unhealthy?'<div class="account-health"><div class="account-alert">'+esc(a.healthMessage||accountStateText(state))+(a.healthSince?'<time>发现时间：'+esc(new Date(a.healthSince).toLocaleString('zh-CN'))+'</time>':'')+'</div><div class="account-actions"><button class="account-action" type="button" data-account-action="recheck" data-account-id="'+esc(a.id)+'" data-account-provider="'+esc(a.providerType||'cloudcode')+'">重新检测</button></div></div>':'';
       return '<div class="account-row"><div class="account-head"><div class="account-main"><b>'+esc(a.email||a.id)+'</b><small>'+(accountTokensKnown(a)?num(u.totalTokens)+' Token':'Token 未提供')+' · '+num(u.upstreamCalls)+' 次上游</small></div><div class="account-head-side"><div class="status"><i class="dot '+cls+'"></i>'+esc(accountStateText(state))+'</div>'+deleteAction+'</div></div>'+health+'<div class="quota-groups">'+groups+'</div></div>'
     };
     const providerGroup=(type,label)=>{const accounts=rows.filter((a)=>(a.providerType||'cloudcode')===type);return accounts.length?'<section class="provider-group"><div class="provider-group-title">'+label+'</div>'+accounts.map(accountCard).join('')+'</section>':''};
-    $('accounts').innerHTML=providerGroup('cloudcode','Antigravity')+providerGroup('robin','Gemini')
+    $('accounts').innerHTML=providerGroup('cloudcode','Google Antigravity API')
   }
   function heatDays(weeks=6){
     const known=tokenScopeKnown(),totals=new Map();

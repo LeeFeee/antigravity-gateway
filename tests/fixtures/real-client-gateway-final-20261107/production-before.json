@@ -1,0 +1,16 @@
+{
+  "startedAt": "2026-11-06T18:41:35.126Z",
+  "accounts": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "d8842152b0ad8abf366d30453f8bae60694ace0b1e5cd2cb919b81176ff00bbb"
+  },
+  "states": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "1d61b00fff471705593117a189390777996bd35d93b0190996c04f341c10f776"
+  },
+  "runtime": {
+    "sha256": "919d115ca217e164764e10e65b115efc33bca862e8c2d29d168c42d17b9f40c3",
+    "files": 53
+  }
+}

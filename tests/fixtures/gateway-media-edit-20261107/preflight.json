@@ -1,0 +1,67 @@
+{
+  "recordedAt": "2026-11-06T18:14:47.951Z",
+  "source": {
+    "sha256": "f5352b06bf541043bb384e69efb76b1d831e6d47ec772faa45e6c3d5a69e5e57",
+    "files": 53,
+    "verifierSha256": "d67ce38667e5b59de97c606e11f51b31212dac7587a8b6c46133da3cfddb4b16"
+  },
+  "models": [
+    "gemini-3.1-flash-image"
+  ],
+  "scenarios": [
+    "image-edit"
+  ],
+  "inputs": {
+    "image": {
+      "filename": "image-fixture.png",
+      "mimeType": "image/png",
+      "bytes": 186,
+      "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7",
+      "streams": [
+        {
+          "codec_name": "png",
+          "codec_type": "video",
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "video": {
+      "filename": "video-fixture.mp4",
+      "mimeType": "video/mp4",
+      "bytes": 8999,
+      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 128,
+          "height": 96
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "16000",
+          "channels": 1
+        }
+      ],
+      "duration": "2.000000"
+    }
+  },
+  "editReference": {
+    "file": "image-generation.jpg",
+    "mimeType": "image/jpeg",
+    "bytes": 205204,
+    "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f",
+    "codec_name": "mjpeg",
+    "width": 1024,
+    "height": 1024,
+    "centerRGB": [
+      208,
+      19,
+      50
+    ]
+  },
+  "accountDataRead": false,
+  "realRequestsSent": false
+}

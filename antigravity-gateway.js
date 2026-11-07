@@ -7,55 +7,45 @@ const http = require('node:http');
 const os = require('node:os');
 const path = require('node:path');
 
-const { AgyError, AgyWorker, getVersion, listModels, resolveAgyCommand } = require('./src/agy-worker');
+const { resolveAgyCommand } = require('./src/agy-installation');
+const { AGY_CLI_VERSION } = require('./src/agy-request-profile');
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
 const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DiagnosticLog } = require('./src/diagnostic-log');
-const { DirectAntigravityProvider, DirectProviderError } = require('./src/direct-provider');
+const { DirectProviderError } = require('./src/direct-provider');
 const { closeNativeTransport } = require('./src/agy-native-transport');
 const { imageReferencePaths } = require('./src/agy-image-references');
 const { nativeImageToolResponse } = require('./src/agy-tool-results');
 const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowser } = require('./src/dashboard');
-const { LocalAccountImporter } = require('./src/local-account-importer');
-const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension } = require('./src/multimedia');
+const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension, localMediaOptions, safeRasterImage } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { DashboardAccountAuth, handleDashboardAccountAuth } = require('./src/dashboard-account-auth');
-const { ProviderRouter, ProviderRouterError } = require('./src/provider-router');
 const { QuotaManager } = require('./src/quota-manager');
-const { RobinAccountPool } = require('./src/robin-account-pool');
-const { RobinOAuthFlow } = require('./src/robin-oauth-flow');
-const { GeminiWindowsLogin } = require('./src/gemini-windows-login');
-const { GeminiAccountStore } = require('./src/gemini-account-store');
-const { ARGON_MODEL, RobinProviderError } = require('./src/robin-provider');
 const { acquireDirectoryGuard } = require('./src/agy-file-lease');
 const { manageService } = require('./src/service-manager');
 const { TerminalConsole } = require('./src/terminal-console');
 const { UsageStore } = require('./src/usage-store');
-const { SessionManager, SessionIdentityError, credentialScope } = require('./src/session-manager');
+const { SessionManager, credentialScope } = require('./src/session-manager');
+const { resolveModelConfiguration } = require('./src/antigravity-model-config');
+const { isConversionError } = require('./src/conversion-errors');
+const { withAsyncSchemaBoundary } = require('./src/schema-contract');
+const { ServerSearchReceipts } = require('./src/server-search-contract');
+const { prepareServerSearchForwardAsync, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
   anthropicResponse,
-  buildPrompt,
-  chatResponse,
-  finalizeModelResult,
-  normalizeAnthropic,
-  normalizeChat,
-  normalizeResponses,
+  finalizeModelResultAsync,
+  normalizeAnthropicAsync,
+  normalizeResponsesAsync,
   NATIVE_IMAGE_TOOL_NAME,
   prepareNativeMultimodal,
-  responsesResponse
+  responsesResponse,
+  upstreamTermination
 } = require('./src/protocol');
 
-const RUNTIME_USER = typeof process.getuid === 'function'
-  ? String(process.getuid())
-  : os.userInfo().username.replace(/[^A-Za-z0-9._-]/g, '_');
-const RUNTIME = path.resolve(
-  process.env.ANTIGRAVITY_GATEWAY_RUNTIME_DIR
-    || path.join(os.tmpdir(), `antigravity-gateway-${RUNTIME_USER}`)
-);
 const CONFIG_DIR = path.resolve(
   process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR
     || path.join(os.homedir(), '.antigravity-gateway')
@@ -89,18 +79,12 @@ const CLI_ARGS = parseArgs(process.argv.slice(2));
 const HOST = CLI_ARGS.host || process.env.ANTIGRAVITY_GATEWAY_HOST || '127.0.0.1';
 const PORT = Number(CLI_ARGS.port || process.env.ANTIGRAVITY_GATEWAY_PORT || 9897);
 const AGY_PATH = resolveAgyCommand(CLI_ARGS.agyPath || process.env.ANTIGRAVITY_CLI_PATH);
-const AGY_PREFIX_ARGS = (() => {
-  try {
-    const value = JSON.parse(process.env.ANTIGRAVITY_CLI_PREFIX_ARGS || '[]');
-    return Array.isArray(value) && value.every((item) => typeof item === 'string') ? value : [];
-  } catch { return []; }
-})();
 const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-3.8-flash-high';
 const FAST_MODEL = String(process.env.ANTIGRAVITY_FAST_MODEL || '').trim();
 const API_KEY = process.env.ANTIGRAVITY_GATEWAY_API_KEY || '';
 // These are transport/memory guards measured in bytes, not model context
 // windows measured in tokens. Keep them comfortably above Gemini 3.8 Flash's
-// 1,048,576-token input window and let Cloud Code perform the authoritative
+// 1,048,576-token input window and let Google Antigravity API perform the authoritative
 // token accounting.
 const REQUEST_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_BODY_LIMIT || 64 * 1024 * 1024);
 const REQUEST_TIMEOUT = Number(process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS || 300000);
@@ -109,8 +93,7 @@ const PROMPT_BYTE_LIMIT = Number(
   || process.env.ANTIGRAVITY_GATEWAY_CONTEXT_LIMIT
   || 64 * 1024 * 1024
 );
-const TRANSPORT = String(process.env.ANTIGRAVITY_GATEWAY_TRANSPORT || 'direct').trim().toLowerCase();
-const DEFAULT_MAX_CONCURRENCY = TRANSPORT === 'agy' ? 4 : 12;
+const DEFAULT_MAX_CONCURRENCY = 12;
 const MAX_CONCURRENCY = Math.max(1, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY || DEFAULT_MAX_CONCURRENCY));
 const MAX_QUEUE = Math.max(0, Number(process.env.ANTIGRAVITY_GATEWAY_MAX_QUEUE || 32));
 const MODEL_CACHE_MS = 60000;
@@ -121,16 +104,10 @@ let diagnosticsEnabled = false;
 const diagnosticReporter = (event, fields) => {
   if (diagnosticsEnabled) DIAGNOSTIC_LOG.write(event, fields);
 };
-const DIRECT_PROVIDER = new DirectAntigravityProvider({ diagnosticReporter });
-DIRECT_PROVIDER.localAuth.agyPath = AGY_PATH;
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
-const GEMINI_ACCOUNT_STORE = new GeminiAccountStore({ configDir: CONFIG_DIR });
-const ROBIN_ACCOUNT_STORE = GEMINI_ACCOUNT_STORE.oauth;
-const WINDOWS_ACCOUNT_STORE = GEMINI_ACCOUNT_STORE.windows;
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
   store: ACCOUNT_STORE,
-  fallbackProvider: DIRECT_PROVIDER,
   usageStore: USAGE_STORE,
   agyPath: AGY_PATH,
   diagnosticReporter
@@ -140,26 +117,20 @@ ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
 const DASHBOARD_ACCOUNT_AUTH = new DashboardAccountAuth({
   flow: OAUTH_FLOW, store: ACCOUNT_STORE, pool: ACCOUNT_POOL, quotaManager: QUOTA_MANAGER,
-  onAdded: () => { modelCache.at = 0; cloudcodeModelCache.at = 0; }
+  onAdded: () => { modelCache.at = 0; upstreamModelCache.at = 0; }
 });
-const ROBIN_ACCOUNT_POOL = new RobinAccountPool({
-  store: GEMINI_ACCOUNT_STORE,
-  diagnosticReporter,
-  usageStore: USAGE_STORE
-});
-const ROBIN_OAUTH_FLOW = new RobinOAuthFlow();
-const WINDOWS_LOGIN = new GeminiWindowsLogin();
-const PROVIDER_ROUTER = new ProviderRouter({
-  cloudcodePool: ACCOUNT_POOL,
-  robinPool: ROBIN_ACCOUNT_POOL
-});
-const LOCAL_ACCOUNT_IMPORTER = new LocalAccountImporter({
-  provider: DIRECT_PROVIDER,
-  store: ACCOUNT_STORE,
-  accountPool: ACCOUNT_POOL
-});
-const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media') });
+const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media'), ...localMediaOptions({ configDir: CONFIG_DIR }) });
 const SESSION_MANAGER = new SessionManager();
+// Only search results/history need this persistent key. Reading configuration,
+// displaying models or handling ordinary inference must not create it.
+let serverSearchReceipts;
+function searchReceipts() {
+  return serverSearchReceipts ||= new ServerSearchReceipts({ directory: path.join(CONFIG_DIR, 'state', 'server-search') });
+}
+const SEARCH_RECEIPTS = {
+  issueResult: value => searchReceipts().issueResult(value),
+  restoreResult: value => searchReceipts().restoreResult(value)
+};
 let TERMINAL = null;
 let diagnosticHeartbeat = null;
 
@@ -194,10 +165,8 @@ const DASHBOARD_ACCESS = createDashboardAccessPolicy(
   { warn: (message) => gatewayWarn(`[Antigravity Gateway Warning] ${message}`) }
 );
 
-const activeWorkers = new Set();
 let modelCache = { at: 0, models: [], error: null };
-let cloudcodeModelCache = { at: 0, models: [] };
-let versionCache = null;
+let upstreamModelCache = { at: 0, models: [] };
 
 class Semaphore {
   constructor(limit, maxQueue) {
@@ -268,37 +237,15 @@ function configuredAliases() {
   }
 }
 
-function usesDirectTransport() {
-  if (TRANSPORT === 'direct') return true;
-  if (TRANSPORT === 'agy') return false;
-  return DIRECT_PROVIDER.isConfigured();
-}
-
 function directAuthDescription() {
-  if (ACCOUNT_POOL.hasManagedAccounts()) return `gateway account pool（${ACCOUNT_POOL.status().length} 个本地账号）`;
-  const secureStore = process.platform === 'darwin'
-    ? 'macOS Keychain / '
-    : process.platform === 'linux'
-      ? 'Linux Secret Service / '
-      : process.platform === 'win32'
-        ? 'Windows Credential Manager / '
-        : '';
-  if (DIRECT_PROVIDER.localAuth?.isConfigured?.()) return `${secureStore}local agy session（只读；刷新结果仅保存在内存）`;
-  if (DIRECT_PROVIDER.isConfigured()) return 'explicit OAuth env/auth file (manual fallback)';
-  return 'unavailable';
+  return `gateway account pool（${ACCOUNT_POOL.status().length} 个账号；仅看板 OAuth 添加）`;
 }
 
 async function availableModels(force = false) {
-  if (force) cloudcodeModelCache.at = 0;
+  if (force) upstreamModelCache.at = 0;
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
-    // The subprocess is only a Cloud Code transport. Its absence/failure must
-    // not skip Robin, nor may a Robin catalog failure hide working agy models.
-    // Both modes use the same independent discovery and per-provider cache.
-    const models = await PROVIDER_ROUTER.refreshModels(undefined, usesDirectTransport() ? {} : {
-      cloudcodeDiscovery: () => listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS })
-    });
-    if (!models.length) throw new GatewayError('`agy models` 没有返回可识别的模型 ID。', { code: 'empty_model_catalog', status: 503 });
+    const models = ACCOUNT_POOL.hasManagedAccounts() ? await ACCOUNT_POOL.listModels(undefined, { force }) : [];
     modelCache = { at: Date.now(), models, error: null };
   } catch (error) {
     modelCache = { at: Date.now(), models: modelCache.models, error };
@@ -307,14 +254,12 @@ async function availableModels(force = false) {
   return modelCache.models;
 }
 
-async function availableCloudCodeModels() {
-  if (Date.now() - cloudcodeModelCache.at < MODEL_CACHE_MS && cloudcodeModelCache.models.length) {
-    return cloudcodeModelCache.models;
+async function availableApiModels() {
+  if (Date.now() - upstreamModelCache.at < MODEL_CACHE_MS && upstreamModelCache.models.length) {
+    return upstreamModelCache.models;
   }
-  const models = usesDirectTransport()
-    ? await ACCOUNT_POOL.listModels(undefined, { force: true })
-    : await listModels({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
-  cloudcodeModelCache = { at: Date.now(), models };
+  const models = ACCOUNT_POOL.hasManagedAccounts() ? await ACCOUNT_POOL.listModels(undefined, { force: true }) : [];
+  upstreamModelCache = { at: Date.now(), models };
   return models;
 }
 
@@ -338,19 +283,20 @@ function preferredFastModel(models) {
 }
 
 async function resolveModel(requested, { preferFast = false } = {}) {
+  // Claude Code's built-in Auto Mode classifier selects Sonnet 5 separately
+  // from the user's main model. Route that classifier to the supported fast
+  // model without requiring a client override. Ordinary Sonnet requests and
+  // other explicitly selected classifier models retain their own contracts.
+  if (preferFast && requested === 'claude-sonnet-5') return 'gemini-3.8-flash-low';
   const aliases = configuredAliases();
   const original = requested || DEFAULT_MODEL;
   const mapped = Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original;
-  // Normal requests preserve the exact client model ID. Aliases are opt-in,
-  // exact mappings only. Cloud Code Auto Mode classifiers can use its faster
-  // route; an explicitly Robin-owned model keeps its independent provider.
-  if (!preferFast || ROBIN_ACCOUNT_POOL.ownsModel(mapped)) {
+  // Normal requests preserve the exact client model ID; aliases are opt-in.
+  if (requested || !preferFast) {
     return mapped;
   }
   try {
-    // Cloud Code's auxiliary classifier must not wait on Robin metadata.
-    // Explicitly Robin-owned models already returned unchanged above.
-    return preferredFastModel(await availableCloudCodeModels());
+    return preferredFastModel(await availableApiModels());
   } catch {
     // Model discovery is advisory. Even an Auto Mode classifier must still be
     // allowed to reach the upstream service when the local catalog is stale or
@@ -372,10 +318,7 @@ async function upstreamModelDiagnostic(error, model) {
 
   let models;
   try {
-    // These error types originate from Cloud Code / agy only. Diagnostic
-    // advice must not query an unrelated Robin authorization, including when
-    // the unified catalog has not yet loaded. Keep the same short cache TTL.
-    models = await availableCloudCodeModels();
+    models = await availableApiModels();
   } catch {
     return error;
   }
@@ -386,8 +329,17 @@ async function upstreamModelDiagnostic(error, model) {
 }
 
 function codexModelInfo(slug, priority) {
-  const upstream = usesDirectTransport() ? ACCOUNT_POOL.modelInfo(slug) : null;
-  // Cloud Code currently reports 1,048,576 input tokens for Gemini 3.7/3.8
+  const upstream = ACCOUNT_POOL.modelInfo(slug);
+  const mimeTypes = upstream?.supportedMimeTypes && typeof upstream.supportedMimeTypes === 'object'
+    && !Array.isArray(upstream.supportedMimeTypes) ? structuredClone(upstream.supportedMimeTypes) : {};
+  const mediaCapability = (field, prefix) => typeof upstream?.[field] === 'boolean' ? upstream[field]
+    : Object.entries(mimeTypes).some(([type, supported]) => supported === true && type.toLowerCase().startsWith(prefix + '/'));
+  const supportsImages = mediaCapability('supportsImages', 'image');
+  const supportsVideo = mediaCapability('supportsVideo', 'video');
+  const supportsAudio = mediaCapability('supportsAudio', 'audio');
+  const thinking = resolveModelConfiguration(slug, upstream).thinkingConfig;
+  const effort = thinking?.thinkingLevel?.toLowerCase() || null;
+  // Google Antigravity API currently reports 1,048,576 input tokens for Gemini 3.7/3.8
   // Flash. Keep that verified fallback even when a transient discovery request
   // fails; otherwise the client would compact a healthy 1M context at 200K.
   const contextWindow = upstream?.maxTokens
@@ -401,8 +353,13 @@ function codexModelInfo(slug, priority) {
     default_verbosity: 'low',
     apply_patch_tool_type: 'freeform',
     web_search_tool_type: 'text_and_image',
-    input_modalities: ['text', 'image'],
-    supports_image_detail_original: true,
+    // Codex accepts text/image here; broader media capabilities are separate.
+    input_modalities: supportsImages ? ['text', 'image'] : ['text'],
+    supports_images: supportsImages,
+    supports_video: supportsVideo,
+    supports_audio: supportsAudio,
+    supported_mime_types: mimeTypes,
+    supports_image_detail_original: supportsImages && upstream?.supportsImageDetailOriginal === true,
     truncation_policy: { mode: 'tokens', limit: 10000 },
     supports_parallel_tool_calls: true,
     tool_mode: 'direct',
@@ -420,12 +377,9 @@ function codexModelInfo(slug, priority) {
     base_instructions: 'Follow the client instructions and use only client-provided tools when needed.',
     reasoning_summary_format: 'experimental',
     default_reasoning_summary: 'none',
-    default_reasoning_level: 'medium',
-    supported_reasoning_levels: [
-      { effort: 'low', description: 'Faster responses' },
-      { effort: 'medium', description: 'Balanced reasoning' },
-      { effort: 'high', description: 'Deeper reasoning' }
-    ],
+    default_reasoning_level: effort,
+    supported_reasoning_levels: effort ? [{ effort, description: `Fixed by model name: ${slug}` }] : [],
+    ...(thinking ? { fixed_thinking_config: structuredClone(thinking) } : {}),
     shell_type: 'shell_command',
     visibility: 'list',
     minimal_client_version: '0.0.0',
@@ -501,10 +455,16 @@ function displayModels(models) {
 
 function codexCatalogBody(models) {
   const ordered = displayModels(models);
+  const catalog = ordered.map((id, index) => codexModelInfo(id, index));
   return {
     object: 'list',
-    data: ordered.map((id) => ({ id, object: 'model', created: 0, owned_by: 'antigravity', display_name: id })),
-    models: ordered.map((id, index) => codexModelInfo(id, index))
+    data: catalog.map((model) => ({ id: model.slug, object: 'model', created: 0, owned_by: 'antigravity',
+      display_name: model.display_name, input_modalities: model.input_modalities,
+      supports_images: model.supports_images, supports_video: model.supports_video, supports_audio: model.supports_audio,
+      supported_mime_types: structuredClone(model.supported_mime_types),
+      default_reasoning_level: model.default_reasoning_level, supported_reasoning_levels: model.supported_reasoning_levels,
+      ...(model.fixed_thinking_config ? { fixed_thinking_config: structuredClone(model.fixed_thinking_config) } : {}) })),
+    models: catalog
   };
 }
 
@@ -555,17 +515,11 @@ function featuredModels(models) {
     /^gemini-3\.[78](?:[.-]|$)/i.test(model)
     || model === 'claude-opus-4-6-thinking'
     || model === 'claude-sonnet-4-6'
-    || model === ARGON_MODEL
   ));
 }
 
 function credentialSourceDescription() {
-  if (!usesDirectTransport()) return '官方 agy 系统 Keyring（由 agy 管理）';
-  if (ACCOUNT_POOL.hasManagedAccounts()) return `${ACCOUNT_STORE.directory}（${ACCOUNT_POOL.status().length} 个账号）`;
-  if (DIRECT_PROVIDER.localAuth?.last?.sourcePath) return DIRECT_PROVIDER.localAuth.last.sourcePath;
-  if (DIRECT_PROVIDER.authFile) return DIRECT_PROVIDER.authFile;
-  if (process.env.ANTIGRAVITY_ACCESS_TOKEN || process.env.ANTIGRAVITY_REFRESH_TOKEN) return '环境变量（值不显示）';
-  return '未检测到';
+  return `${ACCOUNT_STORE.directory}（${ACCOUNT_POOL.status().length} 个账号）`;
 }
 
 function startupBanner({ models = [], modelError = '', credentialSource = credentialSourceDescription() } = {}) {
@@ -583,11 +537,9 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
     `    OpenAI: ${baseUrl}/v1`,
     ` API Key: ${apiKey}`,
     ` 本地密钥: ${credentialSource}`,
-    ` 传输模式: ${usesDirectTransport() ? '✅ 原生 Cloud Code 直连（跳过 agy 包装）' : 'agy CLI stream-json'}`,
+    ' 上游协议: Google Antigravity API（agy 1.5.2）',
     ' 可用模型:'
   ];
-  if (models.includes(ARGON_MODEL)) lines.splice(lines.length - 1, 0,
-    ' Gemini App: ✅ 独立账号池（Robin OAuth / Windows WebChannel）');
   const selected = featuredModels(models);
   if (selected.length) lines.push(...selected.map((model) => `    ${model}`));
   else lines.push(`    ${modelError ? `检测失败：${modelError}` : '未发现精选模型'}`);
@@ -611,7 +563,7 @@ function printHelp() {
   -v, --version           显示版本
   -p, --port <number>     监听端口，默认 9897
   -H, --host <address>    监听地址，默认 127.0.0.1
-  --agy-path <path>       agy 可执行文件路径
+  --agy-path <path>       OAuth 客户端配置所用的 agy 安装路径
   -m, --model <id>        默认 Antigravity 模型
   --models                 显示当前账号的全部真实模型 ID
   --codex-catalog-path    显示自动生成的 Codex 模型目录绝对路径
@@ -627,10 +579,9 @@ function printHelp() {
   service logs            显示最近的后台日志
   service uninstall       停止并移除后台服务（保留历史日志）
 
-传输模式:
-  ANTIGRAVITY_GATEWAY_TRANSPORT=auto|direct|agy
-  默认 direct：从系统安全凭证存储或本地 agy 会话文件读取登录态并直连 Cloud Code。
-  auto/agy 仅为显式兼容选项；手动凭据兜底可用 ANTIGRAVITY_AUTH_FILE。
+账号与上游:
+  仅使用 Google Antigravity API（agy 1.5.2）及原 accounts 账号池。
+  新增账号请运行 antigravity-gateway stats，在看板中完成 OAuth 授权。
 
 接口:
   GET  /
@@ -643,8 +594,7 @@ function printHelp() {
   POST /v1/images/edits
   POST /v1/messages
   POST /v1/messages/count_tokens
-  POST /v1/responses
-  POST /v1/chat/completions`);
+  POST /v1/responses`);
 }
 
 function sendJson(res, status, body, headers = {}) {
@@ -693,12 +643,6 @@ function clientSessionIdentity(req, payload = {}, normalized = {}, previous = nu
   return SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous, options);
 }
 
-function taskIdentityOptions(model) {
-  // Only known stateful model ownership changes anonymous task handling.
-  // Cloud Code keeps its existing session and affinity derivation.
-  return model === ARGON_MODEL || PROVIDER_ROUTER.catalog.robin.has(model) ? { taskProvider: 'robin' } : {};
-}
-
 function identityTrace(identity = {}) {
   const short = (value) => String(value || '-').slice(0, 10);
   return `request=${short(identity.requestId)} client=${identity.clientLabel || short(identity.clientId)} session=${short(identity.sessionId)} affinity=${short(identity.routingKey)}`;
@@ -727,11 +671,16 @@ async function readBuffer(req) {
 
 async function readJson(req) {
   const buffer = await readBuffer(req);
+  let value;
   try {
-    return JSON.parse(buffer.toString('utf8') || '{}');
+    value = JSON.parse(buffer.toString('utf8') || '{}');
   } catch {
     throw new GatewayError('请求体不是有效 JSON。', { code: 'invalid_json', status: 400 });
   }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new GatewayError('请求体必须是 JSON 对象。', { code: 'invalid_request_body', status: 400 });
+  }
+  return value;
 }
 
 function parseMultipart(buffer, contentType) {
@@ -774,9 +723,8 @@ function errorBody(error, protocol) {
 }
 
 function mapAgyError(error) {
-  if (error instanceof GatewayError || error instanceof AgyError || error instanceof DirectProviderError
-    || error instanceof MultimediaError || error instanceof RobinProviderError || error instanceof ProviderRouterError
-    || error instanceof SessionIdentityError) return error;
+  if (error instanceof GatewayError || error instanceof DirectProviderError
+    || error instanceof MultimediaError || isConversionError(error)) return error;
   if (error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || /request aborted/i.test(String(error?.message || ''))) {
     return new GatewayError('客户端已取消请求。', { code: 'request_aborted', status: 499 });
   }
@@ -814,218 +762,126 @@ function artifactUrl(base, id) {
   return base ? `${String(base).replace(/\/$/, '')}/v1/files/${encodeURIComponent(id)}/content` : '';
 }
 
-function hasVideoInput(normalized) {
-  const parts = (normalized.messages || []).flatMap((message) => (message.parts || []).flatMap((part) => (
-    part?.type === 'tool_result' && Array.isArray(part.media) ? part.media : [part]
-  )));
-  return parts.some((part) => part?.type === 'media'
-    && normalizeMime(part.mediaType, part.filename || part.filePath || part.url).startsWith('video/'));
-}
-
-async function argonVideoFallbackModel() {
-  const fallback = await resolveModel(DEFAULT_MODEL);
-  if (fallback === ARGON_MODEL || ROBIN_ACCOUNT_POOL.ownsModel(fallback)) {
-    throw new GatewayError('Argon 视频理解需要一个非 Robin 的默认 Antigravity 模型。', {
-      code: 'argon_video_fallback_unavailable', status: 503
-    });
-  }
-  return fallback;
-}
-
 async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, auxiliaryScope, nativeCompaction, nativeClientProfile, onDelta, onThinkingDelta, reuseConversation = false, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
   const taskScope = auxiliaryScope ? { auxiliaryScope } : {};
-  const robinOwned = ROBIN_ACCOUNT_POOL.ownsModel(model);
-  if (usesDirectTransport() || robinOwned) {
-    try {
-      const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
-      // Gemini App performs its own local frame extraction for video rather
-      // than offering reliable native Argon video understanding. Preserve the
-      // gateway's established multimodal path: only video-bearing Argon turns
-      // use the configured Antigravity default model and Cloud Code account
-      // pool. Text, image, audio, PDF and tool turns remain on Robin.
-      const argonVideoFallback = model === ARGON_MODEL && hasVideoInput(resolved);
-      const upstreamModel = argonVideoFallback ? await argonVideoFallbackModel() : model;
-      const providerType = argonVideoFallback ? 'cloudcode'
-        : robinOwned ? 'robin' : await PROVIDER_ROUTER.resolveProvider(upstreamModel, signal);
-      const prepared = providerType === 'cloudcode'
-        ? prepareNativeMultimodal(resolved)
-        : { normalized: resolved, imageToolInjected: false };
-      const finalize = (raw) => {
-        try { return finalizeModelResult(normalized, raw); }
-        catch (error) {
-          if (providerType === 'robin' && raw.toolCalls?.length) {
-            PROVIDER_ROUTER.cancelTask(providerType, prepared.normalized, { sessionId, routingKey, clientId, ...taskScope });
-          }
-          throw error;
-        }
-      };
-      const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
-      if (argonVideoFallback) {
-        gatewayLog(`[Antigravity Gateway] Argon 视频请求转入原有多媒体路径 model=${upstreamModel} requested=${model} ${trace}`);
-      }
-      const onAccountSelected = ({ accountId, email, source, attempt }) => {
-        gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${upstreamModel} attempt=${attempt} ${trace}`);
-      };
-      let raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, {
-        signal, sessionId, routingKey, requestId, clientId, clientLabel, onDelta, onAccountSelected, reuseConversation, ...taskScope,
-        ...(providerType === 'cloudcode' && nativeCompaction ? { nativeCompaction } : {}),
-        ...(nativeClientProfile ? { nativeClientProfile } : {}),
-        onThinkingDelta: normalized.includeThinking ? onThinkingDelta : undefined
-      });
-      const initialUsage = raw.usage;
-      const internalCalls = prepared.imageToolInjected
-        ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
-        : [];
-      if (internalCalls.length) {
-        if (internalCalls.length > 1 || (raw.toolCalls || []).some((call) => call.name !== NATIVE_IMAGE_TOOL_NAME)) {
-          throw new GatewayError('原生生图工具必须单独调用且每轮只能调用一次。', { code: 'invalid_native_image_call', status: 502 });
-        }
-        const call = internalCalls[0];
-        const args = call.arguments || {};
-        const references = imageReferences(resolved, args.ImagePaths);
-        if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
-          gatewayLog(`[Antigravity Gateway Debug] native-image-call=${JSON.stringify({
-            prompt: String(args.Prompt || '').slice(0, 120),
-            requestedReferences: args.ImagePaths || [],
-            availableReferences: mediaParts(resolved, (part) => String(part.mediaType || '').startsWith('image/')).map((part) => ({ id: part.id, fileId: part.fileId, filename: part.filename }))
-          })}`);
-        }
-        if ((args.ImagePaths || []).length !== references.length) {
-          throw new GatewayError('生图工具引用了不存在或非图片类型的附件。', { code: 'invalid_image_reference', status: 400 });
-        }
-        const imageStartedAt = Date.now();
-        const generated = await ACCOUNT_POOL.generateImage({
-          prompt: args.Prompt,
-          aspectRatio: args.AspectRatio || '1:1',
-          images: references
-        }, {
-          signal,
-          sessionId,
-          routingKey,
-          bindRouting: false,
-          accountId: raw.accountId,
-          onAccountSelected: ({ accountId, email, source, attempt }) => {
-            gatewayLog(`[Antigravity Gateway] 生图账号=${email || accountId} source=${source} model=gemini-3.1-flash-image attempt=${attempt} ${trace}`);
-          }
-        });
-        const saved = MEDIA_STORE.save(Buffer.from(generated.data, 'base64'), {
-          mediaType: generated.mimeType,
-          filename: `${String(args.ImageName || 'generated_image').replace(/[^a-z0-9_-]+/gi, '_')}.${imageFileExtension(generated.mimeType)}`,
-          purpose: 'generated',
-          scope: mediaScope
-        });
-        const image = {
-          id: saved.id,
-          mimeType: generated.mimeType,
-          data: generated.data,
-          filename: saved.filename,
-          bytes: saved.bytes,
-          gatewayLocalPath: MEDIA_STORE.contentPath(saved.id),
-          url: artifactUrl(publicBaseUrl, saved.id),
-          prompt: args.Prompt,
-          name: args.ImageName || 'generated_image'
-        };
-        const internalResult = internalImageToolResult(image);
-        const continuation = {
-          ...prepared.normalized,
-          stream: false,
-          // Keep the caller's tools available for legitimate follow-up work;
-          // only the gateway's private image tool is removed after generation.
-          tools: resolved.tools,
-          toolChoice: resolved.toolChoice,
-          messages: [
-            ...prepared.normalized.messages,
-            { role: 'assistant', text: raw.text || '', parts: [
-              ...(raw.text ? [{ type: 'text', text: raw.text }] : []),
-              { type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }
-            ] },
-            { role: 'user', text: '', parts: [{
-              type: 'tool_result', id: call.id, name: call.name,
-              content: JSON.stringify(internalResult),
-              // Local structured metadata remains available to the API/client
-              // layer; only the native text projection goes to Cloud Code.
-              response: nativeImageToolResponse(image, { createdAt: imageStartedAt }),
-              media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
-            }] }
-          ]
-        };
-        raw = await PROVIDER_ROUTER.send(continuation, upstreamModel, {
-          signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope,
-          clientProjection: { source: prepared.normalized, images: [image], streamedPrefix: onDelta ? raw.streamedText || raw.text || '' : '' }
-        });
-        const final = finalize(raw);
-        return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
-      }
-      try {
-        return finalize(raw);
-      } catch (error) {
-        if (error.code === 'invalid_auto_mode_classifier_output') {
-          raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
-          return finalize(raw);
-        }
-        if (error.code === 'invalid_structured_output') {
-          raw = await PROVIDER_ROUTER.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
-          return finalize(raw);
-        }
-        throw error;
-      }
-    } finally {
-      release();
-    }
-  }
-  let prompt;
-  try { prompt = buildPrompt(normalized); } catch (error) { release(); throw error; }
-  if (Buffer.byteLength(prompt) > PROMPT_BYTE_LIMIT) {
-    release();
-    throw new GatewayError('请求编码后超过网关的字节安全上限；这不是模型上下文窗口判定。', {
-      code: 'prompt_bytes_too_large', status: 413
-    });
-  }
-  const workerId = crypto.randomUUID();
-  const workDir = path.join(RUNTIME, 'workspaces', workerId);
-  // agy requires a log path. Keep it inside the per-request directory so the
-  // gateway can remove it with the isolated workspace after the turn.
-  const logFile = path.join(workDir, 'agy.log');
-  let worker;
-  try { worker = new AgyWorker({
-    agyPath: AGY_PATH,
-    prefixArgs: AGY_PREFIX_ARGS,
-    model,
-    cwd: workDir,
-    logFile,
-    timeoutMs: REQUEST_TIMEOUT
-  }); } catch (error) { release(); throw error; }
-  activeWorkers.add(worker);
   try {
-    const trackedSend = async (input, sendOptions) => {
-      try {
-        const output = await worker.send(input, sendOptions);
-        USAGE_STORE.recordUpstream({ accountId: 'agy-cli', model, usage: output.usage, success: true });
-        return output;
-      } catch (error) {
-        USAGE_STORE.recordUpstream({ accountId: 'agy-cli', model, success: false });
-        throw error;
-      }
+    const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
+    const prepared = prepareNativeMultimodal(resolved);
+    const finalize = raw => finalizeModelResultAsync(normalized, raw, { signal });
+    const upstreamModel = model;
+    const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
+    const onAccountSelected = ({ accountId, email, source, attempt }) => {
+      gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${upstreamModel} attempt=${attempt} ${trace}`);
     };
-    let raw = await trackedSend(prompt, { signal, onDelta });
+    let raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, {
+      signal, sessionId, routingKey, requestId, clientId, clientLabel, onDelta, onAccountSelected, reuseConversation, ...taskScope,
+      ...(nativeCompaction ? { nativeCompaction } : {}),
+      ...(nativeClientProfile ? { nativeClientProfile } : {}),
+      onThinkingDelta: normalized.includeThinking ? onThinkingDelta : undefined
+    });
+    const initialUsage = raw.usage;
+    const internalCalls = prepared.imageToolInjected
+      ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
+      : [];
+    if (internalCalls.length) {
+      if (upstreamTermination(raw) !== 'complete') {
+        throw new GatewayError('上游生图工具调用未正常完成，已停止内部生图执行。', { code: 'incomplete_native_image_call', status: 502 });
+      }
+      if (internalCalls.length > 1 || (raw.toolCalls || []).some((call) => call.name !== NATIVE_IMAGE_TOOL_NAME)) {
+        throw new GatewayError('原生生图工具必须单独调用且每轮只能调用一次。', { code: 'invalid_native_image_call', status: 502 });
+      }
+      const call = internalCalls[0];
+      const args = call.arguments || {};
+      const references = imageReferences(resolved, args.ImagePaths);
+      if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
+        gatewayLog(`[Antigravity Gateway Debug] native-image-call=${JSON.stringify({
+          prompt: String(args.Prompt || '').slice(0, 120),
+          requestedReferences: args.ImagePaths || [],
+          availableReferences: mediaParts(resolved, (part) => String(part.mediaType || '').startsWith('image/')).map((part) => ({ id: part.id, fileId: part.fileId, filename: part.filename }))
+        })}`);
+      }
+      if ((args.ImagePaths || []).length !== references.length) {
+        throw new GatewayError('生图工具引用了不存在或非图片类型的附件。', { code: 'invalid_image_reference', status: 400 });
+      }
+      const imageStartedAt = Date.now();
+      const generated = await ACCOUNT_POOL.generateImage({
+        prompt: args.Prompt,
+        aspectRatio: args.AspectRatio || '1:1',
+        images: references
+      }, {
+        signal,
+        sessionId,
+        routingKey,
+        bindRouting: false,
+        accountId: raw.accountId,
+        nativeToolContext: raw.nativeToolContext,
+        onAccountSelected: ({ accountId, email, source, model: imageModel, attempt }) => {
+          gatewayLog(`[Antigravity Gateway] 生图账号=${email || accountId} source=${source} model=${imageModel} attempt=${attempt} ${trace}`);
+        }
+      });
+      const saved = MEDIA_STORE.saveGeneratedImage(Buffer.from(generated.data, 'base64'), {
+        mediaType: generated.mimeType,
+        filename: `${String(args.ImageName || 'generated_image').replace(/[^a-z0-9_-]+/gi, '_')}.${imageFileExtension(generated.mimeType)}`,
+        purpose: 'generated',
+        scope: mediaScope
+      });
+      const image = {
+        id: saved.id,
+        mimeType: generated.mimeType,
+        data: generated.data,
+        filename: saved.filename,
+        bytes: saved.bytes,
+        gatewayLocalPath: MEDIA_STORE.contentPath(saved.id),
+        url: artifactUrl(publicBaseUrl, saved.id),
+        prompt: args.Prompt,
+        name: args.ImageName || 'generated_image'
+      };
+      const internalResult = internalImageToolResult(image);
+      const continuation = {
+        ...prepared.normalized,
+        stream: false,
+        // Keep the caller's tools available for legitimate follow-up work;
+        // only the gateway's private image tool is removed after generation.
+        tools: resolved.tools,
+        toolChoice: resolved.toolChoice,
+        messages: [
+          ...prepared.normalized.messages,
+          { role: 'assistant', text: raw.text || '', parts: [
+            ...(raw.text ? [{ type: 'text', text: raw.text }] : []),
+            { type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }
+          ] },
+          { role: 'user', text: '', parts: [{
+            type: 'tool_result', id: call.id, name: call.name,
+            content: JSON.stringify(internalResult),
+            // Local structured metadata remains available to the API/client
+            // layer; only the native text projection goes to Google Antigravity API.
+            response: nativeImageToolResponse(image, { createdAt: imageStartedAt }),
+            media: [{ type: 'media', id: saved.id, mediaType: generated.mimeType, data: generated.data, filename: saved.filename }]
+          }] }
+        ]
+      };
+      raw = await ACCOUNT_POOL.send(continuation, upstreamModel, {
+        signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope,
+        clientProjection: { source: prepared.normalized, images: [image], streamedPrefix: onDelta ? raw.streamedText || raw.text || '' : '' }
+      });
+      const final = await finalize(raw);
+      return { ...final, images: [image], usage: combinedUsage(initialUsage, generated.usage, raw.usage) };
+    }
     try {
-      return finalizeModelResult(normalized, raw);
+      return await finalize(raw);
     } catch (error) {
       if (error.code === 'invalid_auto_mode_classifier_output') {
-        raw = await trackedSend('AUTO_MODE_XML_REPAIR: Return only the XML verdict required by the original system contract. No prose or Markdown.', { signal, onDelta });
-        return finalizeModelResult(normalized, raw);
+        raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+        return await finalize(raw);
       }
       if (error.code === 'invalid_structured_output') {
-        raw = await trackedSend(`STRUCTURED_OUTPUT_REPAIR: Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}`, { signal, onDelta });
-        return finalizeModelResult(normalized, raw);
+        raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+        return await finalize(raw);
       }
       throw error;
     }
   } finally {
-    await worker.close();
-    activeWorkers.delete(worker);
-    try { fs.rmSync(workDir, { recursive: true, force: true }); } catch { /* owned temporary directory */ }
     release();
   }
 }
@@ -1215,14 +1071,14 @@ function emitAnthropicStream(res, body) {
       ? { type: 'text', text: '' }
       : block.type === 'thinking'
         ? { type: 'thinking', thinking: '' }
-        : { ...block, input: {} };
+        : ['tool_use', 'server_tool_use'].includes(block.type) ? { ...block, input: {} } : block;
     sendSse(res, 'content_block_start', { type: 'content_block_start', index, content_block: empty });
     if (block.type === 'text') {
       sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } });
     } else if (block.type === 'thinking') {
       if (block.thinking) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'thinking_delta', thinking: block.thinking } });
       if (block.signature) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } });
-    } else {
+    } else if (['tool_use', 'server_tool_use'].includes(block.type)) {
       sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } });
     }
     sendSse(res, 'content_block_stop', { type: 'content_block_stop', index });
@@ -1256,6 +1112,8 @@ function emitChatStream(res, body, { includeUsage = false } = {}) {
 
 function emitResponsesItem(emit, item, outputIndex) {
   emit({ type: 'response.output_item.added', output_index: outputIndex, item: { ...item, status: 'in_progress', content: item.content ? [] : undefined,
+    ...(item.type === 'function_call' ? { arguments: '' } : {}),
+    ...(item.type === 'custom_tool_call' ? { input: '' } : {}),
     ...(item.type === 'reasoning' ? { summary: [] } : {}) } });
   if (item.type === 'message') {
     const part = item.content[0];
@@ -1274,8 +1132,20 @@ function emitResponsesItem(emit, item, outputIndex) {
   } else if (item.type === 'function_call') {
     emit({ type: 'response.function_call_arguments.delta', item_id: item.id, output_index: outputIndex, delta: item.arguments });
     emit({ type: 'response.function_call_arguments.done', item_id: item.id, output_index: outputIndex, arguments: item.arguments });
+  } else if (item.type === 'custom_tool_call') {
+    emit({ type: 'response.custom_tool_call_input.delta', item_id: item.id, output_index: outputIndex, delta: item.input });
+    emit({ type: 'response.custom_tool_call_input.done', item_id: item.id, output_index: outputIndex, input: item.input });
   }
   emit({ type: 'response.output_item.done', output_index: outputIndex, item });
+}
+
+const responsesStreamErrors = new WeakMap();
+function sendResponsesStreamError(res, error) {
+  const event = { type: 'error', code: error.code || 'server_error', message: error.message, param: null };
+  const emit = responsesStreamErrors.get(res);
+  if (emit) emit(event);
+  else sendSse(res, null, { ...event, sequence_number: 0 });
+  res.end();
 }
 
 function createResponsesTextEmitter(res, model, responseId) {
@@ -1284,6 +1154,7 @@ function createResponsesTextEmitter(res, model, responseId) {
   let started = false;
   const states = new Map();
   const emit = (event) => sendSse(res, null, { ...event, sequence_number: sequence++ });
+  responsesStreamErrors.set(res, emit);
   const start = () => {
     if (started) return;
     started = true;
@@ -1327,8 +1198,8 @@ function createResponsesTextEmitter(res, model, responseId) {
       const part = kind === 'reasoning' ? { type: 'summary_text', text: state.text }
         : { type: 'output_text', text: state.text, annotations: message?.content?.[0]?.annotations || [] };
       const item = kind === 'reasoning'
-        ? { id: state.id, type: 'reasoning', status: 'completed', summary: [part] }
-        : { id: state.id, type: 'message', role: 'assistant', status: 'completed', content: [part] };
+        ? { id: state.id, type: 'reasoning', status: reasoning?.status || body.status, summary: [part] }
+        : { id: state.id, type: 'message', role: 'assistant', status: message?.status || body.status, content: [part] };
       const ids = { item_id: state.id, output_index: state.index,
         ...(kind === 'reasoning' ? { summary_index: 0 } : { content_index: 0 }) };
       emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_text.done' : 'response.output_text.done', ...ids, text: state.text });
@@ -1340,7 +1211,7 @@ function createResponsesTextEmitter(res, model, responseId) {
       && !(item === reasoning && states.has('reasoning')));
     body.output = [...completed, ...remaining];
     remaining.forEach((item, index) => emitResponsesItem(emit, item, completed.length + index));
-    emit({ type: 'response.completed', response: body });
+    emit({ type: `response.${body.status}`, response: body });
     res.write('data: [DONE]\n\n');
     res.end();
   } };
@@ -1351,7 +1222,7 @@ function emitResponsesStream(res, body) {
   let sequence = 0;
   sendSse(res, null, { type: 'response.created', sequence_number: sequence++, response: { ...body, status: 'in_progress', output: [] } });
   body.output.forEach((item, index) => emitResponsesItem((event) => sendSse(res, null, { ...event, sequence_number: sequence++ }), item, index));
-  sendSse(res, null, { type: 'response.completed', sequence_number: sequence++, response: body });
+  sendSse(res, null, { type: `response.${body.status}`, sequence_number: sequence++, response: body });
   res.write('data: [DONE]\n\n');
   res.end();
 }
@@ -1369,13 +1240,7 @@ async function generateImages(payload, req, signal, references = []) {
   const prompt = String(payload.prompt || '').trim();
   if (!prompt) throw new GatewayError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
   const requestedModel = payload.model ? await resolveModel(payload.model) : '';
-  if (requestedModel && (ROBIN_ACCOUNT_POOL.ownsModel(requestedModel) || PROVIDER_ROUTER.catalog.robin.has(requestedModel))) {
-    // This operation is currently the existing Cloud Code image transport.
-    // Never reinterpret an explicitly selected Robin model as that provider.
-    throw new GatewayError(`请求模型 ${requestedModel} 的独立图片接口尚未接入，未切换到其他模型或账号来源。`, {
-      code: 'robin_images_not_implemented', status: 501
-    });
-  }
+  const imageModel = await ACCOUNT_POOL.resolveImageModel(requestedModel, signal);
   const scope = clientScope(req);
   const identity = clientSessionIdentity(req, payload, { model: payload.model, messages: [{ role: 'user', text: prompt, parts: references }] });
   const trace = identityTrace(identity);
@@ -1384,16 +1249,17 @@ async function generateImages(payload, req, signal, references = []) {
   for (let index = 0; index < count; index += 1) {
     const result = await ACCOUNT_POOL.generateImage({
       prompt,
+      model: imageModel,
       aspectRatio: payload.aspect_ratio || aspectRatioFromSize(payload.size),
       images: references
     }, {
       signal, sessionId: identity.sessionId, routingKey: identity.routingKey, accountId,
-      onAccountSelected: ({ accountId: selected, email, source, attempt }) => {
-        gatewayLog(`[Antigravity Gateway] 生图账号=${email || selected} source=${source} model=gemini-3.1-flash-image attempt=${attempt} ${trace}`);
+      onAccountSelected: ({ accountId: selected, email, source, model: selectedModel, attempt }) => {
+        gatewayLog(`[Antigravity Gateway] 生图账号=${email || selected} source=${source} model=${selectedModel} attempt=${attempt} ${trace}`);
       }
     });
     accountId = result.accountId;
-    const saved = MEDIA_STORE.save(Buffer.from(result.data, 'base64'), {
+    const saved = MEDIA_STORE.saveGeneratedImage(Buffer.from(result.data, 'base64'), {
       mediaType: result.mimeType,
       filename: `generated_${Date.now()}_${index + 1}.${imageFileExtension(result.mimeType)}`, purpose: 'generated', scope
     });
@@ -1474,37 +1340,51 @@ async function handleFileUpload(req, res) {
   sendJson(res, 200, saved);
 }
 
+async function handleServerSearchForward(prepared, payload, req, res, signal) {
+  const { normalized, query, contents, instructions, generationConfig, tool } = prepared;
+  const scope = clientScope(req);
+  const identity = clientSessionIdentity(req, payload, normalized, null);
+  let body;
+  if (prepared.blockedByBudget) {
+    body = buildServerSearchErrorMessage({ model: normalized.model || DEFAULT_MODEL, query, tool, errorCode: 'max_uses_exceeded' });
+  } else {
+    const release = await requestSlots.acquire(signal);
+    let stopHeartbeat;
+    try {
+      const result = await ACCOUNT_POOL.searchWeb({ query, contents, instructions, generationConfig }, {
+        ...identity, signal, bindRouting: false,
+        onAccountSelected: ({ accountId, email, source, model, attempt }) => {
+          gatewayLog(`[Antigravity Gateway] 搜索账号=${email || accountId} source=${source} model=${model} attempt=${attempt} ${identityTrace(identity)}`);
+          if (!res.headersSent) res.setHeader('x-antigravity-model', model);
+          if (normalized.stream) stopHeartbeat = beginSse(res);
+        }
+      });
+      body = buildServerSearchMessage({ model: result.model, query, result, tool, receipts: SEARCH_RECEIPTS, scope });
+    } finally {
+      stopHeartbeat?.();
+      release();
+    }
+  }
+  if (normalized.stream) emitAnthropicStream(res, body);
+  else sendJson(res, 200, body, { 'x-antigravity-model': body.model });
+}
+
 async function handleAnthropic(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
-  const normalized = normalizeAnthropic(payload);
+  const search = await prepareServerSearchForwardAsync(payload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
+  if (search && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal);
+  const normalized = search?.normalized || await normalizeAnthropicAsync(payload, { signal });
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
   const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
-  const identity = clientSessionIdentity(req, payload, normalized, null, taskIdentityOptions(model));
+  const identity = clientSessionIdentity(req, payload, normalized, null);
   gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let result;
   try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
-  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
   const body = anthropicResponse(normalized.model || model, result);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
-}
-
-async function handleChat(payload, req, res, signal) {
-  USAGE_STORE.recordClientRequest();
-  const normalized = normalizeChat(payload);
-  const model = await resolveModel(normalized.model);
-  const identity = clientSessionIdentity(req, payload, normalized, null, taskIdentityOptions(model));
-  gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
-  const stopHeartbeat = normalized.stream ? beginSse(res) : null;
-  const liveEmitter = textStreamingAllowed(normalized) ? createChatTextEmitter(res, normalized.model || model, { includeUsage: normalized.includeUsage }) : null;
-  let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
-  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
-  const body = chatResponse(normalized.model || model, result);
-  if (liveEmitter) liveEmitter.finish(body);
-  else if (normalized.stream) emitChatStream(res, body, { includeUsage: normalized.includeUsage }); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
 async function handleResponses(payload, req, res, signal) {
@@ -1514,9 +1394,9 @@ async function handleResponses(payload, req, res, signal) {
   if (payload.previous_response_id && !previous) {
     throw new GatewayError('previous_response_id 不属于当前客户端会话。', { code: 'previous_response_not_found', status: 400 });
   }
-  const normalized = normalizeResponses(payload, previous);
+  const normalized = await normalizeResponsesAsync(payload, previous, { signal });
   const model = await resolveModel(normalized.model);
-  const identity = clientSessionIdentity(req, payload, normalized, previous, taskIdentityOptions(model));
+  const identity = clientSessionIdentity(req, payload, normalized, previous);
   gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
   if (process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1') {
     const customTools = (payload.tools || []).filter((tool) => tool?.type === 'custom');
@@ -1528,13 +1408,14 @@ async function handleResponses(payload, req, res, signal) {
   let result;
   const sessionId = identity.sessionId;
   try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
-  SESSION_MANAGER.bindToolCalls(identity, result.toolCalls);
   const body = responsesResponse(normalized.model || model, result, responseId);
   SESSION_MANAGER.bindResponse(responseId, req, {
     sessionId,
     ...(identity.anonymousTask ? { anonymousTask: true } : {}),
     routingKey: identity.routingKey,
     system: normalized.system,
+    instructions: normalized.instructions,
+    instructionMessages: normalized.instructionMessages,
     messages: [...normalized.messages, {
       role: 'assistant',
       text: result.text || '',
@@ -1556,24 +1437,15 @@ async function handleResponses(payload, req, res, signal) {
   else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
-function dashboardAccountPool(requestUrl, accountId) {
+function dashboardAccountPool(requestUrl) {
   const providers = requestUrl.searchParams.getAll('provider');
-  if (providers.length > 1 || (providers.length === 1 && !['cloudcode', 'robin'].includes(providers[0]))) {
-    throw new GatewayError('账号来源必须明确为 cloudcode 或 robin，且只能指定一次。', {
+  // Preserve the persisted discriminator accepted by existing dashboard links.
+  if (providers.length > 1 || (providers.length === 1 && providers[0] !== 'cloudcode')) {
+    throw new GatewayError('账号来源无效；当前仅支持 Google Antigravity API 账号池。', {
       code: 'invalid_account_provider', status: 400
     });
   }
-  if (providers.length) return providers[0] === 'robin' ? ROBIN_ACCOUNT_POOL : ACCOUNT_POOL;
-  const inCloudCode = ACCOUNT_POOL.status().some(account => account.id === accountId);
-  const inRobin = ROBIN_ACCOUNT_POOL.status().some(account => account.id === accountId);
-  if (inCloudCode && inRobin) {
-    throw new GatewayError('该账号 ID 同时存在于两类账号池，请明确指定账号来源。', {
-      code: 'ambiguous_account_provider', status: 409
-    });
-  }
-  // Preserve older single-provider callers, including the existing Cloud Code
-  // not-found error, without guessing when two stores own the same ID.
-  return inRobin ? ROBIN_ACCOUNT_POOL : ACCOUNT_POOL;
+  return ACCOUNT_POOL;
 }
 
 async function requestHandler(req, res) {
@@ -1612,7 +1484,6 @@ async function requestHandler(req, res) {
       sendJson(res, 200, dashboardData({
         usageStore: USAGE_STORE,
         accountPool: ACCOUNT_POOL,
-        robinAccountPool: ROBIN_ACCOUNT_POOL,
         quotaManager: QUOTA_MANAGER,
         version: GATEWAY_VERSION
       }), { 'Cache-Control': 'no-store' });
@@ -1627,7 +1498,7 @@ async function requestHandler(req, res) {
         const pool = dashboardAccountPool(requestUrl, accountId);
         const result = await pool.recheckAccount(accountId, { signal: AbortSignal.timeout(45_000) });
         modelCache.at = 0;
-        if (pool === ACCOUNT_POOL) cloudcodeModelCache.at = 0;
+        if (pool === ACCOUNT_POOL) upstreamModelCache.at = 0;
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 502, {
@@ -1642,7 +1513,7 @@ async function requestHandler(req, res) {
         const pool = dashboardAccountPool(requestUrl, accountId);
         const result = pool.removeAccount(accountId);
         modelCache.at = 0;
-        if (pool === ACCOUNT_POOL) cloudcodeModelCache.at = 0;
+        if (pool === ACCOUNT_POOL) upstreamModelCache.at = 0;
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 500, {
@@ -1675,14 +1546,22 @@ async function requestHandler(req, res) {
   }
   const publicFileMatch = route.match(/^\/v1\/files\/(file_[a-f0-9]{32})\/content$/);
   if (['GET', 'HEAD'].includes(req.method) && publicFileMatch) {
-    const item = MEDIA_STORE.get(publicFileMatch[1], { allowPublic: true });
+    let item = MEDIA_STORE.get(publicFileMatch[1], { allowPublic: true });
+    if (!item?.publicOutput) {
+      if (!authorized(req)) {
+        sendJson(res, 401, errorBody(new GatewayError('API key 无效。', { code: 'authentication_error', status: 401 }), 'openai'));
+        return;
+      }
+      item = MEDIA_STORE.get(publicFileMatch[1], { scope: clientScope(req) });
+    }
     if (!item) { sendJson(res, 404, { error: { type: 'file_not_found', message: '文件不存在。' } }); return; }
     res.writeHead(200, {
       'Content-Type': item.metadata.mediaType || 'application/octet-stream',
       'Content-Length': item.buffer.length,
-      'Content-Disposition': `inline; filename="${String(item.metadata.filename || item.metadata.id).replace(/["\r\n]/g, '_')}"`,
+      'Content-Disposition': `${safeRasterImage(item.buffer, item.metadata.mediaType) ? 'inline' : 'attachment'}; filename="${String(item.metadata.filename || item.metadata.id).replace(/[^\x20-\x7e]|["\\]/g, '_')}"`,
       'Cache-Control': 'private, max-age=3600',
-      'X-Content-Type-Options': 'nosniff'
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "sandbox; default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     });
     res.end(req.method === 'HEAD' ? undefined : item.buffer);
     return;
@@ -1696,6 +1575,7 @@ async function requestHandler(req, res) {
     controller.abort(new GatewayError('网关请求超时。', { code: 'request_timeout', status: 504 }));
     // Uploads may be stalled; aborting upstream alone does not end readJson.
     if (!res.headersSent) sendJson(res, 504, errorBody(controller.signal.reason, protocol));
+    else if (route === '/v1/responses') sendResponsesStreamError(res, controller.signal.reason);
     else { sendSse(res, 'error', errorBody(controller.signal.reason, protocol)); res.end(); }
   }, REQUEST_TIMEOUT);
   deadline.unref();
@@ -1722,12 +1602,12 @@ async function requestHandler(req, res) {
     }
     if (req.method === 'GET' && route === '/') {
       const models = await availableModels();
-      if (!versionCache) versionCache = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS }).catch(() => 'unknown');
       sendJson(res, 200, {
         name: 'antigravity-gateway', version: GATEWAY_VERSION, status: 'ok',
-        listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: versionCache },
-        transport: usesDirectTransport() ? 'direct' : 'agy',
-        auth: usesDirectTransport() ? directAuthDescription() : 'official-agy-keyring-session',
+        listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: AGY_CLI_VERSION },
+        transport: 'direct',
+        upstream_protocol: 'Google Antigravity API',
+        auth: directAuthDescription(),
         credential_source: credentialSourceDescription(),
         codex_model_catalog: codexCatalogPath(),
         claude_model_config: claudeConfigPath(),
@@ -1736,11 +1616,11 @@ async function requestHandler(req, res) {
         models: models.length,
         transport_limits: { request_body_bytes: REQUEST_LIMIT, normalized_prompt_bytes: PROMPT_BYTE_LIMIT },
         account_pool: {
-          managed_accounts: ACCOUNT_POOL.status().length + ROBIN_ACCOUNT_POOL.status().length,
-          accounts: [...ACCOUNT_POOL.status(), ...ROBIN_ACCOUNT_POOL.status()]
+          managed_accounts: ACCOUNT_POOL.status().length,
+          accounts: ACCOUNT_POOL.status()
         },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: usesDirectTransport(), local_agy_session_bridge: Boolean(DIRECT_PROVIDER.localAuth?.isConfigured?.()), multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: usesDirectTransport() }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: false, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: true, local_agy_session_bridge: false, multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: true }
       });
       return;
     }
@@ -1748,6 +1628,7 @@ async function requestHandler(req, res) {
       const models = await availableModels(true);
       sendJson(res, 200, {
         ...codexCatalogBody(models),
+        image_generation_model_ids: ACCOUNT_POOL.imageModelCatalog(),
         default_model: DEFAULT_MODEL,
         fast_model: preferredFastModel(models)
       });
@@ -1773,11 +1654,12 @@ async function requestHandler(req, res) {
       sendJson(res, 200, { input_tokens: Math.max(1, Math.ceil(text.length / 4)) }, { 'x-token-count-estimated': 'true' });
       return;
     }
+    if (route === '/v1/chat/completions') throw new GatewayError('Chat Completions 已移除，请将客户端配置为 Messages 或 Responses。', { code: 'unsupported_api', status: 410 });
     const payload = await readJson(req);
     if (req.method === 'POST' && route === '/v1/images/generations') return await handleImageGeneration(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/messages') return await handleAnthropic(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/responses') return await handleResponses(payload, req, res, controller.signal);
-    if (req.method === 'POST' && route === '/v1/chat/completions') return await handleChat(payload, req, res, controller.signal);
+
     throw new GatewayError(`接口不存在: ${route}`, { code: 'not_found', status: 404 });
   } catch (rawError) {
     const error = mapAgyError(rawError);
@@ -1792,10 +1674,16 @@ async function requestHandler(req, res) {
     }
     const diagnostic = process.env.ANTIGRAVITY_GATEWAY_DEBUG === '1' && error.details ? ` (${error.details})` : '';
     gatewayError(`[Antigravity Gateway Error] ${error.message}${diagnostic}`);
-    if (!res.headersSent) sendJson(res, error.status || 500, errorBody(error, protocol));
+    if (!res.headersSent) {
+      const retryHeaders = error.status === 429 && ['account_pool_unavailable', 'direct_upstream_error'].includes(error.code)
+        && Number.isSafeInteger(error.retryAfterSeconds) && error.retryAfterSeconds > 0
+        ? { 'Retry-After': String(error.retryAfterSeconds) } : {};
+      sendJson(res, error.status || 500, errorBody(error, protocol), retryHeaders);
+    }
     else {
       if (protocol === 'anthropic') sendSse(res, 'error', errorBody(error, protocol));
-      else sendSse(res, null, { type: route === '/v1/responses' ? 'response.failed' : 'error', error: errorBody(error, protocol).error });
+      else if (route === '/v1/responses') { sendResponsesStreamError(res, error); return; }
+      else sendSse(res, null, { type: 'error', error: errorBody(error, protocol).error });
       res.end();
     }
   } finally {
@@ -1806,11 +1694,10 @@ async function requestHandler(req, res) {
 
 function createServer({ directoryGuard = null } = {}) {
   if (directoryGuard) {
-    DIRECT_PROVIDER.bindDirectoryGuard(directoryGuard);
     ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
   }
   const server = http.createServer((req, res) => {
-    void trackTransaction(requestHandler(req, res)).catch(() => {
+    void trackTransaction(withAsyncSchemaBoundary(() => requestHandler(req, res))).catch(() => {
       if (!res.headersSent && !res.destroyed) sendJson(res, 500, { error: { message: 'Antigravity Gateway 内部错误。' } });
       else res.destroy();
     });
@@ -1866,7 +1753,6 @@ if (require.main === module) {
     return;
   }
   diagnosticsEnabled = true;
-  fs.mkdirSync(RUNTIME, { recursive: true, mode: 0o700 });
   const server = createServer({ directoryGuard });
   let shuttingDown = false;
   let shutdownPromise = null;
@@ -1882,15 +1768,11 @@ if (require.main === module) {
       await DASHBOARD_ACCOUNT_AUTH.stop();
       await new Promise((resolve) => server.close(resolve));
       await drainTransactions();
-      await Promise.allSettled([...activeWorkers].map((worker) => worker.close()));
       await QUOTA_MANAGER.drain();
       // 最后一条请求可能刚更新用量、账号亲和性；排空后才落盘和交接目录。
-      ROBIN_ACCOUNT_POOL.stop();
-      await Promise.allSettled([...ROBIN_ACCOUNT_POOL.quotaRefreshes.values()]);
       USAGE_STORE.stop();
       ACCOUNT_POOL.stop();
       closeNativeTransport();
-      DIRECT_PROVIDER.bindDirectoryGuard(null);
       ACCOUNT_POOL.bindDirectoryGuard(null);
       directoryGuard.close();
     })();
@@ -1906,16 +1788,9 @@ if (require.main === module) {
     usageStore: USAGE_STORE,
     accountPool: ACCOUNT_POOL,
     quotaManager: QUOTA_MANAGER,
-    oauthFlow: OAUTH_FLOW,
-    accountStore: ACCOUNT_STORE,
-    robinAccountPool: ROBIN_ACCOUNT_POOL,
-    robinOAuthFlow: ROBIN_OAUTH_FLOW,
-    windowsLogin: WINDOWS_LOGIN,
-    windowsAccountStore: WINDOWS_ACCOUNT_STORE,
-    robinAccountStore: ROBIN_ACCOUNT_STORE,
     commands: {
       models: async () => displayModels(await refreshClientModelCatalogs()),
-      status: async () => gatewayLog(`网关运行中：${HOST}:${PORT}，账号 ${ACCOUNT_POOL.status().length || '本地 agy'}，并发 ${requestSlots.active}/${MAX_CONCURRENCY}`),
+      status: async () => gatewayLog(`网关运行中：${HOST}:${PORT}，账号 ${ACCOUNT_POOL.status().length}，并发 ${requestSlots.active}/${MAX_CONCURRENCY}`),
       config: async () => [
         `Anthropic: http://${HOST}:${PORT}`,
         `OpenAI: http://${HOST}:${PORT}/v1`,
@@ -1935,14 +1810,13 @@ if (require.main === module) {
   });
   USAGE_STORE.start();
   QUOTA_MANAGER.start();
-  ROBIN_ACCOUNT_POOL.start();
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, () => { void trackTransaction((async () => {
     diagnosticReporter('gateway_process_started', {
       pid: process.pid,
       version: GATEWAY_VERSION,
-      transport: TRANSPORT,
+      transport: 'direct',
       host: HOST,
       port: PORT,
       maxConcurrency: MAX_CONCURRENCY,
@@ -1952,42 +1826,12 @@ if (require.main === module) {
     gatewayLog(`[Antigravity Gateway] 看板来源：${DASHBOARD_ACCESS.description}`);
     let models = [];
     let modelError = '';
-    let localAccountImport = null;
-    if (usesDirectTransport()) {
-      try {
-        localAccountImport = await LOCAL_ACCOUNT_IMPORTER.importIfNew();
-        if (localAccountImport.status === 'imported') {
-          void QUOTA_MANAGER.refreshAccount(localAccountImport.account.id, { force: true, summaryOnly: false }).catch(() => {});
-        }
-      } catch (error) {
-        localAccountImport = { status: 'error', message: error.message };
-      }
-    }
     try {
       models = await refreshClientModelCatalogs();
     } catch (error) {
       modelError = error.message;
     }
-    try {
-      // Version detection is read-only and works for both the subprocess and
-      // direct transports. Showing the real Windows CLI version is valuable
-      // diagnostics even though direct mode does not invoke it per request.
-      versionCache = await getVersion({ agyPath: AGY_PATH, prefixArgs: AGY_PREFIX_ARGS });
-    } catch (error) {
-      // Direct providers work on servers without a local CLI. An optional
-      // version probe must not misreport successful model discovery as failed.
-      if (!usesDirectTransport()) modelError = modelError || error.message;
-    }
     gatewayLog(startupBanner({ models, modelError }));
-    if (localAccountImport?.status === 'imported') {
-      gatewayLog(`[Antigravity Gateway] ✅ 已将本地 agy 新账号加入账号池：${localAccountImport.account.email || localAccountImport.account.id}`);
-    } else if (localAccountImport?.status === 'existing') {
-      gatewayLog(`[Antigravity Gateway] 本地 agy 账号已在账号池，未重复导入：${localAccountImport.account.email || localAccountImport.account.id}`);
-    } else if (localAccountImport?.status === 'removed') {
-      gatewayLog(`[Antigravity Gateway] 本地 agy 账号已按用户删除设置从账号池排除：${localAccountImport.identity.email || localAccountImport.identity.subjectId}`);
-    } else if (localAccountImport?.status === 'error') {
-      gatewayWarn(`[Antigravity Gateway] 本地 agy 账号自动导入未完成：${localAccountImport.message}（不影响已有账号池和原有登录态）`);
-    }
     if (!shuttingDown) {
       TERMINAL.showDashboard();
       TERMINAL.start();

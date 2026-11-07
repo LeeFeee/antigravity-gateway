@@ -1,0 +1,75 @@
+{
+  "agent": "hermes",
+  "version": "0.21.7+11153.g2bd378e",
+  "commit": "2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19",
+  "scenario": "read",
+  "recordedAt": "2026-11-06T17:54:15.229Z",
+  "model": "claude-sonnet-4-6",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "isolation": "fresh client HOME/workdir; separate copied agy account pool with original quota and health; CLI loopback only; original native Go TLS transport retained",
+  "source": {
+    "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+    "files": 51
+  },
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "bddf055cac2df96e89160ca27e7794e8c489f6978295bd6be925bab10733b70e",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "command": [
+    "/home/probe/.local/bin/hermes",
+    "chat",
+    "-q",
+    "This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/hermes-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents.",
+    "--oneshot",
+    "--provider",
+    "local-probe",
+    "--model",
+    "claude-sonnet-4-6",
+    "--format",
+    "stream-json",
+    "--max-turns",
+    "3",
+    "--toolsets",
+    "file"
+  ],
+  "marker": "REAL_GATEWAY_READ_d45f10cfb78e655c",
+  "assessment": {
+    "passed": false,
+    "checks": {
+      "clientSucceeded": false,
+      "gatewayHTTP": false,
+      "realNativeTLS": false,
+      "finalMarkerDelivered": false,
+      "officialUA": true,
+      "actualFixtureResult": false,
+      "followupGeneration": false,
+      "originalClientToolName": false,
+      "noUnexpectedToolCall": true
+    },
+    "generationCount": 0,
+    "clientRequests": 0,
+    "nativeResultNames": []
+  },
+  "outcome": {
+    "code": 126,
+    "signal": null,
+    "clientReportedError": false
+  },
+  "trace": [],
+  "stdout": "",
+  "stderr": "/home/probe/.hermes/hermes-agent/.hermes/bin/hermes: line 2: /home/probe/.hermes/tools/python-3.14.9+20261021-darwin-arm64/bin/python3: Operation not permitted\n/home/probe/.hermes/hermes-agent/.hermes/bin/hermes: line 2: exec: /home/probe/.hermes/tools/python-3.14.9+20261021-darwin-arm64/bin/python3: cannot execute: Operation not permitted\n"
+}

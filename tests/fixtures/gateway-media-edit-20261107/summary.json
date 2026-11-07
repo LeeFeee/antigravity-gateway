@@ -1,0 +1,163 @@
+{
+  "recordedAt": "2026-11-06T18:15:08.266Z",
+  "source": {
+    "sha256": "f5352b06bf541043bb384e69efb76b1d831e6d47ec772faa45e6c3d5a69e5e57",
+    "files": 53,
+    "verifierSha256": "d67ce38667e5b59de97c606e11f51b31212dac7587a8b6c46133da3cfddb4b16"
+  },
+  "models": [
+    "gemini-3.1-flash-image"
+  ],
+  "scenarios": [
+    "image-edit"
+  ],
+  "inputs": {
+    "image": {
+      "filename": "image-fixture.png",
+      "mimeType": "image/png",
+      "bytes": 186,
+      "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7",
+      "streams": [
+        {
+          "codec_name": "png",
+          "codec_type": "video",
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "video": {
+      "filename": "video-fixture.mp4",
+      "mimeType": "video/mp4",
+      "bytes": 8999,
+      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 128,
+          "height": 96
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "16000",
+          "channels": 1
+        }
+      ],
+      "duration": "2.000000"
+    }
+  },
+  "editReference": {
+    "file": "image-generation.jpg",
+    "mimeType": "image/jpeg",
+    "bytes": 205204,
+    "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f",
+    "codec_name": "mjpeg",
+    "width": 1024,
+    "height": 1024,
+    "centerRGB": [
+      208,
+      19,
+      50
+    ]
+  },
+  "accountDataRead": true,
+  "realRequestsSent": true,
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "productionAccountsUnchanged": true,
+  "productionStateUnchanged": true,
+  "accountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "accountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "stateBefore": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9"
+  },
+  "stateAfter": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "53c82fd4477af18357c9685992e60694bd90336a0231a82ecb34068b22e2d7e9"
+  },
+  "sourceAfter": {
+    "sha256": "f5352b06bf541043bb384e69efb76b1d831e6d47ec772faa45e6c3d5a69e5e57",
+    "files": 53
+  },
+  "sourceUnchanged": true,
+  "startup": {
+    "status": 200,
+    "modelIds": [
+      "gemini-3.8-flash-high",
+      "claude-opus-4-6-thinking",
+      "claude-sonnet-4-6",
+      "gemini-3.1-flash-image",
+      "gemini-3.8-flash-medium",
+      "gemini-3.8-flash-low",
+      "gemini-3.8-flash-tiered",
+      "gemini-3.1-flash-lite",
+      "gemini-3-flash",
+      "gemini-2.5-pro",
+      "gemini-2.5-flash-thinking",
+      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
+      "chat_20706",
+      "chat_23310",
+      "gemini-3.5-flash-lite",
+      "gemini-4-argon-disabled",
+      "gpt-oss-120b-medium",
+      "tab_flash_lite_preview",
+      "tab_jump_flash_lite_preview"
+    ]
+  },
+  "results": [
+    {
+      "scenario": "image-edit",
+      "model": "gemini-3.1-flash-image",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "gatewayHTTP": true,
+          "requestedModelPreserved": true,
+          "originalGoTLS": true,
+          "officialUA": true,
+          "exactMediaBytes": true,
+          "imageEnvelope": true,
+          "savedFileReadBack": true,
+          "decodableImage": true,
+          "requestedColor": true
+        },
+        "nativeGenerations": 1,
+        "nativeStatuses": [
+          200
+        ],
+        "answer": ""
+      },
+      "status": 200,
+      "blocked": false
+    }
+  ],
+  "gatewayStdout": "[Antigravity Gateway] 看板来源：仅本机\n=================================================================\n 🚀 Antigravity Gateway 已启动\n-----------------------------------------------------------------\n 网关版本: v1.7.5\n BaseURL:\n    Anthropic: http://127.0.0.1:61039\n    OpenAI: http://127.0.0.1:61039/v1\n API Key: 已配置（使用 ANTIGRAVITY_GATEWAY_API_KEY 的值）\n 本地密钥: /tmp/real-client-gateway/gateway-data/accounts（6 个账号）\n 上游协议: Google Antigravity API（agy 1.5.2）\n 可用模型:\n    gemini-3.8-flash-high\n    claude-opus-4-6-thinking\n    claude-sonnet-4-6\n    gemini-3.8-flash-medium\n    gemini-3.8-flash-low\n    gemini-3.8-flash-tiered\n 更多模型: antigravity-gateway --models\n Claude Code 模型配置: antigravity-gateway --claude-config-path\n Token 看板: antigravity-gateway stats\n=================================================================\n-----------------------------------------------------------------\n 账号状态: 1/6 可用，1/1 额度可用\n 历史总量: 0 Token  请求 0  上游调用 0\n 输入: 0  输出: 0  缓存: 0  命中率: --\n 最近24小时：▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  合计 0 Token\n 统计更新: 2026-11-06T18:15:08.326Z（总量24小时、图表1小时、磁盘5分钟）\n-----------------------------------------------------------------\n[Antigravity Gateway] 生图账号=<REDACTED_VALUE> source=manual-oauth model=gemini-3.1-flash-image attempt=1 request=req_e0adb1 client=gateway-media-verifier session=dfbed82941 affinity=d0eba9a3d2\n",
+  "gatewayStderr": "",
+  "boundary": "Owned temporary foreground gateway only. No formal service start/restart; no protection reset; exact MP4 includes audio but audio semantics are not independently verified."
+}

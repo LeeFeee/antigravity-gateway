@@ -1,0 +1,1794 @@
+{
+  "agent": "dsh",
+  "version": "0.2.1-rc.2",
+  "scenario": "read",
+  "recordedAt": "2026-11-06T17:56:13.910Z",
+  "model": "claude-sonnet-4-6",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "realModelValidated": true,
+  "tlsValidated": true,
+  "isolation": "fresh client HOME/workdir; separate copied agy account pool with original quota and health; CLI loopback only; original native Go TLS transport retained",
+  "source": {
+    "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+    "files": 51
+  },
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "bddf055cac2df96e89160ca27e7794e8c489f6978295bd6be925bab10733b70e",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/dsh",
+    "--profile",
+    "headless",
+    "--patch",
+    "/tmp/real-client-gateway/dsh-read/dsh-probe.yml",
+    "--json",
+    "This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents."
+  ],
+  "marker": "REAL_GATEWAY_READ_38987df2532d7436",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "realNativeTLS": true,
+      "finalMarkerDelivered": true,
+      "officialUA": true,
+      "actualFixtureResult": true,
+      "followupGeneration": true,
+      "originalClientToolName": true,
+      "noUnexpectedToolCall": true
+    },
+    "generationCount": 3,
+    "clientRequests": 3,
+    "nativeResultNames": [
+      "mcp_gateway_tool_9120d3e96e5e451d"
+    ]
+  },
+  "outcome": {
+    "code": 0,
+    "signal": null,
+    "clientReportedError": false
+  },
+  "trace": [
+    {
+      "type": "native-request",
+      "id": "3a121263-f578-406f-9c76-836328efa46f",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "agent/5f109f9d-cdf8-404a-b0c6-f5424f935787/1793987765840/b92dfecf-2357-4523-b602-753c3e63e9dd/2",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nThis is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:56:05+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nCurrent runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: \"/tmp/real-client-gateway/dsh-read/work\".\n\nCurrent DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:56:05+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You are an AI agent powered by DeepSeek Harness.\n\nYou are a coding agent powered by the claude-sonnet-4-6 model.\n\nUse the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.\n\nRead an existing file before overwriting it with write (the default fs-observation-policy requires it) and prefer edit for targeted changes.\n\nRead a file before editing it (the default fs-observation-policy requires it), unless you just created or edited it in this session.\n\nUse the glob tool — not shell find — to discover files by path pattern.\n\nUse the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"edit\": mcp_gateway_tool_315a1049195c8171 (mcp-direct), mcp_gateway_tool_3a2ced3098743b5f_json (mcp-json)\n\"exit_plan_mode\": mcp_gateway_tool_98e6660adabf794b (mcp-direct), mcp_gateway_tool_c7e2332de0a23d5d_json (mcp-json)\n\"glob\": mcp_gateway_tool_484e4feddfdbdd49 (mcp-direct), mcp_gateway_tool_a7d470401912efe9_json (mcp-json)\n\"grep\": mcp_gateway_tool_570e90026ddaf7dd (mcp-direct), mcp_gateway_tool_32aab0b5c7bfc8e9_json (mcp-json)\n\"read\": mcp_gateway_tool_9120d3e96e5e451d (mcp-direct), mcp_gateway_tool_8ced4fd46d19bb2d_json (mcp-json)\n\"read_image\": mcp_gateway_tool_dd98e85878abc320 (mcp-direct), mcp_gateway_tool_5539ac8353b142ef_json (mcp-json)\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_315a1049195c8171",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_3a2ced3098743b5f_json; toolSummary is transport metadata only in this view.\nEdit an existing UTF-8 text file by replacing literal text.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+                      },
+                      "old_string": {
+                        "type": "STRING",
+                        "description": "Literal text to replace."
+                      },
+                      "new_string": {
+                        "type": "STRING",
+                        "description": "Literal replacement text. Use an empty string to delete the match."
+                      },
+                      "replace_all": {
+                        "type": "BOOLEAN",
+                        "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+                      },
+                      "sandbox_permissions": {
+                        "type": "STRING",
+                        "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                        "enum": [
+                          "workspace-write",
+                          "danger-full-access"
+                        ]
+                      },
+                      "justification": {
+                        "type": "STRING",
+                        "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "old_string",
+                      "new_string",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_3a2ced3098743b5f_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nEdit an existing UTF-8 text file by replacing literal text.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments.\"},\"old_string\":{\"type\":\"string\",\"description\":\"Literal text to replace.\"},\"new_string\":{\"type\":\"string\",\"description\":\"Literal replacement text. Use an empty string to delete the match.\"},\"replace_all\":{\"type\":\"boolean\",\"description\":\"Replace all matches. Defaults to false; when false, old_string must appear exactly once.\"},\"sandbox_permissions\":{\"type\":\"string\",\"description\":\"The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.\",\"enum\":[\"workspace-write\",\"danger-full-access\"]},\"justification\":{\"type\":\"string\",\"description\":\"Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.\"}},\"required\":[\"file_path\",\"old_string\",\"new_string\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_98e6660adabf794b",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_c7e2332de0a23d5d_json; toolSummary is transport metadata only in this view.\nUse only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "plan": {
+                        "type": "STRING",
+                        "description": "The complete plan, as markdown, starting with a # heading that names it."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "plan",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_c7e2332de0a23d5d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nUse only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"plan\":{\"type\":\"string\",\"description\":\"The complete plan, as markdown, starting with a # heading that names it.\"}},\"required\":[\"plan\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_484e4feddfdbdd49",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a7d470401912efe9_json; toolSummary is transport metadata only in this view.\nFind files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a7d470401912efe9_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nFind files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Glob pattern to match file paths against (e.g. \\\"**/*.ts\\\", \\\"src/**/*.test.js\\\"). A pattern with no \\\"/\\\" matches the basename at any depth, so \\\"*\\\" and \\\"*.ts\\\" both search the whole tree; include a separator to anchor the depth.\"},\"path\":{\"type\":\"string\",\"description\":\"Directory to search in. Defaults to the session workspace; a relative path resolves against it.\"}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_570e90026ddaf7dd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_32aab0b5c7bfc8e9_json; toolSummary is transport metadata only in this view.\nSearch file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Regular expression to search for (ripgrep syntax)."
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+                      },
+                      "include": {
+                        "type": "STRING",
+                        "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_32aab0b5c7bfc8e9_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Regular expression to search for (ripgrep syntax).\"},\"path\":{\"type\":\"string\",\"description\":\"File or directory to search. Defaults to the session workspace; a relative path resolves against it.\"},\"include\":{\"type\":\"string\",\"description\":\"One glob filter for which files to search (e.g. \\\"*.ts\\\", \\\"*.{js,jsx}\\\"). Not a list; negation is not supported.\"}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_8ced4fd46d19bb2d_json; toolSummary is transport metadata only in this view.\nRead a UTF-8 text file and return line-numbered content.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to read, resolved by the filesystem backend."
+                      },
+                      "offset": {
+                        "type": "NUMBER",
+                        "description": "1-based first line to return. Defaults to 1."
+                      },
+                      "limit": {
+                        "type": "NUMBER",
+                        "description": "Maximum number of lines to return. Defaults to 2000."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_8ced4fd46d19bb2d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a UTF-8 text file and return line-numbered content.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to read, resolved by the filesystem backend.\"},\"offset\":{\"type\":\"number\",\"description\":\"1-based first line to return. Defaults to 1.\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to return. Defaults to 2000.\"}},\"required\":[\"file_path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_dd98e85878abc320",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_5539ac8353b142ef_json; toolSummary is transport metadata only in this view.\nRead a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to the image file, resolved by the filesystem backend."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_5539ac8353b142ef_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to the image file, resolved by the filesystem backend.\"}},\"required\":[\"file_path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nCreate or fully replace a UTF-8 text file.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Full UTF-8 text content to write."
+                      },
+                      "sandbox_permissions": {
+                        "type": "STRING",
+                        "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                        "enum": [
+                          "workspace-write",
+                          "danger-full-access"
+                        ]
+                      },
+                      "justification": {
+                        "type": "STRING",
+                        "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nCreate or fully replace a UTF-8 text file.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments.\"},\"content\":{\"type\":\"string\",\"description\":\"Full UTF-8 text content to write.\"},\"sandbox_permissions\":{\"type\":\"string\",\"description\":\"The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.\",\"enum\":[\"workspace-write\",\"danger-full-access\"]},\"justification\":{\"type\":\"string\",\"description\":\"Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.\"}},\"required\":[\"file_path\",\"content\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "last_step_index": "1",
+            "model_enum": "MODEL_PLACEHOLDER_M35",
+            "request_id": "b92dfecf-2357-4523-b602-753c3e63e9dd-0",
+            "root_cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "trajectory_id": "b92dfecf-2357-4523-b602-753c3e63e9dd",
+            "used_claude": "true",
+            "used_claude_conservative": "true",
+            "used_non_gemini_model": "true"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "claude-sonnet-4-6",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "native-response",
+      "id": "3a121263-f578-406f-9c76-836328efa46f",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-disposition": "attachment",
+        "content-type": "text/event-stream",
+        "date": "Fri, 06 Nov 2026 17:56:01 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=1652",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-c934cde151d9ca2b21fe"
+    },
+    {
+      "type": "native-body",
+      "id": "3a121263-f578-406f-9c76-836328efa46f",
+      "body": "data: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \"Let\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" me read\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" the file\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" as\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" requested\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \".\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"thoughtSignature\": \"RXBrQ0NwUUJDQk1RQWhnQ0trQmptWTFnVzhkU0tMbEpJaFpmN2xadS9ZM3ZwN3ZMRkVOd2tBamtOLzd5MnlJY0Q2Z1k1cG1pZDJKUnFuUzZEcjd1eGtNSVhJVjRXU2gybDB4dkhub29NaEZqYkdGMVpHVXRjMjl1Ym1WMExUUXROamdBUWdoMGFHbHVhMmx1WjFvTU9EZzBNelUwT1RFNU1EVXljaERzOU5TbXJSd1AzNFViN1V2RWZOYnBpQUVCcUFHeXFialhCckFCQWhJTVk0NzFXVEFNSnBRaFF2UDFHZ3huM08zZUVWMkt0ZXBKc2FjaU1KTmFQamFOS3hLZlpXWUVDMGRXTDNFNmhON01KRzVKbFlrdHUxZHp4Q1lHTUJoQ0ZYTXRtMlZGZlF4eTljcWcrU295a2Q4TXFSZDlrYWhRVFhnaHdSYkxWWWZGbzdaVGxLcXpvMVdRTXhkL0thUUg1Ym4zVlpQbU9FTUZiTjFxVEZNNUd2c1lBUT09\",\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"functionCall\": {\"name\": \"mcp_gateway_tool_9120d3e96e5e451d\",\"args\": {\"toolSummary\": \"Read probe input file\",\"file_path\": \"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\",\"offset\": 1,\"limit\": 2},\"id\": \"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5\"}}]}}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 1,\"totalTokenCount\": 6498,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]},\"finishReason\": \"STOP\"}],\"usageMetadata\": {\"promptTokenCount\": 6497,\"candidatesTokenCount\": 171,\"totalTokenCount\": 6668,\"cachedContentTokenCount\": 5761},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74AhTTcnaiGBtHcfX8\"},\"traceId\": \"7327e5b48889857f\",\"metadata\": {}}\r\n\r\n"
+    },
+    {
+      "type": "native-request",
+      "id": "b899c3d2-7900-4909-8347-01cb529fffb8",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "agent/5f109f9d-cdf8-404a-b0c6-f5424f935787/1793987769608/b92dfecf-2357-4523-b602-753c3e63e9dd/4",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nGenerate the session title from this JSON array of human messages:\n[{\"seq\":8,\"text\":\"This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents.\"}]\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:56:09+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Create a concise title for an AI coding-assistant session from the supplied human messages.\nReturn only the title on one line, **in plain text of natural language**, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes. No code is allowed.\nUse the language of the messages.\nAim for about 5 words in non-CJK languages or 10 CJK characters.\nIf the messages give little to name, still return a short best-effort title, such as Greeting, instead of explaining."
+              }
+            ]
+          },
+          "labels": {
+            "cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "last_step_index": "3",
+            "model_enum": "MODEL_PLACEHOLDER_M35",
+            "request_id": "b92dfecf-2357-4523-b602-753c3e63e9dd-1",
+            "root_cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "trajectory_id": "b92dfecf-2357-4523-b602-753c3e63e9dd",
+            "used_claude": "true",
+            "used_claude_conservative": "true",
+            "used_non_gemini_model": "true"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 4096,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "claude-sonnet-4-6",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:59655",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "session_id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "x-client-request-id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "user-agent": "deepseek-harness/0.2.1-rc.2 (+https://github.com/deepseek-ai/deepseek-harness)",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "6939"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are an AI agent powered by DeepSeek Harness.\n\nYou are a coding agent powered by the claude-sonnet-4-6 model.\n\nUse the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.\n\nRead an existing file before overwriting it with write (the default fs-observation-policy requires it) and prefer edit for targeted changes.\n\nRead a file before editing it (the default fs-observation-policy requires it), unless you just created or edited it in this session.\n\nUse the glob tool — not shell find — to discover files by path pattern.\n\nUse the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents."
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: \"/tmp/real-client-gateway/dsh-read/work\".\n\nCurrent DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed."
+              }
+            ]
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "edit",
+            "description": "Edit an existing UTF-8 text file by replacing literal text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+                },
+                "old_string": {
+                  "type": "string",
+                  "description": "Literal text to replace."
+                },
+                "new_string": {
+                  "type": "string",
+                  "description": "Literal replacement text. Use an empty string to delete the match."
+                },
+                "replace_all": {
+                  "type": "boolean",
+                  "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+                },
+                "sandbox_permissions": {
+                  "type": "string",
+                  "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                  "enum": [
+                    "workspace-write",
+                    "danger-full-access"
+                  ]
+                },
+                "justification": {
+                  "type": "string",
+                  "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                }
+              },
+              "required": [
+                "file_path",
+                "old_string",
+                "new_string"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "exit_plan_mode",
+            "description": "Use only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "plan": {
+                  "type": "string",
+                  "description": "The complete plan, as markdown, starting with a # heading that names it."
+                }
+              },
+              "required": [
+                "plan"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "glob",
+            "description": "Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "grep",
+            "description": "Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Regular expression to search for (ripgrep syntax)."
+                },
+                "path": {
+                  "type": "string",
+                  "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+                },
+                "include": {
+                  "type": "string",
+                  "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read",
+            "description": "Read a UTF-8 text file and return line-numbered content.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to read, resolved by the filesystem backend."
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "1-based first line to return. Defaults to 1."
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum number of lines to return. Defaults to 2000."
+                }
+              },
+              "required": [
+                "file_path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read_image",
+            "description": "Read a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to the image file, resolved by the filesystem backend."
+                }
+              },
+              "required": [
+                "file_path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Create or fully replace a UTF-8 text file.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Full UTF-8 text content to write."
+                },
+                "sandbox_permissions": {
+                  "type": "string",
+                  "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                  "enum": [
+                    "workspace-write",
+                    "danger-full-access"
+                  ]
+                },
+                "justification": {
+                  "type": "string",
+                  "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                }
+              },
+              "required": [
+                "file_path",
+                "content"
+              ]
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "high",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_5de52f83807949bf81431e7f2c8c46e9\",\"object\":\"response\",\"created_at\":1793987769,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[],\"usage\":{\"input_tokens\":6497,\"output_tokens\":171,\"total_tokens\":6668}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"type\":\"reasoning\",\"status\":\"in_progress\",\"summary\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.reasoning_summary_part.added\",\"item_id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"\"},\"sequence_number\":2}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"output_index\":0,\"summary_index\":0,\"delta\":\"Let me read the file as requested.\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.reasoning_summary_text.done\",\"item_id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"output_index\":0,\"summary_index\":0,\"text\":\"Let me read the file as requested.\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.reasoning_summary_part.done\",\"item_id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"Let me read the file as requested.\"},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Let me read the file as requested.\"}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"fc_e15c7400a4dd43a4874a67b29dd26e16\",\"type\":\"function_call\",\"status\":\"in_progress\",\"call_id\":\"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5\",\"name\":\"read\",\"arguments\":\"{\\\"file_path\\\":\\\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"},\"sequence_number\":7}\n\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_e15c7400a4dd43a4874a67b29dd26e16\",\"output_index\":1,\"delta\":\"{\\\"file_path\\\":\\\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\",\"sequence_number\":8}\n\ndata: {\"type\":\"response.function_call_arguments.done\",\"item_id\":\"fc_e15c7400a4dd43a4874a67b29dd26e16\",\"output_index\":1,\"arguments\":\"{\\\"file_path\\\":\\\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\",\"sequence_number\":9}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"id\":\"fc_e15c7400a4dd43a4874a67b29dd26e16\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5\",\"name\":\"read\",\"arguments\":\"{\\\"file_path\\\":\\\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"},\"sequence_number\":10}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":11,\"response\":{\"id\":\"resp_5de52f83807949bf81431e7f2c8c46e9\",\"object\":\"response\",\"created_at\":1793987769,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[{\"id\":\"rs_88c34325d2654a7a9f6ef0d3c57039a9\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"Let me read the file as requested.\"}]},{\"id\":\"fc_e15c7400a4dd43a4874a67b29dd26e16\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5\",\"name\":\"read\",\"arguments\":\"{\\\"file_path\\\":\\\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"}],\"usage\":{\"input_tokens\":6497,\"output_tokens\":171,\"total_tokens\":6668}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "type": "native-response",
+      "id": "b899c3d2-7900-4909-8347-01cb529fffb8",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-disposition": "attachment",
+        "content-type": "text/event-stream",
+        "date": "Fri, 06 Nov 2026 17:56:05 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=1444",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-c934cde151d9ca2b21fe"
+    },
+    {
+      "type": "native-body",
+      "id": "b899c3d2-7900-4909-8347-01cb529fffb8",
+      "body": "data: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \"File\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" reading test\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" second\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \" line extraction\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"thoughtSignature\": \"RXA4Q0NwUUJDQk1RQWhnQ0trQ1QvblpDOVN6Vll0V1MzY2t2YmVJbzRNem0wOWpDUEhBaW9UYWxlYVRZOEhIdGlINVNtMEJDanN5emRqb3F5U3daWEpnRm5GRXRzS3gvR2ROTW5mOUFNaEZqYkdGMVpHVXRjMjl1Ym1WMExUUXROamdBUWdoMGFHbHVhMmx1WjFvTU9EZzBNelUwT1RFNU1EVXljaERzOU5TbXJSd1AzNFViN1V2RWZOYnBpQUVCcUFHMXFialhCckFCQWhJTWtURG9ncTI1MHNKNEVkVVZHZ3ovNEIyTnMvT2Z5VnlBK2pNaU1JdVd5RDU0bWlUWjgvbFlNNXVGM0M3czBzRENhbi9Sa0E0dHdWMG1tUlRwVGR2ZG56U2o2MktNVnNWcjVQOTA0Q280Q1NTaXk5UjE5M3BFSFJ3aFFWKzVaYmRQSGpXS1JUUjAveXdLamMzZ1QvaUI5R3pvNU5taGhvcG5NNGFUK0lWeGRncUs4cXpFZjI4WUFRPT0=\",\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"File\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \" reading\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \" tool isolated\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \" line\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \" test\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 1,\"totalTokenCount\": 322},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]},\"finishReason\": \"STOP\"}],\"usageMetadata\": {\"promptTokenCount\": 321,\"candidatesTokenCount\": 23,\"totalTokenCount\": 344},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74Rp3fGwKr8p8h4ZgC\"},\"traceId\": \"30aaf803b0671ec\",\"metadata\": {}}\r\n\r\n"
+    },
+    {
+      "type": "native-request",
+      "id": "88ee1957-7d63-484a-b51d-e1f75f3e411e",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "agent/5f109f9d-cdf8-404a-b0c6-f5424f935787/1793987771679/b92dfecf-2357-4523-b602-753c3e63e9dd/9",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nThis is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:56:11+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            },
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nCurrent runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: \"/tmp/real-client-gateway/dsh-read/work\".\n\nCurrent DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:56:11+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5",
+                    "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                    "args": {
+                      "file_path": "/tmp/real-client-gateway/dsh-read/work/probe-input.txt",
+                      "limit": 2,
+                      "offset": 1,
+                      "toolSummary": "Read probe input file"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5",
+                    "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                    "response": {
+                      "output": "<path>/tmp/real-client-gateway/dsh-read/work/probe-input.txt</path>\n<type>file</type>\n<content>\n1: CONTROLLED_READ_FIXTURE\n2: REAL_GATEWAY_READ_38987df2532d7436\n\n(End of file - total 2 lines)\n</content>"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You are an AI agent powered by DeepSeek Harness.\n\nYou are a coding agent powered by the claude-sonnet-4-6 model.\n\nUse the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.\n\nRead an existing file before overwriting it with write (the default fs-observation-policy requires it) and prefer edit for targeted changes.\n\nRead a file before editing it (the default fs-observation-policy requires it), unless you just created or edited it in this session.\n\nUse the glob tool — not shell find — to discover files by path pattern.\n\nUse the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context.\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"edit\": mcp_gateway_tool_315a1049195c8171 (mcp-direct), mcp_gateway_tool_3a2ced3098743b5f_json (mcp-json)\n\"exit_plan_mode\": mcp_gateway_tool_98e6660adabf794b (mcp-direct), mcp_gateway_tool_c7e2332de0a23d5d_json (mcp-json)\n\"glob\": mcp_gateway_tool_484e4feddfdbdd49 (mcp-direct), mcp_gateway_tool_a7d470401912efe9_json (mcp-json)\n\"grep\": mcp_gateway_tool_570e90026ddaf7dd (mcp-direct), mcp_gateway_tool_32aab0b5c7bfc8e9_json (mcp-json)\n\"read\": mcp_gateway_tool_9120d3e96e5e451d (mcp-direct), mcp_gateway_tool_8ced4fd46d19bb2d_json (mcp-json)\n\"read_image\": mcp_gateway_tool_dd98e85878abc320 (mcp-direct), mcp_gateway_tool_5539ac8353b142ef_json (mcp-json)\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_315a1049195c8171",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_3a2ced3098743b5f_json; toolSummary is transport metadata only in this view.\nEdit an existing UTF-8 text file by replacing literal text.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+                      },
+                      "old_string": {
+                        "type": "STRING",
+                        "description": "Literal text to replace."
+                      },
+                      "new_string": {
+                        "type": "STRING",
+                        "description": "Literal replacement text. Use an empty string to delete the match."
+                      },
+                      "replace_all": {
+                        "type": "BOOLEAN",
+                        "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+                      },
+                      "sandbox_permissions": {
+                        "type": "STRING",
+                        "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                        "enum": [
+                          "workspace-write",
+                          "danger-full-access"
+                        ]
+                      },
+                      "justification": {
+                        "type": "STRING",
+                        "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "old_string",
+                      "new_string",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_3a2ced3098743b5f_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nEdit an existing UTF-8 text file by replacing literal text.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments.\"},\"old_string\":{\"type\":\"string\",\"description\":\"Literal text to replace.\"},\"new_string\":{\"type\":\"string\",\"description\":\"Literal replacement text. Use an empty string to delete the match.\"},\"replace_all\":{\"type\":\"boolean\",\"description\":\"Replace all matches. Defaults to false; when false, old_string must appear exactly once.\"},\"sandbox_permissions\":{\"type\":\"string\",\"description\":\"The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.\",\"enum\":[\"workspace-write\",\"danger-full-access\"]},\"justification\":{\"type\":\"string\",\"description\":\"Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.\"}},\"required\":[\"file_path\",\"old_string\",\"new_string\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_98e6660adabf794b",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_c7e2332de0a23d5d_json; toolSummary is transport metadata only in this view.\nUse only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "plan": {
+                        "type": "STRING",
+                        "description": "The complete plan, as markdown, starting with a # heading that names it."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "plan",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_c7e2332de0a23d5d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nUse only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"plan\":{\"type\":\"string\",\"description\":\"The complete plan, as markdown, starting with a # heading that names it.\"}},\"required\":[\"plan\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_484e4feddfdbdd49",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a7d470401912efe9_json; toolSummary is transport metadata only in this view.\nFind files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a7d470401912efe9_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nFind files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Glob pattern to match file paths against (e.g. \\\"**/*.ts\\\", \\\"src/**/*.test.js\\\"). A pattern with no \\\"/\\\" matches the basename at any depth, so \\\"*\\\" and \\\"*.ts\\\" both search the whole tree; include a separator to anchor the depth.\"},\"path\":{\"type\":\"string\",\"description\":\"Directory to search in. Defaults to the session workspace; a relative path resolves against it.\"}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_570e90026ddaf7dd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_32aab0b5c7bfc8e9_json; toolSummary is transport metadata only in this view.\nSearch file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Regular expression to search for (ripgrep syntax)."
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+                      },
+                      "include": {
+                        "type": "STRING",
+                        "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_32aab0b5c7bfc8e9_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Regular expression to search for (ripgrep syntax).\"},\"path\":{\"type\":\"string\",\"description\":\"File or directory to search. Defaults to the session workspace; a relative path resolves against it.\"},\"include\":{\"type\":\"string\",\"description\":\"One glob filter for which files to search (e.g. \\\"*.ts\\\", \\\"*.{js,jsx}\\\"). Not a list; negation is not supported.\"}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_8ced4fd46d19bb2d_json; toolSummary is transport metadata only in this view.\nRead a UTF-8 text file and return line-numbered content.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to read, resolved by the filesystem backend."
+                      },
+                      "offset": {
+                        "type": "NUMBER",
+                        "description": "1-based first line to return. Defaults to 1."
+                      },
+                      "limit": {
+                        "type": "NUMBER",
+                        "description": "Maximum number of lines to return. Defaults to 2000."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_8ced4fd46d19bb2d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a UTF-8 text file and return line-numbered content.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to read, resolved by the filesystem backend.\"},\"offset\":{\"type\":\"number\",\"description\":\"1-based first line to return. Defaults to 1.\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to return. Defaults to 2000.\"}},\"required\":[\"file_path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_dd98e85878abc320",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_5539ac8353b142ef_json; toolSummary is transport metadata only in this view.\nRead a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to the image file, resolved by the filesystem backend."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_5539ac8353b142ef_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to the image file, resolved by the filesystem backend.\"}},\"required\":[\"file_path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nCreate or fully replace a UTF-8 text file.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "file_path": {
+                        "type": "STRING",
+                        "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Full UTF-8 text content to write."
+                      },
+                      "sandbox_permissions": {
+                        "type": "STRING",
+                        "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                        "enum": [
+                          "workspace-write",
+                          "danger-full-access"
+                        ]
+                      },
+                      "justification": {
+                        "type": "STRING",
+                        "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "file_path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nCreate or fully replace a UTF-8 text file.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"file_path\":{\"type\":\"string\",\"description\":\"Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments.\"},\"content\":{\"type\":\"string\",\"description\":\"Full UTF-8 text content to write.\"},\"sandbox_permissions\":{\"type\":\"string\",\"description\":\"The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.\",\"enum\":[\"workspace-write\",\"danger-full-access\"]},\"justification\":{\"type\":\"string\",\"description\":\"Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request.\"}},\"required\":[\"file_path\",\"content\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "last_execution_id": "328f7ad6-5395-4702-a49c-6193820eab74",
+            "last_step_index": "8",
+            "model_enum": "MODEL_PLACEHOLDER_M35",
+            "request_id": "b92dfecf-2357-4523-b602-753c3e63e9dd-2",
+            "root_cascade_id": "5f109f9d-cdf8-404a-b0c6-f5424f935787",
+            "trajectory_id": "b92dfecf-2357-4523-b602-753c3e63e9dd",
+            "used_claude": "true",
+            "used_claude_conservative": "true",
+            "used_non_gemini_model": "true"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "claude-sonnet-4-6",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:59655",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "session_id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "x-client-request-id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "user-agent": "deepseek-harness/0.2.1-rc.2 (+https://github.com/deepseek-ai/deepseek-harness)",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "1202"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "input": [
+          {
+            "role": "developer",
+            "content": "Create a concise title for an AI coding-assistant session from the supplied human messages.\nReturn only the title on one line, **in plain text of natural language**, with no quotes, prefix, explanation, Markdown, XML, or terminal control codes. No code is allowed.\nUse the language of the messages.\nAim for about 5 words in non-CJK languages or 10 CJK characters.\nIf the messages give little to name, still return a short best-effort title, such as Greeting, instead of explaining."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Generate the session title from this JSON array of human messages:\n[{\"seq\":8,\"text\":\"This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents.\"}]"
+              }
+            ]
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "store": false,
+        "max_output_tokens": 4096,
+        "reasoning": {
+          "effort": "high",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_c55d5cf52ef641f895fdbf464872aefd\",\"object\":\"response\",\"created_at\":1793987765,\"model\":\"claude-sonnet-4-6\",\"status\":\"in_progress\",\"output\":[],\"error\":null,\"incomplete_details\":null,\"usage\":null},\"sequence_number\":0}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"type\":\"reasoning\",\"status\":\"in_progress\",\"summary\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.reasoning_summary_part.added\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"\"},\"sequence_number\":2}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"delta\":\"File\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"delta\":\" reading test\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"delta\":\" second\",\"sequence_number\":5}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"delta\":\" line extraction\",\"sequence_number\":6}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"in_progress\",\"content\":[]},\"sequence_number\":7}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":8}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"delta\":\"File\",\"sequence_number\":9}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"delta\":\" reading\",\"sequence_number\":10}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"delta\":\" tool isolated\",\"sequence_number\":11}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"delta\":\" line\",\"sequence_number\":12}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"delta\":\" test\",\"sequence_number\":13}\n\ndata: {\"type\":\"response.reasoning_summary_text.done\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"text\":\"File reading test second line extraction\",\"sequence_number\":14}\n\ndata: {\"type\":\"response.reasoning_summary_part.done\",\"item_id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"File reading test second line extraction\"},\"sequence_number\":15}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"File reading test second line extraction\"}]},\"sequence_number\":16}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"text\":\"File reading tool isolated line test\",\"sequence_number\":17}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"output_index\":1,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"File reading tool isolated line test\",\"annotations\":[]},\"sequence_number\":18}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"File reading tool isolated line test\",\"annotations\":[]}]},\"sequence_number\":19}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_c55d5cf52ef641f895fdbf464872aefd\",\"object\":\"response\",\"created_at\":1793987765,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[{\"id\":\"rs_849536110e0544098b68ec8dba3ac976\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"File reading test second line extraction\"}]},{\"id\":\"msg_506b65372dcb48ca8ef162c8a48b8ef4\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"File reading tool isolated line test\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":321,\"output_tokens\":23,\"total_tokens\":344}},\"sequence_number\":20}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "type": "native-response",
+      "id": "88ee1957-7d63-484a-b51d-e1f75f3e411e",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-disposition": "attachment",
+        "content-type": "text/event-stream",
+        "date": "Fri, 06 Nov 2026 17:56:07 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=1596",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-c934cde151d9ca2b21fe"
+    },
+    {
+      "type": "native-body",
+      "id": "88ee1957-7d63-484a-b51d-e1f75f3e411e",
+      "body": "data: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6698,\"candidatesTokenCount\": 2,\"totalTokenCount\": 6700},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74auV6SQYUxKdKkKyL\"},\"traceId\": \"ab8ce235a34f5754\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"REAL\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6698,\"candidatesTokenCount\": 2,\"totalTokenCount\": 6700},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74auV6SQYUxKdKkKyL\"},\"traceId\": \"ab8ce235a34f5754\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"_GATEWAY_READ_38\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6698,\"candidatesTokenCount\": 2,\"totalTokenCount\": 6700},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74auV6SQYUxKdKkKyL\"},\"traceId\": \"ab8ce235a34f5754\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"987df2532d7436\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 6698,\"candidatesTokenCount\": 2,\"totalTokenCount\": 6700},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74auV6SQYUxKdKkKyL\"},\"traceId\": \"ab8ce235a34f5754\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]},\"finishReason\": \"STOP\"}],\"usageMetadata\": {\"promptTokenCount\": 6698,\"candidatesTokenCount\": 19,\"totalTokenCount\": 6717},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn74auV6SQYUxKdKkKyL\"},\"traceId\": \"ab8ce235a34f5754\",\"metadata\": {}}\r\n\r\n"
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:59655",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "session_id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "x-client-request-id": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "user-agent": "deepseek-harness/0.2.1-rc.2 (+https://github.com/deepseek-ai/deepseek-harness)",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "7657"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are an AI agent powered by DeepSeek Harness.\n\nYou are a coding agent powered by the claude-sonnet-4-6 model.\n\nUse the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.\n\nRead an existing file before overwriting it with write (the default fs-observation-policy requires it) and prefer edit for targeted changes.\n\nRead a file before editing it (the default fs-observation-policy requires it), unless you just created or edited it in this session.\n\nUse the glob tool — not shell find — to discover files by path pattern.\n\nUse the grep tool — not shell grep or rg — to search file contents. Use read on a matched file when you need surrounding context."
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents."
+              }
+            ]
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Current runtime context. This snapshot supersedes earlier runtime-context snapshots.\n\nCurrent working directory: \"/tmp/real-client-gateway/dsh-read/work\".\n\nCurrent DSH file policy: read-only. Any available operation enforced by the DSH file sandbox cannot modify files in the standing mode. Do not refuse a required modification from this policy alone: try an available tool normally and follow any denial and escalation guidance it returns.\n\nApproval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed."
+              }
+            ]
+          },
+          {
+            "id": "rs_88c34325d2654a7a9f6ef0d3c57039a9",
+            "type": "reasoning",
+            "status": "completed",
+            "summary": [
+              {
+                "type": "summary_text",
+                "text": "Let me read the file as requested."
+              }
+            ]
+          },
+          {
+            "type": "function_call",
+            "id": "fc_e15c7400a4dd43a4874a67b29dd26e16",
+            "call_id": "toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5",
+            "name": "read",
+            "arguments": "{\"file_path\":\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\",\"offset\":1,\"limit\":2}"
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5",
+            "output": "<path>/tmp/real-client-gateway/dsh-read/work/probe-input.txt</path>\n<type>file</type>\n<content>\n1: CONTROLLED_READ_FIXTURE\n2: REAL_GATEWAY_READ_38987df2532d7436\n\n(End of file - total 2 lines)\n</content>"
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "edit",
+            "description": "Edit an existing UTF-8 text file by replacing literal text.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+                },
+                "old_string": {
+                  "type": "string",
+                  "description": "Literal text to replace."
+                },
+                "new_string": {
+                  "type": "string",
+                  "description": "Literal replacement text. Use an empty string to delete the match."
+                },
+                "replace_all": {
+                  "type": "boolean",
+                  "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+                },
+                "sandbox_permissions": {
+                  "type": "string",
+                  "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                  "enum": [
+                    "workspace-write",
+                    "danger-full-access"
+                  ]
+                },
+                "justification": {
+                  "type": "string",
+                  "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                }
+              },
+              "required": [
+                "file_path",
+                "old_string",
+                "new_string"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "exit_plan_mode",
+            "description": "Use only in plan mode. Present your plan for the user's review and, on approval, leave plan mode. The user may approve (carry out the plan from your next step) or keep planning — their feedback comes back in the tool result; revise and present again.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "plan": {
+                  "type": "string",
+                  "description": "The complete plan, as markdown, starting with a # heading that names it."
+                }
+              },
+              "required": [
+                "plan"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "glob",
+            "description": "Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "grep",
+            "description": "Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Regular expression to search for (ripgrep syntax)."
+                },
+                "path": {
+                  "type": "string",
+                  "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+                },
+                "include": {
+                  "type": "string",
+                  "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read",
+            "description": "Read a UTF-8 text file and return line-numbered content.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to read, resolved by the filesystem backend."
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "1-based first line to return. Defaults to 1."
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum number of lines to return. Defaults to 2000."
+                }
+              },
+              "required": [
+                "file_path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read_image",
+            "description": "Read a PNG/JPEG/WebP/GIF file and return the image itself. Large images are downscaled automatically; do not install image libraries or create thumbnails to inspect an image.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to the image file, resolved by the filesystem backend."
+                }
+              },
+              "required": [
+                "file_path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Create or fully replace a UTF-8 text file.",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "file_path": {
+                  "type": "string",
+                  "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Full UTF-8 text content to write."
+                },
+                "sandbox_permissions": {
+                  "type": "string",
+                  "description": "The narrowest wider sandbox mode for a one-shot retry of the exact operation the sandbox just denied; the retry asks the user for approval.",
+                  "enum": [
+                    "workspace-write",
+                    "danger-full-access"
+                  ]
+                },
+                "justification": {
+                  "type": "string",
+                  "description": "Required with sandbox_permissions: one sentence for the user explaining why this exact file operation needs the wider access. Use the language of the user’s current request."
+                }
+              },
+              "required": [
+                "file_path",
+                "content"
+              ]
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "high",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_6ceb663d0eb742abba39fbba79de66d3\",\"object\":\"response\",\"created_at\":1793987773,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[],\"usage\":{\"input_tokens\":6698,\"output_tokens\":19,\"total_tokens\":6717}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"output_index\":0,\"content_index\":0,\"delta\":\"REAL_GATEWAY_READ_38987df2532d7436\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"output_index\":0,\"content_index\":0,\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":7,\"response\":{\"id\":\"resp_6ceb663d0eb742abba39fbba79de66d3\",\"object\":\"response\",\"created_at\":1793987773,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[{\"id\":\"msg_1e08982082aa44f8872ab51ac1d0255d\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":6698,\"output_tokens\":19,\"total_tokens\":6717}}}\n\ndata: [DONE]\n\n"
+    }
+  ],
+  "stdout": "{\"type\":\"session\",\"sessionId\":\"session-d8b3efc1-9cac-4fe0-bd59-d4fbf52f5941\",\"cwd\":\"/tmp/real-client-gateway/dsh-read/work\"}\n{\"type\":\"status\",\"phase\":\"turn_start\",\"turn\":1}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":1}\n{\"type\":\"thinking\",\"text\":\"Let me read the file as requested.\"}\n{\"type\":\"tool_call\",\"callId\":\"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5|fc_e15c7400a4dd43a4874a67b29dd26e16\",\"tool\":\"read\",\"input\":{\"file_path\":\"/tmp/real-client-gateway/dsh-read/work/probe-input.txt\",\"offset\":1,\"limit\":2}}\n{\"type\":\"tool_result\",\"callId\":\"toolu_vrtx_01TZxTgCvx4XgJnqhGjDA3M5|fc_e15c7400a4dd43a4874a67b29dd26e16\",\"status\":\"completed\",\"result\":\"<path>/tmp/real-client-gateway/dsh-read/work/probe-input.txt</path>\\n<type>file</type>\\n<content>\\n1: CONTROLLED_READ_FIXTURE\\n2: REAL_GATEWAY_READ_38987df2532d7436\\n\\n(End of file - total 2 lines)\\n</content>\"}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":1,\"usage\":{\"inputTokens\":6497,\"outputTokens\":171,\"totalTokens\":6668}}\n{\"type\":\"status\",\"phase\":\"step_start\",\"turn\":1,\"step\":2}\n{\"type\":\"text\",\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\"}\n{\"type\":\"status\",\"phase\":\"step_end\",\"turn\":1,\"step\":2,\"usage\":{\"inputTokens\":6698,\"outputTokens\":19,\"totalTokens\":6717}}\n{\"type\":\"status\",\"phase\":\"turn_end\",\"turn\":1,\"reason\":{\"kind\":\"completed\"}}\n{\"type\":\"final\",\"text\":\"REAL_GATEWAY_READ_38987df2532d7436\"}\n",
+  "stderr": ""
+}

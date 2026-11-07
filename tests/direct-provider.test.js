@@ -9,7 +9,7 @@ const testStateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-direct-state-'))
 process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR = testStateDir;
 test.after(() => fs.rmSync(testStateDir, { recursive: true, force: true }));
 
-const { DirectAntigravityProvider, buildDirectRequest, cleanToolSchema } = require('../src/direct-provider');
+const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
 const {
   LocalAgyAuthProvider,
   agyBinaryPaths,
@@ -31,6 +31,14 @@ function normalized(stream = false) {
   };
 }
 
+function issuedTool(options, id, args) {
+  const declarations = JSON.parse(options.body).request.tools.flatMap(tool => tool.functionDeclarations);
+  const tool = declarations.find(item => item.name.endsWith('_json')) || declarations.find(item => item.name !== 'finish');
+  return { id, name: tool.name, args: tool.parameters.properties.argumentsJson
+    ? { argumentsJson: JSON.stringify(args), toolSummary: 'Controlled execution' }
+    : { ...args, toolSummary: 'Controlled execution' } };
+}
+
 test('direct request uses native Antigravity envelope without agy prompt', () => {
   const request = buildDirectRequest(normalized(), 'gemini-test-high', 'project-1', '-123');
   assert.equal(request.model, 'gemini-test-high');
@@ -44,120 +52,41 @@ test('direct request uses native Antigravity envelope without agy prompt', () =>
   assert.doesNotMatch(JSON.stringify(request), /ANTIGRAVITY_GATEWAY_INFERENCE_CONTRACT|CLIENT_SYSTEM_BEGIN/);
 });
 
-test('direct request follows Antigravity Claude tool mode and strips unsupported schema metadata', () => {
-  const request = buildDirectRequest({
-    ...normalized(),
-    generationConfig: { maxOutputTokens: 42 },
+test('direct request retains unsupported formats through a reversible declaration', () => {
+  const source = { ...normalized(), generationConfig: { maxOutputTokens: 42 },
     tools: [{ name: 'shell', description: 'run', schema: {
-      type: 'object', title: 'ignored', additionalProperties: false,
-      properties: { command: { type: 'string', format: 'shell', description: 'command' } },
-      required: ['command']
-    } }]
-  }, 'claude-sonnet-5', 'project-1', '-123');
-  assert.equal(request.request.toolConfig.functionCallingConfig.mode, 'VALIDATED');
+      type: 'object', title: 'Business tool', additionalProperties: false,
+      properties: { command: { type: 'string', format: 'shell', description: 'command' } }, required: ['command']
+    } }] };
+  const before = structuredClone(source), native = {};
+  const request = buildDirectRequest(source, 'claude-sonnet-5', 'project-1', '-123', '', null, native);
+  assert.equal(request.request.toolConfig, undefined);
   assert.deepEqual(request.request.generationConfig, { maxOutputTokens: 42 });
-  assert.equal(request.request.tools[0].functionDeclarations[0].parameters.title, undefined);
-  assert.equal(request.request.tools[0].functionDeclarations[0].parameters.properties.command.format, undefined);
-  assert.equal(request.request.tools[0].functionDeclarations[0].parameters.additionalProperties, false);
+  const declaration = request.request.tools[0].functionDeclarations[0];
+  assert.match(declaration.name, /^mcp_gateway_tool_/);
+  assert.equal(declaration.parameters.properties.argumentsJson.type, 'STRING');
+  assert.equal(declaration.parameters.additionalProperties, undefined);
+  assert.match(declaration.description, /"format":"shell"/);
+  const call = { id: 'call', name: 'shell', arguments: { command: 'pwd' } };
+  assert.deepEqual(native.toolAdapter.toClient(native.toolAdapter.toProvider(call)), call);
+  assert.deepEqual(source, before);
 });
 
-test('direct request normalizes nullable union schema types for Cloud Code', () => {
-  const request = buildDirectRequest({
-    ...normalized(),
-    tools: [{ name: 'save', description: 'save', schema: {
-      type: 'object', properties: { path: { type: ['string', 'null'] } }
-    } }]
-  }, 'gemini-test-high', 'project-1', '-123');
-  const pathSchema = request.request.tools[0].functionDeclarations[0].parameters.properties.path;
-  assert.equal(pathSchema.type, 'STRING');
-  assert.equal(pathSchema.nullable, true);
-});
-
-test('tool schema repair keeps Claude Code Artifact tuples and supplies required array items', () => {
-  const schema = cleanToolSchema({
-    type: 'object',
-    properties: {
-      query: {
-        type: 'object',
-        properties: {
-          where: {
-            type: 'array',
-            maxItems: 10,
-            items: {
-              type: 'array',
-              prefixItems: [
-                { type: 'string' },
-                { type: 'string', enum: ['eq', 'ne', 'in'] },
-                {}
-              ]
-            }
-          }
-        }
-      }
-    }
-  });
-
-  const where = schema.properties.query.properties.where;
-  assert.deepEqual(where.items.items, { type: 'string' });
-  assert.equal(where.items.prefixItems.length, 3);
-  assert.deepEqual(where.items.prefixItems[0], { type: 'string' });
-  assert.deepEqual(where.items.prefixItems[1], { type: 'string', enum: ['eq', 'ne', 'in'] });
-  assert.deepEqual(where.items.prefixItems[2], {});
-  assert.equal(where.maxItems, undefined);
-});
-
-test('tool schema repair recursively normalizes properties, tuples, unions, and intersections', () => {
-  const schema = cleanToolSchema({
-    allOf: [
-      {
-        type: 'object',
-        properties: {
-          filters: {
-            type: ['array', 'null'],
-            prefixItems: [
-              { anyOf: [{ type: 'string' }, { type: 'null' }] },
-              { oneOf: [{ type: 'number' }, { type: 'string' }] }
-            ]
-          }
-        },
-        required: ['filters']
-      },
-      {
-        type: 'object',
-        properties: {
-          options: {
-            allOf: [
-              { type: 'object', properties: { enabled: { type: 'boolean' } } },
-              { type: 'object', properties: { tags: { type: 'array' } }, required: ['tags'] }
-            ]
-          }
-        }
-      }
-    ]
-  });
-
-  assert.equal(schema.type, 'object');
-  assert.deepEqual(schema.required, ['filters']);
-  assert.equal(schema.properties.filters.type, 'array');
-  assert.equal(schema.properties.filters.nullable, true);
-  assert.deepEqual(schema.properties.filters.items, { type: 'string' });
-  assert.equal(schema.properties.filters.prefixItems[0].type, 'string');
-  assert.equal(schema.properties.filters.prefixItems[0].nullable, true);
-  assert.equal(schema.properties.filters.prefixItems[1].type, 'number');
-  assert.equal(schema.properties.options.type, 'object');
-  assert.equal(schema.properties.options.properties.enabled.type, 'boolean');
-  assert.deepEqual(schema.properties.options.properties.tags.items, { type: 'string' });
-  assert.deepEqual(schema.properties.options.required, ['tags']);
-});
-
-test('tool schema repair preserves an existing array item schema', () => {
-  const schema = cleanToolSchema({
-    type: 'array',
-    items: { type: 'object', properties: { id: { type: 'integer' } }, required: ['id'] }
-  });
-  assert.deepEqual(schema.items, {
-    type: 'object', properties: { id: { type: 'integer' } }, required: ['id']
-  });
+test('direct nullable unions and exact tuples keep their full contract in JSON views', () => {
+  for (const schema of [
+    { type: 'object', properties: { path: { type: ['string', 'null'] } }, required: ['path'] },
+    { type: 'object', properties: { tuple: { type: 'array', prefixItems: [{ type: 'string' }, { enum: [0, false] }], items: false, minItems: 2 } }, required: ['tuple'] }
+  ]) {
+    const native = {}, input = { ...normalized(), tools: [{ name: 'save', description: 'save', schema }] };
+    const request = buildDirectRequest(input, 'gemini-3.8-flash-high', 'project-1', '-123', '', null, native);
+    const declaration = request.request.tools[0].functionDeclarations[0];
+    assert.deepEqual(Object.keys(declaration.parameters.properties).sort(), ['argumentsJson', 'toolSummary']);
+    const args = schema.properties.path ? { path: null } : { tuple: ['field', false] };
+    const call = { id: 'call', name: 'save', arguments: args };
+    assert.deepEqual(native.toolAdapter.toClient(native.toolAdapter.toProvider(call)), call);
+    const invalid = schema.properties.path ? { path: 4 } : { tuple: ['field', false, 'extra'] };
+    assert.throws(() => native.toolAdapter.toClient({ name: declaration.name, arguments: { argumentsJson: JSON.stringify(invalid), toolSummary: 'Save value' } }), { code: 'invalid_tool_arguments' });
+  }
 });
 
 test('direct request maps tool IDs inside native Gemini function calls', () => {
@@ -171,7 +100,9 @@ test('direct request maps tool IDs inside native Gemini function calls', () => {
     tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
   }, 'gemini-test-high', 'project-1', '-123');
   const part = request.request.contents[1].parts[0];
-  assert.deepEqual(part.functionCall, { id: 'call_old', name: 'shell', args: { command: 'pwd' } });
+  assert.equal(part.functionCall.id, 'call_old');
+  assert.ok(request.request.tools.flatMap(tool => tool.functionDeclarations).some(tool => tool.name === part.functionCall.name));
+  assert.deepEqual(JSON.parse(part.functionCall.args.argumentsJson), { command: 'pwd' });
   assert.equal(part.id, undefined);
 });
 
@@ -188,22 +119,20 @@ test('direct request maps tool results to the original function name and ID', ()
   }, 'gemini-test-high', 'project-1', '-123');
   const part = request.request.contents[2].parts[0];
   assert.deepEqual(part.functionResponse, {
-    id: 'call_old', name: 'shell', response: { output: '/tmp' }
+    id: 'call_old', name: request.request.contents[1].parts[0].functionCall.name, response: { output: '/tmp' }
   });
   assert.equal(request.request.contents[2].role, 'model');
 });
 
-test('direct request keeps an orphaned tool result as text instead of inventing a function name', () => {
-  const request = buildDirectRequest({
+test('direct request rejects an orphaned tool result instead of downgrading it to text', () => {
+  assert.throws(() => buildDirectRequest({
     ...normalized(),
     messages: [{ role: 'user', text: '[CLIENT_TOOL_RESULT id=orphan]\nold output' }],
     tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
-  }, 'gemini-test-high', 'project-1', '-123');
-  assert.equal(request.request.contents[0].parts[0].functionResponse, undefined);
-  assert.match(request.request.contents[0].parts[0].text, /^<USER_REQUEST>\nold output\n<\/USER_REQUEST>/);
+  }, 'gemini-test-high', 'project-1', '-123'), { code: 'invalid_tool_history', status: 400 });
 });
 
-test('direct request restores the Cloud Code thought signature for a prior tool call', () => {
+test('direct request preserves the provided thought signature for a prior tool call', () => {
   const request = buildDirectRequest({
     ...normalized(),
     messages: [
@@ -218,7 +147,7 @@ test('direct request restores the Cloud Code thought signature for a prior tool 
   assert.equal(part.id, undefined);
 });
 
-test('direct request uses the Cloud Code compatibility sentinel when Gemini 3 history lost its signature', () => {
+test('raw request construction does not fabricate a missing tool signature', () => {
   const request = buildDirectRequest({
     ...normalized(),
     messages: [
@@ -229,11 +158,11 @@ test('direct request uses the Cloud Code compatibility sentinel when Gemini 3 hi
     ],
     tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
   }, 'gemini-3.7-flash-high', 'project-1', '-123');
-  assert.equal(request.request.contents[1].parts[0].thoughtSignature, 'skip_thought_signature_validator');
-  assert.equal(request.request.contents[2].parts[0].functionResponse.name, 'shell');
+  assert.equal(request.request.contents[1].parts[0].thoughtSignature, undefined);
+  assert.equal(request.request.contents[2].parts[0].functionResponse.name, request.request.contents[1].parts[0].functionCall.name);
 });
 
-test('direct request does not duplicate the signature sentinel for parallel Gemini 3 calls', () => {
+test('raw parallel history does not invent a signature for any sibling', () => {
   const request = buildDirectRequest({
     ...normalized(),
     messages: [{ role: 'assistant', text: 'ignored', parts: [
@@ -242,28 +171,28 @@ test('direct request does not duplicate the signature sentinel for parallel Gemi
     ] }],
     tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }]
   }, 'gemini-3.7-flash-high', 'project-1', '-123');
-  assert.equal(request.request.contents[0].parts[0].thoughtSignature, 'skip_thought_signature_validator');
+  assert.equal(request.request.contents[0].parts[0].thoughtSignature, undefined);
   assert.equal(request.request.contents[0].parts[1].thoughtSignature, undefined);
 });
 
-test('direct request keeps a visible response budget for high-thinking models', () => {
+test('direct request retains explicit output cap for high-thinking models', () => {
   const request = buildDirectRequest({ ...normalized(), generationConfig: { maxOutputTokens: 16 } }, 'gemini-3.7-flash-high', 'project-1', '-123');
-  assert.equal(request.request.generationConfig.maxOutputTokens, 1024);
+  assert.equal(request.request.generationConfig.maxOutputTokens, 16);
 });
 
-test('direct request keeps a visible response budget for low-tier Gemini 3 models', () => {
+test('direct request retains the explicit output cap for low-tier Gemini 3 models', () => {
   const request = buildDirectRequest({ ...normalized(), generationConfig: { maxOutputTokens: 64 } }, 'gemini-3.7-flash-low', 'project-1', '-123');
-  assert.equal(request.request.generationConfig.maxOutputTokens, 1024);
+  assert.equal(request.request.generationConfig.maxOutputTokens, 64);
 });
 
-test('direct request reserves enough hidden-thinking budget for Claude Code Auto mode XML', () => {
+test('client Auto Mode retains its explicit output cap including hidden thinking', () => {
   const request = buildDirectRequest({
     ...normalized(),
     autoMode: true,
     autoModeFormat: 'severity',
     generationConfig: { maxOutputTokens: 64 }
   }, 'gemini-3.7-flash-low', 'project-1', '-123');
-  assert.equal(request.request.generationConfig.maxOutputTokens, 8192);
+  assert.equal(request.request.generationConfig.maxOutputTokens, 64);
 });
 
 test('direct provider parses non-stream text and usage', async () => {
@@ -343,18 +272,44 @@ test('direct provider assembles streamed native function-call arguments', async 
   const provider = new DirectAntigravityProvider({
     localAuth: null,
     accessToken: 'token', projectId: 'project-1', baseUrl: 'https://example.test',
-    fetchImpl: async () => new Response([
-      'data: {"candidates":[{"content":{"parts":[{"functionCall":{"id":"stream-call","name":"shell","args":"{\\"command\\":\\"p"}}]}}]}\n',
-      'data: {"candidates":[{"content":{"parts":[{"thoughtSignature":"sig-stream","functionCall":{"id":"stream-call","name":"shell","args":"wd\\"}"}}]}}]}\n'
-    ].join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    fetchImpl: async (_url, options) => {
+      const call = issuedTool(options, 'stream-call', { command: 'pwd' });
+      const encoded = JSON.stringify(call.args), midpoint = Math.floor(encoded.length / 2);
+      return new Response([
+        { candidates: [{ content: { parts: [{ functionCall: { ...call, args: encoded.slice(0, midpoint) } }] } }] },
+        { candidates: [{ content: { parts: [{ thoughtSignature: 'sig-stream', functionCall: { ...call, args: encoded.slice(midpoint) } }] } }] }
+      ].map(value => `data: ${JSON.stringify(value)}\n`).join(''), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+    }
   });
   const result = await provider.send({ ...normalized(true), tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }] }, 'gemini-test-high', { sessionId: '-stream-call' });
   assert.deepEqual(result.toolCalls, [{
-    id: 'stream-call', name: 'shell', arguments: '{"command":"pwd"}', thoughtSignature: 'sig-stream'
+    id: 'stream-call', name: 'shell', arguments: { command: 'pwd' }, thoughtSignature: 'sig-stream'
   }]);
 });
 
-test('direct provider discovers the account model catalog from Cloud Code', async () => {
+test('explicitly disabled catalog entries are excluded from account and service routing until enabled', async () => {
+  let disabled = true;
+  const provider = new DirectAntigravityProvider({
+    accessToken: 'synthetic-token', projectId: 'synthetic-project', baseUrl: 'https://example.test',
+    fetchImpl: async () => new Response(JSON.stringify({
+      models: {
+        'gemini-4-argon-disabled': { disabled, maxTokens: 1048576, maxOutputTokens: 65536 },
+        'enabled-model-with-disabled-in-name': { disabled: false },
+        'image-model': { disabled: true },
+        'search-helper': { disabled: true },
+        'ordinary-model': {}
+      }, imageGenerationModelIds: ['image-model'], webSearchModelIds: ['search-helper']
+    }), { status: 200 })
+  });
+  assert.deepEqual(await provider.listModels(), ['enabled-model-with-disabled-in-name', 'ordinary-model']);
+  assert.deepEqual(provider.imageModelCatalog(), []);
+  assert.deepEqual(provider.webSearchModelCatalog(), []);
+  assert(!provider.modelCatalog().includes('gemini-4-argon-disabled'));
+  disabled = false;
+  assert((await provider.listModels(undefined, { force: true })).includes('gemini-4-argon-disabled'));
+});
+
+test('direct provider preserves model capabilities and separate image generation catalog', async () => {
   const provider = new DirectAntigravityProvider({
     localAuth: null,
     accessToken: 'token',
@@ -365,21 +320,28 @@ test('direct provider discovers the account model catalog from Cloud Code', asyn
       assert.match(url, /fetchAvailableModels$/);
       assert.deepEqual(JSON.parse(options.body), { project: 'project-1' });
       return new Response(JSON.stringify({ models: {
-        'gemini-3.7-flash-high': { displayName: 'Flash', maxTokens: 1048576, maxOutputTokens: 65536, supportsImages: true, supportsThinking: true },
+        'gemini-3.7-flash-high': { displayName: 'Flash', maxTokens: 1048576, maxOutputTokens: 65536, supportsImages: true, supportsThinking: true,
+          supportsVideo: true, supportsAudio: true, supportedMimeTypes: { 'video/mp4': true, 'image/png': true } },
         'models/claude-sonnet-5': { displayName: 'Claude' },
         'not a model': { displayName: 'ignored' }
-      } }), { status: 200 });
+      }, imageGenerationModelIds: ['gemini-3.1-flash-image'] }), { status: 200 });
     }
   });
   assert.deepEqual(await provider.listModels(), ['gemini-3.7-flash-high', 'claude-sonnet-5']);
-  assert.deepEqual(provider.modelCatalog(), ['gemini-3.7-flash-high', 'claude-sonnet-5']);
+  assert.deepEqual(provider.modelCatalog(), ['gemini-3.7-flash-high', 'claude-sonnet-5', 'gemini-3.1-flash-image']);
   assert.deepEqual(provider.modelInfo('gemini-3.7-flash-high'), {
     displayName: 'Flash',
     maxTokens: 1048576,
     maxOutputTokens: 65536,
     supportsImages: true,
-    supportsThinking: true
+    supportsThinking: true,
+    supportsVideo: true,
+    supportsAudio: true,
+    supportedMimeTypes: { 'video/mp4': true, 'image/png': true }
   });
+  assert.deepEqual(provider.imageModelCatalog(), ['gemini-3.1-flash-image']);
+  provider.modelInfo('gemini-3.7-flash-high').supportedMimeTypes['video/mp4'] = false;
+  assert.equal(provider.modelInfo('gemini-3.7-flash-high').supportedMimeTypes['video/mp4'], true);
   assert.equal(provider.modelInfo('missing'), null);
 });
 
@@ -471,7 +433,7 @@ test('concurrent local refreshes share one exchange and caller cancellation stay
   assert.equal(count, 1);
 });
 
-test('direct provider model-discovery fallback uses the current default family', async () => {
+test('failed initial discovery cannot invent a model catalog', async () => {
   const provider = new DirectAntigravityProvider({
     localAuth: null,
     accessToken: 'token',
@@ -480,15 +442,16 @@ test('direct provider model-discovery fallback uses the current default family',
     models: [],
     fetchImpl: async () => new Response('temporarily unavailable', { status: 503 })
   });
-  assert.deepEqual(await provider.listModels(), ['gemini-3.8-flash-high']);
+  await assert.rejects(provider.listModels(), { code: 'direct_model_discovery_failed', status: 503 });
+  assert.equal(provider.modelCatalog(), null);
 });
 
 test('direct provider returns native function calls without a gateway envelope', async () => {
   const provider = new DirectAntigravityProvider({
     localAuth: null,
     accessToken: 'token', projectId: 'project-1', baseUrl: 'https://example.test',
-    fetchImpl: async () => new Response(JSON.stringify({
-      candidates: [{ content: { parts: [{ thoughtSignature: 'signature-1', functionCall: { id: 'upstream-call', name: 'shell', args: { command: 'pwd' } } }] } }]
+    fetchImpl: async (_url, options) => new Response(JSON.stringify({
+      candidates: [{ content: { parts: [{ thoughtSignature: 'signature-1', functionCall: issuedTool(options, 'upstream-call', { command: 'pwd' }) }] } }]
     }), { status: 200, headers: { 'content-type': 'application/json' } })
   });
   const result = await provider.send({ ...normalized(), tools: [{ name: 'shell', description: 'run', schema: { type: 'object' } }] }, 'gemini-test-high', { sessionId: '-123' });
@@ -507,7 +470,7 @@ test('direct provider carries a tool thought signature into the next turn', asyn
     fetchImpl: async (_url, options) => {
       requests.push(JSON.parse(options.body));
       if (turn++ === 0) {
-        return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ thoughtSignature: 'signature-1', functionCall: { id: 'upstream-call', name: 'shell', args: { command: 'pwd' } } }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ thoughtSignature: 'signature-1', functionCall: issuedTool(options, 'upstream-call', { command: 'pwd' }) }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
       }
       return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: 'done' }] } }] }), { status: 200, headers: { 'content-type': 'application/json' } });
     }
@@ -523,7 +486,7 @@ test('direct provider carries a tool thought signature into the next turn', asyn
   ], tools }, 'gemini-test-high', { sessionId: '-signature-sequence' });
   assert.equal(requests[1].request.contents[1].parts[0].thoughtSignature, 'signature-1');
   assert.deepEqual(requests[1].request.contents[2].parts[0].functionResponse, {
-    id: call.id, name: 'shell', response: { output: 'pwd output' }
+    id: call.id, name: requests[0].request.tools.find(tool => tool.functionDeclarations[0].name.endsWith('_json')).functionDeclarations[0].name, response: { output: 'pwd output' }
   });
   assert.equal(requests[1].request.contents[1].parts[0].id, undefined);
 });
@@ -714,4 +677,28 @@ test('direct provider prefers local agy state over explicit fallback env credent
   await provider.send(normalized(), 'gemini-test-high', { sessionId: '-123' });
   assert.equal(seenAuthorization, 'Bearer local-token');
   fs.rmSync(dir, { recursive: true, force: true });
+});
+
+
+test('catalog auth rejection is visible even with a previous successful catalog', async () => {
+  let status = 200;
+  const provider = new DirectAntigravityProvider({ accessToken: 'fixture', projectId: 'p', baseUrl: 'https://example.test',
+    fetchImpl: async () => new Response(JSON.stringify(status === 200 ? { models: { 'gemini-3.8-flash-high': {} } }
+      : { error: { message: 'Verify your account to continue' } }), { status }) });
+  await provider.listModels();
+  const observedAt = provider.modelsDiscoveredAt;
+  status = 403;
+  await assert.rejects(provider.listModels(undefined, { force: true }), error => error.status === 403 && /Verify your account/.test(error.details));
+  assert.equal(provider.modelsDiscoveredAt, observedAt);
+});
+
+test('authoritative empty catalog clears previous models without a guessed default', async () => {
+  let models = { 'gemini-3.8-flash-high': {} };
+  const provider = new DirectAntigravityProvider({ accessToken: 'fixture', projectId: 'p', baseUrl: 'https://example.test',
+    fetchImpl: async () => new Response(JSON.stringify({ models })) });
+  await provider.listModels();
+  models = {};
+  assert.deepEqual(await provider.listModels(undefined, { force: true }), []);
+  assert.deepEqual(provider.modelCatalog(), []);
+  assert.equal(provider.modelInfo('gemini-3.8-flash-high'), null);
 });

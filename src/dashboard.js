@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
+const crypto = require('node:crypto');
 const http = require('node:http');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
@@ -19,7 +20,11 @@ let htmlCache = '';
 const assetCache = new Map();
 
 function dashboardHtml() {
-  if (!htmlCache) htmlCache = fs.readFileSync(DASHBOARD_FILE, 'utf8');
+  if (!htmlCache) {
+    const revision = crypto.createHash('sha256').update(dashboardAsset('account-auth.js').body).digest('hex').slice(0, 16);
+    htmlCache = fs.readFileSync(DASHBOARD_FILE, 'utf8')
+      .replace('/dashboard/assets/account-auth.js"', `/dashboard/assets/account-auth.js?v=${revision}"`);
+  }
   return htmlCache;
 }
 
@@ -109,26 +114,18 @@ function accountPoolUsage(usage, accountIds) {
   };
 }
 
-function dashboardData({ usageStore, accountPool, robinAccountPool, quotaManager, version }) {
-  const cloudcodeStatus = accountPool.status().map((account) => ({
+function dashboardData({ usageStore, accountPool, quotaManager, version }) {
+  const status = accountPool.status().map((account) => ({
     ...account,
     providerType: account.providerType || 'cloudcode',
     accountType: account.accountType || 'antigravity'
   }));
-  const robinStatus = (robinAccountPool?.status?.() || []).map((account) => ({
-    ...account,
-    providerType: 'robin',
-    accountType: 'gemini-app'
-  }));
-  const status = [...cloudcodeStatus, ...robinStatus];
   const accountIds = new Set(status.map((account) => account.id));
   const usage = accountPoolUsage(usageStore.summary({ live: true, detailed: true }), accountIds);
   const accounts = status.map((account) => ({
     ...account,
-    tokenUsageKnown: typeof account.tokenUsageKnown === 'boolean' ? account.tokenUsageKnown : account.providerType !== 'robin',
-    quota: account.providerType === 'cloudcode'
-      ? quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
-      : account.quota || null
+    tokenUsageKnown: typeof account.tokenUsageKnown === 'boolean' ? account.tokenUsageKnown : true,
+    quota: quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
   }));
   return {
     version,

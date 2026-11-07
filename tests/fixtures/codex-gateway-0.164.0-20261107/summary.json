@@ -1,0 +1,284 @@
+{
+  "version": "codex-cli 0.164.0",
+  "aggregationOnly": true,
+  "evidence": "actual-codex-cli-real-gateway-synthetic-google",
+  "realModelValidated": false,
+  "nativeTLSValidated": false,
+  "passed": true,
+  "scenarios": 9,
+  "assertions": 127,
+  "syntheticGenerationCount": 17,
+  "results": [
+    {
+      "file": "text-v3.json",
+      "sha256": "bbf1ecbe9c41fff58021f515c47d529e3f7d00fcfc53091b268c9688a948d2a3",
+      "scenario": "text",
+      "recordedAt": "2026-11-06T22:00:27.976Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true
+        },
+        "generations": 1,
+        "responses": 1
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "read-v3.json",
+      "sha256": "cf58953df56de117a4c48dcbbe9827a46c53f92e29f7a69a1b097a7d7205b48e",
+      "scenario": "read",
+      "recordedAt": "2026-11-06T22:00:28.878Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientReadReturned": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "patch-v3.json",
+      "sha256": "1891ce9526a3a909394b7fc1f4553d3c51a22aa80dd0a755c3c6c1dbfca220f0",
+      "scenario": "patch",
+      "recordedAt": "2026-11-06T22:00:30.017Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientPatchWroteFile": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "error-v3.json",
+      "sha256": "25ffef9e98eacdefa2aff950532a3600e810b3f31874fcdf3f47b56ed4521562",
+      "scenario": "error",
+      "recordedAt": "2026-11-06T22:00:31.166Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientErrorReturned": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "image-v3.json",
+      "sha256": "7ff0dd9905d90593ec9dc3c1fd99432579047076ee2c8f955f2117726afd270a",
+      "scenario": "image",
+      "recordedAt": "2026-11-06T22:00:32.421Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientImageReturned": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "image-input-v3.json",
+      "sha256": "aed8f36a06687272efb39d1aae76430f700d8848af2ef78b4c774c5383716fd4",
+      "scenario": "image-input",
+      "recordedAt": "2026-11-06T22:00:33.470Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientImageInput": true
+        },
+        "generations": 1,
+        "responses": 1
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "compact-v3.json",
+      "sha256": "0592b0bca581dda30e0a90651ab939b920946a14e2c35a91bf75b604e80539a4",
+      "scenario": "compact",
+      "recordedAt": "2026-11-06T22:00:34.666Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "clientReadReturned": true,
+          "realCompressionRequest": true,
+          "resumedFromSummary": true
+        },
+        "generations": 3,
+        "responses": 3
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "namespace-error-v4.json",
+      "sha256": "fd7886e4389bb348698dfb9be833e7d1f31a620e5fffdc75dd88a5325ffe8253",
+      "scenario": "namespace-error",
+      "recordedAt": "2026-11-06T22:01:12.113Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "namespaceDispatched": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    },
+    {
+      "file": "parallel-v1.json",
+      "sha256": "a1b686f1c35224dcc7f4a23b38c66ad67ddf3efc0f114ec48c9a45f6f7113ea6",
+      "scenario": "parallel",
+      "recordedAt": "2026-11-06T22:02:15.738Z",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientExit0": true,
+          "completeGatewayHTTP": true,
+          "catalogActuallyApplied": true,
+          "userProjectRulePreserved": true,
+          "namespaceDeclaredByRealClient": true,
+          "finalAssistantTextDelivered": true,
+          "upstreamEnvelope": true,
+          "fixedModelThinking": true,
+          "boundedGenerations": true,
+          "sourceUnchanged": true,
+          "installationContentsUnchanged": true,
+          "isolatedStateRemoved": true,
+          "noFixtureError": true,
+          "bothParallelResultsReturned": true
+        },
+        "generations": 2,
+        "responses": 2
+      },
+      "sourceSha256": "bb69a30be3c72a2aed88e0b9f4cf5389a29100644a25166abdd2d7cce03d0d82",
+      "installationContentsUnchanged": true,
+      "temporaryDirectoryRemoved": true
+    }
+  ]
+}

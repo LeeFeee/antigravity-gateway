@@ -1,0 +1,79 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "video-summary",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [],
+  "requestCount": 2,
+  "failure": "URLError: <urlopen error [Errno 61] Connection refused>",
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "content-length",
+          "6238"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "content-length",
+          "103"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    }
+  ],
+  "acp": [],
+  "stderr": "CLI error: bubbletea: error opening TTY: bubbletea: could not open TTY: open /dev/tty: operation not permitted\n",
+  "officialLog": "I1107 03:15:29.366227       1 resolver.go:85] Model ID gemini-3.8-flash-low not in local config, defaulting to CCPA\nI1107 03:15:29.366307       1 resolver.go:111] Model resolved via default\nI1107 03:15:29.366346      54 server.go:2275] Starting language server process with pid 39187\nI1107 03:15:29.366711      54 server.go:2333] Language server version: 1.5.2\nI1107 03:15:29.366717      54 server.go:1077] Language server will attempt to listen on host localhost\nI1107 03:15:29.367249      54 server.go:1092] Language server listening on random port at 65134 for HTTPS (gRPC)\nI1107 03:15:29.367320      54 server.go:1100] Language server listening on random port at 65132 for HTTP\nI1107 03:15:29.367750      63 model_configs.go:195] Auth mode is unspecified, skipping fetchAvailableModels and returning empty response\nW1107 03:15:29.367921      36 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.367951      36 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.368114      63 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nI1107 03:15:29.369066      71 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nI1107 03:15:29.369085      71 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nW1107 03:15:29.369722      71 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nW1107 03:15:29.369737      71 cache.go:157] Cache(userInfo): Singleflight refresh failed: failed to get load code assist response: error getting token source: You are not logged into Antigravity.\nI1107 03:15:29.370285      54 server.go:2748] Generated and saved persistent installation UUID: da330520-9492-46eb-a77d-77fbbc40bb66\nW1107 03:15:29.370494     109 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.370507     109 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:15:29.383433      54 defaults.go:725] failed to get cs path: cs path /usr/bin/cs invalid\nI1107 03:15:29.383468      54 manager.go:119] Creating trajectory store manager with proto store and SQLite store\nI1107 03:15:29.383455     134 migrate.go:49] Migration marker [TEMP_ROOT]/home/.gemini/config/.migrated does not exist. Attempting migration from AppDataDir [TEMP_ROOT]/home/.gemini/antigravity-cli.\nI1107 03:15:29.383585     134 migrate.go:157] Migration complete, marked with [TEMP_ROOT]/home/.gemini/config/.migrated\nI1107 03:15:29.388978     163 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:15:29.389041     163 manager.go:113] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] starting\nI1107 03:15:29.389262     163 project_uris_migration.go:42] Starting ProjectUrisMigration\nI1107 03:15:29.389287     163 manager.go:133] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] completed successfully in 25.375µs\nI1107 03:15:29.389517     163 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:15:29.389590     163 manager.go:113] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] starting\nI1107 03:15:29.389915     163 manager.go:133] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] completed successfully in 42.416µs\nI1107 03:15:29.390117     163 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:15:29.390150     163 manager.go:113] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] starting\nI1107 03:15:29.390375     163 manager.go:133] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] completed successfully in 40.459µs\nI1107 03:15:29.390569     163 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:15:29.390578     163 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:15:29.390598     163 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:15:29.390603     163 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:15:29.405120      54 server.go:3543] initialized server successfully in 38.716417ms\nI1107 03:15:29.405160     265 server.go:4201] Auth succeeded, refreshing features and managers\nW1107 03:15:29.405292      25 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.405312      25 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:15:29.405312      24 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.405329      24 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:15:29.405354      24 rpcs_plugin_auth.go:105] Not reloading plugin MCP servers: cannot get the signed-in user: error getting token source: You are not logged into Antigravity.\nE1107 03:15:29.405362     265 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nI1107 03:15:29.405396     265 server.go:4220] State refresh took 0ms\nI1107 03:15:29.405402     265 server.go:4233] [RemoteControl] Subscription callback triggered.\nI1107 03:15:29.405469     265 server.go:4236] [RemoteControl] RemoteControlEnabled value: false\nI1107 03:15:29.405474     265 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:15:29.405478     265 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:15:29.405516     265 profiler.go:231] Continuous pprof profiling is disabled.\nI1107 03:15:29.405525     274 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:15:29.405569     274 manager.go:107] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:15:29.405573     274 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:15:29.405581      31 reconcile_summaries.go:94] [Summaries] reconcile checked 0 conversations, restored 0, cached 0, skipped 0, dropped 0, cancelled false in 0ms (resident: 0 -> 0)\nI1107 03:15:29.405603     274 manager.go:107] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:15:29.405607     274 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nW1107 03:15:29.405649       1 auto_updater.go:274] Directory /Users/leefee/.local/bin is not fully accessible (readable: false, writable: false), skipping update\nI1107 03:15:29.405676       1 common.go:191] Launching CLI mode\nE1107 03:15:29.405686       1 launchsteps.go:95] Failed to resolve GeminiDir \".gemini\": .gemini must be an absolute path: path is not absolute, falling back to default\nI1107 03:15:29.405696     274 manager.go:107] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:15:29.405698       1 common.go:212] CLI app data directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nI1107 03:15:29.405703     274 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:15:29.405713       1 server.go:313] Creating CLI server backend: product=antigravity workspaceDirs=[[TEMP_ROOT]/work] appDataDir=[TEMP_ROOT]/home/.gemini/antigravity-cli languageServer=true codeAssist=true\nI1107 03:15:29.405723     274 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:15:29.405750     274 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:15:29.405754     274 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:15:29.405780       1 auth_provider.go:954] [AuthProvider] SetEnableBusinessLogin called with enable: true\nI1107 03:15:29.406256     290 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nE1107 03:15:29.406321     290 server.go:3214] Failed to read conversations directory [TEMP_ROOT]/home/.gemini/antigravity/conversations: open [TEMP_ROOT]/home/.gemini/antigravity/conversations: no such file or directory\nI1107 03:15:29.406347     290 server.go:3116] ListConversations returning 0 summaries\nI1107 03:15:29.406352     290 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nI1107 03:15:29.406639       1 project.go:78] project: created project \"CLI Project\" (id=default-cli-project) at [TEMP_ROOT]/home/.gemini/config/projects/default-cli-project.json\nI1107 03:15:29.406648       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:15:29.406655       1 manager.go:549] Initializing CLI store manager for workspace [TEMP_ROOT]/work\nW1107 03:15:29.406725       1 cli_setting_manager.go:450] cli settings not available, using defaults: failed to read cli settings: open [TEMP_ROOT]/home/.gemini/antigravity-cli/settings.json: no such file or directory\nI1107 03:15:29.406741       1 cli_setting_manager.go:81] config.json not found or unreadable, using CLI settings only: open [TEMP_ROOT]/home/.gemini/config/config.json: no such file or directory\nI1107 03:15:29.406775       1 cli_setting_manager.go:96] CLI settings initialized: permissions=<nil>, toolPermission=request-review\nE1107 03:15:29.406853     292 server.go:3214] Failed to read conversations directory [TEMP_ROOT]/home/.gemini/antigravity/conversations: open [TEMP_ROOT]/home/.gemini/antigravity/conversations: no such file or directory\nI1107 03:15:29.406869     292 server.go:3116] ListConversations returning 0 summaries\nI1107 03:15:29.406988       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:15:29.407001       1 manager.go:723] CLI store manager initialized successfully\nI1107 03:15:29.407009       1 common.go:346] CLI store manager created successfully\nI1107 03:15:29.407018       1 cli_setting_manager.go:226] ApplyProjectPermissionGrants: no grants for project \"CLI Project\", cleared project permissions\nI1107 03:15:29.407024       1 model_resolver.go:107] Resolving model gemini-3.8-flash-low\nI1107 03:15:29.407011     297 quota_manager.go:36] doRefreshQuota: skipped (not logged in)\nE1107 03:15:29.407113       1 common.go:381] failed to apply model override: failed to resolve model: model gemini-3.8-flash-low is not recognized as a known model or custom model in settings\nI1107 03:15:29.409772       1 terminal_info_manager.go:354] Terminal detection: TERM=\"dumb\" altScreen=false ssh=false osc8=false osc52=true appleTerminalSSH=false\nI1107 03:15:29.409798       1 common.go:543] Starting CLI program\nCLI ready for user input\nI1107 03:15:29.409831       1 common.go:552] CLI program exited, shutting down\nE1107 03:15:29.409897       1 common.go:559] failed to truncate history: reading history file: open [TEMP_ROOT]/home/.gemini/antigravity-cli/history.jsonl: no such file or directory\nI1107 03:15:29.409906       1 manager.go:961] CLI store manager shutting down\nW1107 03:15:29.410148       1 logfile.go:87] cleanStaleLogs: failed to read dir /private/tmp/log: open /private/tmp/log: no such file or directory\nI1107 03:15:29.410167     283 server.go:3918] Language server shutting down\nI1107 03:15:29.410180     283 server.go:3940] Waiting for migrations to complete to prevent partial migration state...\nE1107 03:15:29.429299     283 server.go:4033] Failed to shutdown telemetry client: Clearcut responded with HTTP code: 404\n"
+}

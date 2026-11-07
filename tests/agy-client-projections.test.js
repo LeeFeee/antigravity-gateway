@@ -3,6 +3,7 @@ const test = require('node:test'), assert = require('node:assert/strict'), fs = 
 const { newState, AgySessionStore, recordClientProjection, restoreClientProjections } = require('../src/agy-session-state');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
 const { deliveryText, streamTextRemainder } = require('../src/artifacts');
+const { declaredCall, declaredParts, fixtureTools } = require('./helpers/declared-tool-fixture');
 const model = 'gemini-3.8-flash-high';
 const user = text => ({ role: 'user', parts: [{ text }] });
 const answer = text => ({ role: 'model', parts: [{ text }] });
@@ -42,9 +43,9 @@ for (const streamed of [false, true]) test(`image-to-client-tool history survive
   const send = async (source, options = {}) => {
     const provider = new DirectAntigravityProvider({ sessionStore: new AgySessionStore({ directory }), accessToken: 'token', projectId: 'project', maxRetries: 0,
       localAuth: { isConfigured: () => false, load: () => ({ sourcePath: 'managed-account:a' }) },
-      fetchImpl: async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response(JSON.stringify({ candidates: [{ content: { parts: replies.shift() } }] }), { headers: { 'content-type': 'application/json' } }); }
+      fetchImpl: async (_url, options) => { requests.push(JSON.parse(options.body)); return new Response(JSON.stringify({ candidates: [{ content: { parts: declaredParts(requests.at(-1), replies.shift()) } }] }), { headers: { 'content-type': 'application/json' } }); }
     });
-    return provider.send(source, model, { sessionId: 'same', ...options });
+    return provider.send({ ...source, tools: fixtureTools('generate_image', 'Read') }, model, { sessionId: 'same', ...options });
   };
   const source = { messages: [{ role: 'user', text: 'Create image and inspect it.' }] };
   await send(source);
@@ -63,7 +64,7 @@ for (const streamed of [false, true]) test(`image-to-client-tool history survive
   assert.deepEqual(requests.map(r => r.requestId.split('/').at(-1)), ['1', '3', '5', '7']);
   for (const r of requests.slice(2)) {
     assert.doesNotMatch(JSON.stringify(r), /Image artifact delivery:|Gateway local path:|local-only-data/);
-    assert.deepEqual(r.request.contents.filter(c => c.parts.some(p => p.functionCall)).flatMap(c => c.parts.filter(p => p.functionCall).map(p => p.functionCall.name)), ['generate_image', 'Read']);
+    assert.deepEqual(r.request.contents.filter(c => c.parts.some(p => p.functionCall)).flatMap(c => c.parts.filter(p => p.functionCall).map(p => p.functionCall.name)), [declaredCall(requests[0], gen).name, declaredCall(requests[1], read).name]);
     assert.equal(r.request.contents[3].parts.find(p => p.functionCall).thoughtSignature, 'read-signature');
     assert.equal(r.request.contents[2].parts[0].functionResponse.parts[0].inlineData.data, 'aW1n');
   }

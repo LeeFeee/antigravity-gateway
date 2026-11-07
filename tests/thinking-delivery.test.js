@@ -3,17 +3,13 @@ require('./helpers/gateway-environment');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-test('shared protocols preserve thinking-disabled output semantics without controlling Argon internals', () => {
+test('shared protocols preserve explicitly disabled thinking output', () => {
   const { normalizeChat, normalizeAnthropic } = require('../src/protocol');
-  const { clientGenerateRequest } = require('../src/robin-provider');
-  const { decodeFields } = require('../src/robin-proto');
   for (const normalize of [normalizeChat, normalizeAnthropic]) {
-    const normalized = normalize({ model: 'gemini-4-argon', thinking: { type: 'disabled' },
+    const normalized = normalize({ model: 'gemini-3.8-flash-high', thinking: { type: 'disabled' },
       messages: [{ role: 'user', content: '回复橙色笔记。' }] });
     assert.equal(normalized.reasoningEffort, 'none');
     assert.equal(normalized.includeThinking, false);
-    const request = decodeFields(clientGenerateRequest(normalized));
-    assert.equal(request.some(field => field.number === 38 || field.number === 48), false);
   }
 });
 const {

@@ -1,0 +1,19 @@
+[
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "write",
+    "passed": true,
+    "checks": {
+      "clientCallArgumentsRestored": true,
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  }
+]

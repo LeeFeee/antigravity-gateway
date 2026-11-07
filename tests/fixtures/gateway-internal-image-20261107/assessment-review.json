@@ -1,0 +1,45 @@
+{
+  "reviewedAt": "2026-11-06T19:51:28.532Z",
+  "evidenceSha256": "d7ce914529ba669475a1560212cc362c3aa3ddffa56dc0e374ebcae9c514e319",
+  "verifierSha256": "2ad99791e15d341bfb1de5e15d43e1307c1deeeaac8b1ee8543ae70ddc53571a",
+  "originalEvidencePreserved": true,
+  "realRequestsAdded": 0,
+  "reason": "Post-run assessment recognizes the sole internally injected image declaration under its actual reversible MCP wire name; original HTTP failure and original report are unchanged.",
+  "assessment": {
+    "passed": false,
+    "checks": {
+      "exactlyThreeGenerations": false,
+      "gatewayHTTP": false,
+      "clientCompleted": false,
+      "nativeHTTP": false,
+      "originalGoTLS": false,
+      "modelsAndRequestTypes": false,
+      "fixedLowThinking": false,
+      "sameNativeTrajectory": false,
+      "stepsOneTwoThree": false,
+      "sameAccountCredential": false,
+      "originalToolCallRetained": false,
+      "observedSignatureRetained": false,
+      "realImageReceipt": false,
+      "officialReceiptText": false,
+      "savedFileReadBack": false,
+      "decodableImage": false,
+      "noPrivateToolLeak": false,
+      "noGuardFailure": true,
+      "officialUA": false
+    },
+    "nativeGenerations": 2,
+    "nativeStatuses": [
+      200,
+      200
+    ],
+    "internalToolCallObserved": true,
+    "toolWireName": "mcp_gateway_tool_ad362ad9adcc3685",
+    "upstreamToolSignatureObserved": true,
+    "imageSubrequestAccepted": true,
+    "imageFinishMessages": [
+      "Unable to show the generated image. The model could not generate the image based on the prompt provided. You will not be charged for this request. Try rephrasing the prompt. If you think this was an error, [send feedback](https://aistudio.google.com/docs/troubleshooting)."
+    ],
+    "answer": ""
+  }
+}

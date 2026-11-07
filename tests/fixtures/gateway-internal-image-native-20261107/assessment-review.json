@@ -1,0 +1,21 @@
+{
+  "sourceEvidenceSha256": "18d57fd513d0e19e82fc6d5fc3532e2f6a2c62a0d12f6b59f3ee8179f5312c78",
+  "sourceSha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+  "realRequestsAddedByReview": 0,
+  "officialDeclarationByteStructureMatched": true,
+  "wireToolName": "generate_image",
+  "upstreamToolSignatureObserved": true,
+  "nativeStatuses": [
+    200,
+    429
+  ],
+  "completedNativeThreeStepFlow": false,
+  "imageFailure": "QUOTA_EXHAUSTED",
+  "resetAtUTC": "2026-11-06T23:11:30Z",
+  "http500Provenance": "The single-attempt verifier guard rejected subsequent provider retry attempts. This is not a captured Google HTTP 500.",
+  "physicalGenerationRequests": 2,
+  "productionAccountsUnchanged": true,
+  "productionStateUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "ownedGatewayStopped": true
+}

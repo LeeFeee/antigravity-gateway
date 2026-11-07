@@ -1,0 +1,26 @@
+{
+  "mockOnly": true,
+  "realGoogleAuthorization": false,
+  "scenarios": [
+    {
+      "scenario": "login",
+      "requestObserved": true,
+      "requestCount": 2
+    },
+    {
+      "scenario": "refresh",
+      "requestObserved": true,
+      "requestCount": 9
+    },
+    {
+      "scenario": "onboard",
+      "requestObserved": true,
+      "requestCount": 23
+    },
+    {
+      "scenario": "onboard-pending",
+      "requestObserved": true,
+      "requestCount": 24
+    }
+  ]
+}

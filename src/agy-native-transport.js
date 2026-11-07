@@ -10,6 +10,15 @@ const { spawn } = require('node:child_process');
 const MAX_EVENT_BYTES = 2 * 1024 * 1024;
 const BRIDGE_PROTOCOL = 1;
 
+function nativeRequestProfile(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || (parsed.port && parsed.port !== '443')) return null;
+  if (/^(daily-)?cloudcode-pa\.googleapis\.com$/.test(parsed.hostname)) return 'antigravity';
+  if ((parsed.hostname === 'oauth2.googleapis.com' && parsed.pathname === '/token')
+      || (parsed.hostname === 'www.googleapis.com' && parsed.pathname === '/oauth2/v2/userinfo')) return 'oauth';
+  return null;
+}
+
 class NativeTransportError extends Error {
   constructor(message, code = 'native_transport_error', options) {
     super(message, options);
@@ -216,7 +225,8 @@ class AgyNativeTransport {
     const id = crypto.randomUUID();
     const headers = Object.fromEntries(new Headers(inputHeaders));
     // These are implementation-generated Node/fetch headers, not application
-    // requirements. Go supplies the captured gzip and chunked framing itself.
+    // requirements. Go supplies gzip and the captured fixed-length or chunked
+    // request framing for each RPC itself.
     for (const key of ['accept', 'accept-language', 'sec-fetch-mode', 'connection', 'content-length', 'transfer-encoding', 'accept-encoding']) delete headers[key];
     const data = typeof body === 'string' ? body : body instanceof URLSearchParams ? body.toString()
       : Buffer.isBuffer(body) || body instanceof Uint8Array ? Buffer.from(body).toString('utf8') : null;
@@ -228,7 +238,8 @@ class AgyNativeTransport {
       this.reference(true);
       signal?.addEventListener('abort', state.abort, { once: true });
       if (signal?.aborted) { state.abort(); return; }
-      if (!this.write({ type: 'request', id, url: String(url), method: state.method, headers, body: data })) {
+      if (!this.write({ type: 'request', id, url: String(url), method: state.method, headers, body: data,
+        profile: nativeRequestProfile(url) === 'oauth' ? 'oauth' : 'antigravity' })) {
         this.fail(id, new NativeTransportError('原生传输不可用。', 'native_transport_exited'));
       }
     });
@@ -245,14 +256,14 @@ class AgyNativeTransport {
 
 let sharedTransport;
 function nativeCloudCodeFetch(url, options) {
-  const parsed = new URL(url);
-  // Gemini App/Robin, OAuth and unrelated HTTP requests keep their existing
-  // implementation. Only the Cloud Code origin uses this native transport.
-  if (!/^(daily-)?cloudcode-pa\.googleapis\.com$/.test(parsed.hostname)) return globalThis.fetch(url, options);
+  // Keep the historical exported function name for callers. Model/metadata
+  // RPCs and the two captured OAuth endpoints use separate native profiles.
+  // Unrelated media URLs do not gain account credentials or a native profile.
+  if (!nativeRequestProfile(url)) return globalThis.fetch(url, options);
   sharedTransport ||= new AgyNativeTransport();
   return sharedTransport.fetch(url, options);
 }
 
 function closeNativeTransport() { sharedTransport?.close(); sharedTransport = undefined; }
 
-module.exports = { AgyNativeTransport, NativeTransportError, nativeCloudCodeFetch, resolveNativeBinary, closeNativeTransport };
+module.exports = { AgyNativeTransport, NativeTransportError, nativeCloudCodeFetch, nativeRequestProfile, resolveNativeBinary, closeNativeTransport };

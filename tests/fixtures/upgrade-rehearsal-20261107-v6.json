@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "status": "passed",
+  "startedAt": "2026-11-06T20:43:41.299Z",
+  "completedAt": "2026-11-06T20:43:51.223Z",
+  "node": "v22.23.4",
+  "npm": "10.9.9",
+  "platform": "darwin/arm64",
+  "evidenceRun": "upgrade-rehearsal-v6",
+  "previousEvidence": {
+    "file": "upgrade-rehearsal-20261107-v5.json",
+    "sha256": "1f932899b4be7a0d4d1ee59bd77fc40acdc283c5a8ebacbb1ad4611d77bb8219",
+    "preserved": true
+  },
+  "oldInstallation": "read-only installed complete npm package",
+  "packagePrefix": "<evidence>/npm-prefix",
+  "configDirectory": "<evidence>/config",
+  "commandFlags": [
+    "--global",
+    "--foreground-scripts",
+    "--allow-scripts=antigravity-gateway"
+  ],
+  "packages": {
+    "old": {
+      "name": "antigravity-gateway",
+      "version": "1.7.5",
+      "sha256": "aca8eddd74b05980cc127a00c1472c951a49bfd762a1d8bf6e7ec8bd98d3f526",
+      "packedAt": "2026-11-06T20:43:42.653Z",
+      "bytes": 18856955,
+      "packedFileCount": 85,
+      "nativeBinaries": [
+        "native/bin/agy-transport-darwin-arm64.gz",
+        "native/bin/agy-transport-darwin-x64.gz",
+        "native/bin/agy-transport-linux-arm64.gz",
+        "native/bin/agy-transport-linux-x64.gz",
+        "native/bin/agy-transport-win32-arm64.gz",
+        "native/bin/agy-transport-win32-x64.gz"
+      ],
+      "sourceInventorySha256": "012a1f3e0ba3d43d543be11090276e717b2723fa20e88af1f9bd4daaf3f7479d",
+      "sourceChangedDuringPack": false
+    },
+    "new": {
+      "name": "antigravity-gateway",
+      "version": "1.7.5",
+      "sha256": "054346980209f3ff48a146b6b0dd67c909b411338c3c8ab60d730525b8ccfd03",
+      "packedAt": "2026-11-06T20:43:44.593Z",
+      "bytes": 19035401,
+      "packedFileCount": 121,
+      "nativeBinaries": [
+        "native/bin/agy-transport-darwin-arm64.gz",
+        "native/bin/agy-transport-darwin-x64.gz",
+        "native/bin/agy-transport-linux-arm64.gz",
+        "native/bin/agy-transport-linux-x64.gz",
+        "native/bin/agy-transport-win32-arm64.gz",
+        "native/bin/agy-transport-win32-x64.gz"
+      ],
+      "sourceInventorySha256": "8f1f855367b66ece17fb6e85e132b2aec83e064d8d2961c1b13fdeefc2107c62",
+      "sourceChangedDuringPack": false
+    }
+  },
+  "stages": [
+    {
+      "stage": "old",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": true,
+      "versionLegacyAccessCount": 6,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    },
+    {
+      "stage": "upgrade",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": false,
+      "versionLegacyAccessCount": 0,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    },
+    {
+      "stage": "rollback",
+      "checks": [
+        "account IDs, disabled flag, weights and subjects",
+        "deleted account stays absent with removal marker",
+        "same-account reuse does not extend fixed affinity window",
+        "health quarantine survives unchanged credential fingerprint",
+        "both quota windows survive stale snapshots and passed reset timestamps",
+        "candidates exclude disabled, unhealthy, protected and retired accounts",
+        "lifetime, account and model usage counters",
+        "uploaded and generated media bytes and access scopes",
+        "session IDs, request index and exact signed response recovery",
+        "service identity, prefix-based executable and configuration paths",
+        "default port and config directory rules"
+      ],
+      "passed": 11,
+      "postinstallExecuted": true,
+      "version": "1.7.5",
+      "binRelativePath": "bin/antigravity-gateway",
+      "retiredRuntimePathsPresent": true,
+      "versionLegacyAccessCount": 10,
+      "moduleLegacyAccessCount": 0,
+      "persistentFilesByteIdentical": true
+    }
+  ],
+  "removedRuntimeFiles": [
+    "src/agy-tool-adapter.js",
+    "src/agy-worker.js",
+    "src/gemini-account-store.js",
+    "src/gemini-windows-auth.js",
+    "src/gemini-windows-login.js",
+    "src/gemini-windows-protocol.js",
+    "src/gemini-windows-provider.js",
+    "src/gemini-windows-quota.js",
+    "src/local-account-importer.js",
+    "src/provider-router.js",
+    "src/robin-account-pool.js",
+    "src/robin-auth.js",
+    "src/robin-client-adapter.js",
+    "src/robin-conversations.js",
+    "src/robin-oauth-flow.js",
+    "src/robin-phenotype.js",
+    "src/robin-proto.js",
+    "src/robin-provider.js",
+    "src/robin-quota.js",
+    "src/robin-response.js"
+  ],
+  "oldInstallationUnchanged": true,
+  "serviceExecution": "configuration rendering only; no service was started or restarted",
+  "runtimeNetwork": false,
+  "formalAccountDataRead": false,
+  "coreSourceSnapshot": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57
+  },
+  "coreSnapshotAlgorithm": "sourceSnapshot from scripts/verify-real-client-gateway.js; includes package-lock.json, unlike the packed runtime digest",
+  "addedRuntimeFilesSinceV5": [
+    "scripts/verify-claude-search-gateway.js",
+    "scripts/verify-server-search-http.js",
+    "src/agy-model-service-tools.js",
+    "src/antigravity-server-search.js",
+    "src/server-search-contract.js",
+    "src/server-search-protocol.js"
+  ],
+  "changedRuntimeFilesSinceV5": [
+    "antigravity-gateway.js",
+    "scripts/verify-gateway-media.js",
+    "src/account-pool.js",
+    "src/antigravity-tool-contract.js",
+    "src/client-identity.js",
+    "src/conversion-errors.js",
+    "src/direct-provider.js",
+    "src/protocol.js"
+  ],
+  "snapshotBoundary": "Every archive file matches the captured pre-pack source. Documentation and this evidence fixture are written after package creation; later workspace documentation is not claimed byte-identical to the fixed archive.",
+  "audit": {
+    "at": "2026-11-06T20:43:51.508Z",
+    "status": "passed",
+    "scope": "Frozen runtime: main/package/src/native/scripts/skills; every archive file matched pre-pack source; formal full tree includes node_modules, modes, directories and symlink targets plus global executable; no service action",
+    "digestAlgorithm": "SHA256(JSON.stringify(relative-path SHA256 map sorted using JS localeCompare)); atime/mtime excluded",
+    "runtime": {
+      "files": 89,
+      "sha256": "12f738ac59f41fada0e07653cddc8a24e51e42e459277a0cef0e3934c7c3c137",
+      "unchangedDuringRehearsal": true,
+      "archiveByteIdentical": true
+    },
+    "formal": {
+      "files": 566,
+      "sha256": "a99e6d8e5963d01f7c5ab466d264d3bb1d868873e241ee1b947d2b6dd5036a59",
+      "unchangedIncludingDependencies": true,
+      "permissionsAndSymlinksUnchanged": true,
+      "executableUnchanged": true
+    },
+    "packagingRules": {
+      "scripts/.npmignore": "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793"
+    },
+    "pythonBytecodeExcluded": true,
+    "archiveFileCount": 121,
+    "everyArchiveFileMatchesCapturedSource": true,
+    "nativeManifestSourceSha256": "47e34ff9c729c93109f673028e3e2435e7960b373e60b369dab9fa7e1be5f5dc",
+    "native": [
+      {
+        "platform": "darwin-arm64",
+        "file": "native/bin/agy-transport-darwin-arm64.gz",
+        "bytes": 6335954,
+        "compressedBytes": 2696687,
+        "sha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5",
+        "compressedSha256": "14eab882035cd39e74cfe2457ffa3d49c83a2373c2bbe855a68ab1c74b9baef9",
+        "verified": true
+      },
+      {
+        "platform": "darwin-x64",
+        "file": "native/bin/agy-transport-darwin-x64.gz",
+        "bytes": 6860688,
+        "compressedBytes": 2918308,
+        "sha256": "d6091f27f29fc4186c1f64d91181d8b952fc4e29ba5b239326f6ade16a5dc647",
+        "compressedSha256": "a726b907d376682b01cb23517268b0231b49c870bf08efe8e84051e8e7f5f693",
+        "verified": true
+      },
+      {
+        "platform": "linux-arm64",
+        "file": "native/bin/agy-transport-linux-arm64.gz",
+        "bytes": 6226044,
+        "compressedBytes": 2598848,
+        "sha256": "7f9f944701b37f8a2326d95c6b2621cccfb9299f717140bb8a76649b0c013270",
+        "compressedSha256": "fc7819e16d17425b58710545c499950b24be9a144245928b264cd09d5a9d3286",
+        "verified": true
+      },
+      {
+        "platform": "linux-x64",
+        "file": "native/bin/agy-transport-linux-x64.gz",
+        "bytes": 6705276,
+        "compressedBytes": 2869497,
+        "sha256": "114dd695864692b3dc35d31ff238e602db421ee0481486824346cbf0026feebf",
+        "compressedSha256": "bbc0b28b17406034c5e06d623e93380aba955e1a4dc6265c82a1c0006803193a",
+        "verified": true
+      },
+      {
+        "platform": "win32-arm64",
+        "file": "native/bin/agy-transport-win32-arm64.gz",
+        "bytes": 6250496,
+        "compressedBytes": 2642333,
+        "sha256": "5e9cf49b91e379884575eb2cc8bf110d9983b04b702aca02044d87f8abe3bc5b",
+        "compressedSha256": "85005a7b98bbda490cb3a29a134b3390652c6c80e8b05b0949b6db9c35696072",
+        "verified": true
+      },
+      {
+        "platform": "win32-x64",
+        "file": "native/bin/agy-transport-win32-x64.gz",
+        "bytes": 6904832,
+        "compressedBytes": 2949261,
+        "sha256": "cb86de434dafb9117c5ce32f451318ff8e8f99363fa53902d1aa4e92f33f1da7",
+        "compressedSha256": "0302a6bc63048036fc385cfdbb6d8b921b30044489847b35df3adb390f5fe55b",
+        "verified": true
+      }
+    ],
+    "checks": 33,
+    "postinstall": 3,
+    "retiredAccountRuntimeReads": 0,
+    "newArchiveSha256": "054346980209f3ff48a146b6b0dd67c909b411338c3c8ab60d730525b8ccfd03"
+  }
+}

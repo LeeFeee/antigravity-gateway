@@ -58,7 +58,7 @@ class DashboardAccountAuth {
     })).then(account => {
       // Cancelling or shutting down during a token exchange must never save a late result.
       controller.signal.throwIfAborted();
-      const saved = this.store.save(account);
+      const saved = this.store.save(account, { newGrant: true });
       job.account = { id: saved.id, email: saved.email, providerType: 'cloudcode' };
       this.pool.reload();
       this.onAdded();

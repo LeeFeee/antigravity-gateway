@@ -4,13 +4,76 @@ const crypto = require('node:crypto');
 const dns = require('node:dns').promises;
 const fs = require('node:fs');
 const net = require('node:net');
+const os = require('node:os');
 const path = require('node:path');
+const { fileURLToPath } = require('node:url');
 
 const DEFAULT_MEDIA_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_MEDIA_LIMIT || 96 * 1024 * 1024);
 const DEFAULT_TOTAL_MEDIA_LIMIT = Number(process.env.ANTIGRAVITY_GATEWAY_TOTAL_MEDIA_LIMIT || 192 * 1024 * 1024);
 const MEDIA_ID = /^file_[a-f0-9]{32}$/;
 const IMAGE_EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif' };
 function imageFileExtension(mime) { return IMAGE_EXTENSIONS[normalizeMime(mime)] || 'bin'; }
+const GENERATED_ORIGIN = 'gateway-generated-image-v1';
+
+// MIME declarations alone must never make uploaded HTML/SVG into public,
+// same-origin content. Only passive raster formats with matching signatures
+// can receive the server-owned generated-image marker.
+function safeRasterImage(buffer, mediaType) {
+  if (!Buffer.isBuffer(buffer)) return false;
+  switch (normalizeMime(mediaType)) {
+    case 'image/png':
+      return buffer.length >= 45 && buffer.subarray(0, 8).equals(Buffer.from('89504e470d0a1a0a', 'hex'))
+        && buffer.readUInt32BE(8) === 13 && buffer.toString('ascii', 12, 16) === 'IHDR'
+        && buffer.readUInt32BE(16) > 0 && buffer.readUInt32BE(20) > 0
+        && buffer.subarray(-12).equals(Buffer.from('0000000049454e44ae426082', 'hex'));
+    case 'image/jpeg':
+      return buffer.length >= 4 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff
+        && buffer[buffer.length - 2] === 0xff && buffer[buffer.length - 1] === 0xd9;
+    case 'image/gif':
+      return buffer.length >= 14 && /^GIF8[79]a$/.test(buffer.toString('ascii', 0, 6))
+        && buffer.readUInt16LE(6) > 0 && buffer.readUInt16LE(8) > 0 && buffer[buffer.length - 1] === 0x3b;
+    case 'image/webp':
+      return buffer.length >= 20 && buffer.toString('ascii', 0, 4) === 'RIFF'
+        && buffer.readUInt32LE(4) === buffer.length - 8 && buffer.toString('ascii', 8, 12) === 'WEBP'
+        && ['VP8 ', 'VP8L', 'VP8X'].includes(buffer.toString('ascii', 12, 16));
+    case 'image/avif': {
+      if (buffer.length < 24 || buffer.toString('ascii', 4, 8) !== 'ftyp') return false;
+      const size = buffer.readUInt32BE(0);
+      if (size < 24 || size > Math.min(buffer.length, 4096) || size % 4) return false;
+      if (['avif', 'avis'].includes(buffer.toString('ascii', 8, 12))) return true;
+      for (let at = 16; at < size; at += 4) if (['avif', 'avis'].includes(buffer.toString('ascii', at, at + 4))) return true;
+      return false;
+    }
+    default: return false;
+  }
+}
+
+function withinRoot(target, root) {
+  const relative = path.relative(root, target);
+  return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
+}
+
+function localMediaOptions({ env = process.env, configDir, homeDir = os.homedir() } = {}) {
+  const allowLocalPaths = env.ANTIGRAVITY_GATEWAY_MEDIA_LOCAL_PATHS === '1';
+  let allowedLocalRoots = [];
+  if (allowLocalPaths) {
+    try { allowedLocalRoots = JSON.parse(env.ANTIGRAVITY_GATEWAY_MEDIA_ALLOWED_ROOTS || '[]'); }
+    catch { throw new Error('ANTIGRAVITY_GATEWAY_MEDIA_ALLOWED_ROOTS 必须是绝对目录路径的 JSON 数组。'); }
+    if (!Array.isArray(allowedLocalRoots) || !allowedLocalRoots.length
+      || allowedLocalRoots.some(root => typeof root !== 'string' || !path.isAbsolute(root))) {
+      throw new Error('启用本地媒体路径时，ANTIGRAVITY_GATEWAY_MEDIA_ALLOWED_ROOTS 必须指定至少一个绝对目录路径。');
+    }
+  }
+  // These exclusions apply even when an operator allows a broad parent such
+  // as their home directory. Other credential stores should remain outside the
+  // explicitly allowed media roots as well.
+  const blockedLocalRoots = [configDir, ...[
+    '.antigravity-gateway', '.ssh', '.aws', '.config', '.antigravity', '.agy', '.gemini',
+    '.claude', '.codex', '.hermes', '.pi', '.dsh', '.mirasim', '.local/share/agy',
+    'Library/Application Support/Antigravity', 'Library/Keychains'
+  ].map(name => path.join(homeDir, name))].filter(Boolean);
+  return { allowLocalPaths, allowedLocalRoots, blockedLocalRoots };
+}
 
 const MIME_BY_EXTENSION = new Map(Object.entries({
   '.avif': 'image/avif', '.bmp': 'image/bmp', '.gif': 'image/gif', '.heic': 'image/heic',
@@ -183,13 +246,17 @@ async function responseBuffer(response, limit) {
 }
 
 class MediaStore {
-  constructor({ directory, fsImpl = fs, fetchImpl = globalThis.fetch, maxBytes = DEFAULT_MEDIA_LIMIT, maxTotalBytes = DEFAULT_TOTAL_MEDIA_LIMIT } = {}) {
+  constructor({ directory, fsImpl = fs, fetchImpl = globalThis.fetch, maxBytes = DEFAULT_MEDIA_LIMIT, maxTotalBytes = DEFAULT_TOTAL_MEDIA_LIMIT,
+    allowLocalPaths = false, allowedLocalRoots = [], blockedLocalRoots = [] } = {}) {
     if (!directory) throw new Error('MediaStore requires directory');
     this.directory = directory;
     this.fs = fsImpl;
     this.fetchImpl = fetchImpl;
     this.maxBytes = Math.max(1024, Number(maxBytes) || DEFAULT_MEDIA_LIMIT);
     this.maxTotalBytes = Math.max(this.maxBytes, Number(maxTotalBytes) || DEFAULT_TOTAL_MEDIA_LIMIT);
+    this.allowLocalPaths = allowLocalPaths === true;
+    this.allowedLocalRoots = Array.isArray(allowedLocalRoots) ? allowedLocalRoots.map(root => path.resolve(root)) : [];
+    this.blockedLocalRoots = [path.resolve(directory), ...blockedLocalRoots.map(root => path.resolve(root))];
   }
 
   ensureDirectory() { this.fs.mkdirSync(this.directory, { recursive: true }); }
@@ -202,7 +269,25 @@ class MediaStore {
     return extension !== 'bin' && this.fs.existsSync(typed) ? typed : path.join(this.directory, `${id}.bin`);
   }
 
-  save(buffer, { mediaType, filename = '', purpose = 'assistants', scope = '' } = {}) {
+  save(buffer, options = {}) {
+    if (String(options.purpose || '').trim().toLowerCase() === 'generated') {
+      throw new MultimediaError('generated 是网关内部保留的文件用途，不能用于上传。', { code: 'reserved_file_purpose' });
+    }
+    return this.#persist(buffer, options);
+  }
+
+  saveGeneratedImage(buffer, options = {}) {
+    const content = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || '');
+    const mediaType = normalizeMime(options.mediaType, options.filename);
+    if (!safeRasterImage(content, mediaType)) {
+      throw new MultimediaError('生成结果不是与声明类型匹配的受支持图片。', { code: 'invalid_generated_image', status: 502 });
+    }
+    return this.#persist(content, { ...options, mediaType, purpose: 'generated' }, {
+      origin: GENERATED_ORIGIN, visibility: 'public', sha256: crypto.createHash('sha256').update(content).digest('hex')
+    });
+  }
+
+  #persist(buffer, { mediaType, filename = '', purpose = 'assistants', scope = '' } = {}, generated = null) {
     const content = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || '');
     if (!content.length) throw new MultimediaError('上传的多媒体文件为空。', { code: 'empty_media' });
     if (content.length > this.maxBytes) throw new MultimediaError('多媒体文件超过单文件传输上限。', { code: 'media_too_large', status: 413 });
@@ -210,7 +295,9 @@ class MediaStore {
     const id = `file_${crypto.randomBytes(16).toString('hex')}`;
     const metadata = {
       id, object: 'file', bytes: content.length, created_at: Math.floor(Date.now() / 1000),
-      filename: filename || `${id}.bin`, purpose, mediaType: normalizeMime(mediaType, filename), scope
+      filename: filename || `${id}.bin`, purpose, mediaType: normalizeMime(mediaType, filename), scope,
+      origin: generated?.origin || 'client-upload', visibility: generated?.visibility || 'private',
+      ...(generated ? { sha256: generated.sha256 } : {})
     };
     const extension = purpose === 'generated' ? imageFileExtension(metadata.mediaType) : 'bin';
     this.fs.writeFileSync(path.join(this.directory, `${id}.${extension}`), content);
@@ -222,9 +309,17 @@ class MediaStore {
     if (!MEDIA_ID.test(String(id || ''))) return null;
     try {
       const metadata = JSON.parse(this.fs.readFileSync(this.metadataPath(id), 'utf8'));
-      if (!allowPublic && metadata.scope && metadata.scope !== scope) return null;
+      // Legacy purpose=generated is not proof of origin: older HTTP uploads
+      // could set it. Keep those files readable by their owner, never public.
+      const publicCandidate = metadata.origin === GENERATED_ORIGIN && metadata.visibility === 'public'
+        && metadata.purpose === 'generated' && /^[a-f0-9]{64}$/.test(metadata.sha256 || '');
+      const scopeMatches = !metadata.scope || metadata.scope === scope;
+      if (!scopeMatches && !(allowPublic && publicCandidate)) return null;
       const buffer = this.fs.readFileSync(this.contentPath(id, metadata));
-      return { metadata, buffer };
+      const publicOutput = publicCandidate && safeRasterImage(buffer, metadata.mediaType)
+        && crypto.createHash('sha256').update(buffer).digest('hex') === metadata.sha256;
+      if (!scopeMatches && !(allowPublic && publicOutput)) return null;
+      return { metadata, buffer, publicOutput };
     } catch { return null; }
   }
 
@@ -247,13 +342,8 @@ class MediaStore {
       if (!item) throw new MultimediaError(`找不到多媒体文件: ${part.fileId}`, { code: 'media_file_not_found', status: 404 });
       return { ...part, mediaType: normalizeMime(usefulMime(part.mediaType) || item.metadata.mediaType, item.metadata.filename), data: item.buffer.toString('base64'), bytes: item.buffer.length, filename: part.filename || item.metadata.filename };
     }
-    if (part.filePath || String(part.url || '').startsWith('file://')) {
-      const target = path.resolve(part.filePath || decodeURIComponent(new URL(part.url).pathname));
-      let stat;
-      try { stat = this.fs.statSync(target); } catch { throw new MultimediaError(`找不到本地多媒体文件: ${target}`, { code: 'media_file_not_found', status: 404 }); }
-      if (!stat.isFile() || stat.size > this.maxBytes) throw new MultimediaError('本地多媒体不是文件或超过单文件传输上限。', { code: 'media_too_large', status: 413 });
-      const buffer = this.fs.readFileSync(target);
-      return { ...part, mediaType: normalizeMime(usefulMime(part.mediaType), target), data: buffer.toString('base64'), bytes: buffer.length, filename: part.filename || path.basename(target) };
+    if (part.filePath || /^file:/i.test(String(part.url || ''))) {
+      return this.resolveLocalFile(part);
     }
     if (part.url) {
       try {
@@ -282,6 +372,41 @@ class MediaStore {
       return { ...part, mediaType: normalizeMime(response.headers.get('content-type') || part.mediaType, url.pathname), data: buffer.toString('base64'), bytes: buffer.length, filename: part.filename || path.basename(url.pathname) };
     }
     throw new MultimediaError('多媒体内容缺少 data、URL、file_id 或本地路径。');
+  }
+
+  resolveLocalFile(part) {
+    const denied = () => new MultimediaError('网关不允许读取此本地路径；请上传文件并使用 file_id。', { code: 'media_local_path_not_allowed', status: 403 });
+    if (!this.allowLocalPaths || !this.allowedLocalRoots.length) throw denied();
+    let target;
+    try { target = path.resolve(part.filePath || fileURLToPath(part.url)); }
+    catch { throw new MultimediaError('本地媒体路径无效。', { code: 'invalid_media_url' }); }
+    const realOrResolved = candidate => {
+      try { return this.fs.realpathSync(candidate); } catch { return path.resolve(candidate); }
+    };
+    const blocked = candidate => this.blockedLocalRoots.some(root => withinRoot(candidate, root) || withinRoot(candidate, realOrResolved(root)))
+      || /^(?:\.env(?:\..*)?|\.netrc|\.npmrc|\.pypirc)$/i.test(path.basename(candidate));
+    if (blocked(target) || !this.allowedLocalRoots.some(root => withinRoot(target, root) || withinRoot(target, realOrResolved(root)))) throw denied();
+    let canonical;
+    try { canonical = this.fs.realpathSync(target); }
+    catch { throw new MultimediaError('找不到本地多媒体文件。', { code: 'media_file_not_found', status: 404 }); }
+    if (blocked(canonical) || !this.allowedLocalRoots.some(root => {
+      try { return withinRoot(canonical, this.fs.realpathSync(root)); } catch { return false; }
+    })) throw denied();
+    let fd;
+    try {
+      const before = this.fs.statSync(canonical);
+      if (!before.isFile() || before.size > this.maxBytes) throw new MultimediaError('本地多媒体不是文件或超过单文件传输上限。', { code: 'media_too_large', status: 413 });
+      fd = this.fs.openSync(canonical, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0) | (fs.constants.O_NONBLOCK || 0));
+      const opened = this.fs.fstatSync(fd);
+      if (!opened.isFile() || opened.dev !== before.dev || opened.ino !== before.ino
+        || this.fs.realpathSync(target) !== canonical || this.fs.realpathSync(canonical) !== canonical) throw denied();
+      const buffer = this.fs.readFileSync(fd);
+      if (buffer.length > this.maxBytes) throw new MultimediaError('本地多媒体超过单文件传输上限。', { code: 'media_too_large', status: 413 });
+      return { ...part, mediaType: normalizeMime(usefulMime(part.mediaType), canonical), data: buffer.toString('base64'), bytes: buffer.length, filename: part.filename || path.basename(canonical) };
+    } catch (error) {
+      if (error instanceof MultimediaError) throw error;
+      throw denied();
+    } finally { if (fd !== undefined) this.fs.closeSync(fd); }
   }
 
   async resolveNormalized(normalized, options = {}) {
@@ -325,6 +450,8 @@ module.exports = {
   MultimediaError,
   canonicalMedia,
   imageFileExtension,
+  localMediaOptions,
+  safeRasterImage,
   dataUrl,
   mediaPartFromBlock,
   mediaParts,

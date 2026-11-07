@@ -1,5 +1,7 @@
 # Windows 原生 Gemini 通道
 
+> 历史记录：本文对应已退役架构或此前验收阶段，保留用于追溯；其中启动、授权、路由与测试总数不适用于当前版本。当前使用方式见 [README](../README.md)，重构约定见 [产品规格](antigravity-gateway-refactor-spec.md)。
+
 在 1.5.1 基础上增量实现。原 Antigravity 代理、`add-gemini` OAuth、看板和对外接口保留；新增 Windows 会话授权及 WebChannel / `ProcessSession` 上游适配器。三条通道共享原 Antigravity 的选号策略，凭据和上游协议保持隔离。
 
 ## 添加账号

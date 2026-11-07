@@ -1,0 +1,1272 @@
+{
+  "agent": "pi",
+  "version": "1.5.0",
+  "scenario": "read",
+  "recordedAt": "2026-11-06T17:36:18.692Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-upstream",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "isolation": "fresh HOME/config/workdir; synthetic accounts only; Seatbelt denies external network and production account reads; writes limited to temporary root",
+  "gatewaySource": "working-tree source",
+  "injection": "nativeCloudCodeFetch = loopback-restricted Node fetch; no AccountPool or Direct handler substitution",
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/pi",
+    "-p",
+    "Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.",
+    "--provider",
+    "local-probe",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--mode",
+    "json",
+    "--no-extensions",
+    "--no-mcp",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--offline"
+  ],
+  "outcome": {
+    "code": 0,
+    "signal": null,
+    "clientReportedError": false
+  },
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "clientExitedSuccessfully": true,
+      "realGatewayHTTP": true,
+      "nativeGenerationEnvelope": true,
+      "fixedModelThinking": true,
+      "apiUserAgent": true,
+      "finalTextDelivered": true,
+      "originalClientToolName": true,
+      "actualLocalReadReturned": true,
+      "toolResultUsesDeclaredNativeName": true,
+      "toolRoundtripGeneratedAgain": true
+    },
+    "generationCount": 2,
+    "clientRequests": 2,
+    "issuedNativeNames": [
+      "read_file"
+    ],
+    "calledClientNames": [
+      "read"
+    ],
+    "nativeResultNames": [
+      "read_file"
+    ]
+  },
+  "upstreamErrors": [],
+  "clientHTTP": [
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2349
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\",\"image\"],\"supports_images\":true,\"supports_video\":true,\"supports_audio\":false,\"supported_mime_types\":{\"video/mp4\":true,\"image/png\":true},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\",\"image\"],\"supports_images\":true,\"supports_video\":true,\"supports_audio\":false,\"supported_mime_types\":{\"video/mp4\":true,\"image/png\":true},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-timeout": "300",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "user-agent": "pi/1.5.0 (darwin; node/v22.23.4; arm64)",
+        "session_id": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "x-client-request-id": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "5670"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n- bash: Execute bash commands (ls, grep, find, etc.)\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use bash for file operations like ls, rg, find\n- Use read to examine files instead of cat or sed.\n- You can inspect PI_* environment variables for current model and session details.\n- Use edit for targeted changes. Batch changes to one file in a single call.\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files."
+              }
+            ]
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "read",
+            "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to read (relative or absolute)"
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "Line number to start reading from (1-indexed)"
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum number of lines to read"
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "bash",
+            "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "command"
+              ],
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "timeout": {
+                  "type": "number",
+                  "description": "Timeout in seconds (optional, no default timeout)"
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "edit",
+            "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "edits"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to edit (relative or absolute)"
+                },
+                "edits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "oldText",
+                      "newText"
+                    ],
+                    "properties": {
+                      "oldText": {
+                        "type": "string",
+                        "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call."
+                      },
+                      "newText": {
+                        "type": "string",
+                        "description": "Replacement text for this targeted edit."
+                      }
+                    }
+                  },
+                  "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead."
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (relative or absolute)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Content to write to the file"
+                }
+              }
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_50dbeeccd0a047bba380400b329473bc\",\"object\":\"response\",\"created_at\":1793986578,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"fc_2c1c9eef777e452ab915446b4c61759d\",\"type\":\"function_call\",\"status\":\"in_progress\",\"call_id\":\"verify_read_pi\",\"name\":\"read\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"},\"sequence_number\":1}\n\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_2c1c9eef777e452ab915446b4c61759d\",\"output_index\":0,\"delta\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\",\"sequence_number\":2}\n\ndata: {\"type\":\"response.function_call_arguments.done\",\"item_id\":\"fc_2c1c9eef777e452ab915446b4c61759d\",\"output_index\":0,\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"fc_2c1c9eef777e452ab915446b4c61759d\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"verify_read_pi\",\"name\":\"read\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"},\"sequence_number\":4}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":5,\"response\":{\"id\":\"resp_50dbeeccd0a047bba380400b329473bc\",\"object\":\"response\",\"created_at\":1793986578,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"fc_2c1c9eef777e452ab915446b4c61759d\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"verify_read_pi\",\"name\":\"read\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-timeout": "300",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "user-agent": "pi/1.5.0 (darwin; node/v22.23.4; arm64)",
+        "session_id": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "x-client-request-id": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "6053"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-high",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n- bash: Execute bash commands (ls, grep, find, etc.)\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use bash for file operations like ls, rg, find\n- Use read to examine files instead of cat or sed.\n- You can inspect PI_* environment variables for current model and session details.\n- Use edit for targeted changes. Batch changes to one file in a single call.\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files."
+              }
+            ]
+          },
+          {
+            "type": "function_call",
+            "id": "fc_2c1c9eef777e452ab915446b4c61759d",
+            "call_id": "verify_read_pi",
+            "name": "read",
+            "arguments": "{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}"
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "verify_read_pi",
+            "output": "PROBE_FIXTURE_LINE_1\nPROBE_FIXTURE_LINE_2\n\n[1 more lines in file. Use offset=3 to continue.]"
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "read",
+            "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to read (relative or absolute)"
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "Line number to start reading from (1-indexed)"
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum number of lines to read"
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "bash",
+            "description": "Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "command"
+              ],
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "Shell command to execute"
+                },
+                "timeout": {
+                  "type": "number",
+                  "description": "Timeout in seconds (optional, no default timeout)"
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "edit",
+            "description": "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "edits"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to edit (relative or absolute)"
+                },
+                "edits": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "oldText",
+                      "newText"
+                    ],
+                    "properties": {
+                      "oldText": {
+                        "type": "string",
+                        "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call."
+                      },
+                      "newText": {
+                        "type": "string",
+                        "description": "Replacement text for this targeted edit."
+                      }
+                    }
+                  },
+                  "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead."
+                }
+              }
+            }
+          },
+          {
+            "type": "function",
+            "name": "write",
+            "description": "Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path",
+                "content"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (relative or absolute)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Content to write to the file"
+                }
+              }
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_c03ec75add3f479f936a500c9463f129\",\"object\":\"response\",\"created_at\":1793986578,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"output_index\":0,\"content_index\":0,\"delta\":\"LOCAL_GATEWAY_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"output_index\":0,\"content_index\":0,\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":7,\"response\":{\"id\":\"resp_c03ec75add3f479f936a500c9463f129\",\"object\":\"response\",\"created_at\":1793986578,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_45cde6611eee4fb9a6931ed2c94df00d\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    }
+  ],
+  "upstream": [
+    {
+      "method": "POST",
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "16978"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57/1793986578639/54926a75-0099-4b90-8545-3829c6f3db1a/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nRead probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:36:18+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n- bash: Execute bash commands (ls, grep, find, etc.)\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use bash for file operations like ls, rg, find\n- Use read to examine files instead of cat or sed.\n- You can inspect PI_* environment variables for current model and session details.\n- Use edit for targeted changes. Batch changes to one file in a single call.\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"read\": mcp_gateway_tool_9120d3e96e5e451d (mcp-direct), mcp_gateway_tool_8ced4fd46d19bb2d_json (mcp-json), read_file (native)\n\"bash\": mcp_gateway_tool_db131d99db479022 (mcp-direct), mcp_gateway_tool_1f925e6bf6a3b40e_json (mcp-json)\n\"edit\": mcp_gateway_tool_315a1049195c8171 (mcp-direct), mcp_gateway_tool_3a2ced3098743b5f_json (mcp-json)\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_8ced4fd46d19bb2d_json; toolSummary is transport metadata only in this view.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to read (relative or absolute)"
+                      },
+                      "offset": {
+                        "type": "NUMBER",
+                        "description": "Line number to start reading from (1-indexed)"
+                      },
+                      "limit": {
+                        "type": "NUMBER",
+                        "description": "Maximum number of lines to read"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_8ced4fd46d19bb2d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read an explicit inclusive 1-indexed text range of at most 800 lines. Use absolute paths to ordinary text/source files. Images, PDF/document extraction, byte offsets, unrestricted/default reads and large-read switches use mcp_gateway_tool_8ced4fd46d19bb2d_json. This is a parameter view of the client's file reader: its byte limits, output formatting, permissions and observation rules remain in force; it does not implement the official executor's 46080-byte truncation.\nUnderlying client execution constraints (all remain applicable):\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "StartLine",
+                      "EndLine"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_db131d99db479022",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_1f925e6bf6a3b40e_json; toolSummary is transport metadata only in this view.\nExecute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "command": {
+                        "type": "STRING",
+                        "description": "Shell command to execute"
+                      },
+                      "timeout": {
+                        "type": "NUMBER",
+                        "description": "Timeout in seconds (optional, no default timeout)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "command",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_1f925e6bf6a3b40e_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nExecute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"command\"],\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"Shell command to execute\"},\"timeout\":{\"type\":\"number\",\"description\":\"Timeout in seconds (optional, no default timeout)\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_315a1049195c8171",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_3a2ced3098743b5f_json; toolSummary is transport metadata only in this view.\nEdit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to edit (relative or absolute)"
+                      },
+                      "edits": {
+                        "type": "ARRAY",
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "oldText": {
+                              "type": "STRING",
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call."
+                            },
+                            "newText": {
+                              "type": "STRING",
+                              "description": "Replacement text for this targeted edit."
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ]
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_3a2ced3098743b5f_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nEdit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"edits\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to edit (relative or absolute)\"},\"edits\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"oldText\",\"newText\"],\"properties\":{\"oldText\":{\"type\":\"string\",\"description\":\"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.\"},\"newText\":{\"type\":\"string\",\"description\":\"Replacement text for this targeted edit.\"}}},\"description\":\"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (relative or absolute)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_e77d01061ffdbc75_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "54926a75-0099-4b90-8545-3829c6f3db1a-0",
+            "root_cascade_id": "4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57",
+            "trajectory_id": "54926a75-0099-4b90-8545-3829c6f3db1a",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "issuedToolCall": {
+        "id": "verify_read_pi",
+        "name": "read_file",
+        "args": {
+          "Path": "/tmp/client-gateway-verify/work/probe-input.txt",
+          "StartLine": 1,
+          "EndLine": 2
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "17420"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57/1793986578655/54926a75-0099-4b90-8545-3829c6f3db1a/3",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nRead probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:36:18+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "verify_read_pi",
+                    "name": "read_file",
+                    "args": {
+                      "EndLine": 2,
+                      "Path": "/tmp/client-gateway-verify/work/probe-input.txt",
+                      "StartLine": 1
+                    }
+                  },
+                  "thoughtSignature": "synthetic-read-signature"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "verify_read_pi",
+                    "name": "read_file",
+                    "response": {
+                      "output": "PROBE_FIXTURE_LINE_1\nPROBE_FIXTURE_LINE_2\n\n[1 more lines in file. Use offset=3 to continue.]"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n- bash: Execute bash commands (ls, grep, find, etc.)\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\n- write: Create or overwrite files\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use bash for file operations like ls, rg, find\n- Use read to examine files instead of cat or sed.\n- You can inspect PI_* environment variables for current model and session details.\n- Use edit for targeted changes. Batch changes to one file in a single call.\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\n- Use write only for new files or complete rewrites.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/client-gateway-verify/work\n</cwd>\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"read\": mcp_gateway_tool_9120d3e96e5e451d (mcp-direct), mcp_gateway_tool_8ced4fd46d19bb2d_json (mcp-json), read_file (native)\n\"bash\": mcp_gateway_tool_db131d99db479022 (mcp-direct), mcp_gateway_tool_1f925e6bf6a3b40e_json (mcp-json)\n\"edit\": mcp_gateway_tool_315a1049195c8171 (mcp-direct), mcp_gateway_tool_3a2ced3098743b5f_json (mcp-json)\n\"write\": mcp_gateway_tool_4a2ce9f33ab2059a (mcp-direct), mcp_gateway_tool_e77d01061ffdbc75_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_8ced4fd46d19bb2d_json; toolSummary is transport metadata only in this view.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to read (relative or absolute)"
+                      },
+                      "offset": {
+                        "type": "NUMBER",
+                        "description": "Line number to start reading from (1-indexed)"
+                      },
+                      "limit": {
+                        "type": "NUMBER",
+                        "description": "Maximum number of lines to read"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_8ced4fd46d19bb2d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read an explicit inclusive 1-indexed text range of at most 800 lines. Use absolute paths to ordinary text/source files. Images, PDF/document extraction, byte offsets, unrestricted/default reads and large-read switches use mcp_gateway_tool_8ced4fd46d19bb2d_json. This is a parameter view of the client's file reader: its byte limits, output formatting, permissions and observation rules remain in force; it does not implement the official executor's 46080-byte truncation.\nUnderlying client execution constraints (all remain applicable):\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "StartLine",
+                      "EndLine"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_db131d99db479022",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_1f925e6bf6a3b40e_json; toolSummary is transport metadata only in this view.\nExecute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "command": {
+                        "type": "STRING",
+                        "description": "Shell command to execute"
+                      },
+                      "timeout": {
+                        "type": "NUMBER",
+                        "description": "Timeout in seconds (optional, no default timeout)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "command",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_1f925e6bf6a3b40e_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nExecute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"command\"],\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"Shell command to execute\"},\"timeout\":{\"type\":\"number\",\"description\":\"Timeout in seconds (optional, no default timeout)\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_315a1049195c8171",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_3a2ced3098743b5f_json; toolSummary is transport metadata only in this view.\nEdit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to edit (relative or absolute)"
+                      },
+                      "edits": {
+                        "type": "ARRAY",
+                        "description": "One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "oldText": {
+                              "type": "STRING",
+                              "description": "Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call."
+                            },
+                            "newText": {
+                              "type": "STRING",
+                              "description": "Replacement text for this targeted edit."
+                            }
+                          },
+                          "required": [
+                            "oldText",
+                            "newText"
+                          ]
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "edits",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_3a2ced3098743b5f_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nEdit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"edits\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to edit (relative or absolute)\"},\"edits\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"oldText\",\"newText\"],\"properties\":{\"oldText\":{\"type\":\"string\",\"description\":\"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.\"},\"newText\":{\"type\":\"string\",\"description\":\"Replacement text for this targeted edit.\"}}},\"description\":\"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_4a2ce9f33ab2059a",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_e77d01061ffdbc75_json; toolSummary is transport metadata only in this view.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (relative or absolute)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e77d01061ffdbc75_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_e77d01061ffdbc75_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57",
+            "last_step_index": "2",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "54926a75-0099-4b90-8545-3829c6f3db1a-1",
+            "root_cascade_id": "4ca5ad1a-d01c-4290-b8f9-d1dc85a49e57",
+            "trajectory_id": "54926a75-0099-4b90-8545-3829c6f3db1a",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    }
+  ],
+  "stdout": "{\"type\":\"session\",\"version\":3,\"id\":\"01a1b1ee-c88e-72f0-8fdf-a0f588d0dea8\",\"timestamp\":\"2026-11-06T17:36:18.574Z\",\"cwd\":\"/tmp/client-gateway-verify/work\"}\n{\"type\":\"agent_start\"}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n- bash: Execute bash commands (ls, grep, find, etc.)\\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use bash for file operations like ls, rg, find\\n- Use read to examine files instead of cat or sed.\\n- You can inspect PI_* environment variables for current model and session details.\\n- Use edit for targeted changes. Batch changes to one file in a single call.\\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793986578595,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"bash\",\"description\":\"Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.\",\"parameters\":{\"type\":\"object\",\"required\":[\"command\"],\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"Shell command to execute\"},\"timeout\":{\"type\":\"number\",\"description\":\"Timeout in seconds (optional, no default timeout)\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"edit\",\"description\":\"Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"edits\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to edit (relative or absolute)\"},\"edits\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"oldText\",\"newText\"],\"properties\":{\"oldText\":{\"type\":\"string\",\"description\":\"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.\"},\"newText\":{\"type\":\"string\",\"description\":\"Replacement text for this targeted edit.\"}}},\"description\":\"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n- bash: Execute bash commands (ls, grep, find, etc.)\\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use bash for file operations like ls, rg, find\\n- Use read to examine files instead of cat or sed.\\n- You can inspect PI_* environment variables for current model and session details.\\n- Use edit for targeted changes. Batch changes to one file in a single call.\\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793986578595,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"bash\",\"description\":\"Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.\",\"parameters\":{\"type\":\"object\",\"required\":[\"command\"],\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"Shell command to execute\"},\"timeout\":{\"type\":\"number\",\"description\":\"Timeout in seconds (optional, no default timeout)\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"edit\",\"description\":\"Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"edits\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to edit (relative or absolute)\"},\"edits\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"oldText\",\"newText\"],\"properties\":{\"oldText\":{\"type\":\"string\",\"description\":\"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.\"},\"newText\":{\"type\":\"string\",\"description\":\"Replacement text for this targeted edit.\"}}},\"description\":\"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.\"}],\"timestamp\":1793986578595}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.\"}],\"timestamp\":1793986578595}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1793986578606}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"toolcall_start\",\"contentIndex\":0,\"id\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"toolcall_delta\",\"contentIndex\":0,\"delta\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/probe-input.txt\\\",\\\"offset\\\":1,\\\"limit\\\":2}\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"toolcall_end\",\"contentIndex\":0,\"toolCall\":{\"type\":\"toolCall\",\"id\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"name\":\"read\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}}}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"name\":\"read\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793986578606,\"responseId\":\"resp_50dbeeccd0a047bba380400b329473bc\",\"rawStopReason\":\"completed\",\"durationMs\":40,\"thinkingLevel\":\"medium\"}}\n{\"type\":\"tool_execution_start\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"args\":{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}}\n{\"type\":\"tool_execution_end\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"}],\"structuredContent\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"},\"isError\":false,\"durationMs\":1}\n{\"type\":\"message_start\",\"message\":{\"role\":\"toolResult\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"content\":[{\"type\":\"text\",\"text\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793986578649}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"toolResult\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"content\":[{\"type\":\"text\",\"text\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793986578649}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"name\":\"read\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793986578606,\"responseId\":\"resp_50dbeeccd0a047bba380400b329473bc\",\"rawStopReason\":\"completed\",\"durationMs\":40,\"thinkingLevel\":\"medium\"},\"toolResults\":[{\"role\":\"toolResult\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"content\":[{\"type\":\"text\",\"text\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793986578649}]}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1793986578650}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"text_start\",\"contentIndex\":0}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_delta\",\"contentIndex\":0,\"delta\":\"LOCAL_GATEWAY_VERIFIED\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_end\",\"contentIndex\":0,\"content\":\"LOCAL_GATEWAY_VERIFIED\"}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_45cde6611eee4fb9a6931ed2c94df00d\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793986578650,\"responseId\":\"resp_c03ec75add3f479f936a500c9463f129\",\"rawStopReason\":\"completed\",\"durationMs\":10,\"thinkingLevel\":\"medium\"}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_45cde6611eee4fb9a6931ed2c94df00d\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793986578650,\"responseId\":\"resp_c03ec75add3f479f936a500c9463f129\",\"rawStopReason\":\"completed\",\"durationMs\":10,\"thinkingLevel\":\"medium\"},\"toolResults\":[]}\n{\"type\":\"agent_end\",\"messages\":[{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n- bash: Execute bash commands (ls, grep, find, etc.)\\n- edit: Make precise file edits with exact text replacement, including multiple disjoint edits in one call\\n- write: Create or overwrite files\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use bash for file operations like ls, rg, find\\n- Use read to examine files instead of cat or sed.\\n- You can inspect PI_* environment variables for current model and session details.\\n- Use edit for targeted changes. Batch changes to one file in a single call.\\n- Each edits[].oldText must exactly and uniquely match the original file. Keep matches short and non-overlapping; merge nearby changes without including large unchanged regions.\\n- Use write only for new files or complete rewrites.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/client-gateway-verify/work\\n</cwd>\"},\"timestamp\":1793986578595,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"bash\",\"description\":\"Execute a bash command in the current working directory. Returns stdout and stderr. Output is truncated to last 2000 lines or 50KB (whichever is hit first). If truncated, full output is saved to a temp file. Optionally provide a timeout in seconds.\",\"parameters\":{\"type\":\"object\",\"required\":[\"command\"],\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"Shell command to execute\"},\"timeout\":{\"type\":\"number\",\"description\":\"Timeout in seconds (optional, no default timeout)\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"edit\",\"description\":\"Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"edits\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to edit (relative or absolute)\"},\"edits\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"oldText\",\"newText\"],\"properties\":{\"oldText\":{\"type\":\"string\",\"description\":\"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.\"},\"newText\":{\"type\":\"string\",\"description\":\"Replacement text for this targeted edit.\"}}},\"description\":\"One or more targeted replacements. Each edit is matched against the original file, not incrementally. Do not include overlapping or nested edits. If two changes touch the same block or nearby lines, merge them into one edit instead.\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}},{\"name\":\"write\",\"description\":\"Write content to a file. Creates the file if it doesn't exist, overwrites if it does. Automatically creates parent directories.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\",\"content\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (relative or absolute)\"},\"content\":{\"type\":\"string\",\"description\":\"Content to write to the file\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Read probe-input.txt using the file-reading tool, then reply exactly LOCAL_GATEWAY_VERIFIED. Do not run commands or change files.\"}],\"timestamp\":1793986578595},{\"role\":\"assistant\",\"content\":[{\"type\":\"toolCall\",\"id\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"name\":\"read\",\"arguments\":{\"path\":\"/tmp/client-gateway-verify/work/probe-input.txt\",\"offset\":1,\"limit\":2}}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"toolUse\",\"timestamp\":1793986578606,\"responseId\":\"resp_50dbeeccd0a047bba380400b329473bc\",\"rawStopReason\":\"completed\",\"durationMs\":40,\"thinkingLevel\":\"medium\"},{\"role\":\"toolResult\",\"toolCallId\":\"verify_read_pi|fc_2c1c9eef777e452ab915446b4c61759d\",\"toolName\":\"read\",\"content\":[{\"type\":\"text\",\"text\":\"PROBE_FIXTURE_LINE_1\\nPROBE_FIXTURE_LINE_2\\n\\n[1 more lines in file. Use offset=3 to continue.]\"}],\"isError\":false,\"durationMs\":1,\"timestamp\":1793986578649},{\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"LOCAL_GATEWAY_VERIFIED\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_45cde6611eee4fb9a6931ed2c94df00d\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"gemini-3.8-flash-high\",\"usage\":{\"input\":128,\"output\":12,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":140,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793986578650,\"responseId\":\"resp_c03ec75add3f479f936a500c9463f129\",\"rawStopReason\":\"completed\",\"durationMs\":10,\"thinkingLevel\":\"medium\"}],\"willRetry\":false}\n{\"type\":\"agent_settled\",\"aborted\":false}\n",
+  "stderr": "",
+  "gatewayStdout": "[Antigravity Gateway] 看板来源：仅本机\n=================================================================\n 🚀 Antigravity Gateway 已启动\n-----------------------------------------------------------------\n 网关版本: v1.7.5\n BaseURL:\n    Anthropic: http://127.0.0.1:GATEWAY_PORT\n    OpenAI: http://127.0.0.1:GATEWAY_PORT/v1\n API Key: 已配置（使用 ANTIGRAVITY_GATEWAY_API_KEY 的值）\n 本地密钥: /tmp/client-gateway-verify/gateway-data/accounts（1 个账号）\n 上游协议: Google Antigravity API（agy 1.5.2）\n 可用模型:\n    gemini-3.8-flash-high\n 更多模型: antigravity-gateway --models\n Claude Code 模型配置: antigravity-gateway --claude-config-path\n Token 看板: antigravity-gateway stats\n=================================================================\n-----------------------------------------------------------------\n 账号状态: 1/1 可用\n 历史总量: 0 Token  请求 0  上游调用 0\n 输入: 0  输出: 0  缓存: 0  命中率: --\n 最近24小时：▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁  合计 0 Token\n 统计更新: 2026-11-06T17:36:18.347Z（总量24小时、图表1小时、磁盘5分钟）\n-----------------------------------------------------------------\n[Antigravity Gateway] /v1/responses model=gemini-3.8-flash-high requested=gemini-3.8-flash-high chars=5670 tools=4 stream=true request=req_ff9519 client=pi/1.5.0_darwin_node/v22.23.4_arm64_ session=f816bd07d6 affinity=bf9601c0ac\n[Antigravity Gateway] 路由账号=synthetic@example.invalid source=managed-account model=gemini-3.8-flash-high attempt=1 request=req_ff9519 client=pi/1.5.0_darwin_node/v22.23.4_arm64_ session=f816bd07d6 affinity=bf9601c0ac\n[Antigravity Gateway] /v1/responses model=gemini-3.8-flash-high requested=gemini-3.8-flash-high chars=6053 tools=4 stream=true request=req_6366b1 client=pi/1.5.0_darwin_node/v22.23.4_arm64_ session=f816bd07d6 affinity=bf9601c0ac\n[Antigravity Gateway] 路由账号=synthetic@example.invalid source=managed-account model=gemini-3.8-flash-high attempt=1 request=req_6366b1 client=pi/1.5.0_darwin_node/v22.23.4_arm64_ session=f816bd07d6 affinity=bf9601c0ac\n",
+  "gatewayStderr": ""
+}

@@ -33,7 +33,7 @@ test('the three protocols preserve reasoning effort without leaking it into Clou
   }
 });
 
-test('Claude Code provider identity marker is neutralized without dropping system instructions', () => {
+test('normalization preserves source text for provenance-aware upstream identity cleanup', () => {
   const normalized = normalizeAnthropic({
     system: [
       { type: 'text', text: 'x-anthropic-billing-header: cc_version=2.1.276.132; cc_entrypoint=sdk-cli;' },
@@ -42,19 +42,18 @@ test('Claude Code provider identity marker is neutralized without dropping syste
     ],
     messages: [{ role: 'user', content: 'hello' }]
   });
-  assert.doesNotMatch(normalized.system, /x-anthropic-billing-header/i);
-  assert.doesNotMatch(normalized.system, /cc_version=2\.1\.276/);
-  assert.doesNotMatch(normalized.system, /Anthropic's Claude Agent SDK/);
-  assert.match(normalized.system, /AI coding agent operating behind a protocol-compatible client/);
+  assert.match(normalized.system, /x-anthropic-billing-header/i);
+  assert.match(normalized.system, /cc_version=2\.1\.276/);
+  assert.match(normalized.system, /Anthropic's Claude Agent SDK/);
   assert.match(normalized.system, /Keep all project and permission instructions/);
 });
 
-test('Claude Code billing metadata is removed without changing adjacent system text', () => {
+test('a quoted or unknown billing line is not removed by protocol parsing alone', () => {
   const normalized = normalizeAnthropic({
     system: 'Before\nx-anthropic-billing-header: cc_version=2.1.276.132; cc_entrypoint=sdk-cli;\nAfter',
     messages: [{ role: 'user', content: 'hello' }]
   });
-  assert.equal(normalized.system, 'Before\nAfter');
+  assert.equal(normalized.system, 'Before\nx-anthropic-billing-header: cc_version=2.1.276.132; cc_entrypoint=sdk-cli;\nAfter');
 });
 
 test('Claude Code system-role environment messages remain instructions, not extra user turns', () => {
@@ -221,10 +220,31 @@ test('tool_choice none and required are enforced', () => {
 });
 
 test('Responses previous transcript is prepended without mutating it', () => {
-  const previous = { system: 'S', messages: [{ role: 'user', text: 'first' }, { role: 'assistant', text: 'answer' }] };
+  const previous = { system: 'S', instructions: 'S', instructionMessages: [], messages: [{ role: 'user', text: 'first' }, { role: 'assistant', text: 'answer' }] };
   const normalized = normalizeResponses({ model: 'm', input: 'second' }, previous);
   assert.deepEqual(normalized.messages.map((item) => item.text), ['first', 'answer', 'second']);
   assert.equal(previous.messages.length, 2);
+  assert.equal(normalized.system, '');
+});
+
+test('Responses continuation replaces top-level instructions and retains actual historical developer messages', () => {
+  const first = normalizeResponses({ instructions: 'First response only.', input: [
+    { role: 'developer', content: 'User SOUL: preserve this project rule.' },
+    { role: 'user', content: 'First task' }
+  ] });
+  const before = structuredClone(first);
+  const next = normalizeResponses({ instructions: 'Second response only.', input: 'Continue' }, first);
+  assert.equal(next.system, 'Second response only.\n\nUser SOUL: preserve this project rule.');
+  assert.equal(normalizeResponses({ input: 'Continue' }, first).system, 'User SOUL: preserve this project rule.');
+  assert.equal(normalizeResponses({ instructions: null, input: 'Continue' }, first).system, 'User SOUL: preserve this project rule.');
+  assert.deepEqual(first, before);
+  assert.deepEqual(next.instructionMessages, [{ role: 'developer', text: 'User SOUL: preserve this project rule.' }]);
+  assert.ok(!next.messages.some(item => ['developer', 'system'].includes(item.role)));
+});
+
+test('Responses refuses to guess the provenance of a legacy merged instruction cache', () => {
+  assert.throws(() => normalizeResponses({ input: 'Continue' }, { system: 'Unknown mixed source', messages: [] }),
+    { code: 'response_history_unavailable', status: 400 });
 });
 
 test('Responses custom tools round-trip as custom_tool_call instead of function_call', () => {

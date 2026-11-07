@@ -5,10 +5,10 @@ const assert = require('node:assert/strict');
 process.env.ANTIGRAVITY_GATEWAY_TIMEOUT_MS = '80';
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'direct';
 delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
-const { DirectAntigravityProvider } = require('../src/direct-provider');
-DirectAntigravityProvider.prototype.listModels = async () => ['gemini-test'];
-DirectAntigravityProvider.prototype.isConfigured = () => true;
-DirectAntigravityProvider.prototype.send = async function (_input, _model, { signal }) {
+const { AccountPool } = require('../src/account-pool');
+AccountPool.prototype.listModels = async () => ['gemini-test'];
+AccountPool.prototype.hasManagedAccounts = () => true;
+AccountPool.prototype.send = async function (_input, _model, { signal }) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) return reject(signal.reason);
     signal.addEventListener('abort', () => reject(signal.reason), { once: true });

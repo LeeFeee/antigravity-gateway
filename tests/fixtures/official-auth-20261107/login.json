@@ -1,0 +1,95 @@
+{
+  "scenario": "login",
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "versionOutput": "1.5.2",
+  "realUpstream": false,
+  "realAccountRead": false,
+  "mockOnly": true,
+  "authorizationCompletedWithGoogle": false,
+  "requestObserved": true,
+  "exitCode": 0,
+  "authorizationUrl": {
+    "endpoint": "https://accounts.google.com/o/oauth2/auth",
+    "query": {
+      "access_type": "offline",
+      "client_id": "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+      "code_challenge": "[REDACTED]",
+      "code_challenge_method": "S256",
+      "prompt": "consent",
+      "redirect_uri": "https://antigravity.google/oauth-callback",
+      "response_type": "code",
+      "scope": "https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/cclog https://www.googleapis.com/auth/experimentsandconfigs https://www.googleapis.com/auth/aicode openid",
+      "state": "[REDACTED]"
+    }
+  },
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://oauth2.googleapis.com/token",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/x-www-form-urlencoded"
+        ],
+        [
+          "content-length",
+          "318"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {
+        "client_id": "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+        "client_secret": "[REDACTED]",
+        "code": "[REDACTED]",
+        "code_verifier": "[REDACTED]",
+        "grant_type": "authorization_code",
+        "redirect_uri": "https://antigravity.google/oauth-callback"
+      },
+      "mockResponse": {
+        "access_token": "[REDACTED]",
+        "refresh_token": "[REDACTED]",
+        "token_type": "Bearer",
+        "expires_in": 3600
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      },
+      "mockStatus": 200
+    }
+  ],
+  "stdout": "Open this link in a browser to log in with Google:\n\n  https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com&code_challenge=[REDACTED]&code_challenge_method=S256&prompt=consent&redirect_uri=https%3A%2F%2Fantigravity.google%2Foauth-callback&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcclog+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fexperimentsandconfigs+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faicode+openid&state=[REDACTED]\n\nThen paste the authorization code, or the full URL of the page you land on, and press Enter:\nLogged in as fixture@example.invalid.\n",
+  "stderr": ""
+}

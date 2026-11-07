@@ -1,0 +1,441 @@
+{
+  "evidence": {
+    "protocol": "Google Antigravity API",
+    "agyVersion": "1.5.2",
+    "platform": "darwin/arm64",
+    "date": "2026-11-07",
+    "entry": "official agy acp; session/new.mcpServers",
+    "model": "gemini-3.8-flash-low",
+    "sourceDirectory": "official-mcp",
+    "successfulRequests": [
+      "aff8df5a-1ebb-4690-97dd-3be4d835ef27.request.json",
+      "199cf16e-aab2-43df-a5ad-d74cc64649c9.request.json",
+      "ffce5ed6-add8-4d80-9829-50ae735c1246.request.json"
+    ],
+    "schemaFailureRequest": "cb367cd0-5afb-4b41-a63d-3468c5d0b6b5.request.json",
+    "redaction": "Only controlled tools and tool history; account headers and full prompts omitted; call IDs and timestamps replaced; signatures are non-replayable placeholders."
+  },
+  "transport": {
+    "method": "POST",
+    "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+    "version": "HTTP/1.1",
+    "userAgent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=controlled-mcp-audit/1.0.0)"
+  },
+  "basic": {
+    "serverName": "audit-mcp",
+    "inputTools": [
+      {
+        "name": "echo_record",
+        "description": "Echo controlled test data without accessing files or network.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Controlled fixture text."
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 3
+            },
+            "enabled": {
+              "type": "boolean"
+            },
+            "choice": {
+              "type": "string",
+              "enum": [
+                "alpha",
+                "beta"
+              ]
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "nested": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        }
+      },
+      {
+        "name": "fail_record",
+        "description": "Return an intentional, controlled MCP tool error. Do not retry.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false
+        }
+      }
+    ],
+    "upstreamDeclarations": [
+      {
+        "name": "mcp_audit-mcp_echo_record",
+        "description": "This is a tool from the audit-mcp MCP server.\nEcho controlled test data without accessing files or network.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "choice": {
+              "type": "STRING",
+              "enum": [
+                "alpha",
+                "beta"
+              ]
+            },
+            "count": {
+              "type": "INTEGER",
+              "maximum": 3
+            },
+            "enabled": {
+              "type": "BOOLEAN"
+            },
+            "nested": {
+              "type": "OBJECT",
+              "properties": {
+                "label": {
+                  "type": "STRING"
+                }
+              },
+              "required": [
+                "label"
+              ]
+            },
+            "text": {
+              "type": "STRING",
+              "description": "Controlled fixture text."
+            },
+            "toolSummary": {
+              "type": "STRING",
+              "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+            },
+            "values": {
+              "type": "ARRAY",
+              "items": {
+                "type": "STRING"
+              }
+            }
+          },
+          "required": [
+            "text",
+            "toolSummary"
+          ]
+        }
+      },
+      {
+        "name": "mcp_audit-mcp_fail_record",
+        "description": "This is a tool from the audit-mcp MCP server.\nReturn an intentional, controlled MCP tool error. Do not retry.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "reason": {
+              "type": "STRING"
+            },
+            "toolSummary": {
+              "type": "STRING",
+              "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+            }
+          },
+          "required": [
+            "reason",
+            "toolSummary"
+          ]
+        }
+      }
+    ],
+    "functionDeclarationGroupSizes": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "resourceDeclarations": [
+      {
+        "name": "list_resources",
+        "description": "Lists the available resources from an MCP server.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "ServerName": {
+              "type": "STRING",
+              "description": "Name of the server to list available resources from.",
+              "minLength": "1"
+            }
+          },
+          "required": [
+            "ServerName"
+          ]
+        }
+      },
+      {
+        "name": "read_resource",
+        "description": "Retrieves a specified resource's contents.",
+        "parameters": {
+          "type": "OBJECT",
+          "properties": {
+            "ServerName": {
+              "type": "STRING",
+              "description": "Name of the server to read the resource from."
+            },
+            "Uri": {
+              "type": "STRING",
+              "description": "Unique identifier for the resource."
+            }
+          }
+        }
+      }
+    ],
+    "history": [
+      {
+        "role": "model",
+        "part": {
+          "functionCall": {
+            "id": "call_echo",
+            "name": "mcp_audit-mcp_echo_record",
+            "args": {
+              "choice": "alpha",
+              "count": 2,
+              "enabled": false,
+              "nested": {
+                "label": "safe"
+              },
+              "text": "safe-fixture",
+              "toolSummary": "Echo record test",
+              "values": [
+                "x",
+                "y"
+              ]
+            }
+          },
+          "thoughtSignature": "REDACTED_UPSTREAM_SIGNATURE"
+        }
+      },
+      {
+        "role": "model",
+        "part": {
+          "functionResponse": {
+            "id": "call_echo",
+            "name": "mcp_audit-mcp_echo_record",
+            "response": {
+              "output": "Created At: 2026-11-07T00:00:00+08:00\nCompleted At: 2026-11-07T00:00:00+08:00\n{\"echo\": {\"choice\": \"alpha\", \"count\": 2, \"enabled\": false, \"nested\": {\"label\": \"safe\"}, \"text\": \"safe-fixture\", \"values\": [\"x\", \"y\"]}}"
+            }
+          }
+        }
+      },
+      {
+        "role": "model",
+        "part": {
+          "functionCall": {
+            "id": "call_fail",
+            "name": "mcp_audit-mcp_fail_record",
+            "args": {
+              "reason": "expected-fixture-error",
+              "toolSummary": "Intentional fail test"
+            }
+          },
+          "thoughtSignature": "REDACTED_UPSTREAM_SIGNATURE"
+        }
+      },
+      {
+        "role": "model",
+        "part": {
+          "functionResponse": {
+            "id": "call_fail",
+            "name": "mcp_audit-mcp_fail_record",
+            "response": {
+              "error": "Created At: 2026-11-07T00:00:00+08:00\nCompleted At: 2026-11-07T00:00:00+08:00\nEncountered error in tool execution: CONTROLLED_MCP_ERROR: expected-fixture-error"
+            }
+          }
+        }
+      }
+    ],
+    "mcpCalls": [
+      {
+        "name": "echo_record",
+        "arguments": {
+          "choice": "alpha",
+          "count": 2,
+          "enabled": false,
+          "nested": {
+            "label": "safe"
+          },
+          "text": "safe-fixture",
+          "values": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      {
+        "name": "fail_record",
+        "arguments": {
+          "reason": "expected-fixture-error"
+        }
+      }
+    ],
+    "statuses": [
+      200,
+      200,
+      200
+    ]
+  },
+  "schemaFailure": {
+    "inputTool": {
+      "name": "schema_record",
+      "description": "Echo a controlled complex-schema fixture.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "nullable": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "union": {
+            "oneOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "literal": {
+            "const": "fixed"
+          },
+          "number": {
+            "type": "number",
+            "enum": [
+              0,
+              1.5
+            ]
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 12,
+            "pattern": "^safe"
+          },
+          "map": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "tuple": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "minItems": 2,
+            "maxItems": 2,
+            "items": false
+          }
+        },
+        "required": [
+          "literal"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "upstreamDeclaration": {
+      "name": "mcp_audit-mcp_schema_record",
+      "description": "This is a tool from the audit-mcp MCP server.\nEcho a controlled complex-schema fixture.",
+      "parameters": {
+        "type": "OBJECT",
+        "properties": {
+          "literal": {},
+          "map": {
+            "type": "OBJECT"
+          },
+          "nullable": {},
+          "number": {
+            "type": "NUMBER",
+            "enum": [
+              "",
+              ""
+            ]
+          },
+          "text": {
+            "type": "STRING",
+            "minLength": "1",
+            "maxLength": "12",
+            "pattern": "^safe"
+          },
+          "toolSummary": {
+            "type": "STRING",
+            "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+          },
+          "tuple": {
+            "type": "ARRAY",
+            "minItems": "2",
+            "maxItems": "2"
+          },
+          "union": {}
+        },
+        "required": [
+          "literal",
+          "toolSummary"
+        ]
+      }
+    },
+    "status": 400,
+    "error": {
+      "code": 400,
+      "message": "* GenerateContentRequest.tools[14].function_declarations[0].parameters.properties[number].enum[0]: cannot be empty\n* GenerateContentRequest.tools[14].function_declarations[0].parameters.properties[number].enum[1]: cannot be empty\n* GenerateContentRequest.tools[14].function_declarations[0].parameters.properties[tuple].items: missing field.\n",
+      "status": "INVALID_ARGUMENT"
+    },
+    "actualToolCalls": 0
+  }
+}

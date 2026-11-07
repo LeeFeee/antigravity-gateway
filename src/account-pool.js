@@ -7,13 +7,19 @@ const { DirectAntigravityProvider, DirectProviderError } = require('./direct-pro
 const { nativeCloudCodeFetch } = require('./agy-native-transport');
 const { errorDetails, maskEmail } = require('./diagnostic-log');
 const { ManagedAccountAuthProvider } = require('./managed-account-auth');
+const { accountGrantGeneration } = require('./account-store');
 const { recheckSignal, probeAccountInference } = require('./account-recheck');
+const { CAPTURED_IMAGE_MODEL, imageModelName, assertImageModel } = require('./image-model-config');
+const { isConversionError } = require('./conversion-errors');
+const { GatewayError } = require('./protocol');
+const { validateSearchParameters } = require('./antigravity-server-search');
 
 const { SESSION_TTL_MS, SESSION_CAPACITY, TRANSIENT_COOLDOWN_MS, durationMs, retryDelay, affinityActive, geminiWeeklyPressure,
   geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
 const ACCOUNT_HEALTH_STATES = new Set(['verification_required', 'authentication_error', 'access_denied']);
 
 function errorCategory(error) {
+  if (isConversionError(error)) return 'request';
   const status = Number(error?.status) || 0;
   const source = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''} ${error?.cause?.code || ''} ${error?.cause?.message || ''}`;
   if (error?.code === 'request_timeout' || error?.code === 'request_aborted' || /abort(?:ed|error)|请求已取消|网关请求超时/i.test(source)) return 'request';
@@ -73,9 +79,8 @@ function accountFingerprint(account = {}) {
 }
 
 class AccountPool {
-  constructor({ store, fallbackProvider, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter, directoryGuard = null } = {}) {
+  constructor({ store, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter, directoryGuard = null } = {}) {
     this.store = store;
-    this.fallbackProvider = fallbackProvider;
     this.usageStore = usageStore;
     this.agyPath = agyPath;
     this.fetchImpl = fetchImpl;
@@ -115,7 +120,6 @@ class AccountPool {
 
   bindDirectoryGuard(guard) {
     this.directoryGuard = guard;
-    this.fallbackProvider?.bindDirectoryGuard?.(guard);
     for (const entry of this.entries.values()) {
       entry.provider?.bindDirectoryGuard?.(guard);
     }
@@ -184,13 +188,18 @@ class AccountPool {
     let stateChanged = false;
     const changedEntries = [];
     for (const account of this.store.list()) {
-      // Directory separation is not enough if a credential file was copied
-      // or imported into the wrong store. Never hand a Robin grant to the
-      // Cloud Code auth/provider path; legacy accounts remain Cloud Code.
+      // Validate once at the storage boundary, before constructing a provider.
+      // Legacy persisted agy labels remain compatible; foreign credentials
+      // must never enter Google Antigravity API routing.
       if (account.providerType === 'robin' || account.accountType === 'gemini-app') continue;
       const previous = old.get(account.id);
+      const generation = accountGrantGeneration(account);
+      const sameGrant = previous?.grantGeneration === generation;
       const persistedHealth = this.health.get(account.id);
-      if (persistedHealth && persistedHealth.accountFingerprint !== accountFingerprint(account) && !this.rechecks.has(account.id)) {
+      const healthMatches = persistedHealth?.grantGeneration
+        ? persistedHealth.grantGeneration === generation
+        : persistedHealth?.accountFingerprint === accountFingerprint(account);
+      if (persistedHealth && (!healthMatches || (previous && !sameGrant)) && (!this.rechecks.has(account.id) || (previous && !sameGrant))) {
         this.health.delete(account.id);
         this.reportDiagnostic('account_health_cleared', account, {
           trigger: 'credential_fingerprint_changed',
@@ -199,10 +208,12 @@ class AccountPool {
         stateChanged = true;
       }
       const activeHealth = this.health.get(account.id);
-      const entry = previous && previous.account.updatedAt === account.updatedAt
-        ? { ...previous, account, provider: previous.provider }
-        : {
+      // An in-flight callback keeps this exact object. Ordinary reloads and
+      // enabled/weight edits must not detach health or cooldown from routing.
+      if (previous && !sameGrant) previous.provider?.localAuth?.disable?.();
+      const entry = sameGrant ? previous : {
             account,
+            grantGeneration: generation,
             provider: this.providerFactory(account),
             cooldownUntil: 0,
             modelCooldowns: new Map(),
@@ -212,6 +223,7 @@ class AccountPool {
             lastFailureAt: '',
             lastError: ''
           };
+      entry.account = { ...account, grantGeneration: generation };
       entry.healthState = activeHealth?.state || 'available';
       entry.healthReason = activeHealth?.reason || '';
       entry.healthSince = activeHealth?.since || '';
@@ -219,6 +231,9 @@ class AccountPool {
       if (activeHealth?.lastError) entry.lastError = activeHealth.lastError;
       next.set(account.id, entry);
       if (!previous || previous.provider !== entry.provider) changedEntries.push(entry);
+    }
+    for (const [accountId, entry] of old) {
+      if (!next.has(accountId)) entry.provider?.localAuth?.disable?.();
     }
     for (const accountId of this.health.keys()) {
       if (!next.has(accountId)) { this.health.delete(accountId); stateChanged = true; }
@@ -242,31 +257,52 @@ class AccountPool {
 
   hasManagedAccounts() { return this.entries.size > 0; }
 
-  canUseFallback() { return this.removedIdentities.size === 0; }
+  canUseFallback() { return false; }
 
-  noAccountError(model = '') {
-    const quotaProtected = this.hasManagedAccounts()
-      ? [...this.entries.values()].some((entry) => entry.account.enabled !== false
-        && this.quotaManager?.isQuotaProtected?.(entry.account.id, model))
-      : this.quotaManager?.isQuotaProtected?.('local-agy-session', model);
+  noAccountError(model = '', { service = '' } = {}) {
+    const entries = [...this.entries.values()];
+    const quotaProtected = entries.some((entry) => entry.account.enabled !== false
+      && this.quotaManager?.isQuotaProtected?.(entry.account.id, model));
     const now = this.now();
+    const states = {};
+    const modelCooldowns = [];
+    const knownSupporters = this.modelSupporters.get(model);
+    for (const entry of entries) {
+      // Describe the same model/catalog gates used by isEntryEligible. General
+      // account health alone does not explain a model-specific exclusion.
+      const supportsModel = !model || (service === 'web-search'
+        ? entry.provider.webSearchModelCatalog?.().includes(model) === true
+        : (!knownSupporters?.size || knownSupporters.has(entry.account.id))
+          && (!(entry.supportedModels instanceof Set) || entry.supportedModels.has(model)));
+      const modelCooldownUntil = entry.modelCooldowns.get(model) || 0;
+      const state = entry.account.enabled === false ? 'disabled'
+        : entry.healthState !== 'available' ? entry.healthState
+          : this.quotaManager?.isQuotaProtected?.(entry.account.id, model) ? 'quota_protected'
+            : !supportsModel ? 'model_unsupported'
+              : entry.cooldownUntil > now ? 'cooldown'
+                : modelCooldownUntil > now ? 'model_cooldown' : 'available';
+      states[state] = (states[state] || 0) + 1;
+      if (state === 'model_cooldown') modelCooldowns.push(modelCooldownUntil);
+    }
+    // Only advertise a retry time when every account is blocked solely by this
+    // model's existing cooldown. Expiry is a chance to retry, not proof that an
+    // upstream quota or capacity problem has recovered. Never alter deadlines.
+    const retryAfterSeconds = modelCooldowns.length && modelCooldowns.length === entries.length
+      ? Math.ceil((Math.min(...modelCooldowns) - now) / 1000) : 0;
     if (now - this.lastUnavailableDiagnosticAt >= 10_000) {
       this.lastUnavailableDiagnosticAt = now;
-      const states = {};
-      for (const entry of this.entries.values()) {
-        const state = entry.account.enabled === false ? 'disabled'
-          : entry.healthState !== 'available' ? entry.healthState
-            : entry.cooldownUntil > now ? 'cooldown'
-              : this.quotaManager?.protection?.(entry.account.id)?.protected ? 'quota_protected' : 'available';
-        states[state] = (states[state] || 0) + 1;
-      }
-      this.reportDiagnostic('account_pool_unavailable', null, { model, states });
+      this.reportDiagnostic('account_pool_unavailable', null, {
+        model, states, ...(retryAfterSeconds ? { retryAfterSeconds } : {})
+      });
     }
     if (quotaProtected) return new DirectProviderError('暂无满足条件的账号：Gemini 5 小时额度低于 10% 或周额度低于 5% 的账号已受保护，请等待额度恢复或使用其他可用账号。', {
       code: 'account_quota_protected', status: 429
     });
+    if (retryAfterSeconds) return Object.assign(new DirectProviderError(`模型 ${model} 的账号因上游限流暂时冷却，最早 ${retryAfterSeconds} 秒后可重试。`, {
+      code: 'account_pool_unavailable', status: 429
+    }), { retryAfterSeconds });
     return new DirectProviderError(model
-      ? `当前没有可用于模型 ${model} 的 Antigravity 账号。`
+      ? `当前没有可用于模型 ${model} 的 Antigravity 账号。${states.model_unsupported === entries.length ? '账号池的模型目录不支持该模型。' : ''}`
       : '当前账号池没有可用的 Antigravity 账号。', {
       code: 'account_pool_unavailable', status: 429
     });
@@ -304,15 +340,28 @@ class AccountPool {
     if (routingKey && this.sessions.delete(routingKey)) this.saveState();
   }
 
+  isCurrentEntry(entry) {
+    return Boolean(entry && this.entries.get(entry.account.id) === entry
+      && entry.grantGeneration === accountGrantGeneration(entry.account));
+  }
+
   markAccountIssue(entry, error, context = {}) {
+    if (!this.isCurrentEntry(entry)) return false;
     const health = accountHealth(error);
     const previousState = entry.healthState;
     const currentAccount = entry.provider?.localAuth?.account || entry.account;
-    if (currentAccount?.id === entry.account.id) entry.account = { ...entry.account, ...currentAccount };
+    if (currentAccount?.id === entry.account.id && accountGrantGeneration(currentAccount) === entry.grantGeneration) {
+      // Authentication refresh owns credential fields only, never dashboard
+      // enable/weight settings that may have changed during its await.
+      for (const key of ['accessToken', 'refreshToken', 'expiresAt', 'projectId', 'authMethod']) {
+        entry.account[key] = currentAccount[key];
+      }
+    }
     const record = {
       ...health,
       since: new Date(this.now()).toISOString(),
       accountFingerprint: accountFingerprint(entry.account),
+      grantGeneration: entry.grantGeneration,
       lastError: String(error?.message || error || '').slice(0, 1000)
     };
     entry.healthState = record.state;
@@ -333,7 +382,7 @@ class AccountPool {
   }
 
   observeAccountFailure(entry, error, context = {}) {
-    if (errorCategory(error) !== 'account') return false;
+    if (!this.isCurrentEntry(entry) || errorCategory(error) !== 'account') return false;
     entry.lastFailureAt = new Date(this.now()).toISOString();
     entry.lastError = String(error?.message || error || '');
     this.markAccountIssue(entry, error, context);
@@ -349,6 +398,7 @@ class AccountPool {
   }
 
   clearAccountIssue(entry, context = {}) {
+    if (!this.isCurrentEntry(entry)) return false;
     const previousState = entry.healthState;
     this.health.delete(entry.account.id);
     entry.healthState = 'available';
@@ -388,17 +438,20 @@ class AccountPool {
     const current = this.entries.get(entry.account.id);
     const latest = this.store.list().find(account => account.id === entry.account.id);
     const owned = entry.provider.localAuth?.account || entry.account;
-    if (!current || !latest || latest.enabled === false || accountFingerprint(latest) !== accountFingerprint(owned)) {
+    if (current !== entry || !latest || latest.enabled === false
+      || accountGrantGeneration(latest) !== entry.grantGeneration
+      || accountFingerprint(latest) !== accountFingerprint(owned)) {
       throw new DirectProviderError('账号已删除、停用或凭据已更换，请重新检测当前账号。', {
         code: 'account_recheck_changed', status: 409
       });
     }
-    current.account = latest;
+    current.account = { ...latest, grantGeneration: entry.grantGeneration };
     // Token renewal during a failed recheck is not service recovery. Keep the
     // quarantine bound to the renewed credential instead of clearing on reload.
     const health = this.health.get(latest.id);
     if (health && health.accountFingerprint !== accountFingerprint(latest)) {
       health.accountFingerprint = accountFingerprint(latest);
+      health.grantGeneration = entry.grantGeneration;
       this.saveState();
     }
     return current;
@@ -464,12 +517,12 @@ class AccountPool {
     return { id, email: account.email || '', deleted: true };
   }
 
-  eligible(model, excluded = new Set()) {
+  eligible(model, excluded = new Set(), service = '') {
     const now = this.now();
-    return [...this.entries.values()].filter((entry) => this.isEntryEligible(entry, model, excluded, now));
+    return [...this.entries.values()].filter((entry) => this.isEntryEligible(entry, model, excluded, now, service));
   }
 
-  isEntryEligible(entry, model, excluded = new Set(), now = this.now()) {
+  isEntryEligible(entry, model, excluded = new Set(), now = this.now(), service = '') {
     const knownSupporters = this.modelSupporters.get(model);
     return Boolean(entry
       && entry.account
@@ -479,8 +532,10 @@ class AccountPool {
       && entry.cooldownUntil <= now
       && (entry.modelCooldowns.get(model) || 0) <= now
       && !this.quotaManager?.isQuotaProtected?.(entry.account.id, model)
-      && (!knownSupporters?.size || knownSupporters.has(entry.account.id))
-      && (!(entry.supportedModels instanceof Set) || entry.supportedModels.has(model))
+      && (service === 'web-search'
+        ? entry.provider.webSearchModelCatalog?.().includes(model) === true
+        : (!knownSupporters?.size || knownSupporters.has(entry.account.id))
+          && (!(entry.supportedModels instanceof Set) || entry.supportedModels.has(model)))
     );
   }
 
@@ -497,6 +552,7 @@ class AccountPool {
   }
 
   recordModelCatalog(entry, models) {
+    if (!this.isCurrentEntry(entry)) return [];
     const listed = [...new Set((Array.isArray(models) ? models : [])
       .map((model) => String(model || '').replace(/^models\//, '').trim())
       .filter(Boolean))];
@@ -532,12 +588,16 @@ class AccountPool {
       try { return await this.discoverEntryModels(entry, signal); }
       catch (error) {
         this.observeAccountFailure(entry, error, { source: 'model_discovery' });
-        entry.modelCatalogChecked = true;
-        entry.supportedModels = null;
+        if (this.isCurrentEntry(entry)) {
+          entry.modelCatalogChecked = true;
+          entry.supportedModels = null;
+        }
         return [];
       }
     })).then(() => {
-      this.modelCatalogsReady = true;
+      this.modelCatalogsReady = [...this.entries.values()]
+        .filter(entry => entry.account.enabled !== false && this.isAccountHealthy(entry))
+        .every(entry => entry.modelCatalogChecked);
     }).finally(() => {
       this.modelCatalogDiscovery = null;
     });
@@ -551,7 +611,7 @@ class AccountPool {
   refreshAccountQuota(entry, options = {}) {
     // Scheduling never waits for quota I/O. QuotaManager coalesces and limits
     // targeted refreshes; older custom managers can continue without them.
-    if (!this.quotaManager?.refreshAccount || !this.isAccountHealthy(entry)) return;
+    if (!this.quotaManager?.refreshAccount || !this.isCurrentEntry(entry) || !this.isAccountHealthy(entry)) return;
     void this.quotaManager.refreshAccount(entry.account.id, options).catch(() => {});
   }
 
@@ -585,22 +645,24 @@ class AccountPool {
     return output.concat(this.quotaRanks(model, this.eligible(model, excluded)).map(({ entry }) => entry));
   }
 
-  selectAccount(model, routingKey, excluded, { preferredAccountId = '', allowSticky = true } = {}) {
+  selectAccount(model, routingKey, excluded, { preferredAccountId = '', allowSticky = true, service = '' } = {}) {
     if (allowSticky) {
       const now = this.now();
       const preferred = preferredAccountId ? this.entries.get(preferredAccountId) : null;
-      if (preferred && this.isEntryEligible(preferred, model, excluded, now)) return preferred;
+      if (preferred && this.isEntryEligible(preferred, model, excluded, now, service)) return preferred;
       const bound = routingKey ? this.sessions.get(routingKey) : null;
       const sticky = bound ? this.entries.get(bound.accountId) : null;
       const active = affinityActive(bound, now);
       // Includes the precomputed quota-protection flag. No quota snapshots, sorting,
       // refresh I/O, or account-list scan occurs during a healthy affinity window.
-      if (active && sticky && this.isEntryEligible(sticky, model, excluded, now)) return sticky;
-      if (bound && routingKey) this.deleteSession(routingKey);
+      if (active && sticky && this.isEntryEligible(sticky, model, excluded, now, service)) return sticky;
+      // A helper's quota/catalog eligibility must not invalidate the original
+      // planning/answer model's independently valid affinity.
+      if (bound && routingKey && !service) this.deleteSession(routingKey);
     }
 
     this.cleanupSessions();
-    const candidates = this.eligible(model, excluded);
+    const candidates = this.eligible(model, excluded, service);
     const ranks = this.quotaRanks(model, candidates);
     if (!ranks.length) return null;
     return this.weightedPickWithRanks(ranks);
@@ -615,30 +677,7 @@ class AccountPool {
   }
 
   async send(normalized, model, options = {}) {
-    if (!this.hasManagedAccounts()) {
-      if (!this.canUseFallback()) throw this.noAccountError(model);
-      if (this.quotaManager?.isQuotaProtected?.('local-agy-session', model)) throw this.noAccountError(model);
-      options.onAccountSelected?.({
-        accountId: 'local-agy-session',
-        email: '',
-        source: 'local-agy-session',
-        attempt: 1
-      });
-      let responseSeen = false;
-      const result = await this.fallbackProvider.send(normalized, model, {
-        ...options,
-        onUpstreamAttempt: (event) => {
-          if (event.phase === 'response') {
-            responseSeen = true;
-            this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, success: event.success, count: true });
-          }
-        }
-      });
-      // Custom/fake providers used by tests may not expose transport attempts.
-      if (!responseSeen) this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, success: true, count: true });
-      this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, usage: result.usage, success: true, count: false });
-      return result;
-    }
+    if (!this.hasManagedAccounts()) throw this.noAccountError(model);
 
     await this.ensureModelCatalogs(options.signal);
 
@@ -657,9 +696,18 @@ class AccountPool {
         attempt: attempted.size
       });
       let responseSeen = false;
+      let outputDelivered = false;
       try {
         const result = await entry.provider.send(normalized, model, {
           ...options,
+          onDelta: typeof options.onDelta === 'function' ? delta => {
+            if (delta != null && delta !== '') outputDelivered = true;
+            options.onDelta(delta);
+          } : undefined,
+          onThinkingDelta: typeof options.onThinkingDelta === 'function' ? delta => {
+            if (delta != null && delta !== '') outputDelivered = true;
+            options.onThinkingDelta(delta);
+          } : undefined,
           onUpstreamAttempt: (event) => {
             if (event.phase === 'response') responseSeen = true;
             this.attemptReporter(entry.account.id, model)(event);
@@ -667,9 +715,11 @@ class AccountPool {
         });
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: true, count: true });
         this.usageStore?.recordUpstream({ accountId: entry.account.id, model, usage: result.usage, success: true, count: false });
-        entry.lastSuccessAt = new Date(this.now()).toISOString();
-        entry.lastError = '';
-        if (routingKey && options.bindRouting !== false) this.bindSession(routingKey, entry.account.id);
+        if (this.isCurrentEntry(entry)) {
+          entry.lastSuccessAt = new Date(this.now()).toISOString();
+          entry.lastError = '';
+          if (routingKey && options.bindRouting !== false && entry.account.enabled !== false) this.bindSession(routingKey, entry.account.id);
+        }
         return { ...result, accountId: entry.account.id };
       } catch (error) {
         if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') {
@@ -677,44 +727,100 @@ class AccountPool {
         }
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
+        const category = errorCategory(error);
+        if (!this.isCurrentEntry(entry)) {
+          if (category === 'request' || outputDelivered) throw error;
+          continue;
+        }
         entry.lastFailureAt = new Date(this.now()).toISOString();
         entry.lastError = String(error.message || error);
-        const category = errorCategory(error);
+        this.reportDiagnostic('account_model_attempt_failed', entry.account, {
+          model, attempt: attempted.size, category, code: String(error?.code || ''), status: Number(error?.status) || 0
+        });
         if (category === 'request') throw error;
         if (category === 'quota') {
-          entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
+          const delay = retryDelay(error.details || error.message);
+          entry.modelCooldowns.set(model, this.now() + delay);
           this.refreshAccountQuota(entry);
         }
         else if (category === 'account') this.observeAccountFailure(entry, error, { source: 'model_request' });
         else entry.cooldownUntil = this.now() + TRANSIENT_COOLDOWN_MS;
         if (routingKey && options.bindRouting !== false) this.deleteSession(routingKey);
+        // Once bytes have reached the client, a new account cannot replace
+        // this generation inside the same response. Preserve the real error.
+        if (outputDelivered) throw error;
       }
     }
     throw lastError || this.noAccountError(model);
   }
 
-  async generateImage(request, options = {}) {
-    const model = 'gemini-3.1-flash-image';
-    if (!this.hasManagedAccounts()) {
-      if (!this.canUseFallback()) throw this.noAccountError(model);
-      if (this.quotaManager?.isQuotaProtected?.('local-agy-session', model)) throw this.noAccountError(model);
-      options.onAccountSelected?.({ accountId: 'local-agy-session', email: '', source: 'local-agy-session', attempt: 1 });
-      let responseSeen = false;
-      const result = await this.fallbackProvider.generateImage(request, {
+  async searchWeb(request, options = {}) {
+    options.signal?.throwIfAborted();
+    validateSearchParameters(request);
+    if (!this.hasManagedAccounts()) throw this.noAccountError();
+    await this.ensureModelCatalogs(options.signal);
+    options.signal?.throwIfAborted();
+    const preferred = this.entries.get(options.accountId);
+    const declared = entry => entry?.account && entry.account.enabled !== false && this.isAccountHealthy(entry)
+      && typeof entry?.provider.webSearchModelCatalog === 'function' ? entry.provider.webSearchModelCatalog() : [];
+    const models = [...new Set([...declared(preferred), ...[...this.entries.values()].flatMap(declared)])];
+    if (!models.length || (request?.model && !models.includes(request.model))) {
+      throw new GatewayError('可用账号目录没有声明所需的搜索辅助模型。', { code: 'server_search_model_unavailable', status: 400 });
+    }
+    const routingKey = options.routingKey || options.sessionId;
+    let entry, model;
+    for (const candidate of request?.model ? [request.model] : models) {
+      entry = this.selectAccount(candidate, routingKey, new Set(), {
+        preferredAccountId: options.accountId, service: 'web-search'
+      });
+      if (entry) { model = candidate; break; }
+    }
+    if (!entry) throw this.noAccountError(request?.model || models[0], { service: 'web-search' });
+    options.signal?.throwIfAborted();
+    options.onAccountSelected?.({ accountId: entry.account.id, email: entry.account.email,
+      source: entry.account.source || 'managed-account', model, attempt: 1 });
+    let responseSeen = false, attemptStarted = false;
+    try {
+      const result = await entry.provider.searchWeb({ ...request, model }, {
         ...options,
-        onUpstreamAttempt: (event) => {
-          if (event.phase === 'response') {
-            responseSeen = true;
-            this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, success: event.success, count: true });
-          }
+        onUpstreamAttempt: event => {
+          if (event.phase === 'start') attemptStarted = true;
+          if (event.phase === 'response') responseSeen = true;
+          this.attemptReporter(entry.account.id, model)(event);
         }
       });
-      if (!responseSeen) this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, success: true, count: true });
-      this.usageStore?.recordUpstream({ accountId: 'local-agy-session', model, usage: result.usage, success: true, count: false });
-      return { ...result, accountId: 'local-agy-session' };
+      if (!responseSeen && attemptStarted) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: true, count: true });
+      this.usageStore?.recordUpstream({ accountId: entry.account.id, model, usage: result.usage, success: true, count: false });
+      if (this.isCurrentEntry(entry)) {
+        entry.lastSuccessAt = new Date(this.now()).toISOString();
+        entry.lastError = '';
+      }
+      // The auxiliary request never rebinds or extends the main-model session.
+      return { ...result, model, accountId: entry.account.id };
+    } catch (error) {
+      if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') throw error;
+      if (!responseSeen && attemptStarted) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
+      if (!this.isCurrentEntry(entry)) throw error;
+      entry.lastFailureAt = new Date(this.now()).toISOString();
+      entry.lastError = String(error.message || error);
+      const category = errorCategory(error);
+      if (category === 'quota') {
+        entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
+        this.refreshAccountQuota(entry);
+      } else if (category === 'account') this.observeAccountFailure(entry, error, { source: 'search_request' });
+      else if (category !== 'request') entry.cooldownUntil = this.now() + TRANSIENT_COOLDOWN_MS;
+      // A failed logical tool call counts once. Further attempts require a
+      // new server-tool call and a new budget decision in the orchestrator.
+      throw error;
     }
+  }
+
+  async generateImage(request, options = {}) {
+    const model = imageModelName(request?.model);
+    if (!this.hasManagedAccounts()) throw this.noAccountError(model);
 
     await this.ensureModelCatalogs(options.signal);
+    assertImageModel(model, this.imageModelCatalog());
 
     const routingKey = options.routingKey || options.sessionId;
     const attempted = new Set();
@@ -726,11 +832,14 @@ class AccountPool {
       });
       if (!entry) break;
       attempted.add(entry.account.id);
-      options.onAccountSelected?.({ accountId: entry.account.id, email: entry.account.email, source: entry.account.source || 'managed-account', attempt: attempted.size });
+      options.onAccountSelected?.({ accountId: entry.account.id, email: entry.account.email, source: entry.account.source || 'managed-account', model, attempt: attempted.size });
       let responseSeen = false;
       try {
-        const result = await entry.provider.generateImage(request, {
+        const result = await entry.provider.generateImage({ ...request, model }, {
           ...options,
+          // Image fallback may use a different eligible account. Its request
+          // must not borrow the original account's private native trajectory.
+          nativeToolContext: entry.account.id === options.accountId ? options.nativeToolContext : undefined,
           onUpstreamAttempt: (event) => {
             if (event.phase === 'response') responseSeen = true;
             this.attemptReporter(entry.account.id, model)(event);
@@ -738,9 +847,11 @@ class AccountPool {
         });
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: true, count: true });
         this.usageStore?.recordUpstream({ accountId: entry.account.id, model, usage: result.usage, success: true, count: false });
-        entry.lastSuccessAt = new Date(this.now()).toISOString();
-        entry.lastError = '';
-        if (routingKey && options.bindRouting !== false) this.bindSession(routingKey, entry.account.id);
+        if (this.isCurrentEntry(entry)) {
+          entry.lastSuccessAt = new Date(this.now()).toISOString();
+          entry.lastError = '';
+          if (routingKey && options.bindRouting !== false && entry.account.enabled !== false) this.bindSession(routingKey, entry.account.id);
+        }
         return { ...result, accountId: entry.account.id };
       } catch (error) {
         if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') {
@@ -748,9 +859,13 @@ class AccountPool {
         }
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
+        const category = errorCategory(error);
+        if (!this.isCurrentEntry(entry)) {
+          if (category === 'request') throw error;
+          continue;
+        }
         entry.lastFailureAt = new Date(this.now()).toISOString();
         entry.lastError = String(error.message || error);
-        const category = errorCategory(error);
         if (category === 'request') throw error;
         if (category === 'quota') {
           entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
@@ -765,10 +880,7 @@ class AccountPool {
   }
 
   async listModels(signal, options = {}) {
-    if (!this.hasManagedAccounts()) {
-      if (!this.canUseFallback()) throw this.noAccountError();
-      return this.fallbackProvider.listModels(signal, options);
-    }
+    if (!this.hasManagedAccounts()) throw this.noAccountError();
     const settled = await Promise.allSettled([...this.entries.values()]
       .filter((entry) => entry.account.enabled !== false && this.isAccountHealthy(entry))
       .map(async (entry) => {
@@ -788,10 +900,27 @@ class AccountPool {
 
   modelInfo(model) {
     for (const entry of this.entries.values()) {
+      if (entry.account.enabled === false || !this.isAccountHealthy(entry)) continue;
       const info = entry.provider.modelInfo(model);
       if (info) return info;
     }
-    return this.fallbackProvider.modelInfo(model);
+    return null;
+  }
+
+  imageModelCatalog() {
+    const models = [];
+    for (const entry of this.entries.values()) {
+      if (entry.account.enabled === false || !this.isAccountHealthy(entry)) continue;
+      if (typeof entry.provider.imageModelCatalog === 'function') models.push(...entry.provider.imageModelCatalog());
+      else if (entry.supportedModels?.has(CAPTURED_IMAGE_MODEL)) models.push(CAPTURED_IMAGE_MODEL);
+    }
+    return [...new Set(models)];
+  }
+
+  async resolveImageModel(requested, signal) {
+    const model = imageModelName(requested);
+    if (model !== CAPTURED_IMAGE_MODEL) await this.ensureModelCatalogs(signal);
+    return assertImageModel(model, this.imageModelCatalog());
   }
 
   status() {

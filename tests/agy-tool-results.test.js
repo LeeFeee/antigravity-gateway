@@ -1,6 +1,5 @@
 'use strict';
 const assert = require('node:assert/strict'), test = require('node:test');
-const { pathToFileURL } = require('node:url');
 const path = require('node:path');
 const { nativeImageToolResponse } = require('../src/agy-tool-results');
 const { localTimestamp } = require('../src/agy-context-state');
@@ -11,7 +10,7 @@ test('generated-image result uses captured native text envelope without local ar
   const createdAt = 1792399120000, completedAt = createdAt + 4000;
   const response = nativeImageToolResponse(image, { createdAt, completedAt });
   assert.deepEqual(Object.keys(response), ['output']);
-  assert.ok(response.output.startsWith(`Created At: ${localTimestamp(createdAt)}\nCompleted At: ${localTimestamp(completedAt)}\nCreated file ${pathToFileURL(image.gatewayLocalPath).href} with requested content.\n`));
+  assert.ok(response.output.startsWith(`Created At: ${localTimestamp(createdAt)}\nCompleted At: ${localTimestamp(completedAt)}\nGenerated image is saved at ${image.gatewayLocalPath}.\n`));
   assert.ok(response.output.includes(`Download URL: ${image.url}`));
   assert.match(response.output, /already been delivered/);
   assert.doesNotMatch(JSON.stringify(response), /"artifact"|"delivery"|"gateway_path"|"handled_by"|execute this code/);

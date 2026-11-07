@@ -22,7 +22,7 @@ function imageArtifacts(images = []) {
 }
 
 // Local delivery bookkeeping, separate from the client-visible receipt.
-// Cloud Code must receive nativeImageToolResponse's text projection instead
+// Google Antigravity API must receive nativeImageToolResponse's text projection instead
 // of serializing these private artifact/delivery fields into tool history.
 function internalImageToolResult(image = {}) {
   const artifact = imageArtifact(image);

@@ -1,0 +1,100 @@
+[
+  {
+    "agent": "hermes",
+    "version": "0.21.7+11153.g2bd378e",
+    "scenario": "write",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "hermes",
+    "version": "0.21.7+11153.g2bd378e",
+    "scenario": "edit",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "hermes",
+    "version": "0.21.7+11153.g2bd378e",
+    "scenario": "terminal",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "actualTerminalOutput": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "write",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "edit",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "terminal",
+    "passed": false,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "actualTerminalOutput": false,
+      "sourceStable": true
+    }
+  }
+]

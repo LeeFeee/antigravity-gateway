@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
-const { MediaStore, mediaPartFromBlock } = require('../src/multimedia');
+const { MediaStore, mediaPartFromBlock, safeRasterImage } = require('../src/multimedia');
 const { buildDirectRequest, DirectAntigravityProvider } = require('../src/direct-provider');
 const { normalizeAnthropic, prepareNativeMultimodal } = require('../src/protocol');
 
@@ -43,14 +43,35 @@ test('generated images use readable extensions while legacy .bin files and scope
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'generated-media-'));
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const store = new MediaStore({ directory });
-  const saved = store.save(Buffer.from('png'), { purpose: 'generated', filename: 'result.png', mediaType: 'image/png', scope: 'owner' });
-  const typed = store.contentPath(saved.id); assert.match(typed, /\.png$/); assert.equal(fs.readFileSync(typed, 'utf8'), 'png');
+  const png = fs.readFileSync(path.join(__dirname, 'fixtures/gateway-media-inputs/image-fixture.png'));
+  const saved = store.saveGeneratedImage(png, { filename: 'result.png', mediaType: 'image/png', scope: 'owner' });
+  const typed = store.contentPath(saved.id); assert.match(typed, /\.png$/); assert.deepEqual(fs.readFileSync(typed), png);
   assert.equal(store.get(saved.id, { scope: 'other' }), null); assert.equal(store.delete(saved.id, { scope: 'other' }), false);
   const legacy = path.join(directory, `${saved.id}.bin`); fs.renameSync(typed, legacy);
-  assert.equal(store.contentPath(saved.id), legacy); assert.equal(store.get(saved.id, { scope: 'owner' }).buffer.toString(), 'png');
+  assert.equal(store.contentPath(saved.id), legacy); assert.deepEqual(store.get(saved.id, { scope: 'owner' }).buffer, png);
   assert.equal(store.delete(saved.id, { scope: 'owner' }), true); assert.equal(fs.existsSync(legacy), false);
   const upload = store.save(Buffer.from('png'), { filename: 'upload.png', mediaType: 'image/png' });
   assert.match(store.contentPath(upload.id), /\.bin$/);
+});
+
+test('public generated images require server provenance, matching raster bytes and intact persisted content', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'generated-provenance-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const store = new MediaStore({ directory });
+  const png = fs.readFileSync(path.join(__dirname, 'fixtures/gateway-media-inputs/image-fixture.png'));
+  assert.equal(safeRasterImage(png, 'image/png'), true);
+  assert.equal(safeRasterImage(png, 'image/jpeg'), false);
+  assert.throws(() => store.save(png, { purpose: 'generated' }), { code: 'reserved_file_purpose' });
+  for (const [content, mime] of [[Buffer.from('<script>1</script>'), 'image/png'], [Buffer.from('<svg/>'), 'image/svg+xml'], [png, 'image/jpeg']]) {
+    assert.throws(() => store.saveGeneratedImage(content, { mediaType: mime }), { code: 'invalid_generated_image' });
+  }
+  const generated = store.saveGeneratedImage(png, { mediaType: 'image/png', scope: 'owner' });
+  assert.equal(store.get(generated.id, { allowPublic: true }).publicOutput, true);
+  assert.equal(store.get(generated.id, { scope: 'another' }), null);
+  const changed = Buffer.from(png); changed[30] ^= 1;
+  fs.writeFileSync(store.contentPath(generated.id), changed);
+  assert.equal(store.get(generated.id, { allowPublic: true }), null, 'content changes must not inherit public provenance');
+  assert.equal(store.get(generated.id, { scope: 'owner' }).publicOutput, false);
 });
 
 test('stored file metadata replaces a generic input MIME type', async (t) => {
@@ -73,7 +94,7 @@ test('a generated gateway file URL resolves locally without a network fetch', as
   assert.equal(Buffer.from(resolved.data, 'base64').toString(), 'image');
 });
 
-test('native multimodal preparation lets the model choose image generation without keyword routing', () => {
+test('native multimodal preparation always offers the image model service without keyword routing', () => {
   const normalized = normalizeAnthropic({
     model: 'gemini-test',
     messages: [{ role: 'user', content: [
@@ -85,11 +106,13 @@ test('native multimodal preparation lets the model choose image generation witho
   assert.equal(prepared.imageToolInjected, true);
   assert.equal(prepared.normalized.tools.at(-1).name, 'generate_image');
   assert.equal(prepared.normalized.system, normalized.system);
-  assert.match(prepared.normalized.tools.at(-1).description, /not for analyzing attachments/i);
+  assert.equal(prepared.normalized.tools.at(-1).description, 'Generate an image, or edit existing images, from a text prompt.');
   assert.doesNotMatch(prepared.normalized.system, /gateway/i);
   const request = buildDirectRequest(prepared.normalized, 'gemini-test', 'project', 'session');
   assert.equal(request.request.contents[0].parts[1].inlineData.mimeType, 'image/png');
-  assert.equal(request.request.tools.flatMap(tool => tool.functionDeclarations).at(-1).name, 'generate_image');
+  assert.deepEqual(request.request.tools.flatMap(tool => tool.functionDeclarations).map(tool => tool.name), ['generate_image']);
+  assert.match(request.request.systemInstruction.parts[0].text, /generate_image/);
+  assert.match(request.request.systemInstruction.parts[0].text, /not for analyzing attachments/i);
 });
 
 test('explicit client tool choice is preserved and does not inject the native image tool', () => {

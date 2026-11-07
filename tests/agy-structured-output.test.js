@@ -33,19 +33,16 @@ test('client tools remain available; none excludes client actions without prohib
 test('required/named tools, collisions, auto-mode, checkpoint and unobserved root shapes preserve compatibility',()=>{
  const original=normalize([user]);
  const cases=[{toolChoice:'required'},{toolChoice:{type:'tool',name:'read'}},{tools:[{name:'finish'}]},
-  {structuredSchema:{...schema,properties:{toolAction:{type:'string'}}}},
-  {structuredSchema:{...schema,properties:{toolSummary:{type:'string'}}}},
-  {structuredSchema:{type:'object',required:['toolSummary']}},
   {structuredSchema:{...schema,enum:[{code:'x',count:1}]}},
   {structuredSchema:{...schema,const:{code:'x',count:1}}},
-  {structuredSchema:{type:'array',items:{type:'string'}}},{structuredSchema:{...schema,allOf:[]}}, {autoMode:true}];
+  {structuredSchema:{type:'array',items:{type:'string'}}},{structuredSchema:{...schema,allOf:[{}]}}, {autoMode:true}];
  for(const extra of cases){const n={...original,...extra};assert.equal(prepareStructuredOutput(n).schema,null);assert.equal(prepareStructuredOutput(n).normalized,n);}
  assert.equal(prepareStructuredOutput(original,{checkpoint:true}).schema,null);
  assert.equal(prepareStructuredOutput({...original,structuredSchema:undefined}).schema,null);
 });
 
 test('finish arguments return only validated client JSON; malformed/mixed calls fail without discarding work',()=>{
- const call={id:'native-finish',name:'finish',arguments:{code:'marigold-9372',count:5,toolAction:'Reporting facts',toolSummary:'Facts report'}};
+ const call={id:'native-finish',name:'finish',arguments:{code:'marigold-9372',count:5}};
  assert.deepEqual(JSON.parse(finishResult(schema,[call]).text),{code:'marigold-9372',count:5});
  assert.equal(finishResult(schema,[{name:'read',arguments:{}}]),null);
  for(const calls of [[call,{name:'read'}],[{...call,arguments:'bad json'}],[{...call,arguments:[]}],[{...call,arguments:{code:'x'}}],[{...call,arguments:{code:'x',count:1,extra:'no'}}]]){
@@ -56,7 +53,7 @@ test('finish arguments return only validated client JSON; malformed/mixed calls 
 
 test('strict JSON echo restores signed finish and native result across disk restart; edited prefixes never recover them',async t=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'agy-schema-state-'));t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));
- const seen=[],chunks=[],call={id:'call_native',name:'finish',args:{code:'marigold-9372',count:5,toolAction:'Reporting facts',toolSummary:'Facts report'}};
+ const seen=[],chunks=[],call={id:'call_native',name:'finish',args:{code:'marigold-9372',count:5}};
  async function send(messages,session='one'){
   const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory}),accessToken:'token',projectId:'p',maxRetries:0,
    localAuth:{isConfigured:()=>false,load:()=>({sourcePath:'managed-account:a'})},fetchImpl:async(_url,options)=>{seen.push(JSON.parse(options.body));return new Response(JSON.stringify({candidates:[{content:{parts:[{text:'Do not stream this prose.'},{functionCall:call,thoughtSignature:'actual-native-signature'}]}}]}),{headers:{'content-type':'application/json'}});}});
@@ -78,6 +75,6 @@ test('strict JSON echo restores signed finish and native result across disk rest
 test('ordinary tool calls in a structured turn remain client calls, not terminal output',async()=>{
  const n=normalize([user]);n.tools=[{name:'read',schema:{type:'object',properties:{file:{type:'string'}}}}];
  const call={id:'read-id',name:'read',args:{file:'memory.txt'}};
- const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory:''}),accessToken:'token',projectId:'p',maxRetries:0,localAuth:{isConfigured:()=>false,load:()=>({})},fetchImpl:async()=>new Response(JSON.stringify({candidates:[{content:{parts:[{functionCall:call}]}}]}),{headers:{'content-type':'application/json'}})});
+ const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory:''}),accessToken:'token',projectId:'p',maxRetries:0,localAuth:{isConfigured:()=>false,load:()=>({})},fetchImpl:async(_url,options)=>{const declaration=JSON.parse(options.body).request.tools.flatMap(t=>t.functionDeclarations).find(t=>t.name.endsWith('_json'));return new Response(JSON.stringify({candidates:[{content:{parts:[{functionCall:{...call,name:declaration.name,args:{argumentsJson:JSON.stringify(call.args),toolSummary:'Read fixture'}}}]}}]}),{headers:{'content-type':'application/json'}})}});
  const result=finalizeModelResult(n,await provider.send(n,model,{sessionId:'tool'}));assert.equal(result.toolCalls[0].name,'read');assert.deepEqual(result.toolCalls[0].arguments,{file:'memory.txt'});
 });

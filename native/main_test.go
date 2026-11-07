@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -20,13 +21,13 @@ type harness struct {
 	mu     sync.Mutex
 }
 
-func newHarness(t *testing.T, client *http.Client) *harness {
+func newHarness(t *testing.T, client *http.Client, oauthClients ...*http.Client) *harness {
 	t.Helper()
 	in, iw := io.Pipe()
 	out, ow := io.Pipe()
 	h := &harness{t: t, input: iw, events: make(chan event, 128), done: make(chan error, 1)}
 	go func() {
-		h.done <- run(in, ow, client)
+		h.done <- run(in, ow, client, oauthClients...)
 		ow.Close()
 	}()
 	go func() {
@@ -93,7 +94,7 @@ func TestChunkedRequestAndCreditBoundedResponse(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := newHarness(t, client)
-	h.send(command{Type: "request", ID: "stream", URL: server.URL, Method: "POST",
+	h.send(command{Type: "request", ID: "stream", URL: server.URL + "/v1internal:streamGenerateContent?alt=sse", Method: "POST",
 		Headers: map[string]string{"User-Agent": "agy-test", "Content-Type": "application/json"}, Body: `{"test":true}`})
 	if e := h.next(); e.Type != "headers" || e.Status != 200 {
 		t.Fatalf("invalid headers: %#v", e)
@@ -145,7 +146,7 @@ func TestCancellationUnblocksActiveRequest(t *testing.T) {
 }
 
 func TestCapturedMetadataHasContentLengthInsteadOfGenerationChunks(t *testing.T) {
-	for _, endpoint := range []string{"fetchAvailableModels", "retrieveUserQuotaSummary", "loadCodeAssist", "fetchUserInfo", "fetchAdminControls", "listExperiments"} {
+	for _, endpoint := range []string{"fetchAvailableModels", "retrieveUserQuotaSummary", "loadCodeAssist", "fetchUserInfo", "fetchAdminControls", "listExperiments", "onboardUser"} {
 		t.Run(endpoint, func(t *testing.T) {
 			const body = `{"project":"测试-project"}`
 			observed := make(chan *http.Request, 1)
@@ -172,6 +173,101 @@ func TestCapturedMetadataHasContentLengthInsteadOfGenerationChunks(t *testing.T)
 				t.Fatalf("metadata framing differs from real agy capture: length=%d encoding=%v", r.ContentLength, r.TransferEncoding)
 			}
 			h.send(command{Type: "cancel", ID: "metadata"})
+		})
+	}
+}
+
+func TestOAuthNegotiatesHTTP2WithoutChangingModelTransport(t *testing.T) {
+	observed := make(chan *http.Request, 2)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, _ := io.ReadAll(r.Body)
+		if r.URL.Path == "/token" && string(data) != "grant_type=refresh_token&refresh_token=synthetic" {
+			t.Errorf("OAuth form changed: %q", data)
+		}
+		observed <- r
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+	roots := x509.NewCertPool()
+	roots.AddCert(server.Certificate())
+	modelClient, _ := newClient()
+	oauthClient, _ := newOAuthClient()
+	modelClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
+	oauthClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
+	h := newHarness(t, modelClient, oauthClient)
+	for _, profile := range []string{"oauth", "antigravity"} {
+		body := "grant_type=refresh_token&refresh_token=synthetic"
+		h.send(command{Type: "request", ID: profile, URL: server.URL + "/token", Method: "POST", Profile: profile,
+			Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded", "User-Agent": "Go-http-client/2.0"}, Body: body})
+		if e := h.next(); e.Type != "headers" || e.Status != 204 {
+			t.Fatalf("unexpected response: %#v", e)
+		}
+		r := <-observed
+		if profile == "oauth" {
+			if r.ProtoMajor != 2 || r.TLS.NegotiatedProtocol != "h2" || r.ContentLength != int64(len(body)) || len(r.TransferEncoding) != 0 {
+				t.Fatalf("OAuth did not use HTTP/2 and fixed-length form: %#v", r)
+			}
+			if r.Header.Get("User-Agent") != "Go-http-client/2.0" || r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
+				t.Fatal("OAuth headers changed")
+			}
+		} else if r.ProtoMajor != 1 || r.TLS.NegotiatedProtocol != "" || r.ContentLength != -1 {
+			t.Fatalf("model transport was changed by OAuth support: %#v", r)
+		}
+		h.send(command{Type: "credit", ID: profile})
+		if e := h.next(); e.Type != "end" {
+			t.Fatalf("unexpected completion: %#v", e)
+		}
+	}
+}
+
+func TestSynchronousGenerationUsesLengthWhileStreamingAndUnknownPathsStayChunked(t *testing.T) {
+	for _, sample := range []struct {
+		name, path, requestType string
+		fixedLength             bool
+	}{
+		{"search", "/v1internal:generateContent", "web_search", true},
+		{"image", "/v1internal:generateContent", "image_gen", true},
+		{"sync-query", "/v1internal:generateContent?alt=json", "image_gen", true},
+		{"agent", "/v1internal:streamGenerateContent?alt=sse", "agent", false},
+		{"video-summary", "/v1internal:streamGenerateContent?alt=sse", "video_summarization", false},
+		{"unknown", "/v1internal:generateContentExtra", "image_gen", false},
+	} {
+		t.Run(sample.name, func(t *testing.T) {
+			body := `{"requestType":"` + sample.requestType + `","request":{"contents":[{"parts":[{"text":"蓝色圆形"}]}]}}`
+			observed := make(chan *http.Request, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				data, _ := io.ReadAll(r.Body)
+				if string(data) != body {
+					t.Errorf("generation bytes changed: %q", data)
+				}
+				observed <- r
+				w.WriteHeader(http.StatusNoContent)
+			}))
+			defer server.Close()
+			client, err := newClient()
+			if err != nil {
+				t.Fatal(err)
+			}
+			h := newHarness(t, client)
+			h.send(command{Type: "request", ID: sample.name, URL: server.URL + sample.path,
+				Method: "POST", Body: body, Profile: "antigravity"})
+			if e := h.next(); e.Type != "headers" || e.Status != 204 {
+				t.Fatalf("unexpected response: %#v", e)
+			}
+			r := <-observed
+			if r.Proto != "HTTP/1.1" {
+				t.Fatalf("model HTTP version changed: %s", r.Proto)
+			}
+			if sample.fixedLength {
+				if r.ContentLength != int64(len(body)) || len(r.TransferEncoding) != 0 {
+					t.Fatalf("synchronous generation framing differs from official capture: length=%d encoding=%v", r.ContentLength, r.TransferEncoding)
+				}
+			} else if r.ContentLength != -1 || len(r.TransferEncoding) != 1 || r.TransferEncoding[0] != "chunked" {
+				t.Fatalf("streaming/unknown framing changed: length=%d encoding=%v", r.ContentLength, r.TransferEncoding)
+			}
+			h.send(command{Type: "cancel", ID: sample.name})
 		})
 	}
 }

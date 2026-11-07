@@ -1,0 +1,118 @@
+{
+  "evidence": "existing-managed-account-refresh-copy-real-google",
+  "startedAt": "2026-11-06T18:36:11.087Z",
+  "passed": true,
+  "newGoogleAuthorizationVerified": false,
+  "originalAgyCredentialsRead": false,
+  "generationRequests": 0,
+  "sourceDirectory": "~/.antigravity-gateway/accounts",
+  "observations": [
+    {
+      "method": "POST",
+      "host": "oauth2.googleapis.com",
+      "path": "/token",
+      "configuredProfile": "oauth-http2",
+      "bodyFields": [
+        "client_id",
+        "client_secret",
+        "grant_type",
+        "refresh_token"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": "refresh_token",
+      "formEncoded": true,
+      "goOAuthUserAgent": true,
+      "cliUserAgent": false,
+      "status": 200
+    }
+  ],
+  "source": {
+    "sha256": "f57bc48178a0de5858c5435e7d8722712925497cdff1c1463bc58a0b1c264bbd",
+    "files": {
+      "src/account-store.js": "39f717a190c4b0215dc0b270a73b6626d257264c73a39eaee2128bc20dc8f7e5",
+      "src/managed-account-auth.js": "ff79a61574ede8f8347a62e9e9f1a68d4227ff5508b793990d88cf1fa7d864ad",
+      "src/local-agy-auth.js": "ffcb0b41f4553cb1241556642c130cc79d7d89ce0cec13e0a6a73658bb464b3a",
+      "src/oauth-flow.js": "3da607a65c6a3fb56964d2356158fca691886bb9ae3dcaa5bc8d2f03aa98ed7f",
+      "src/agy-request-profile.js": "cc714d4163792c4fbf42fb1f2f378db2a1b23c531be7e37cb85471f3ef10d03e",
+      "src/agy-native-transport.js": "c14b5949360a8e8b243a780c7c97eefc8d39296ccbbaebcb40dfed7c883489d6",
+      "native/main.go": "6ca3e2c7c2560c0dc5d0cf0e32b85232aa920f0a7a1ab6ebfff91fe7fc863826",
+      "native/bin/manifest.json": "d1492edf0157bd6651c54647009eeed7eda366caadaeca29f05e87b2a565be9f",
+      "scripts/verify-dashboard-oauth.js": "cd0eea70835b2edcba81b53b5eb83d9ac6adf103c8b10a6cfc9036ff64440e82",
+      "scripts/verify-managed-oauth-refresh.js": "ac14ae8df3ee19ec6b38a86c2b2bed564986ad36f6e7600df7f72d346f5685d4"
+    }
+  },
+  "originalBefore": {
+    "fileCount": 6,
+    "sha256": "8ba43fd4c5fa142e6694a110561cb5f3912a6d1aa23239f8b85179e4a1601d70"
+  },
+  "account": {
+    "fields": {
+      "id": true,
+      "subjectId": true,
+      "email": true,
+      "accessToken": true,
+      "refreshToken": true,
+      "projectId": true,
+      "clientId": true,
+      "clientSecret": true
+    },
+    "providerType": "cloudcode",
+    "expiresInFuture": true,
+    "enabled": true
+  },
+  "privateRootMode": "700",
+  "privateAccountModes": [
+    "600"
+  ],
+  "refresh": {
+    "attempted": true,
+    "passed": true,
+    "identityPreserved": true,
+    "originalAccountUnchanged": true,
+    "savedFields": {
+      "fields": {
+        "id": true,
+        "subjectId": true,
+        "email": true,
+        "accessToken": true,
+        "refreshToken": true,
+        "projectId": true,
+        "clientId": true,
+        "clientSecret": true
+      },
+      "providerType": "cloudcode",
+      "expiresInFuture": true,
+      "enabled": true
+    },
+    "accessTokenChanged": true,
+    "observations": [
+      {
+        "method": "POST",
+        "host": "oauth2.googleapis.com",
+        "path": "/token",
+        "configuredProfile": "oauth-http2",
+        "bodyFields": [
+          "client_id",
+          "client_secret",
+          "grant_type",
+          "refresh_token"
+        ],
+        "unknownBodyFieldCount": 0,
+        "grantType": "refresh_token",
+        "formEncoded": true,
+        "goOAuthUserAgent": true,
+        "cliUserAgent": false,
+        "status": 200
+      }
+    ]
+  },
+  "nativeStopped": true,
+  "originalAfter": {
+    "fileCount": 6,
+    "sha256": "8ba43fd4c5fa142e6694a110561cb5f3912a6d1aa23239f8b85179e4a1601d70"
+  },
+  "originalBytesUnchanged": true,
+  "authSourceUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "completedAt": "2026-11-06T18:36:12.114Z"
+}

@@ -252,21 +252,25 @@ test('OAuth flow prints a usable URL, accepts a pasted callback, and returns a p
 test('OAuth flow initializes a first-login Antigravity project before saving the account', async () => {
   const requests = [];
   let onboardCalls = 0;
+  let operationCalls = 0;
   const fetchImpl = async (url, options = {}) => {
     const target = String(url);
     requests.push({ url: target, options, body: options.body ? String(options.body) : '' });
     if (target.includes('/token')) return new Response(JSON.stringify({ access_token: 'access', refresh_token: 'refresh', expires_in: 3600 }), { status: 200 });
     if (target.includes('/userinfo')) return new Response(JSON.stringify({ email: 'new@example.com' }), { status: 200 });
     if (target.endsWith(':loadCodeAssist')) {
-      return new Response(JSON.stringify(onboardCalls >= 2
+      return new Response(JSON.stringify(operationCalls >= 1
         ? { cloudaicompanionProject: { id: 'new-project' } }
         : { allowedTiers: [{ id: 'pro-tier', isDefault: true }] }), { status: 200 });
     }
     if (target.endsWith(':onboardUser')) {
       onboardCalls += 1;
-      return new Response(JSON.stringify(onboardCalls === 1
-        ? { done: false }
-        : { done: true, response: {} }), { status: 200 });
+      return new Response(JSON.stringify({ name: 'operations/new-project', done: false }), { status: 200 });
+    }
+    if (target.endsWith('/v1internal/operations/new-project')) {
+      operationCalls += 1;
+      assert.equal(options.method, 'GET');
+      return new Response(JSON.stringify({ name: 'operations/new-project', done: true, response: {} }), { status: 200 });
     }
     throw new Error(`unexpected URL: ${target}`);
   };
@@ -283,14 +287,15 @@ test('OAuth flow initializes a first-login Antigravity project before saving the
     setImmediate(() => flow.submit(`${redirect}?code=authorization-code&state=${auth.searchParams.get('state')}`));
   } });
   assert.equal(account.projectId, 'new-project');
-  assert.equal(onboardCalls, 2);
+  assert.equal(onboardCalls, 1);
+  assert.equal(operationCalls, 1);
   const onboard = requests.find((item) => item.url.endsWith(':onboardUser'));
   assert.deepEqual(JSON.parse(onboard.body), {
-    tier_id: 'pro-tier',
-    metadata: { ide_type: 'ANTIGRAVITY', ide_version: '2.9.1', ide_name: 'antigravity' }
+    tierId: 'pro-tier',
+    metadata: { ideType: 'ANTIGRAVITY' }
   });
-  assert.equal(onboard.options.headers['x-goog-api-client'], 'gl-node/22.21.1');
-  assert.match(onboard.options.headers['user-agent'], /google-api-nodejs-client\/10\.3\.0/);
+  assert.equal(onboard.options.headers['x-goog-api-client'], undefined);
+  assert.match(onboard.options.headers['user-agent'], /^antigravity\/cli\/1\.5\.2 /);
 });
 
 test('OAuth flow prefers the official Antigravity client over an earlier embedded client', async () => {
@@ -320,37 +325,17 @@ test('OAuth flow prefers the official Antigravity client over an earlier embedde
   assert.equal(selectedClient, '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com');
 });
 
-test('terminal add command always prints the complete fallback URL and reloads the account pool', async () => {
-  const output = new PassThrough();
-  output.setEncoding('utf8');
-  let rendered = '';
-  output.on('data', (chunk) => { rendered += chunk; });
-  let saved;
-  let reloads = 0;
-  const quotaRefreshes = [];
-  const terminal = new TerminalConsole({
-    output,
-    accountStore: { save: (account) => (saved = { id: 'id-1', ...account }) },
-    accountPool: { reload: () => { reloads += 1; }, status: () => [{ id: 'id-1' }] },
-    quotaManager: { refreshAccount: async (id, options) => { quotaRefreshes.push({ id, options }); } },
-    oauthFlow: {
-      active: null,
-      start: async ({ onReady }) => {
-        onReady({ url: 'https://accounts.google.com/example?complete=yes', browserOpened: false });
-        return { email: 'person@example.com', accessToken: 'access', refreshToken: 'refresh' };
-      }
-    }
-  });
-  await terminal.addAccount();
-  assert.equal(saved.email, 'person@example.com');
-  assert.equal(reloads, 1);
-  assert.deepEqual(quotaRefreshes, [{ id: 'id-1', options: { force: true, summaryOnly: false } }]);
-  assert.match(rendered, /https:\/\/accounts\.google\.com\/example\?complete=yes/);
-  assert.match(rendered, /如果浏览器没有自动打开网页/);
-  assert.match(rendered, /完整 localhost 回调链接/);
+test('terminal account addition redirects to dashboard without authorizing or saving', async () => {
+  const output = new PassThrough(); output.setEncoding('utf8');
+  let rendered = ''; output.on('data', chunk => { rendered += chunk; });
+  const unexpected = () => { throw new Error('terminal cannot authorize or write credentials'); };
+  const terminal = new TerminalConsole({ output, oauthFlow: { start: unexpected }, accountStore: { save: unexpected } });
+  for (const command of ['add', 'add-gemini', 'add-gemini-win']) await terminal.handle(command);
+  assert.equal((rendered.match(/终端添加账号已移除/g) || []).length, 3);
+  assert.match(rendered, /看板.*OAuth/);
 });
 
-test('terminal explains that a callback pasted outside an active OAuth flow is stale', async () => {
+test('terminal sends pasted OAuth callbacks back to the dashboard', async () => {
   const output = new PassThrough();
   output.setEncoding('utf8');
   let rendered = '';
@@ -361,8 +346,8 @@ test('terminal explains that a callback pasted outside an active OAuth flow is s
     accountPool: { status: () => [] }
   });
   await terminal.handle('http://localhost:51121/oauth-callback?code=already-used&state=old');
-  assert.match(rendered, /当前没有正在等待的账号授权/);
-  assert.match(rendered, /重新输入 add/);
+  assert.match(rendered, /账号授权仅在看板进行/);
+  assert.match(rendered, /看板提交/);
   assert.doesNotMatch(rendered, /未知终端命令/);
 });
 

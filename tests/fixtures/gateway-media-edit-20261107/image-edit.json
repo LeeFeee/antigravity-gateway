@@ -1,0 +1,301 @@
+{
+  "scenario": "image-edit",
+  "model": "gemini-3.1-flash-image",
+  "recordedAt": "2026-11-06T18:15:21.714Z",
+  "evidence": "actual-http-real-gateway-real-google-native-tls",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "gatewayHTTP": true,
+      "requestedModelPreserved": true,
+      "originalGoTLS": true,
+      "officialUA": true,
+      "exactMediaBytes": true,
+      "imageEnvelope": true,
+      "savedFileReadBack": true,
+      "decodableImage": true,
+      "requestedColor": true
+    },
+    "nativeGenerations": 1,
+    "nativeStatuses": [
+      200
+    ],
+    "answer": ""
+  },
+  "expectedMedia": {
+    "mimeType": "image/jpeg",
+    "bytes": 205204,
+    "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f"
+  },
+  "http": {
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+      "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+      "connection": "keep-alive",
+      "content-length": "1207",
+      "content-type": "application/json; charset=utf-8",
+      "date": "Fri, 06 Nov 2026 18:15:21 GMT",
+      "keep-alive": "timeout=5"
+    },
+    "body": {
+      "created": 1793988921,
+      "data": [
+        {
+          "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+          "revised_prompt": "Change only the red circle to solid blue. Keep the plain white background and centered circle. No text.",
+          "artifact": {
+            "id": "file_d3b420f3b0b4a8edfb2e6d53b4c3e682",
+            "object": "artifact",
+            "type": "image",
+            "mime_type": "image/jpeg",
+            "filename": "generated_1793988921355_1.jpg",
+            "bytes": 116101,
+            "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_d3b420f3b0b4a8edfb2e6d53b4c3e682.jpg",
+            "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+            "markdown": "![Generated image](http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content)"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "file_d3b420f3b0b4a8edfb2e6d53b4c3e682",
+          "object": "artifact",
+          "type": "image",
+          "mime_type": "image/jpeg",
+          "filename": "generated_1793988921355_1.jpg",
+          "bytes": 116101,
+          "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_d3b420f3b0b4a8edfb2e6d53b4c3e682.jpg",
+          "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+          "markdown": "![Generated image](http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content)"
+        }
+      ]
+    },
+    "bytes": {
+      "bytes": 1207,
+      "sha256": "33fcbc421b82be688b35afa1786b7802f8a3aea4beae042115e242359932e8c6"
+    },
+    "blocked": false
+  },
+  "saved": {
+    "status": 200,
+    "mimeType": "image/jpeg",
+    "bytes": 116101,
+    "sha256": "aca134c12c61fefe8b9258293388fd4a32f103c1dee9da0260d0af22cb183804",
+    "sameAsGatewayDisk": true,
+    "sameAsNativeResponse": true,
+    "codec_name": "mjpeg",
+    "width": 1024,
+    "height": 1024,
+    "centerRGB": [
+      1,
+      57,
+      155
+    ],
+    "file": "/tmp/real-client-gateway/image-edit.jpg"
+  },
+  "trace": [
+    {
+      "type": "native-request",
+      "id": "2997424e-6208-4a29-a2fd-eac8ff75e8ba",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "image_gen/1793988910556/728d1449-87b6-436a-a97b-87bf6153497d/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Change only the red circle to solid blue. Keep the plain white background and centered circle. No text."
+                },
+                {
+                  "inlineData": {
+                    "mimeType": "image/jpeg",
+                    "data": {
+                      "encoding": "base64",
+                      "bytes": 205204,
+                      "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "candidateCount": 1,
+            "imageConfig": {
+              "aspectRatio": "1:1"
+            }
+          }
+        },
+        "model": "gemini-3.1-flash-image",
+        "userAgent": "antigravity",
+        "requestType": "image_gen"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "native-response",
+      "id": "2997424e-6208-4a29-a2fd-eac8ff75e8ba",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-type": "application/json; charset=UTF-8",
+        "date": "Fri, 06 Nov 2026 18:15:15 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=10391",
+        "vary": "Origin, X-Origin, Referer",
+        "x-cloudaicompanion-trace-id": "d4f4cf156cb35ac3",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-38f678bf428255a8e234"
+    },
+    {
+      "type": "native-body",
+      "id": "2997424e-6208-4a29-a2fd-eac8ff75e8ba",
+      "body": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "thoughtSignature": {
+                      "sha256": "fb0e019a5d96fe882235912b3ff5d9f081daffaae4da3e6a777011b01fea3fd0",
+                      "omitted": true
+                    },
+                    "inlineData": {
+                      "mimeType": "image/jpeg",
+                      "data": {
+                        "encoding": "base64",
+                        "bytes": 116101,
+                        "sha256": "aca134c12c61fefe8b9258293388fd4a32f103c1dee9da0260d0af22cb183804"
+                      }
+                    }
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 280,
+            "candidatesTokenCount": 1286,
+            "totalTokenCount": 1566
+          },
+          "modelVersion": "gemini-3.1-flash-image",
+          "responseId": "Khnuap2fFJLY9tMPlrP_4Ag"
+        },
+        "traceId": "d4f4cf156cb35ac3",
+        "metadata": {}
+      }
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/images/edits",
+      "headers": {
+        "host": "127.0.0.1:61039",
+        "connection": "keep-alive",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "x-client-id": "gateway-media-verifier",
+        "x-session-id": "8710454b-3e5e-4221-9c66-9b888d4162bc",
+        "content-type": "multipart/form-data; boundary=----formdata-undici-091573948999",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "205964"
+      },
+      "body": {
+        "encoding": "multipart",
+        "bytes": 205964,
+        "sha256": "d9b184355b4ad0fcf39df3abe59a72a0e15514df1d1667346e89a9d434cd7b7c"
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 1207
+      },
+      "responseBody": {
+        "created": 1793988921,
+        "data": [
+          {
+            "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+            "revised_prompt": "Change only the red circle to solid blue. Keep the plain white background and centered circle. No text.",
+            "artifact": {
+              "id": "file_d3b420f3b0b4a8edfb2e6d53b4c3e682",
+              "object": "artifact",
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "filename": "generated_1793988921355_1.jpg",
+              "bytes": 116101,
+              "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_d3b420f3b0b4a8edfb2e6d53b4c3e682.jpg",
+              "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+              "markdown": "![Generated image](http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content)"
+            }
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "file_d3b420f3b0b4a8edfb2e6d53b4c3e682",
+            "object": "artifact",
+            "type": "image",
+            "mime_type": "image/jpeg",
+            "filename": "generated_1793988921355_1.jpg",
+            "bytes": 116101,
+            "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_d3b420f3b0b4a8edfb2e6d53b4c3e682.jpg",
+            "url": "http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+            "markdown": "![Generated image](http://127.0.0.1:61039/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content)"
+          }
+        ]
+      }
+    },
+    {
+      "type": "client-http",
+      "method": "GET",
+      "path": "/v1/files/file_d3b420f3b0b4a8edfb2e6d53b4c3e682/content",
+      "headers": {
+        "host": "127.0.0.1:61039",
+        "connection": "keep-alive",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "x-client-id": "gateway-media-verifier",
+        "x-session-id": "4d3a1c6b-5aad-4fe3-8ad5-726a98415792",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "image/jpeg",
+        "content-length": 116101,
+        "content-disposition": "inline; filename=\"generated_1793988921355_1.jpg\"",
+        "cache-control": "private, max-age=3600",
+        "x-content-type-options": "nosniff"
+      },
+      "responseBody": {
+        "bytes": 116101,
+        "sha256": "aca134c12c61fefe8b9258293388fd4a32f103c1dee9da0260d0af22cb183804"
+      }
+    }
+  ]
+}

@@ -83,7 +83,6 @@ async function fetchJson(provider, token, path, body) {
         method: 'POST', signal: AbortSignal.timeout(30_000),
         headers: {
           authorization: `Bearer ${token}`,
-          accept: '*/*',
           'content-type': 'application/json',
           'user-agent': provider.userAgent
         },
@@ -180,15 +179,7 @@ class QuotaManager {
   }
 
   activeEntries() {
-    const managedEntries = this.accountPool.hasManagedAccounts()
-      ? [...this.accountPool.entries.values()]
-      : [];
-    const allEntries = managedEntries.length
-      ? managedEntries
-      : (this.accountPool.canUseFallback?.() ?? true)
-          ? [{ account: { id: 'local-agy-session', email: '' }, provider: this.accountPool.fallbackProvider, healthState: 'available' }]
-          : [];
-    return allEntries;
+    return [...this.accountPool.entries.values()];
   }
 
   usableEntry(entry) {

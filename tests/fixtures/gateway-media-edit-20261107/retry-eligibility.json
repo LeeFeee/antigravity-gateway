@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-11-06T18:15:08.114Z",
+  "priorEvidence": "gateway-media-20261107/image-edit.json",
+  "priorEvidenceSha256": "5609f1bddfce237f988937c53717cb70d1db4f3087beb11400952808af8b0afc",
+  "responseDate": "Fri, 06 Nov 2026 18:11:42 GMT",
+  "quotaResetTimeStamp": "2026-11-06T18:11:46Z",
+  "retryDelay": "3.335485178s",
+  "latestNotBefore": "2026-11-06T18:11:46.000Z",
+  "elapsedMsSince": 202114,
+  "clockOrStateModified": false,
+  "authorizedAdditionalScenarios": [
+    "image-edit"
+  ]
+}

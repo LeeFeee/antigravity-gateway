@@ -1,0 +1,250 @@
+[
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "text",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true
+      },
+      "generationCount": 1,
+      "clientRequests": 1,
+      "issuedNativeNames": [],
+      "calledClientNames": [],
+      "nativeResultNames": []
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "read",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true,
+        "originalClientToolName": true,
+        "actualLocalReadReturned": true,
+        "toolResultUsesDeclaredNativeName": true,
+        "toolRoundtripGeneratedAgain": true
+      },
+      "generationCount": 2,
+      "clientRequests": 2,
+      "issuedNativeNames": [
+        "read_file"
+      ],
+      "calledClientNames": [
+        "Read"
+      ],
+      "nativeResultNames": [
+        "read_file"
+      ]
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "hermes",
+    "version": "0.21.7+11153.g2bd378e",
+    "scenario": "text",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true
+      },
+      "generationCount": 2,
+      "clientRequests": 2,
+      "issuedNativeNames": [],
+      "calledClientNames": [],
+      "nativeResultNames": []
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "hermes",
+    "version": "0.21.7+11153.g2bd378e",
+    "scenario": "read",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true,
+        "originalClientToolName": true,
+        "actualLocalReadReturned": true,
+        "toolResultUsesDeclaredNativeName": true,
+        "toolRoundtripGeneratedAgain": true
+      },
+      "generationCount": 3,
+      "clientRequests": 3,
+      "issuedNativeNames": [
+        "read_file"
+      ],
+      "calledClientNames": [
+        "read_file"
+      ],
+      "nativeResultNames": [
+        "read_file"
+      ]
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "pi",
+    "version": "1.5.0",
+    "scenario": "text",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true
+      },
+      "generationCount": 1,
+      "clientRequests": 1,
+      "issuedNativeNames": [],
+      "calledClientNames": [],
+      "nativeResultNames": []
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "pi",
+    "version": "1.5.0",
+    "scenario": "read",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true,
+        "originalClientToolName": true,
+        "actualLocalReadReturned": true,
+        "toolResultUsesDeclaredNativeName": true,
+        "toolRoundtripGeneratedAgain": true
+      },
+      "generationCount": 2,
+      "clientRequests": 2,
+      "issuedNativeNames": [
+        "read_file"
+      ],
+      "calledClientNames": [
+        "read"
+      ],
+      "nativeResultNames": [
+        "read_file"
+      ]
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "text",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true
+      },
+      "generationCount": 2,
+      "clientRequests": 2,
+      "issuedNativeNames": [],
+      "calledClientNames": [],
+      "nativeResultNames": []
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "read",
+    "assessment": {
+      "passed": true,
+      "checks": {
+        "clientExitedSuccessfully": true,
+        "realGatewayHTTP": true,
+        "nativeGenerationEnvelope": true,
+        "fixedModelThinking": true,
+        "apiUserAgent": true,
+        "finalTextDelivered": true,
+        "originalClientToolName": true,
+        "actualLocalReadReturned": true,
+        "toolResultUsesDeclaredNativeName": true,
+        "toolRoundtripGeneratedAgain": true
+      },
+      "generationCount": 3,
+      "clientRequests": 3,
+      "issuedNativeNames": [
+        "read_file"
+      ],
+      "calledClientNames": [
+        "read"
+      ],
+      "nativeResultNames": [
+        "read_file"
+      ]
+    },
+    "outcome": {
+      "code": 0,
+      "signal": null,
+      "clientReportedError": false
+    }
+  }
+]

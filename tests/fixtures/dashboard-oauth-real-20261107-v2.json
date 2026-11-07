@@ -1,0 +1,271 @@
+{
+  "evidence": "user-driven-dashboard-oauth-real-google",
+  "startedAt": "2026-11-06T18:52:11.582Z",
+  "automaticAuthorization": false,
+  "formalAccountsRead": false,
+  "sourceHash": "6978dc4c32a2b7baab9ccbc79929d7bd1761ea6359bda5f1204f3cf15da56087",
+  "phase": "completed",
+  "passed": true,
+  "credentialPolicy": "Only this 0700 temporary config may briefly contain 0600 core account files; controller evidence contains structural metadata only.",
+  "observations": [
+    {
+      "event": "authorization",
+      "stage": "started"
+    },
+    {
+      "event": "request",
+      "id": "8545bd7a-745c-437b-a296-c8a98afbe655",
+      "method": "POST",
+      "host": "oauth2.googleapis.com",
+      "path": "/token",
+      "configuredProfile": "oauth-http2",
+      "bodyFields": [
+        "client_id",
+        "client_secret",
+        "code",
+        "code_verifier",
+        "grant_type",
+        "redirect_uri"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": "authorization_code",
+      "formEncoded": true,
+      "goOAuthUserAgent": true,
+      "cliUserAgent": false
+    },
+    {
+      "event": "response",
+      "id": "8545bd7a-745c-437b-a296-c8a98afbe655",
+      "status": 401
+    },
+    {
+      "event": "request",
+      "id": "c6c8a8b7-d2ee-4bb3-a645-4050bffec0ec",
+      "method": "POST",
+      "host": "oauth2.googleapis.com",
+      "path": "/token",
+      "configuredProfile": "oauth-http2",
+      "bodyFields": [
+        "client_id",
+        "client_secret",
+        "code",
+        "code_verifier",
+        "grant_type",
+        "redirect_uri"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": "authorization_code",
+      "formEncoded": true,
+      "goOAuthUserAgent": true,
+      "cliUserAgent": false
+    },
+    {
+      "event": "response",
+      "id": "c6c8a8b7-d2ee-4bb3-a645-4050bffec0ec",
+      "status": 200
+    },
+    {
+      "event": "request",
+      "id": "9755102b-6ddb-4624-ae4f-0b99d49609f2",
+      "method": "GET",
+      "host": "www.googleapis.com",
+      "path": "/oauth2/v2/userinfo",
+      "configuredProfile": "oauth-http2",
+      "bodyFields": [],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": true,
+      "cliUserAgent": false
+    },
+    {
+      "event": "response",
+      "id": "9755102b-6ddb-4624-ae4f-0b99d49609f2",
+      "status": 200
+    },
+    {
+      "event": "request",
+      "id": "f5fd4a52-30e8-474d-8fae-f1a3a69346c4",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "configuredProfile": "antigravity-http1",
+      "bodyFields": [
+        "metadata"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": false,
+      "cliUserAgent": true
+    },
+    {
+      "event": "response",
+      "id": "f5fd4a52-30e8-474d-8fae-f1a3a69346c4",
+      "status": 200
+    },
+    {
+      "event": "authorization",
+      "stage": "completed"
+    },
+    {
+      "event": "request",
+      "id": "e03db2de-ecae-4de8-8019-99fa595c251c",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "configuredProfile": "antigravity-http1",
+      "bodyFields": [
+        "metadata"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": false,
+      "cliUserAgent": true
+    },
+    {
+      "event": "request",
+      "id": "495ae81e-b9f0-499c-aa0e-538a9a816a24",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "configuredProfile": "antigravity-http1",
+      "bodyFields": [
+        "project"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": false,
+      "cliUserAgent": true
+    },
+    {
+      "event": "request",
+      "id": "3809ebd7-ac44-4126-8e5d-bb58eb8a3af9",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "configuredProfile": "antigravity-http1",
+      "bodyFields": [
+        "project"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": false,
+      "cliUserAgent": true
+    },
+    {
+      "event": "request",
+      "id": "2598537f-31d4-4b1a-87c4-1112a551001e",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "configuredProfile": "antigravity-http1",
+      "bodyFields": [
+        "project"
+      ],
+      "unknownBodyFieldCount": 0,
+      "grantType": null,
+      "formEncoded": false,
+      "goOAuthUserAgent": false,
+      "cliUserAgent": true
+    },
+    {
+      "event": "response",
+      "id": "495ae81e-b9f0-499c-aa0e-538a9a816a24",
+      "status": 200
+    },
+    {
+      "event": "response",
+      "id": "3809ebd7-ac44-4126-8e5d-bb58eb8a3af9",
+      "status": 200
+    },
+    {
+      "event": "response",
+      "id": "e03db2de-ecae-4de8-8019-99fa595c251c",
+      "status": 200
+    },
+    {
+      "event": "response",
+      "id": "2598537f-31d4-4b1a-87c4-1112a551001e",
+      "status": 200
+    }
+  ],
+  "account": {
+    "fields": {
+      "id": true,
+      "subjectId": true,
+      "email": true,
+      "accessToken": true,
+      "refreshToken": true,
+      "projectId": true,
+      "clientId": true,
+      "clientSecret": true
+    },
+    "providerType": "cloudcode",
+    "expiresInFuture": true,
+    "enabled": true
+  },
+  "catalog": {
+    "status": 200,
+    "modelCount": 20
+  },
+  "quota": {
+    "status": 200,
+    "requestsObserved": 1,
+    "triggeredBy": "normal-dashboard-account-save",
+    "persisted": true,
+    "groupCount": 2,
+    "modelQuotaCount": 19
+  },
+  "refresh": {
+    "attempted": true,
+    "passed": true,
+    "identityPreserved": true,
+    "originalAccountUnchanged": true,
+    "savedFields": {
+      "fields": {
+        "id": true,
+        "subjectId": true,
+        "email": true,
+        "accessToken": true,
+        "refreshToken": true,
+        "projectId": true,
+        "clientId": true,
+        "clientSecret": true
+      },
+      "providerType": "cloudcode",
+      "expiresInFuture": true,
+      "enabled": true
+    },
+    "accessTokenChanged": true,
+    "observations": [
+      {
+        "method": "POST",
+        "host": "oauth2.googleapis.com",
+        "path": "/token",
+        "configuredProfile": "oauth-http2",
+        "bodyFields": [
+          "client_id",
+          "client_secret",
+          "grant_type",
+          "refresh_token"
+        ],
+        "unknownBodyFieldCount": 0,
+        "grantType": "refresh_token",
+        "formEncoded": true,
+        "goOAuthUserAgent": true,
+        "cliUserAgent": false,
+        "status": 200
+      }
+    ]
+  },
+  "gatewayStopped": true,
+  "portClosed": true,
+  "onboardingObserved": false,
+  "sourceUnchanged": true,
+  "completedAt": "2026-11-06T18:59:05.123Z",
+  "temporaryCredentialsRemoved": true
+}

@@ -1,0 +1,2589 @@
+{
+  "protocol": "Google Antigravity API",
+  "operation": "offline inventory; no upstream calls",
+  "entries": [
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:listExperiments",
+      "query": "",
+      "requestType": null,
+      "requestCount": 11,
+      "responseStatuses": {
+        "200": 11
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "025a8f5f-8b78-44a8-8f67-7d83e7097951.request.json",
+        "03086bb4-eafb-45ed-95bc-2c6ba9c3ced0.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "experimentIds": [
+          "number"
+        ],
+        "flags": [
+          {
+            "name": "string",
+            "boolValue": "boolean"
+          }
+        ]
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 44,
+      "responseStatuses": {
+        "200": 44
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "0778f948-f444-43c7-91c4-7c439f3fe7ce.request.json",
+        "0a1dcee7-7764-4515-9264-d5ea9cf3fefd.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "query": "",
+      "requestType": null,
+      "requestCount": 38,
+      "responseStatuses": {
+        "200": 38
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "0a506bda-f5e4-4d75-96d3-e652a1a97d8b.request.json",
+        "0a859e8a-a21c-4b2f-88a3-ec293f6c3750.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "groups": [
+          {
+            "buckets": [
+              {
+                "bucketId": "string",
+                "displayName": "string",
+                "window": "string",
+                "resetTime": "string",
+                "description": "string",
+                "remainingFraction": "number"
+              }
+            ],
+            "displayName": "string",
+            "description": "string"
+          }
+        ],
+        "description": "string"
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchUserInfo",
+      "query": "",
+      "requestType": null,
+      "requestCount": 22,
+      "responseStatuses": {
+        "200": 22
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "0d99a4e8-8eff-4e39-9b20-456f0fcf2bc3.request.json",
+        "0ed9901f-ef74-4486-bf2f-532bb844ad7a.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "userSettings": {
+          "telemetryEnabled": "boolean"
+        },
+        "regionCode": "string"
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "query": "",
+      "requestType": null,
+      "requestCount": 11,
+      "responseStatuses": {
+        "200": 11
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "1372a066-9f32-4ea1-874e-21f12d787eb0.request.json",
+        "5ec88c75-6a9e-4c8c-8fd1-94414a0fa7d9.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "models": {
+          "<map-value>": {
+            "displayName": "string",
+            "supportsImages": "boolean",
+            "supportsThinking": "boolean",
+            "minThinkingBudget": "number",
+            "recommended": "boolean",
+            "maxTokens": "number",
+            "maxOutputTokens": "number",
+            "quotaInfo": {
+              "remainingFraction": "number",
+              "resetTime": "string"
+            },
+            "model": "string",
+            "apiProvider": "string",
+            "modelProvider": "string",
+            "supportsVideo": "boolean",
+            "supportedMimeTypes": {
+              "<map-value>": "boolean"
+            },
+            "thinkingLevel": "number",
+            "modelExperiments": {
+              "experiments": {
+                "retry_model_capacity_exhausted": {
+                  "boolValue": "boolean"
+                },
+                "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+                  "stringValue": "string"
+                }
+              }
+            }
+          }
+        },
+        "defaultAgentModelId": "string",
+        "agentModelSorts": [
+          {
+            "displayName": "string",
+            "groups": [
+              {
+                "modelIds": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        ],
+        "commandModelIds": [
+          "string"
+        ],
+        "tabModelIds": [
+          "string"
+        ],
+        "imageGenerationModelIds": [
+          "string"
+        ],
+        "mqueryModelIds": [
+          "string"
+        ],
+        "webSearchModelIds": [
+          "string"
+        ],
+        "commitMessageModelIds": [
+          "string"
+        ],
+        "audioTranscriptionModelIds": [
+          "string"
+        ],
+        "experimentIds": [
+          "number"
+        ],
+        "tieredModelIds": {
+          "flashLite": [
+            "string"
+          ],
+          "flash": [
+            "string"
+          ],
+          "pro": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 11,
+      "responseStatuses": {
+        "200": 11
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "1f8150f2-653c-4b3f-9229-5429d049af7c.request.json",
+        "29dac13d-567e-4507-bafe-ec21f2d70e7c.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "string",
+                "parts": [
+                  {
+                    "text": "string"
+                  }
+                ]
+              }
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": "number",
+            "candidatesTokenCount": "number",
+            "totalTokenCount": "number"
+          },
+          "modelVersion": "string",
+          "responseId": "string"
+        },
+        "traceId": "string",
+        "metadata": {}
+      }
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAdminControls",
+      "query": "",
+      "requestType": null,
+      "requestCount": 11,
+      "responseStatuses": {
+        "200": 11
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "31079f59-5e49-4d8b-8c08-3934cae33134.request.json",
+        "65054bb9-707f-4b58-8f70-f93714b0009c.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {}
+    },
+    {
+      "source": "official-20261106",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "checkpoint",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "524e1b36-de47-424b-ab2d-97a988dd7fb5.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_execution_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "string",
+                "parts": [
+                  {
+                    "thought": "boolean",
+                    "text": "string"
+                  }
+                ]
+              }
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": "number",
+            "totalTokenCount": "number",
+            "thoughtsTokenCount": "number"
+          },
+          "modelVersion": "string",
+          "responseId": "string"
+        },
+        "traceId": "string",
+        "metadata": {}
+      }
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/131f914c-68f8-43c6-9906-f074d24ed153.request.json",
+        "metadata-existing/wire/796ce5eb-2789-4b72-bc18-4f0d2e02a8dd.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "models": {
+          "<map-value>": {
+            "displayName": "string",
+            "supportsImages": "boolean",
+            "supportsThinking": "boolean",
+            "minThinkingBudget": "number",
+            "recommended": "boolean",
+            "maxTokens": "number",
+            "maxOutputTokens": "number",
+            "quotaInfo": {
+              "remainingFraction": "number",
+              "resetTime": "string"
+            },
+            "model": "string",
+            "apiProvider": "string",
+            "modelProvider": "string",
+            "supportsVideo": "boolean",
+            "supportedMimeTypes": {
+              "<map-value>": "boolean"
+            },
+            "thinkingLevel": "number",
+            "modelExperiments": {
+              "experiments": {
+                "retry_model_capacity_exhausted": {
+                  "boolValue": "boolean"
+                },
+                "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+                  "stringValue": "string"
+                }
+              }
+            }
+          }
+        },
+        "defaultAgentModelId": "string",
+        "agentModelSorts": [
+          {
+            "displayName": "string",
+            "groups": [
+              {
+                "modelIds": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        ],
+        "commandModelIds": [
+          "string"
+        ],
+        "tabModelIds": [
+          "string"
+        ],
+        "imageGenerationModelIds": [
+          "string"
+        ],
+        "mqueryModelIds": [
+          "string"
+        ],
+        "webSearchModelIds": [
+          "string"
+        ],
+        "commitMessageModelIds": [
+          "string"
+        ],
+        "audioTranscriptionModelIds": [
+          "string"
+        ],
+        "experimentIds": [
+          "number"
+        ],
+        "tieredModelIds": {
+          "flashLite": [
+            "string"
+          ],
+          "flash": [
+            "string"
+          ],
+          "pro": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 3,
+        "400": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/199cf16e-aab2-43df-a5ad-d74cc64649c9.request.json",
+        "basic/wire/aff8df5a-1ebb-4690-97dd-3be4d835ef27.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "thoughtSignature": "str",
+                      "functionCall": "dict"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "candidatesTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchUserInfo",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/3afcd2a9-9600-4d84-b249-29d957c20ea6.request.json",
+        "metadata-existing/wire/1b74d253-7fc9-46d8-baa5-d49c5d1ea33b.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "userSettings": {},
+        "regionCode": "string"
+      }
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:listExperiments",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/76ad0f9a-afa4-4968-8d8a-1b2606eb8589.request.json",
+        "metadata-existing/wire/baa64357-3fee-4827-937b-6ab083e1eec9.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "experimentIds": [
+          "number"
+        ],
+        "flags": [
+          {
+            "name": "string",
+            "boolValue": "boolean"
+          }
+        ]
+      }
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "checkpoint",
+      "requestCount": 3,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 2,
+      "sampleRequests": [
+        "basic/wire/7dcf637c-db9c-463b-9f89-ffbaa2874bbb.request.json",
+        "schema/wire/c11bdae7-051d-4311-b9c6-f96781cf315e.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "generationConfig": {
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "thought": "bool",
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/8236d9ce-7ef1-432c-9fed-6c68999af04d.request.json",
+        "metadata-existing/wire/72133faa-9e13-43e3-b79a-48f7fea58e9b.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAdminControls",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/ec04e102-b6af-4e09-b116-4b924ecc659a.request.json",
+        "metadata-existing/wire/4a9b6975-b0b9-4d92-803a-2d3e3bc6167f.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {}
+    },
+    {
+      "source": "official-mcp-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "query": "",
+      "requestType": null,
+      "requestCount": 4,
+      "responseStatuses": {
+        "200": 4
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "basic/wire/fff839f8-1c9d-486d-a852-4577e921c6d2.request.json",
+        "metadata-existing/wire/8f126e58-400e-40f0-acec-d4909463d9cb.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "groups": [
+          {
+            "buckets": [
+              {
+                "bucketId": "string",
+                "displayName": "string",
+                "window": "string",
+                "resetTime": "string",
+                "description": "string",
+                "remainingFraction": "number"
+              }
+            ],
+            "displayName": "string",
+            "description": "string"
+          }
+        ],
+        "description": "string"
+      }
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/0d1acb70-0fe1-4b46-ad71-345d1cb8148c.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "models": {
+          "<map-value>": {
+            "displayName": "string",
+            "supportsImages": "boolean",
+            "supportsThinking": "boolean",
+            "minThinkingBudget": "number",
+            "recommended": "boolean",
+            "maxTokens": "number",
+            "maxOutputTokens": "number",
+            "quotaInfo": {
+              "remainingFraction": "number",
+              "resetTime": "string"
+            },
+            "model": "string",
+            "apiProvider": "string",
+            "modelProvider": "string",
+            "supportsVideo": "boolean",
+            "supportedMimeTypes": {
+              "<map-value>": "boolean"
+            },
+            "thinkingLevel": "number",
+            "modelExperiments": {
+              "experiments": {
+                "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+                  "stringValue": "string"
+                }
+              }
+            }
+          }
+        },
+        "defaultAgentModelId": "string",
+        "agentModelSorts": [
+          {
+            "displayName": "string",
+            "groups": [
+              {
+                "modelIds": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        ],
+        "commandModelIds": [
+          "string"
+        ],
+        "tabModelIds": [
+          "string"
+        ],
+        "imageGenerationModelIds": [
+          "string"
+        ],
+        "mqueryModelIds": [
+          "string"
+        ],
+        "webSearchModelIds": [
+          "string"
+        ],
+        "commitMessageModelIds": [
+          "string"
+        ],
+        "audioTranscriptionModelIds": [
+          "string"
+        ],
+        "experimentIds": [
+          "number"
+        ],
+        "tieredModelIds": {
+          "flashLite": [
+            "string"
+          ],
+          "flash": [
+            "string"
+          ],
+          "pro": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/3804c048-2cfd-47cb-b067-f8fdbd8bdf75.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "candidatesTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAdminControls",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/4735f426-6773-4d33-a308-3d42fcb0acb2.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {}
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "checkpoint",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/4d8dff56-3cee-4ed9-aa81-6e08b559c0cb.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "generationConfig": {
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "thought": "bool",
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/a0bd0163-8088-4a41-ad11-360fd31137c4.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "groups": [
+          {
+            "buckets": [
+              {
+                "bucketId": "string",
+                "displayName": "string",
+                "window": "string",
+                "resetTime": "string",
+                "description": "string",
+                "remainingFraction": "number"
+              }
+            ],
+            "displayName": "string",
+            "description": "string"
+          }
+        ],
+        "description": "string"
+      }
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:listExperiments",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/ce1b9fe6-f0e0-459f-96b3-e64ef3409b63.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "experimentIds": [
+          "number"
+        ],
+        "flags": [
+          {
+            "name": "string",
+            "boolValue": "boolean"
+          }
+        ]
+      }
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/f8e71cab-912c-48f1-baad-a6a0a5f2ebc3.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-image-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchUserInfo",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/f9b3ff1d-7e25-45d7-8f5a-3ff618854f0b.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "userSettings": {},
+        "regionCode": "string"
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:listExperiments",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/07897112-65aa-4050-8acd-1ab5b3407620.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "experimentIds": [
+          "number"
+        ],
+        "flags": [
+          {
+            "name": "string",
+            "boolValue": "boolean"
+          }
+        ]
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/11855a0b-7a0b-49e8-ad4b-e58081abb51e.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "groups": [
+          {
+            "buckets": [
+              {
+                "bucketId": "string",
+                "displayName": "string",
+                "window": "string",
+                "resetTime": "string",
+                "description": "string",
+                "remainingFraction": "number"
+              }
+            ],
+            "displayName": "string",
+            "description": "string"
+          }
+        ],
+        "description": "string"
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchUserInfo",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/1b5b0d0c-a28e-4c4a-91a0-43b87eb4f5a5.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "userSettings": {},
+        "regionCode": "string"
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/49c10102-8f48-4ef2-9e08-fa261cb5eee0.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "candidatesTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/6cb5052b-63e2-467d-9745-81d41aeb8f03.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/bc18e7d8-7f94-41f4-8953-92385bdbb6f0.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "models": {
+          "<map-value>": {
+            "displayName": "string",
+            "supportsImages": "boolean",
+            "supportsThinking": "boolean",
+            "minThinkingBudget": "number",
+            "recommended": "boolean",
+            "maxTokens": "number",
+            "maxOutputTokens": "number",
+            "quotaInfo": {
+              "remainingFraction": "number",
+              "resetTime": "string"
+            },
+            "model": "string",
+            "apiProvider": "string",
+            "modelProvider": "string",
+            "supportsVideo": "boolean",
+            "supportedMimeTypes": {
+              "<map-value>": "boolean"
+            },
+            "thinkingLevel": "number",
+            "modelExperiments": {
+              "experiments": {
+                "retry_model_capacity_exhausted": {
+                  "boolValue": "boolean"
+                },
+                "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+                  "stringValue": "string"
+                }
+              }
+            }
+          }
+        },
+        "defaultAgentModelId": "string",
+        "agentModelSorts": [
+          {
+            "displayName": "string",
+            "groups": [
+              {
+                "modelIds": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        ],
+        "commandModelIds": [
+          "string"
+        ],
+        "tabModelIds": [
+          "string"
+        ],
+        "imageGenerationModelIds": [
+          "string"
+        ],
+        "mqueryModelIds": [
+          "string"
+        ],
+        "webSearchModelIds": [
+          "string"
+        ],
+        "commitMessageModelIds": [
+          "string"
+        ],
+        "audioTranscriptionModelIds": [
+          "string"
+        ],
+        "experimentIds": [
+          "number"
+        ],
+        "tieredModelIds": {
+          "flashLite": [
+            "string"
+          ],
+          "flash": [
+            "string"
+          ],
+          "pro": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "checkpoint",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/d7389598-9313-4ba5-88f1-1dfcf684e4fc.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "generationConfig": {
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "thought": "bool",
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-video-entry-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAdminControls",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/e4e63ba0-e21e-410e-8883-270a12ecbf0e.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {}
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "checkpoint",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/098d064f-bbaa-48b3-bb67-ddf7601bdd01.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "generationConfig": {
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "thought": "bool",
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAdminControls",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/239a4d99-22d2-49fe-8107-b6bba6e880e0.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {}
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/5773ce48-2955-4be8-b955-e228bc8e6899.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "string",
+            "parts": [
+              {
+                "text": "string"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "parameters": {
+                    "type": "string",
+                    "properties": {
+                      "ByteOffset": "dict",
+                      "EndLine": "dict",
+                      "Path": "dict",
+                      "StartLine": "dict"
+                    },
+                    "required": [
+                      "str"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "candidatesTokenCount": "number",
+              "totalTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchAvailableModels",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/a0128cde-f9ea-4a8f-8f1e-0ab7d591c86e.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "models": {
+          "<map-value>": {
+            "displayName": "string",
+            "supportsImages": "boolean",
+            "supportsThinking": "boolean",
+            "minThinkingBudget": "number",
+            "recommended": "boolean",
+            "maxTokens": "number",
+            "maxOutputTokens": "number",
+            "quotaInfo": {
+              "remainingFraction": "number",
+              "resetTime": "string"
+            },
+            "model": "string",
+            "apiProvider": "string",
+            "modelProvider": "string",
+            "supportsVideo": "boolean",
+            "supportedMimeTypes": {
+              "<map-value>": "boolean"
+            },
+            "thinkingLevel": "number",
+            "modelExperiments": {
+              "experiments": {
+                "CASCADE_USE_EXPERIMENT_CHECKPOINTER": {
+                  "stringValue": "string"
+                }
+              }
+            }
+          }
+        },
+        "defaultAgentModelId": "string",
+        "agentModelSorts": [
+          {
+            "displayName": "string",
+            "groups": [
+              {
+                "modelIds": [
+                  "string"
+                ]
+              }
+            ]
+          }
+        ],
+        "commandModelIds": [
+          "string"
+        ],
+        "tabModelIds": [
+          "string"
+        ],
+        "imageGenerationModelIds": [
+          "string"
+        ],
+        "mqueryModelIds": [
+          "string"
+        ],
+        "webSearchModelIds": [
+          "string"
+        ],
+        "commitMessageModelIds": [
+          "string"
+        ],
+        "audioTranscriptionModelIds": [
+          "string"
+        ],
+        "experimentIds": [
+          "number"
+        ],
+        "tieredModelIds": {
+          "flashLite": [
+            "string"
+          ],
+          "flash": [
+            "string"
+          ],
+          "pro": [
+            "string"
+          ]
+        }
+      }
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:fetchUserInfo",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/b529a658-3c6e-46e5-8128-80994566b84c.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "userSettings": {},
+        "regionCode": "string"
+      }
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/b5d63356-2319-40e6-958c-94d1f83f4772.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "groups": [
+          {
+            "buckets": [
+              {
+                "bucketId": "string",
+                "displayName": "string",
+                "window": "string",
+                "resetTime": "string",
+                "description": "string",
+                "remainingFraction": "number"
+              }
+            ],
+            "displayName": "string",
+            "description": "string"
+          }
+        ],
+        "description": "string"
+      }
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:listExperiments",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/c9a859ff-014c-4875-ade3-89e4f218d790.request.json"
+      ],
+      "requestShape": {
+        "project": "string"
+      },
+      "responseShape": {
+        "experimentIds": [
+          "number"
+        ],
+        "flags": [
+          {
+            "name": "string",
+            "boolValue": "boolean"
+          }
+        ]
+      }
+    },
+    {
+      "source": "official-image-tool-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "wire/e62d2c14-73d3-460a-9f50-b4993027cb10.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "gateway-media-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:loadCodeAssist",
+      "query": "",
+      "requestType": null,
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "001.request.json"
+      ],
+      "requestShape": {
+        "metadata": {
+          "ideType": "string"
+        }
+      },
+      "responseShape": {
+        "currentTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "privacyNotice": {
+            "showNotice": "boolean",
+            "noticeText": "string"
+          },
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "upgradeSubscriptionType": "string"
+        },
+        "allowedTiers": [
+          {
+            "id": "string",
+            "name": "string",
+            "description": "string",
+            "privacyNotice": {
+              "showNotice": "boolean",
+              "noticeText": "string"
+            },
+            "isDefault": "boolean"
+          }
+        ],
+        "cloudaicompanionProject": "string",
+        "gcpManaged": "boolean",
+        "upgradeSubscriptionUri": "string",
+        "paidTier": {
+          "id": "string",
+          "name": "string",
+          "description": "string",
+          "upgradeSubscriptionUri": "string",
+          "upgradeSubscriptionText": "string",
+          "availableCredits": [
+            {
+              "creditType": "string",
+              "minimumCreditAmountForUsage": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "source": "gateway-media-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:streamGenerateContent",
+      "query": "alt=sse",
+      "requestType": "agent",
+      "requestCount": 1,
+      "responseStatuses": {
+        "200": 1
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "002.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "string",
+            "last_step_index": "string",
+            "model_enum": "string",
+            "request_id": "string",
+            "root_cascade_id": "string",
+            "trajectory_id": "string",
+            "used_claude": "string",
+            "used_claude_conservative": "string",
+            "used_non_gemini_model": "string"
+          },
+          "generationConfig": {
+            "maxOutputTokens": "number",
+            "thinkingConfig": {
+              "includeThoughts": "boolean",
+              "thinkingLevel": "string"
+            }
+          },
+          "sessionId": "string"
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": [
+        {
+          "response": {
+            "candidates": [
+              {
+                "content": {
+                  "role": "string",
+                  "parts": [
+                    {
+                      "text": "str"
+                    }
+                  ]
+                }
+              }
+            ],
+            "usageMetadata": {
+              "promptTokenCount": "number",
+              "candidatesTokenCount": "number",
+              "totalTokenCount": "number",
+              "thoughtsTokenCount": "number"
+            },
+            "modelVersion": "string",
+            "responseId": "string"
+          },
+          "traceId": "string",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "source": "gateway-media-20261107",
+      "method": "POST",
+      "host": "daily-cloudcode-pa.googleapis.com",
+      "path": "/v1internal:generateContent",
+      "query": "",
+      "requestType": "image_gen",
+      "requestCount": 2,
+      "responseStatuses": {
+        "200": 2
+      },
+      "missingResponses": 0,
+      "sampleRequests": [
+        "003.request.json",
+        "004.request.json"
+      ],
+      "requestShape": {
+        "project": "string",
+        "requestId": "string",
+        "request": {
+          "contents": [
+            {
+              "role": "string",
+              "parts": [
+                {
+                  "text": "string"
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "candidateCount": "number",
+            "imageConfig": {
+              "aspectRatio": "string"
+            }
+          }
+        },
+        "model": "string",
+        "userAgent": "string",
+        "requestType": "string"
+      },
+      "responseShape": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "string",
+                "parts": [
+                  {
+                    "thoughtSignature": "string",
+                    "inlineData": {
+                      "mimeType": "str",
+                      "data": "str"
+                    }
+                  }
+                ]
+              },
+              "finishReason": "string"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": "number",
+            "candidatesTokenCount": "number",
+            "totalTokenCount": "number"
+          },
+          "modelVersion": "string",
+          "responseId": "string"
+        },
+        "traceId": "string",
+        "metadata": {}
+      }
+    }
+  ],
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184"
+}

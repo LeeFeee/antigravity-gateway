@@ -4,6 +4,7 @@ const {normalizeChat,normalizeAnthropic,normalizeResponses}=require('../src/prot
 const {buildDirectRequest,DirectAntigravityProvider}=require('../src/direct-provider');
 const {newState,contentFingerprint,AgySessionStore}=require('../src/agy-session-state');
 const {completeNativeContext}=require('../src/agy-context-state');
+const {declaredCall,declaredParts,fixtureTools}=require('./helpers/declared-tool-fixture');
 const model='gemini-3.8-flash-high',data=Buffer.from('owned media fixture').toString('base64');
 const block=(mime,filename)=>({type:'file',file:{file_data:`data:${mime};base64,${data}`,...(filename?{filename}:{})}});
 const user={role:'user',content:[{type:'text',text:'Compare the attachments.'},block('audio/wav'),block('application/pdf','quarter-one.pdf'),block('video/mp4','scene.mp4')]};
@@ -67,10 +68,10 @@ test('binary client-tool results match captured role/output/parts structure acro
   const seen=[],messages=[{role:'user',text:'Read the file.'}],call={id:'read-one',name:'view_file',args:{AbsolutePath:'fixture'}};
   const replies=[[{functionCall:call,thoughtSignature:'real-call-signature'}],[{text:'FACTS',thoughtSignature:'real-answer-signature'}],[{text:'FACTS'}]];
   async function send(){const provider=new DirectAntigravityProvider({sessionStore:new AgySessionStore({directory}),accessToken:'token',projectId:'p',maxRetries:0,
-   localAuth:{isConfigured:()=>false,load:()=>({sourcePath:'managed-account:a'})},fetchImpl:async(_url,options)=>{seen.push(JSON.parse(options.body));return new Response(JSON.stringify({candidates:[{content:{parts:replies.shift()}}]}),{headers:{'content-type':'application/json'}});}});return provider.send({messages},model,{sessionId:mime});}
+   localAuth:{isConfigured:()=>false,load:()=>({sourcePath:'managed-account:a'})},fetchImpl:async(_url,options)=>{seen.push(JSON.parse(options.body));return new Response(JSON.stringify({candidates:[{content:{parts:declaredParts(seen.at(-1),replies.shift())}}]}),{headers:{'content-type':'application/json'}});}});return provider.send({messages,tools:fixtureTools('view_file')},model,{sessionId:mime});}
   await send();messages.push({role:'assistant',parts:[{type:'tool_call',id:call.id,name:call.name,arguments:call.args}]},{role:'tool',parts:[{type:'tool_result',id:call.id,name:call.name,content:'Actual tool output',media:[{mediaType:mime,data}]}]});
   await send();messages.push({role:'assistant',text:'FACTS'},{role:'user',text:'Recall.'});await send();
-  assert.deepEqual(seen.map(r=>Number(r.requestId.split('/').at(-1))),[1,3,5]);assert.deepEqual(seen[2].request.contents[2],{role:'model',parts:[{functionResponse:{id:call.id,name:call.name,response:{output:'Actual tool output'},parts:[{inlineData:{mimeType:mime,data}}]}}]});
+  assert.deepEqual(seen.map(r=>Number(r.requestId.split('/').at(-1))),[1,3,5]);assert.deepEqual(seen[2].request.contents[2],{role:'model',parts:[{functionResponse:{id:call.id,name:declaredCall(seen[0],call).name,response:{output:'Actual tool output'},parts:[{inlineData:{mimeType:mime,data}}]}}]});
   assert.equal(seen[2].request.contents[1].parts[0].thoughtSignature,'real-call-signature');assert.equal(seen[2].request.contents[3].parts[0].thoughtSignature,'real-answer-signature');
  }
 });

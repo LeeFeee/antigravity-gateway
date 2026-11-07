@@ -1,5 +1,7 @@
 # agy 请求转译：最终验收矩阵
 
+> 历史记录：本文对应已退役架构或此前验收阶段，保留用于追溯；其中启动、授权、路由与测试总数不适用于当前版本。当前使用方式见 [README](../README.md)，重构约定见 [产品规格](antigravity-gateway-refactor-spec.md)。
+
 日期：2026-10-20。状态：本次本地代码改造及下列验收完成，相关实现纳入 v1.7.0。本表保留 Cloud Code 阶段验收时的安装和测试事实；当前版本说明见 [CHANGELOG.md](../CHANGELOG.md)。
 
 范围说明：下表记录 Cloud Code 阶段的 686 项验收及签名/重启机制。随后完成的 macOS Argon／Robin 定向适配单独记录在 [Robin Provider](robin-provider.md#macos-robin-客户端定向适配)；当前合并后的本地测试为 704 项。Robin 复用客户端能力映射，不复用本表中的 Cloud Code 签名或未完成工具流恢复机制；Windows 仍走原路径。

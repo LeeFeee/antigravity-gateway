@@ -1,0 +1,703 @@
+{
+  "recordedAt": "2026-11-06T19:09:29.073898+00:00",
+  "binary": {
+    "path": "/Users/leefee/.local/bin/agy",
+    "version": "1.5.2",
+    "sha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184"
+  },
+  "evidence": "static-official-binary-and-isolated-help-only",
+  "realGoogleRequestsSent": false,
+  "localModelRequestsSent": false,
+  "entrypoint": {
+    "hiddenFlags": {
+      "hub": {
+        "nameOffset": "0x36ee1f3",
+        "description": "Run in hub server mode: serve the Antigravity Hub web UI on a local port instead of the terminal UI"
+      },
+      "hub-port": {
+        "nameOffset": "0x3736a18",
+        "defaultWhenHub": 4400
+      },
+      "csrf_token": {
+        "nameOffset": "0x3767c68"
+      }
+    },
+    "registerFunction": "main.registerHubFlags",
+    "functionFileOffset": "0x2fabd70",
+    "localProtocol": "Connect JSON handler statically registered by setUpHTTPServeMux at 0x288d20c",
+    "routes": [
+      "/exa.language_server_pb.LanguageServerService/StartCascade",
+      "/exa.language_server_pb.LanguageServerService/SendUserCascadeMessage"
+    ],
+    "csrfHeader": "x-codeium-csrf-token",
+    "commandTemplate": [
+      "agy",
+      "--hub",
+      "--hub-port",
+      "<owned-loopback-port>",
+      "--csrf_token",
+      "synthetic-video-csrf",
+      "--model",
+      "gemini-3.8-flash-low",
+      "--log-file",
+      "<owned-root>/hub.log"
+    ],
+    "runtimeStartupVerified": false,
+    "emptyStartCascade": "No required fields in proto; business acceptance not verified."
+  },
+  "callback": {
+    "chain": [
+      "local.Backend.SendUserCascadeMessage",
+      "SaveMediaAsUserMediaArtifacts",
+      "Backend field +0x90 function callback",
+      "newLocalBackend.func2",
+      "Server.GenerateMediaSummaries",
+      "Server.generateVideoSummarization",
+      "modelapiinterface.GetVideoSummarization"
+    ],
+    "callSiteFileOffset": "0x24bc454",
+    "bindingFileOffset": "0x2835688",
+    "callbackFileOffset": "0x28a6090",
+    "modelImmediateFileOffset": "0x28a60b8",
+    "chatModelNumber": 1008,
+    "chatModelEnum": "MODEL_PLACEHOLDER_M8",
+    "enumDescriptorValueOffset": "0x4032142",
+    "mediaFilter": "mime_type starts with video/",
+    "fileReading": "Requires nonempty media URI, resolves absolute path and reads saved file bytes before GetVideoSummarization.",
+    "notARPC": "No GenerateMediaSummariesRequest descriptor or LanguageServerService.GenerateMediaSummaries method; internal local backend callback."
+  },
+  "acpBoundary": {
+    "functionFileOffset": "0x29b7fa0",
+    "checkCallFileOffset": "0x29b7fe8",
+    "check": "inlineMedia first calls isImageMimeType; unsupported MIME takes explicit error path, so ACP inline video is not the local media summary trigger."
+  },
+  "messages": [
+    {
+      "name": "GetVideoSummarizationRequest",
+      "descriptorOffset": "0x3f501be",
+      "descriptorBytes": 218,
+      "descriptorSha256": "0f49e1da53e311db5e8a1ad508192644517c011b6e3c6ba47b600433ee9326dd",
+      "fields": [
+        {
+          "name": "metadata",
+          "number": 1,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.Metadata",
+          "jsonName": "metadata"
+        },
+        {
+          "name": "video_bytes",
+          "number": 2,
+          "label": "optional",
+          "type": "bytes",
+          "jsonName": "videoBytes"
+        },
+        {
+          "name": "mime_type",
+          "number": 3,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "mimeType"
+        },
+        {
+          "name": "chat_model",
+          "number": 4,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.Model",
+          "jsonName": "chatModel"
+        }
+      ]
+    },
+    {
+      "name": "StartCascadeRequest",
+      "descriptorOffset": "0x3ff64ea",
+      "descriptorBytes": 2262,
+      "descriptorSha256": "0fb2db590107a824b121b0aead368e7ad6207809c33582ecfaf47cf9389c882f",
+      "fields": [
+        {
+          "name": "base_trajectory_identifier",
+          "number": 3,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.jetski_cortex_pb.BaseTrajectoryIdentifier",
+          "jsonName": "baseTrajectoryIdentifier"
+        },
+        {
+          "name": "source_metadata",
+          "number": 13,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.SourceMetadata",
+          "jsonName": "sourceMetadata"
+        },
+        {
+          "name": "source",
+          "number": 4,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.cortex_pb.CortexTrajectorySource",
+          "jsonName": "source"
+        },
+        {
+          "name": "trajectory_type",
+          "number": 5,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.cortex_pb.CortexTrajectoryType",
+          "jsonName": "trajectoryType"
+        },
+        {
+          "name": "agent_script_item",
+          "number": 6,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.AgentScriptItem",
+          "jsonName": "agentScriptItem"
+        },
+        {
+          "name": "requested_model",
+          "number": 14,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.Model",
+          "jsonName": "requestedModel"
+        },
+        {
+          "name": "cascade_id",
+          "number": 7,
+          "label": "optional",
+          "type": "string",
+          "oneofIndex": 0,
+          "jsonName": "cascadeId",
+          "proto3Optional": true
+        },
+        {
+          "name": "workspace_uris",
+          "number": 8,
+          "label": "repeated",
+          "type": "string",
+          "jsonName": "workspaceUris"
+        },
+        {
+          "name": "override_workspace_uris",
+          "number": 9,
+          "label": "repeated",
+          "type": "string",
+          "jsonName": "overrideWorkspaceUris"
+        },
+        {
+          "name": "parent_conversation_id",
+          "number": 12,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "parentConversationId"
+        },
+        {
+          "name": "subagent_descriptor",
+          "number": 21,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.SubagentDescriptor",
+          "jsonName": "subagentDescriptor"
+        },
+        {
+          "name": "citc_workspace_details",
+          "number": 10,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.language_server_pb.StartCascadeRequest.CitcWorkspaceDetailsEntry",
+          "jsonName": "citcWorkspaceDetails"
+        },
+        {
+          "name": "custom_agent_spec",
+          "number": 11,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.CustomAgentSpec",
+          "jsonName": "customAgentSpec"
+        },
+        {
+          "name": "project_env_config",
+          "number": 17,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.language_server_pb.ProjectEnvironmentConfig",
+          "jsonName": "projectEnvConfig"
+        },
+        {
+          "name": "tags",
+          "number": 18,
+          "label": "repeated",
+          "type": "string",
+          "jsonName": "tags"
+        },
+        {
+          "name": "active_profile",
+          "number": 19,
+          "label": "optional",
+          "type": "string",
+          "oneofIndex": 1,
+          "jsonName": "activeProfile",
+          "proto3Optional": true
+        },
+        {
+          "name": "agent_path",
+          "number": 20,
+          "label": "optional",
+          "type": "string",
+          "oneofIndex": 2,
+          "jsonName": "agentPath",
+          "proto3Optional": true
+        },
+        {
+          "name": "remote_control_details",
+          "number": 22,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.RemoteControlDetails",
+          "jsonName": "remoteControlDetails"
+        },
+        {
+          "name": "backend",
+          "number": 24,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.project_pb.BackendType",
+          "jsonName": "backend"
+        },
+        {
+          "name": "cloud_options",
+          "number": 23,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.language_server_pb.StartCascadeRequest.CloudOptions",
+          "jsonName": "cloudOptions"
+        },
+        {
+          "name": "metadata",
+          "number": 1,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.Metadata",
+          "jsonName": "metadata"
+        },
+        {
+          "name": "experiment_config",
+          "number": 2,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.ExperimentConfig",
+          "jsonName": "experimentConfig"
+        }
+      ]
+    },
+    {
+      "name": "SendUserCascadeMessageRequest",
+      "descriptorOffset": "0x3ff8260",
+      "descriptorBytes": 1891,
+      "descriptorSha256": "ac2911738cfc49a9a1b4db08442c0245cc801d14b30b5720edd94833d54c3616",
+      "fields": [
+        {
+          "name": "metadata",
+          "number": 3,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.Metadata",
+          "jsonName": "metadata"
+        },
+        {
+          "name": "cascade_id",
+          "number": 1,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "cascadeId"
+        },
+        {
+          "name": "items",
+          "number": 2,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.TextOrScopeItem",
+          "jsonName": "items"
+        },
+        {
+          "name": "images",
+          "number": 6,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.ImageData",
+          "jsonName": "images"
+        },
+        {
+          "name": "artifact_comments",
+          "number": 10,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.ArtifactComment",
+          "jsonName": "artifactComments"
+        },
+        {
+          "name": "file_diff_comments",
+          "number": 12,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.FileDiffComment",
+          "jsonName": "fileDiffComments"
+        },
+        {
+          "name": "file_comments",
+          "number": 13,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.FileComment",
+          "jsonName": "fileComments"
+        },
+        {
+          "name": "media",
+          "number": 14,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.Media",
+          "jsonName": "media"
+        },
+        {
+          "name": "cascade_config",
+          "number": 5,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.CascadeConfig",
+          "jsonName": "cascadeConfig"
+        },
+        {
+          "name": "custom_agent_spec",
+          "number": 19,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.CustomAgentSpec",
+          "jsonName": "customAgentSpec"
+        },
+        {
+          "name": "active_profile",
+          "number": 23,
+          "label": "optional",
+          "type": "string",
+          "oneofIndex": 0,
+          "jsonName": "activeProfile",
+          "proto3Optional": true
+        },
+        {
+          "name": "user_identity",
+          "number": 24,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.UserIdentity",
+          "oneofIndex": 1,
+          "jsonName": "userIdentity",
+          "proto3Optional": true
+        },
+        {
+          "name": "experiment_config",
+          "number": 4,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.ExperimentConfig",
+          "jsonName": "experimentConfig"
+        },
+        {
+          "name": "blocking",
+          "number": 8,
+          "label": "optional",
+          "type": "bool",
+          "jsonName": "blocking"
+        },
+        {
+          "name": "additional_steps",
+          "number": 9,
+          "label": "repeated",
+          "type": "message",
+          "typeName": ".gemini_coder.Step",
+          "jsonName": "additionalSteps"
+        },
+        {
+          "name": "client_type",
+          "number": 11,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.chat_client_server_pb.ChatClientRequestStreamClientType",
+          "jsonName": "clientType"
+        },
+        {
+          "name": "propagate_error",
+          "number": 16,
+          "label": "optional",
+          "type": "bool",
+          "jsonName": "propagateError"
+        },
+        {
+          "name": "planner_response",
+          "number": 17,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.CortexStepPlannerResponse",
+          "jsonName": "plannerResponse"
+        },
+        {
+          "name": "continue_after_injection",
+          "number": 20,
+          "label": "optional",
+          "type": "bool",
+          "jsonName": "continueAfterInjection"
+        },
+        {
+          "name": "message_origin",
+          "number": 18,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.language_server_pb.AgentMessageOrigin",
+          "jsonName": "messageOrigin"
+        },
+        {
+          "name": "tags",
+          "number": 21,
+          "label": "repeated",
+          "type": "string",
+          "jsonName": "tags"
+        },
+        {
+          "name": "delivery_strategy",
+          "number": 22,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.cortex_pb.MessageDeliveryStrategy",
+          "jsonName": "deliveryStrategy"
+        },
+        {
+          "name": "editor_state",
+          "number": 25,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.language_server_pb.EditorState",
+          "oneofIndex": 2,
+          "jsonName": "editorState",
+          "proto3Optional": true
+        },
+        {
+          "name": "custom_extensions",
+          "number": 27,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.cortex_pb.CustomExtensions",
+          "jsonName": "customExtensions"
+        },
+        {
+          "name": "remote_control_details",
+          "number": 26,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.RemoteControlDetails",
+          "jsonName": "remoteControlDetails"
+        },
+        {
+          "name": "sender_window_id",
+          "number": 28,
+          "label": "optional",
+          "type": "string",
+          "oneofIndex": 3,
+          "jsonName": "senderWindowId",
+          "proto3Optional": true
+        },
+        {
+          "name": "client_message_id",
+          "number": 29,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "clientMessageId"
+        }
+      ]
+    },
+    {
+      "name": "Media",
+      "descriptorOffset": "0x402a89e",
+      "descriptorBytes": 1297,
+      "descriptorSha256": "d386c76386a3e8733dd3c4f86ea0192e459847c4a4a0d45ad5f4ff11706ba1ff",
+      "fields": [
+        {
+          "name": "mime_type",
+          "number": 1,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "mimeType"
+        },
+        {
+          "name": "description",
+          "number": 4,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "description"
+        },
+        {
+          "name": "inline_data",
+          "number": 2,
+          "label": "optional",
+          "type": "bytes",
+          "oneofIndex": 0,
+          "jsonName": "inlineData"
+        },
+        {
+          "name": "blobref",
+          "number": 3,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".exa.codeium_common_pb.Blobref",
+          "oneofIndex": 0,
+          "jsonName": "blobref"
+        },
+        {
+          "name": "encoded_preprocessed_input",
+          "number": 18,
+          "label": "optional",
+          "type": "bytes",
+          "oneofIndex": 0,
+          "jsonName": "encodedPreprocessedInput"
+        },
+        {
+          "name": "uri",
+          "number": 5,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "uri"
+        },
+        {
+          "name": "thumbnail",
+          "number": 6,
+          "label": "optional",
+          "type": "bytes",
+          "jsonName": "thumbnail"
+        },
+        {
+          "name": "duration_seconds",
+          "number": 7,
+          "label": "optional",
+          "type": "float",
+          "jsonName": "durationSeconds"
+        },
+        {
+          "name": "media_id",
+          "number": 8,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "mediaId"
+        },
+        {
+          "name": "display_name",
+          "number": 9,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "displayName"
+        },
+        {
+          "name": "ingestion_options",
+          "number": 10,
+          "label": "optional",
+          "type": "message",
+          "typeName": ".google.protobuf.Any",
+          "jsonName": "ingestionOptions"
+        },
+        {
+          "name": "start_page",
+          "number": 11,
+          "label": "optional",
+          "type": "int32",
+          "oneofIndex": 1,
+          "jsonName": "startPage",
+          "proto3Optional": true
+        },
+        {
+          "name": "end_page",
+          "number": 12,
+          "label": "optional",
+          "type": "int32",
+          "oneofIndex": 2,
+          "jsonName": "endPage",
+          "proto3Optional": true
+        },
+        {
+          "name": "start_time_ms",
+          "number": 13,
+          "label": "optional",
+          "type": "int64",
+          "jsonName": "startTimeMs"
+        },
+        {
+          "name": "end_time_ms",
+          "number": 14,
+          "label": "optional",
+          "type": "int64",
+          "jsonName": "endTimeMs"
+        },
+        {
+          "name": "fps",
+          "number": 15,
+          "label": "optional",
+          "type": "double",
+          "jsonName": "fps"
+        },
+        {
+          "name": "media_resolution",
+          "number": 16,
+          "label": "optional",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.MediaResolution",
+          "jsonName": "mediaResolution"
+        },
+        {
+          "name": "content_layers",
+          "number": 17,
+          "label": "repeated",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.VideoContentLayer",
+          "jsonName": "contentLayers"
+        },
+        {
+          "name": "document_content_layers",
+          "number": 19,
+          "label": "repeated",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.DocumentContentLayer",
+          "jsonName": "documentContentLayers"
+        },
+        {
+          "name": "sheet_index",
+          "number": 20,
+          "label": "optional",
+          "type": "int32",
+          "oneofIndex": 3,
+          "jsonName": "sheetIndex",
+          "proto3Optional": true
+        },
+        {
+          "name": "visible_cells",
+          "number": 21,
+          "label": "optional",
+          "type": "string",
+          "jsonName": "visibleCells"
+        },
+        {
+          "name": "spreadsheet_content_layers",
+          "number": 22,
+          "label": "repeated",
+          "type": "enum",
+          "typeName": ".exa.codeium_common_pb.SpreadsheetContentLayer",
+          "jsonName": "spreadsheetContentLayers"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Fields describe internal local proto types, not captured Google upstream JSON.",
+    "Actual Hub startup, Connect request acceptance and video_summarization upstream packet still require isolated all-mock execution.",
+    "MODEL_PLACEHOLDER_M8 needs a real model-key/capability mapping in the synthetic metadata; do not infer it from the user --model flag."
+  ]
+}

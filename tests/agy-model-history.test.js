@@ -4,6 +4,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const { newState, recordResponse, restoreHistory, recordClientProjection, restoreClientProjections, AgySessionStore } = require('../src/agy-session-state');
 const { compatibleHistoryModels, generationProfile, CAPTURED_MODELS } = require('../src/agy-request-profile');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
+const { declaredParts, fixtureTools } = require('./helpers/declared-tool-fixture');
 const models = ['gemini-3.8-flash-high', 'gemini-3.8-flash-medium', 'gemini-3.8-flash-low'];
 const user = text => ({ role: 'user', parts: [{ text }] });
 const answer = text => ({ role: 'model', parts: [{ text }] });
@@ -45,13 +46,13 @@ test('image client projections remain restricted to the original model until cro
   assert.deepEqual(restoreClientProjections(state, [...prefix, receipt], 'other-model'), [...prefix, receipt]);
 });
 
-test('captured generation defaults use -1/4000/1000; live metadata and explicit client caps retain priority', () => {
+test('captured model names fix HIGH/MEDIUM/LOW while live limits and explicit client caps retain priority', () => {
   for (const [i, model] of models.entries()) {
-    assert.deepEqual(generationProfile({}, model), { maxOutputTokens: 65536, thinkingConfig: { includeThoughts: true, thinkingBudget: [-1, 4000, 1000][i] } });
+    assert.deepEqual(generationProfile({}, model), { maxOutputTokens: 65536, thinkingConfig: { includeThoughts: true, thinkingLevel: ['HIGH', 'MEDIUM', 'LOW'][i] } });
     assert.equal(CAPTURED_MODELS[model].model, `MODEL_PLACEHOLDER_M${318 + i}`);
     assert.deepEqual(generationProfile({ generationConfig: { maxOutputTokens: 2048 } }, model,
       { maxOutputTokens: 32768, supportsThinking: true, thinkingBudget: 1200 }),
-    { maxOutputTokens: 2048, thinkingConfig: { includeThoughts: true, thinkingBudget: 1200 } });
+    { maxOutputTokens: 2048, thinkingConfig: { includeThoughts: true, thinkingLevel: ['HIGH', 'MEDIUM', 'LOW'][i] } });
   }
 });
 
@@ -65,8 +66,8 @@ test('signed text and tool history survive disk restarts through all captured va
   async function send(model, messages) {
     const provider = new DirectAntigravityProvider({ sessionStore: new AgySessionStore({ directory }), accessToken: 'token', projectId: 'p', maxRetries: 0,
       localAuth: { isConfigured: () => false, load: () => ({ sourcePath: 'managed-account:a' }) },
-      fetchImpl: async (_url, options) => { seen.push(JSON.parse(options.body)); return new Response(JSON.stringify({ candidates: [{ content: { parts: replies.shift() } }] }), { headers: { 'content-type': 'application/json' } }); } });
-    return provider.send({ messages }, model, { sessionId: 'same-session' });
+      fetchImpl: async (_url, options) => { seen.push(JSON.parse(options.body)); return new Response(JSON.stringify({ candidates: [{ content: { parts: declaredParts(seen.at(-1), replies.shift()) } }] }), { headers: { 'content-type': 'application/json' } }); } });
+    return provider.send({ messages, tools: fixtureTools('read_file') }, model, { sessionId: 'same-session' });
   }
   const messages = [{ role: 'user', text: 'read file' }];
   await send(models[0], messages);

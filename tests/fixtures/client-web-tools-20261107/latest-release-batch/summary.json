@@ -1,0 +1,45 @@
+{
+  "evidence": "explicit-two-model-native-search-capability-batch",
+  "startedAt": "2026-11-06T19:28:50.464Z",
+  "productionModelFallback": false,
+  "generationLimit": 2,
+  "execute": true,
+  "query": "site:github.com/google-gemini/gemini-cli/releases What is the latest published Google Gemini CLI release version as of 2026-11-07? Search the current releases page and cite its source.",
+  "domain": "github.com",
+  "results": [
+    {
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-latest-release.json",
+      "generationCount": 1,
+      "status": 200,
+      "groundingObserved": false,
+      "source": {
+        "sha256": "816eadc36e691bb4aa1936e7a8e78ef7d13a64dd2e522eb7bf2fd7caa2c39146",
+        "files": 53
+      },
+      "sourceUnchanged": true,
+      "originalAccountsUnchanged": true,
+      "originalStateUnchanged": true,
+      "temporaryCredentialsRemoved": true,
+      "nativeStopped": true
+    },
+    {
+      "model": "gemini-3.8-flash-low",
+      "file": "gemini-low-latest-release.json",
+      "generationCount": 1,
+      "status": 200,
+      "groundingObserved": true,
+      "source": {
+        "sha256": "816eadc36e691bb4aa1936e7a8e78ef7d13a64dd2e522eb7bf2fd7caa2c39146",
+        "files": 53
+      },
+      "sourceUnchanged": true,
+      "originalAccountsUnchanged": true,
+      "originalStateUnchanged": true,
+      "temporaryCredentialsRemoved": true,
+      "nativeStopped": true
+    }
+  ],
+  "generationCount": 2,
+  "completedAt": "2026-11-06T19:29:15.094Z"
+}

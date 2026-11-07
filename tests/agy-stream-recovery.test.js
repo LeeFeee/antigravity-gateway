@@ -8,8 +8,21 @@ const { AgySessionStore, newState, recordStreamProjection, recordStreamRecovery,
 const { prepareNativeContext } = require('../src/agy-context-state');
 const { streamErrorContent } = require('../src/agy-stream-recovery');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
+const { normalizeAnthropic } = require('../src/protocol');
+const { prepareAntigravityTools } = require('../src/antigravity-tool-contract');
 const { capturedClaudeClient, CLAUDE_COMPACTION_PROFILE } = require('../src/agy-client-compaction');
 const model = 'gemini-3.8-flash-high';
+// Recovery fixtures declare the actual current Read contract. The synthetic
+// upstream issues only the MCP function advertised by that contract, while
+// client history contains the restored original Read arguments.
+const readDeclaration = require('./fixtures/agent-requests-20261107/claude-first.json').captures
+  .find(item => item.body?.tools?.length).body.tools.find(tool => tool.name === 'Read');
+const tools = normalizeAnthropic({ tools: [readDeclaration] }).tools;
+const adapter = prepareAntigravityTools({ tools });
+function upstreamRead(id, args) {
+  const call = adapter.toProvider({ id, name: 'Read', arguments: args });
+  return { id: call.id, name: call.name, args: call.arguments };
+}
 const reply = parts => new Response(JSON.stringify({ candidates: [{ content: { parts } }] }), { headers: { 'content-type': 'application/json' } });
 const text = value => ({ role: 'model', parts: [{ text: value }] });
 const step = b => Number(b.requestId.split('/').at(-1));
@@ -26,15 +39,20 @@ function fixture(t) {
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   const requests = [], delays = [], original = global.setTimeout;
   t.mock.method(global, 'setTimeout', (fn, ms, ...args) => { delays.push(ms); return original(fn, Math.min(ms, 2), ...args); });
-  const provider = (fetch, options = {}) => new DirectAntigravityProvider({ sessionStore: new AgySessionStore({ directory }),
+  const provider = (fetch, options = {}) => {
+    const instance = new DirectAntigravityProvider({ sessionStore: new AgySessionStore({ directory }),
     accessToken: 'test-token', projectId: 'test-project', retryPolicy: 'agy',
     localAuth: { isConfigured: () => false, load: () => ({ sourcePath: 'managed-account:stream-test' }) }, ...options,
     fetchImpl: (url, request) => { requests.push(JSON.parse(request.body)); return fetch(url, request); } });
+    const send = instance.send.bind(instance);
+    instance.send = (normalized, ...args) => send({ ...normalized, tools: normalized.tools ?? tools }, ...args);
+    return instance;
+  };
   const messages = [{ role: 'user', text: 'Read owned.txt once.' }];
   const seed = async () => {
-    await provider(async () => reply([{ functionCall: { id: 'call-one', name: 'Read', args: { path: 'owned.txt' } }, thoughtSignature: 'original-call-signature' }]))
+    await provider(async () => reply([{ functionCall: upstreamRead('call-one', { file_path: 'owned.txt' }), thoughtSignature: 'original-call-signature' }]))
       .send({ messages }, model, { sessionId: 's' });
-    messages.push({ role: 'assistant', parts: [{ type: 'tool_call', id: 'call-one', name: 'Read', arguments: { path: 'owned.txt' } }] },
+    messages.push({ role: 'assistant', parts: [{ type: 'tool_call', id: 'call-one', name: 'Read', arguments: { file_path: 'owned.txt' } }] },
       { role: 'user', parts: [{ type: 'tool_result', id: 'call-one', content: 'file-code' }] });
   };
   return { directory, requests, delays, provider, messages, seed };
@@ -47,7 +65,7 @@ function brokenWire(bytes) {
     else c.error(Object.assign(new Error('controlled interrupted body'), { code: 'upstream_read_error' }));
   } }, { highWaterMark: 0 }), { headers: { 'content-type': 'text/event-stream' } });
 }
-const signedCall = id => ({ functionCall: { id, name: 'Read', args: { file_path: id + '.txt' } }, thoughtSignature: 'signature-' + id });
+const signedCall = id => ({ functionCall: upstreamRead(id, { file_path: id + '.txt' }), thoughtSignature: 'signature-' + id });
 function receipt(messages, call) {
   messages.push({ role: 'assistant', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.arguments }] },
     { role: 'user', parts: [{ type: 'tool_result', id: call.id, content: 'actual-file-content' }] });
@@ -58,7 +76,7 @@ for (const stop of [false, true]) test(`complete signed SSE tool event ${stop ? 
   const first = await f.provider(async () => brokenWire(`data: ${JSON.stringify({ candidates: [{ content: { parts: [part] } }] })}\r\n\r\n`
     + (stop ? 'data: {"candidates":[{"finishReason":"STOP","content":{"parts":[]}}]}\r\n\r\n' : '')))
     .send({ messages: f.messages }, model, { sessionId: 's' });
-  assert.deepEqual(first.toolCalls, [{ id: 'one', name: 'Read', arguments: part.functionCall.args, thoughtSignature: part.thoughtSignature }]);
+  assert.deepEqual(first.toolCalls, [{ id: 'one', name: 'Read', arguments: { file_path: 'one.txt' }, thoughtSignature: part.thoughtSignature }]);
   assert.equal(f.requests.length,1);receipt(f.messages,first.toolCalls[0]);
   await f.provider(async () => reply([{ text: 'FINAL' }])).send({ messages: f.messages }, model, { sessionId: 's' });
   const next = f.requests.at(-1);assert.deepEqual(f.requests.map(step),[1,4]);assert.deepEqual(f.requests.map(counter),[0,1]);
@@ -97,9 +115,9 @@ for (const priorThought of [false,true]) test(`tool JSON without event terminato
 test('tool interruption marker requires full prefix, model, call and matching actual receipts', () => {
   const state=newState('a','s'),prefix=[{role:'user',parts:[{text:'Original'}]}],call={role:'model',parts:[signedCall('one')]};
   recordToolStreamError(state,prefix,model,call,1,Date.now()+4000);
-  const result={role:'model',parts:[{functionResponse:{id:'one',name:'Read',response:{output:'actual'}}}]},source=[...prefix,call,result];
+  const result={role:'model',parts:[{functionResponse:{id:'one',name:adapter.toProviderName('Read'),response:{output:'actual'}}}]},source=[...prefix,call,result];
   assert.deepEqual(restoreClientProjections(state,source,model),[...source,streamErrorContent()]);
-  for(const change of [s=>s[0].parts[0].text='Edited',s=>s[1].parts[0].functionCall.args.file_path='other',s=>s[2].parts[0].functionResponse.id='foreign',s=>s[2].parts[0].functionResponse.name='Write',s=>s[2]={role:'user',parts:[{text:'Continue'}]},s=>s.pop()]){
+  for(const change of [s=>s[0].parts[0].text='Edited',s=>s[1].parts[0].functionCall.args.argumentsJson='{"file_path":"other"}',s=>s[2].parts[0].functionResponse.id='foreign',s=>s[2].parts[0].functionResponse.name='Write',s=>s[2]={role:'user',parts:[{text:'Continue'}]},s=>s.pop()]){
     const modified=structuredClone(source);change(modified);assert.deepEqual(restoreClientProjections(state,modified,model),modified);
   }
   assert.deepEqual(restoreClientProjections(state,source,'gemini-3.8-flash-low'),source);
@@ -108,8 +126,17 @@ test('tool interruption marker requires full prefix, model, call and matching ac
 
 test('cancelled wait after a real tool receipt does not allocate an unsent logical request', async t => {
   const f=fixture(t),first=await f.provider(async()=>broken([signedCall('one')])).send({messages:f.messages},model,{sessionId:'s'});
-  receipt(f.messages,first.toolCalls[0]);const controller=new AbortController();setImmediate(()=>controller.abort());
+  receipt(f.messages,first.toolCalls[0]);const controller=new AbortController();let reachedBackoff=false;
+  // Schema preparation now awaits isolated workers. Cancel the backoff this
+  // test actually covers, rather than whichever earlier async stage runs first.
+  global.setTimeout.mock.mockImplementation((fn,ms,...args)=>{
+    f.delays.push(ms);
+    const timer=require('node:timers').setTimeout(fn,Math.min(ms,2),...args);
+    if(ms>1000){reachedBackoff=true;queueMicrotask(()=>controller.abort());}
+    return timer;
+  });
   await assert.rejects(f.provider(async()=>assert.fail('cancelled backoff cannot dispatch')).send({messages:f.messages},model,{sessionId:'s',signal:controller.signal}),{name:'AbortError'});
+  assert.equal(reachedBackoff,true);
   const saved=JSON.parse(fs.readFileSync(path.join(f.directory,fs.readdirSync(f.directory).find(n=>n.endsWith('.json')))));
   assert.equal(saved.requestIndex,1);assert.equal(saved.nextStep,4);assert.equal(f.requests.length,1);
 });
@@ -270,7 +297,7 @@ test('hard process stop during mixed backoff preserves the shared failure count 
         } }, { highWaterMark: 0 }), { headers: { 'content-type': 'text/event-stream' } });
       }
     });
-    provider.send({ messages: ${JSON.stringify(f.messages)} }, ${JSON.stringify(model)}, { sessionId: 's' })
+    provider.send({ messages: ${JSON.stringify(f.messages)}, tools: ${JSON.stringify(tools)} }, ${JSON.stringify(model)}, { sessionId: 's' })
       .catch(e => { console.error(e.message); process.exitCode = 1; });
   `;
   const child = spawn(process.execPath, ['-e', childSource], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
@@ -305,13 +332,12 @@ test('terminal partial text rejects an identical client retry locally and restor
   assert.doesNotMatch(JSON.stringify(f.requests.at(-1)), /Error: The stream was interrupted/);
 });
 
-test('pure streaming recovery never replays the final thought after the answer in any client protocol', async t => {
+test('pure streaming recovery never replays the final thought after the answer in either supported client protocol', async t => {
   const f = fixture(t);
-  const { createAnthropicTextEmitter, createChatTextEmitter, createResponsesTextEmitter } = require('../antigravity-gateway');
-  const { anthropicResponse, chatResponse, responsesResponse } = require('../src/protocol');
+  const { createAnthropicTextEmitter, createResponsesTextEmitter } = require('../antigravity-gateway');
+  const { anthropicResponse, responsesResponse } = require('../src/protocol');
   for (const [protocol, create, format] of [
     ['anthropic', createAnthropicTextEmitter, anthropicResponse],
-    ['chat', createChatTextEmitter, chatResponse],
     ['responses', createResponsesTextEmitter, responsesResponse]
   ]) {
     const frames = [], emitter = create({ write: s => frames.push(s), end() {} }, model, 'resp_test');
@@ -463,7 +489,7 @@ test('empty-read exhaustion after a partial recovery preserves a terminal budget
 
 for (const kind of ['unknown-transport', 'half-tool', 'legacy', 'checkpoint', 'other-model']) test(`unmeasured ${kind} does not acquire a guessed native stream recovery`, async t => {
   const f = fixture(t); await f.seed();
-  const parts = kind === 'half-tool' ? [{ functionCall: { name: 'Read', args: {} } }] : kind === 'no-content' ? [] : [{ text: 'partial' }];
+  const parts = kind === 'half-tool' ? [{ functionCall: { name: adapter.toProviderName('Read'), args: {} } }] : kind === 'no-content' ? [] : [{ text: 'partial' }];
   await assert.rejects(f.provider(async () => broken(parts, kind === 'unknown-transport' ? 'unknown' : 'upstream_read_error'),
     kind === 'legacy' ? { retryPolicy: 'legacy' } : {}).send({ messages: f.messages }, kind === 'other-model' ? 'gemini-3.8-flash-low' : model,
       { sessionId: 's', ...(kind === 'checkpoint' ? { auxiliaryScope: 'compaction' } : {}) }));

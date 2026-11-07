@@ -34,7 +34,7 @@ function serviceName(source = process.env.ANTIGRAVITY_GATEWAY_SERVICE_NAME || DE
 function serviceEnvironment(source = process.env) {
   const sensitive = ['ANTIGRAVITY_ACCESS_TOKEN', 'ANTIGRAVITY_REFRESH_TOKEN', 'ANTIGRAVITY_GOOGLE_CLIENT_SECRET'];
   if (sensitive.some((key) => source[key])) {
-    throw new ServiceError('后台服务不会把 OAuth token/client secret 环境变量写入明文快照。请使用本地 agy 登录态或受保护的 ANTIGRAVITY_AUTH_FILE，清除这些环境变量后重试；前台模式不受影响。');
+    throw new ServiceError('后台服务不会把 OAuth token/client secret 环境变量写入明文快照。请通过看板 OAuth 管理账号，并清除这些环境变量后重试。');
   }
   return Object.fromEntries(Object.entries(source).filter(([key, value]) => (
     typeof value === 'string'

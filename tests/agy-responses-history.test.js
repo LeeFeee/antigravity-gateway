@@ -4,6 +4,7 @@ const fs = require('node:fs'), path = require('node:path'), os = require('node:o
 const { normalizeResponses, normalizeAnthropic } = require('../src/protocol');
 const { buildDirectRequest, DirectAntigravityProvider } = require('../src/direct-provider');
 const { AgySessionStore } = require('../src/agy-session-state');
+const { declaredParts, fixtureTools } = require('./helpers/declared-tool-fixture');
 const model = 'gemini-3.8-flash-high';
 const message = (role, text) => ({ type: 'message', role, content: [{ type: role === 'assistant' ? 'output_text' : 'input_text', text }] });
 const call = (id, name = 'read') => ({ type: 'function_call', call_id: id, name, arguments: '{"path":"fixture"}' });
@@ -18,7 +19,7 @@ test('actual Codex Responses split text/parallel calls rejoin one native model s
   assert.equal(JSON.stringify(normalized), sourceBefore, 'Other providers retain their original normalized input');
   assert.equal(body.request.contents.length, 3);
   assert.deepEqual(body.request.contents[1].parts.map(p => p.functionCall?.id || p.text), ['Reading both.', 'a', 'b']);
-  assert.equal(body.request.contents[1].parts[1].thoughtSignature, 'skip_thought_signature_validator');
+  assert.equal(body.request.contents[1].parts[1].thoughtSignature, undefined);
   assert.equal(body.request.contents[1].parts[2].thoughtSignature, undefined);
   assert.deepEqual(body.request.contents[2].parts.map(p => p.functionResponse.id), ['a', 'b']);
   assert.match(body.requestId, /\/4$/);
@@ -53,9 +54,9 @@ test('Responses regrouping restores real saved parts and signatures across paral
       localAuth: { isConfigured: () => false, load: () => ({ sourcePath: 'managed-account:responses-test' }) },
       fetchImpl: async (_url, options) => {
         requests.push(JSON.parse(options.body));
-        return new Response(JSON.stringify({ candidates: [{ content: { parts: replies.shift() } }] }), { headers: { 'content-type': 'application/json' } });
+        return new Response(JSON.stringify({ candidates: [{ content: { parts: declaredParts(requests.at(-1), replies.shift()) } }] }), { headers: { 'content-type': 'application/json' } });
       } });
-    return provider.send(normalizeResponses({ input }), model, { sessionId: 'responses-real-layout' });
+    return provider.send({ ...normalizeResponses({ input }), tools: [...fixtureTools('read'), { name: 'apply_patch', kind: 'custom', schema: { type: 'object', properties: { input: { type: 'string' } }, required: ['input'] } }] }, model, { sessionId: 'responses-real-layout' });
   }
   const initial = [message('user', 'client context'), message('user', 'workspace context'), message('user', 'read both')];
   await send(initial);
@@ -64,9 +65,9 @@ test('Responses regrouping restores real saved parts and signatures across paral
   await send([...second, message('assistant', 'Writing.'), { type: 'custom_tool_call', call_id: 'c', name: 'apply_patch', input: patch },
     { type: 'custom_tool_call_output', call_id: 'c', output: 'file created' }]);
   assert.deepEqual(requests.map(r => Number(r.requestId.split('/').at(-1))), [3, 6, 8]);
-  assert.deepEqual(requests[1].request.contents[3].parts, firstParts);
-  assert.deepEqual(requests[2].request.contents[3].parts, firstParts);
-  assert.deepEqual(requests[2].request.contents[5].parts, secondParts);
+  assert.deepEqual(requests[1].request.contents[3].parts, declaredParts(requests[0], firstParts));
+  assert.deepEqual(requests[2].request.contents[3].parts, declaredParts(requests[0], firstParts));
+  assert.deepEqual(requests[2].request.contents[5].parts, declaredParts(requests[1], secondParts));
   assert.equal(new Set(requests.map(r => r.request.labels.cascade_id)).size, 1);
   assert.doesNotMatch(JSON.stringify(requests.slice(1)), /skip_thought_signature_validator/);
 });

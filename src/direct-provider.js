@@ -5,20 +5,27 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { errorDetails } = require('./diagnostic-log');
-const { LocalAgyAuthProvider, LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
+const { LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
 const { nativeCloudCodeFetch } = require('./agy-native-transport');
 const { AgySessionStore, newState, contentFingerprint, restoreClientProjections, recordClientProjection,
   recordStreamProjection, recordStreamRecovery, clearStreamRecovery, recordToolStreamError } = require('./agy-session-state');
 const { deliveryText, streamTextRemainder } = require('./artifacts');
-const { prepareNativeContext, completeNativeContext, interruptNativeContext, interruptCheckpointContext, continueInterruptedStream } = require('./agy-context-state');
+const { prepareNativeContext, prepareNativeContextAsync, completeNativeContext, interruptNativeContext, interruptCheckpointContext, continueInterruptedStream } = require('./agy-context-state');
 const { isStreamError } = require('./agy-stream-recovery');
 const { CLAUDE_COMPACTION_PROFILE } = require('./agy-client-compaction');
 const { AgyImageStore, registerImagePart } = require('./agy-image-references');
-const { agentEnvelope, generationProfile, nativeSchema } = require('./agy-request-profile');
-const { prepareStructuredOutput, finishResult, finishResponse } = require('./agy-structured-output');
-const { nativeClientToolResponse } = require('./agy-tool-results');
-const { prepareToolAdapter } = require('./agy-tool-adapter');
+const { agentEnvelope, generationProfile, cliUserAgent } = require('./agy-request-profile');
+const { assertGenerationCompatibility } = require('./antigravity-model-config');
+const { CAPTURED_IMAGE_MODEL, DEFAULT_IMAGE_MODEL, imageModelName, assertImageModel } = require('./image-model-config');
+const { validateSearchParameters, searchRequest, parseSearchResponse } = require('./antigravity-server-search');
+const { sanitizeClientIdentity } = require('./client-identity');
+const { prepareStructuredOutput, prepareStructuredOutputAsync, finishResultAsync, finishResponse } = require('./agy-structured-output');
+const { nativeClientToolResponse, attachClientToolResult } = require('./agy-tool-results');
+const { runSync, runAsync } = require('./schema-steps');
+const { prepareAntigravityTools, prepareAntigravityToolsAsync } = require('./antigravity-tool-contract');
 const { CAPTURED_MODEL, nativeRetryDecision, nativeRetryDelayMs } = require('./agy-retry-policy');
+const { GatewayError, upstreamTermination, validateToolChoice } = require('./protocol');
+const { hasToolResultHistory } = require('./tool-history');
 
 const DEFAULT_BASE_URL = 'https://cloudcode-pa.googleapis.com';
 const DAILY_BASE_URL = 'https://daily-cloudcode-pa.googleapis.com';
@@ -27,14 +34,13 @@ const LOAD_CODE_ASSIST_PATH = '/v1internal:loadCodeAssist';
 const GENERATE_PATH = '/v1internal:generateContent';
 const STREAM_PATH = '/v1internal:streamGenerateContent';
 const MODELS_PATH = '/v1internal:fetchAvailableModels';
-const IMAGE_MODEL = String(process.env.ANTIGRAVITY_IMAGE_MODEL || 'gemini-3.1-flash-image').trim();
+const IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
 const IMAGE_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9']);
 const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 8000);
 const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MAX_RETRIES || 1));
 const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
-const DEFAULT_USER_AGENT = `antigravity/cli/${process.env.ANTIGRAVITY_CLI_VERSION || '1.4.2'} (aidev_client; os_type=${process.platform}; arch=${process.arch}; cl=1001591392; auth_method=consumer)`;
+const DEFAULT_USER_AGENT = cliUserAgent();
 const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
-const THOUGHT_SIGNATURE_SENTINEL = 'skip_thought_signature_validator';
 // Only statuses observed in actual agy error/retry/recovery captures belong
 // here. HTTP failures are distinct from an uncaptured transport exception.
 const NATIVE_HTTP_ERROR_STATUSES = new Set([400, 429, 500, 502, 503, 504]);
@@ -61,21 +67,6 @@ function redact(value) {
     .replace(/[\r\n]+/g, ' ')
     .trim()
     .slice(-2000);
-}
-
-function envModels() {
-  const raw = String(process.env.ANTIGRAVITY_DIRECT_MODELS || '').trim();
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed.map(String).map((item) => item.trim()).filter((item) => MODEL_SLUG.test(item));
-  } catch { /* also accept comma-separated values */ }
-  return raw.split(',').map((item) => item.trim()).filter((item) => MODEL_SLUG.test(item));
-}
-
-function authFilePath() {
-  const configured = String(process.env.ANTIGRAVITY_AUTH_FILE || '').trim();
-  return configured ? path.resolve(configured) : '';
 }
 
 function readAuthFile(file) {
@@ -162,113 +153,6 @@ function deriveToolNameFromId(id) {
   return '';
 }
 
-const MAX_TOOL_SCHEMA_DEPTH = 32;
-
-function mergeToolSchema(target, source) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return target;
-  const merged = { ...target };
-
-  for (const key of ['type', 'description', 'enum', 'nullable', 'additionalProperties']) {
-    if (target[key] !== undefined) merged[key] = target[key];
-    else if (source[key] !== undefined) merged[key] = source[key];
-  }
-  if ((!merged.type || merged.type === 'object') && (target.properties || source.properties)) {
-    merged.properties = { ...(source.properties || {}), ...(target.properties || {}) };
-  }
-  if ((!merged.type || merged.type === 'object') && (target.required || source.required)) {
-    merged.required = [...new Set([...(source.required || []), ...(target.required || [])].map(String))];
-  }
-  if (!merged.type || merged.type === 'array') {
-    for (const key of ['items', 'prefixItems']) {
-      if (target[key] !== undefined) merged[key] = target[key];
-      else if (source[key] !== undefined) merged[key] = source[key];
-    }
-  }
-  return merged;
-}
-
-function unionCandidateScore(schema) {
-  if (!schema || typeof schema !== 'object' || Array.isArray(schema) || schema.type === 'null') return -1;
-  let score = schema.type ? 10 : 0;
-  if (schema.type === 'object') score += 20 + Object.keys(schema.properties || {}).length;
-  if (schema.type === 'array') score += 15 + (schema.items ? 1 : 0);
-  if (Array.isArray(schema.enum) && schema.enum.length) score += 2;
-  return score;
-}
-
-function cleanToolSchema(schema, depth = 0) {
-  if (depth > MAX_TOOL_SCHEMA_DEPTH) return { type: 'object' };
-  if (schema === true) return { type: 'string' };
-  if (!schema || schema === false || typeof schema !== 'object') return { type: 'object' };
-  if (Array.isArray(schema)) return schema.map((item) => cleanToolSchema(item, depth + 1));
-
-  let output = {};
-  for (const key of ['description', 'enum', 'nullable', 'required', 'additionalProperties']) {
-    if (schema[key] === undefined) continue;
-    if (key === 'enum' && Array.isArray(schema[key])) output[key] = schema[key].map(String);
-    else if (key === 'required' && Array.isArray(schema[key])) output[key] = schema[key].map(String);
-    else output[key] = schema[key];
-  }
-
-  const rawType = schema.type;
-  if (Array.isArray(rawType)) {
-    const types = rawType.map(String).filter(Boolean);
-    const nonNull = types.filter((type) => type !== 'null');
-    output.type = nonNull[0] || 'object';
-    if (types.includes('null')) output.nullable = true;
-  } else if (typeof rawType === 'string' && rawType) {
-    output.type = rawType;
-  }
-
-  if (schema.properties && typeof schema.properties === 'object' && !Array.isArray(schema.properties)) {
-    output.properties = Object.fromEntries(Object.entries(schema.properties)
-      .map(([name, value]) => [name, cleanToolSchema(value, depth + 1)]));
-  }
-
-  if (Array.isArray(schema.items)) {
-    // Draft-07 tuple schemas use an array in `items`; project them onto the
-    // Draft 2020-12 shape understood by current clients before adding the
-    // homogeneous fallback required by the Cloud Code schema validator.
-    output.prefixItems = schema.items.map((item) => cleanToolSchema(item, depth + 1));
-  } else if (schema.items && typeof schema.items === 'object') {
-    output.items = cleanToolSchema(schema.items, depth + 1);
-  }
-
-  if (Array.isArray(schema.prefixItems)) {
-    output.prefixItems = schema.prefixItems.map((item) => cleanToolSchema(item, depth + 1));
-  }
-
-  if (Array.isArray(schema.allOf)) {
-    for (const branch of schema.allOf) {
-      output = mergeToolSchema(output, cleanToolSchema(branch, depth + 1));
-    }
-  }
-
-  const unionSource = Array.isArray(schema.anyOf)
-    ? schema.anyOf
-    : Array.isArray(schema.oneOf)
-      ? schema.oneOf
-      : [];
-  if (unionSource.length) {
-    const nullable = unionSource.some((item) => item?.type === 'null');
-    const variants = unionSource.map((item) => cleanToolSchema(item, depth + 1));
-    const candidate = variants
-      .filter((item) => item?.type !== 'null')
-      .sort((left, right) => unionCandidateScore(right) - unionCandidateScore(left))[0];
-    if (candidate) output = mergeToolSchema(output, candidate);
-    if (nullable) output.nullable = true;
-  }
-
-  if (!output.type && output.prefixItems) output.type = 'array';
-  if (!output.type && (output.properties || output.required)) output.type = 'object';
-
-  // Cloud Code rejects every array node that lacks an `items` field. Keep
-  // tuple semantics in `prefixItems`, while adding the same permissive string
-  // fallback used by mature Gemini/Antigravity schema bridges.
-  if (output.type === 'array' && !output.items) output.items = { type: 'string' };
-  return output;
-}
-
 function upstreamErrorMessage(text) {
   try {
     const body = JSON.parse(String(text || '{}'));
@@ -319,21 +203,29 @@ function normalizedMessageParts(message) {
 }
 
 function contentsFromNormalized(normalized, thoughtSignatures = null, model = '') {
+  const messages = (normalized.messages || []).map(message => ({ ...message, parts: normalizedMessageParts(message) }));
+  const resultIds = messages.flatMap(message => message.parts.filter(part => part?.type === 'tool_result').map(part => part.id));
+  if (resultIds.length && (resultIds.some(id => typeof id !== 'string' || !id.trim())
+    || !hasToolResultHistory({ messages: messages.map(message => message.role === 'tool'
+      ? { ...message, role: 'user' } : message) }, resultIds))) {
+    throw new DirectProviderError('工具结果必须对应请求中先前唯一且匹配的工具调用。', {
+      code: 'invalid_tool_history', status: 400
+    });
+  }
   const toolNames = new Map();
   const callOrder = new Map();
   const contents = [];
-  const needsThoughtSignature = /^gemini-3(?:[.-]|$)/i.test(String(model || ''));
-  for (const message of normalized.messages || []) {
+  for (const message of messages) {
     const nativeParts = [];
-    const preserveFilenames = normalizedMessageParts(message).some(p => p?.type === 'media' && !/^image\//.test(p.mediaType || ''));
-    for (const part of normalizedMessageParts(message)) {
+    const preserveFilenames = message.parts.some(p => p?.type === 'media' && !/^image\//.test(p.mediaType || ''));
+    for (const part of message.parts) {
       if (part?.type === 'tool_call') {
         const id = String(part.id || '').trim();
         const name = String(part.name || '').trim();
         if (!name) continue;
         if (id) toolNames.set(id, name);
         if (id) callOrder.set(id, callOrder.size);
-        const args = parseJsonValue(part.arguments ?? part.args ?? {});
+        const args = Object.hasOwn(part, 'arguments') ? part.arguments : parseJsonValue(part.args ?? {});
         const recoveredSignature = String(part.thoughtSignature || thoughtSignatures?.get?.(id) || '').trim();
         nativeParts.push({
           functionCall: { ...(id ? { id } : {}), name, args },
@@ -352,12 +244,12 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
         const media = (part.media || []).filter((item) => item?.data).map((item) => ({
           inlineData: { mimeType: item.mediaType || item.mimeType || 'application/octet-stream', data: item.data }
         }));
-        nativeParts.push({ functionResponse: {
-          ...(id ? { id } : {}),
-          name,
-          response: nativeClientToolResponse(part, result),
+        const response = {
+          ...(id ? { id } : {}), name, response: nativeClientToolResponse(part, result),
           ...(media.length ? { parts: media } : {})
-        } });
+        };
+        attachClientToolResult(response, part, result);
+        nativeParts.push({ functionResponse: response });
         continue;
       }
       if (part?.type === 'media' && part.data) {
@@ -385,7 +277,7 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
         // an assistant message plus separate function_call/custom_tool_call
         // items. Rejoin that observed shape before timeline/signature lookup.
         // Do not merge plain adjacent answers, tool results or user turns, or
-        // change the normalized input used by the Robin/Windows providers.
+        // change the original client-visible history.
         else if (normalized.protocol === 'responses' && !part.functionResponse && role === 'model' && previous?.role === 'model'
           && !previous.parts.some(p => p.functionResponse)
           && (part.functionCall || previous.parts.some(p => p.functionCall))) current = previous;
@@ -395,11 +287,6 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
     }
   }
   for (const content of contents) {
-    // Apply the compatibility fallback only after Responses items have been
-    // regrouped. Native saved signatures subsequently replace it on an exact
-    // prefix match; never add the fallback to parallel sibling calls.
-    const firstCall = content.parts.find(p => p.functionCall);
-    if (needsThoughtSignature && firstCall && !firstCall.thoughtSignature) firstCall.thoughtSignature = THOUGHT_SIGNATURE_SENTINEL;
     if (content.parts.length > 1 && content.parts.every(p => p.functionResponse)) {
       content.parts.sort((a, b) => (callOrder.get(a.functionResponse.id) ?? Number.MAX_SAFE_INTEGER)
         - (callOrder.get(b.functionResponse.id) ?? Number.MAX_SAFE_INTEGER));
@@ -408,30 +295,20 @@ function contentsFromNormalized(normalized, thoughtSignatures = null, model = ''
   return contents;
 }
 
-function buildDirectRequest(normalized, model, projectId, sessionId, repairInstruction = '', thoughtSignatures = null, native = {}) {
-  native.toolAdapter = prepareToolAdapter(normalized, native);
+function* buildDirectRequestSteps(normalized, model, projectId, sessionId, repairInstruction = '', thoughtSignatures = null, native = {}, effects = {}) {
+  const prepareTools = effects.prepareTools || prepareAntigravityTools;
+  const prepareStructured = effects.prepareStructured || prepareStructuredOutput;
+  const prepareContext = effects.prepareContext || prepareNativeContext;
+  validateToolChoice(normalized.tools, normalized.toolChoice);
+  const sourceTools = normalized.tools;
+  const identity = sanitizeClientIdentity(normalized, { clientProfile: native.identityClientProfile || native.clientProfile || '' });
+  native.clientIdentity = identity.metadata.profile;
+  native.toolAdapter = yield prepareTools(identity.normalized, { ...native, sourceTools, clientIdentity: identity.metadata.profile });
   normalized = native.toolAdapter.normalized;
-  const structured = prepareStructuredOutput(normalized, native);
+  const structured = yield prepareStructured(normalized, native);
   normalized = structured.normalized;
   native.structuredSchema = structured.schema;
   let generationConfig = generationProfile(normalized, model, native.modelInfo);
-  // Gemini 3 models at every reasoning tier spend part of maxOutputTokens on
-  // hidden reasoning. The previous 128-token floor was still observed to cut
-  // a six-token health reply down to "MAC_". Reserve provider-side reasoning
-  // room for tiny client caps; models still stop naturally after the requested
-  // short answer and the protocol adapter exposes only visible output.
-  if (generationConfig && generationConfig.maxOutputTokens > 0 && generationConfig.maxOutputTokens < 1024 && /^gemini-3(?:[.-]|$)/i.test(model || '')) {
-    generationConfig.maxOutputTokens = 1024;
-  }
-  // Claude Code Auto Mode often asks for only 64 visible tokens. Gemini 3's
-  // hidden reasoning is charged against the same upstream output budget, so
-  // 128 can still truncate a tiny verdict to "<severity>0". Reserve enough
-  // provider-side room for reasoning plus the complete XML classifier result;
-  // the adapter still returns only the normalized client contract.
-  if (normalized.autoMode && /^gemini-3(?:[.-]|$)/i.test(model || '')) {
-    generationConfig ||= {};
-    generationConfig.maxOutputTokens = Math.max(Number(generationConfig.maxOutputTokens) || 0, 8192);
-  }
   if (native.checkpoint) {
     generationConfig ||= {};
     generationConfig.maxOutputTokens = Math.min(generationConfig.maxOutputTokens || 16384, 16384);
@@ -439,20 +316,28 @@ function buildDirectRequest(normalized, model, projectId, sessionId, repairInstr
   const request = {
     contents: contentsFromNormalized(normalized, thoughtSignatures, model),
     ...(generationConfig ? { generationConfig } : {}),
-    ...(normalized.system || repairInstruction ? {
-      systemInstruction: { role: 'user', parts: [{ text: [normalized.system, repairInstruction].filter(Boolean).join('\n\n') }] }
+    ...(normalized.system || native.toolAdapter.instructions || structured.instructions || repairInstruction ? {
+      systemInstruction: { role: 'user', parts: [{ text: [normalized.system, native.toolAdapter.instructions,
+        normalized.parallelToolCalls === false && normalized.tools.length
+          ? 'Request at most one client tool call in each response. Wait for its result before requesting another tool.' : '',
+        structured.instructions, repairInstruction].filter(Boolean).join('\n\n') }] }
     } : {})
   };
   if (normalized.tools?.length) {
     request.tools = normalized.tools.map((tool) => ({ functionDeclarations: [{
       name: tool.name,
       description: tool.description || '',
-      parameters: nativeSchema(cleanToolSchema(tool.schema || { type: 'object' }))
+      parameters: tool.nativeSchema
     }] }));
     const choice = normalized.toolChoice;
     const type = typeof choice === 'string' ? choice : choice?.type;
-    const mode = type === 'none' ? 'NONE' : /claude/i.test(model || '') ? 'VALIDATED' : type === 'required' || type === 'any' || type === 'tool' ? 'ANY' : 'AUTO';
     const name = choice?.name || choice?.function?.name;
+    // All six captured 1.5.2 models omit default toolConfig. Only explicit
+    // client constraints should add it; named choices require that function.
+    const mode = type === 'none' ? 'NONE' : name || type === 'required' || type === 'any' || type === 'tool' ? 'ANY' : 'AUTO';
+    // A public model name fixes its reasoning configuration. An incompatible
+    // tool constraint cannot silently disable it; client effort is irrelevant.
+    assertGenerationCompatibility(model, generationConfig, mode);
     // Default Gemini AUTO was absent from every captured agy agent request.
     // Explicit client constraints and the existing Claude bridge remain native
     // functionCallingConfig values, not private gateway metadata.
@@ -462,12 +347,19 @@ function buildDirectRequest(normalized, model, projectId, sessionId, repairInstr
     }
   }
   const state = native.state || newState('', '');
-  native.context = prepareNativeContext(state, request.contents, model, { metadata: native.modelInfo, now: native.now, checkpoint: native.checkpoint, compactionProfile: native.compactionProfile, clientProfile: native.clientProfile, imageStore: native.imageStore,
-    restoreStreamRecovery: native.restoreStreamRecovery });
+  native.context = yield prepareContext(state, request.contents, model, { metadata: native.modelInfo, now: native.now, checkpoint: native.checkpoint, compactionProfile: native.compactionProfile, clientProfile: native.clientProfile, imageStore: native.imageStore,
+    restoreStreamRecovery: native.restoreStreamRecovery, toolAdapter: native.toolAdapter });
   request.contents = native.context.contents;
   return agentEnvelope({ ...request, model, project: projectId, state, metadata: native.modelInfo, now: native.now,
     step: native.context.step, requestType: native.checkpoint ? 'checkpoint' : 'agent' });
 }
+
+const buildDirectRequest = (...args) => runSync(buildDirectRequestSteps(...args));
+const buildDirectRequestAsync = (normalized, model, projectId, sessionId, repair = '', signatures = null, native = {}) =>
+  runAsync(buildDirectRequestSteps(normalized, model, projectId, sessionId, repair, signatures, native, {
+    prepareTools: prepareAntigravityToolsAsync, prepareStructured: prepareStructuredOutputAsync,
+    prepareContext: prepareNativeContextAsync
+  }));
 
 function jsonFromSseLine(line) {
   let source = String(line || '').trim();
@@ -494,7 +386,7 @@ function partsFrom(value) {
   return candidate?.content?.parts || root?.content?.parts || [];
 }
 
-function imageFromResponse(value) {
+function imageFromResponse(value, requestedModel = IMAGE_MODEL) {
   const parts = partsFrom(value);
   const image = parts.find((part) => part?.inlineData?.data || part?.inline_data?.data);
   const inline = image?.inlineData || image?.inline_data;
@@ -503,7 +395,7 @@ function imageFromResponse(value) {
     mimeType: firstString(inline.mimeType, inline.mime_type) || 'image/jpeg',
     data: String(inline.data),
     usage: usageFrom(value),
-    model: firstString(value?.response?.modelVersion, value?.modelVersion) || IMAGE_MODEL,
+    model: firstString(value?.response?.modelVersion, value?.modelVersion) || requestedModel,
     responseId: firstString(value?.response?.responseId, value?.responseId),
     thoughtSignature: firstString(image.thoughtSignature, image.thought_signature)
   };
@@ -514,6 +406,10 @@ function consumeUpstreamValue(value, state, onDelta, onThinkingDelta) {
   if (value.error) throw new DirectProviderError('Antigravity 直连上游返回错误。', {
     code: 'direct_upstream_error', status: Number(value.error.code) || 502, details: redact(value.error.message || compact(value.error))
   });
+  const root = value.response || value;
+  const reason = (root.candidates?.[0] || value.candidates?.[0])?.finishReason;
+  if (reason) state.finishReason = reason;
+  if (root.promptFeedback?.blockReason) state.promptBlockReason = root.promptFeedback.blockReason;
   const parts = partsFrom(value);
   state.receivedContent ||= parts.some(part => part.text || part.thoughtSignature || part.functionCall || part.function_call);
   for (const part of parts) {
@@ -541,7 +437,10 @@ function appendUpstreamToolCall(state, call, part = {}) {
   const thoughtSignature = String(part.thoughtSignature || part.thought_signature || call.thoughtSignature || '').trim();
   const key = id || `${name}:${state.calls.length}`;
   let existing = state.callsByKey?.get(key);
-  const rawArguments = call.args ?? call.arguments ?? {};
+  if (existing && existing.name !== name) {
+    throw new GatewayError('上游重复使用同一调用 ID 请求不同工具。', { code: 'invalid_tool_call', status: 502 });
+  }
+  const rawArguments = Object.hasOwn(call, 'args') ? call.args : Object.hasOwn(call, 'arguments') ? call.arguments : {};
   if (!existing) {
     existing = {
       ...(id ? { id } : {}),
@@ -568,7 +467,7 @@ async function readBody(response) {
 }
 
 class DirectAntigravityProvider {
-  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = authFilePath(), localAuth = new LocalAgyAuthProvider({ fetchImpl }), baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = process.env.ANTIGRAVITY_ACCESS_TOKEN, refreshToken = process.env.ANTIGRAVITY_REFRESH_TOKEN, projectId = process.env.ANTIGRAVITY_PROJECT_ID, userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = envModels(), maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore, directoryGuard = null } = {}) {
+  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = '', localAuth = null, baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = '', refreshToken = '', projectId = '', userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = [], maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore, directoryGuard = null } = {}) {
     this.fetchImpl = fetchImpl;
     this.authFile = authFile;
     this.localAuth = localAuth;
@@ -587,6 +486,8 @@ class DirectAntigravityProvider {
     // agy setting stays opt-in for old configurations, never automatic.
     this.retryPolicy = policy || 'legacy';
     this.discoveredModels = [];
+    this.imageGenerationModels = [];
+    this.webSearchModels = [];
     this.discoveredModelInfo = new Map();
     this.fileAuth = {};
     this.authLoaded = false;
@@ -675,7 +576,7 @@ class DirectAntigravityProvider {
     }
     if (auth.refreshToken) return this.refreshAccessToken(signal, auth.refreshToken);
     if (auth.accessToken) return auth.accessToken;
-    throw new DirectProviderError('未找到本地 agy 登录态，也未配置手动直连凭据。请先登录 agy，或显式设置 ANTIGRAVITY_AUTH_FILE。', { code: 'direct_auth_missing', status: 401 });
+    throw new DirectProviderError('没有可用的账号凭据，请通过看板 OAuth 添加账号。', { code: 'direct_auth_missing', status: 401 });
   }
 
   async project(signal, token) {
@@ -700,7 +601,7 @@ class DirectAntigravityProvider {
     try { body = JSON.parse(text); } catch (error) { throw new DirectProviderError('Antigravity project discovery 响应不是 JSON。', { code: 'direct_project_invalid', status: 502, cause: error }); }
     this.projectId = extractProject(body.cloudaicompanionProject) || extractProject(body.projectId) || extractProject(body.project);
     this.projectLoaded = true;
-    if (!this.projectId) throw new DirectProviderError('Antigravity project discovery 未返回 project ID，请设置 ANTIGRAVITY_PROJECT_ID。', { code: 'direct_project_missing', status: 400 });
+    if (!this.projectId) throw new DirectProviderError('账号项目发现未返回 project ID，请在看板重新授权或重新检测该账号。', { code: 'direct_project_missing', status: 400 });
     return this.projectId;
   }
 
@@ -714,7 +615,7 @@ class DirectAntigravityProvider {
 
   modelCatalog() {
     if (this.modelList.length) return [...this.modelList];
-    return this.modelsDiscoveredAt ? [...this.discoveredModels] : null;
+    return this.modelsDiscoveredAt ? [...new Set([...this.discoveredModels, ...this.imageGenerationModels])] : null;
   }
 
   projectRequestBody() {
@@ -738,7 +639,7 @@ class DirectAntigravityProvider {
         try {
           response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
             method: 'POST',
-            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: '*/*', 'user-agent': this.userAgent },
+            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
             body: JSON.stringify(this.projectRequestBody()),
             signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
           });
@@ -805,58 +706,122 @@ class DirectAntigravityProvider {
   }
 
   async discoverModels(signal) {
-    try {
-      const token = await this.access(signal);
-      for (const base of this.baseUrls()) {
-        try {
-          const response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
-            method: 'POST',
-            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: '*/*', 'user-agent': this.userAgent },
-            body: JSON.stringify(this.projectRequestBody()),
-            signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
-          });
-          const text = await readBody(response);
-          if (!response.ok) continue;
-          let body;
-          try { body = JSON.parse(text || '{}'); } catch { continue; }
-          const entries = Array.isArray(body.models)
-            ? body.models.map((value) => [extractModelId(value), value])
-            : body.models && typeof body.models === 'object'
-              ? Object.entries(body.models).map(([id, value]) => [extractModelId(id) || extractModelId(value), value])
-              : [];
-          const models = entries.map(([id]) => id).filter(Boolean);
-          if (models.length) {
-            this.discoveredModels = [...new Set(models)];
-            this.modelsDiscoveredAt = Date.now();
-            this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
-              const metadata = value && typeof value === 'object' ? value : {};
-              return [id, {
-                displayName: firstString(metadata.displayName, metadata.display_name) || id,
-                maxTokens: Math.max(0, Number(metadata.maxTokens ?? metadata.max_tokens ?? 0) || 0),
-                maxOutputTokens: Math.max(0, Number(metadata.maxOutputTokens ?? metadata.max_output_tokens ?? 0) || 0),
-                supportsImages: Boolean(metadata.supportsImages ?? metadata.supports_images),
-                supportsThinking: Boolean(metadata.supportsThinking ?? metadata.supports_thinking),
-                ...(typeof metadata.model === 'string' ? { model: metadata.model } : {}),
-                ...(Number.isFinite(metadata.thinkingBudget) ? { thinkingBudget: metadata.thinkingBudget } : {}),
-                ...(Number.isFinite(metadata.thinkingLevel) ? { thinkingLevel: metadata.thinkingLevel } : {}),
-                ...(typeof metadata.apiProvider === 'string' ? { apiProvider: metadata.apiProvider } : {})
-              }];
-            }));
-            return [...this.discoveredModels];
-          }
-        } catch {
-          // Try the next Cloud Code endpoint, then use the conservative fallback.
-        }
+    const token = await this.access(signal);
+    let lastError, accountError;
+    for (const base of this.baseUrls()) {
+      try {
+        const response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
+          body: JSON.stringify(this.projectRequestBody()),
+          signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
+        });
+        const text = await readBody(response);
+        if (!response.ok) throw new DirectProviderError('Antigravity 模型目录查询失败。', {
+          code: 'direct_model_discovery_failed', status: response.status, details: upstreamErrorMessage(text)
+        });
+        let body;
+        try { body = JSON.parse(text); }
+        catch (cause) { throw new DirectProviderError('Antigravity 模型目录响应不是 JSON。', { code: 'direct_model_catalog_invalid', status: 502, cause }); }
+        if (!body.models || typeof body.models !== 'object') throw new DirectProviderError('Antigravity 模型目录缺少 models。', { code: 'direct_model_catalog_invalid', status: 502 });
+        const entries = Array.isArray(body.models)
+          ? body.models.map(value => [extractModelId(value), value])
+          : Object.entries(body.models).map(([id, value]) => [extractModelId(id) || extractModelId(value), value]);
+        // Discovery also contains unavailable upgrade offers. A catalog entry
+        // explicitly marked disabled is not an account's usable model, even
+        // when it has limits, capabilities and a valid-looking public ID.
+        const disabledModels = new Set(entries.filter(([, value]) => value?.disabled === true).map(([id]) => id));
+        const models = entries.map(([id]) => id).filter(id => id && !disabledModels.has(id));
+        this.discoveredModels = [...new Set(models)];
+        this.imageGenerationModels = Array.isArray(body.imageGenerationModelIds)
+          ? [...new Set(body.imageGenerationModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
+        this.webSearchModels = Array.isArray(body.webSearchModelIds)
+          ? [...new Set(body.webSearchModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
+        this.modelsDiscoveredAt = Date.now();
+        this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
+          const metadata = value && typeof value === 'object' ? value : {};
+          return [id, {
+            displayName: firstString(metadata.displayName, metadata.display_name) || id,
+            maxTokens: Math.max(0, Number(metadata.maxTokens ?? metadata.max_tokens ?? 0) || 0),
+            maxOutputTokens: Math.max(0, Number(metadata.maxOutputTokens ?? metadata.max_output_tokens ?? 0) || 0),
+            ...(typeof (metadata.supportsImages ?? metadata.supports_images) === 'boolean'
+              ? { supportsImages: metadata.supportsImages ?? metadata.supports_images } : {}),
+            ...(typeof (metadata.supportsThinking ?? metadata.supports_thinking) === 'boolean'
+              ? { supportsThinking: metadata.supportsThinking ?? metadata.supports_thinking } : {}),
+            ...(typeof metadata.supportsVideo === 'boolean' ? { supportsVideo: metadata.supportsVideo } : {}),
+            ...(typeof metadata.supportsAudio === 'boolean' ? { supportsAudio: metadata.supportsAudio } : {}),
+            ...(metadata.supportedMimeTypes && typeof metadata.supportedMimeTypes === 'object'
+              && !Array.isArray(metadata.supportedMimeTypes)
+              ? { supportedMimeTypes: structuredClone(metadata.supportedMimeTypes) } : {}),
+            ...(typeof metadata.model === 'string' ? { model: metadata.model } : {}),
+            ...(Number.isFinite(metadata.thinkingBudget) ? { thinkingBudget: metadata.thinkingBudget } : {}),
+            ...(Number.isFinite(metadata.thinkingLevel) || typeof metadata.thinkingLevel === 'string' ? { thinkingLevel: metadata.thinkingLevel } : {}),
+            ...(typeof metadata.apiProvider === 'string' ? { apiProvider: metadata.apiProvider } : {})
+          }];
+        }));
+        return [...this.discoveredModels];
+      } catch (error) {
+        signal?.throwIfAborted();
+        lastError = error;
+        if (error.status === 401 || error.status === 403) accountError ||= error;
       }
-    } catch {
-      // Model discovery must not prevent the local gateway from starting.
     }
-    return this.discoveredModels.length ? [...this.discoveredModels] : ['gemini-3.8-flash-high'];
+    // A temporary metadata outage may retain an actual previous catalog,
+    // without advancing its timestamp. Auth failures must reach pool health.
+    if (accountError) throw accountError;
+    if (this.modelsDiscoveredAt) return [...this.discoveredModels];
+    throw lastError || new DirectProviderError('Antigravity 未返回模型目录。', { code: 'direct_model_discovery_failed', status: 502 });
   }
 
   modelInfo(model) {
     const value = this.discoveredModelInfo.get(String(model || ''));
-    return value ? { ...value } : null;
+    return value ? structuredClone(value) : null;
+  }
+
+  imageModelCatalog() { return [...this.imageGenerationModels]; }
+
+  webSearchModelCatalog() { return [...this.webSearchModels]; }
+
+  async searchWeb({ query, model, domain, maxOutputTokens, contents, instructions, generationConfig } = {}, { signal, onUpstreamAttempt } = {}) {
+    signal?.throwIfAborted();
+    validateSearchParameters({ query, domain, maxOutputTokens, contents, instructions, generationConfig });
+    if (!this.modelsDiscoveredAt) await this.listModels(signal);
+    signal?.throwIfAborted();
+    if (!model || !this.webSearchModels.includes(model)) {
+      throw new GatewayError('账号目录没有声明指定的专用搜索模型。', { code: 'server_search_model_unavailable', status: 400 });
+    }
+    const token = await this.access(signal);
+    const project = await this.project(signal, token);
+    const body = searchRequest({ project, model, query, domain, maxOutputTokens, contents, instructions, generationConfig });
+    signal?.throwIfAborted();
+    const base = this.baseUrls()[0];
+    // A logical server-tool execution performs one physical helper request.
+    // Do not hide retries or switch models behind the caller's max_uses.
+    onUpstreamAttempt?.({ phase: 'start', base, model });
+    let response;
+    try {
+      response = await this.fetchImpl(`${base}${GENERATE_PATH}`, {
+        method: 'POST', signal,
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
+        body: JSON.stringify(body)
+      });
+      onUpstreamAttempt?.({ phase: 'response', base, model, status: response.status, success: response.ok });
+    } catch (error) {
+      onUpstreamAttempt?.({ phase: 'response', base, model, status: 0, success: false });
+      throw error;
+    }
+    const text = await readBody(response);
+    if (!response.ok) throw new DirectProviderError('Antigravity 搜索服务请求失败。', {
+      code: 'direct_search_upstream_error', status: response.status, details: upstreamErrorMessage(text)
+    });
+    let result;
+    try { result = JSON.parse(text); }
+    catch { throw new GatewayError('服务器搜索响应不是 JSON。', { code: 'invalid_server_search_response', status: 502 }); }
+    const usage = result?.usageMetadata || result?.response?.usageMetadata || result?.usage;
+    const knownCount = names => names.some(name => Number.isFinite(usage?.[name]) && usage[name] >= 0);
+    return { ...parseSearchResponse(result, { model }), usage: usageFrom(result),
+      usageKnown: knownCount(['promptTokenCount', 'inputTokens', 'input_tokens'])
+        && knownCount(['candidatesTokenCount', 'outputTokens', 'output_tokens']) };
   }
 
   baseUrls() {
@@ -864,18 +829,26 @@ class DirectAntigravityProvider {
     return [DAILY_BASE_URL, DEFAULT_BASE_URL];
   }
 
-  async generateImage({ prompt, aspectRatio = '1:1', images = [] } = {}, { signal, onUpstreamAttempt } = {}) {
+  async generateImage({ prompt, model: requestedModel, aspectRatio = '1:1', images = [] } = {}, { signal, onUpstreamAttempt, nativeToolContext } = {}) {
+    const model = imageModelName(requestedModel);
     const instruction = String(prompt || '').trim();
     if (!instruction) throw new DirectProviderError('生图请求缺少 prompt。', { code: 'image_prompt_missing', status: 400 });
     const ratio = IMAGE_ASPECT_RATIOS.has(String(aspectRatio || '')) ? String(aspectRatio) : '1:1';
     if (!Array.isArray(images) || images.length > 3) {
       throw new DirectProviderError('参考图最多 3 张。', { code: 'too_many_reference_images', status: 400 });
     }
+    const imageContext = nativeToolContext ?? { trajectoryId: crypto.randomUUID(), stepIndex: 1 };
+    if (!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(imageContext.trajectoryId || '')
+      || !Number.isSafeInteger(imageContext.stepIndex) || imageContext.stepIndex < 1) {
+      throw new GatewayError('内部生图请求缺少有效的原生轨迹或工具步骤。', { code: 'invalid_native_image_context', status: 502 });
+    }
+    if (model !== CAPTURED_IMAGE_MODEL && !this.modelsDiscoveredAt) await this.listModels(signal);
+    assertImageModel(model, this.imageModelCatalog());
     let token = await this.access(signal);
     let project = await this.project(signal, token);
     const requestBody = {
       project,
-      requestId: `image_gen/${Date.now()}/${crypto.randomUUID()}/1`,
+      requestId: `image_gen/${Date.now()}/${imageContext.trajectoryId}/${imageContext.stepIndex}`,
       request: {
         contents: [{ role: 'user', parts: [
           { text: instruction },
@@ -886,7 +859,7 @@ class DirectAntigravityProvider {
         ] }],
         generationConfig: { candidateCount: 1, imageConfig: { aspectRatio: ratio } }
       },
-      model: IMAGE_MODEL,
+      model,
       userAgent: 'antigravity',
       requestType: 'image_gen'
     };
@@ -897,17 +870,17 @@ class DirectAntigravityProvider {
         project = await this.project(signal, token);
         requestBody.project = project;
       }
-      onUpstreamAttempt?.({ phase: 'start', base, model: IMAGE_MODEL });
+      onUpstreamAttempt?.({ phase: 'start', base, model });
       try {
         const response = await this.fetchImpl(`${base}${GENERATE_PATH}`, {
           method: 'POST', signal,
-          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', accept: 'application/json', 'user-agent': this.userAgent },
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
           body: JSON.stringify(requestBody)
         });
-        onUpstreamAttempt?.({ phase: 'response', base, model: IMAGE_MODEL, status: response.status, success: response.ok });
+        onUpstreamAttempt?.({ phase: 'response', base, model, status: response.status, success: response.ok });
         return response;
       } catch (error) {
-        onUpstreamAttempt?.({ phase: 'response', base, model: IMAGE_MODEL, status: 0, success: false });
+        onUpstreamAttempt?.({ phase: 'response', base, model, status: 0, success: false });
         throw error;
       }
     };
@@ -926,12 +899,37 @@ class DirectAntigravityProvider {
           let body;
           try { body = JSON.parse(text || '{}'); }
           catch (error) { throw new DirectProviderError('Antigravity 生图响应不是 JSON。', { code: 'image_response_invalid', status: 502, details: redact(text), cause: error }); }
-          const image = imageFromResponse(body);
+          const image = imageFromResponse(body, model);
           if (!image) throw new DirectProviderError('Antigravity 生图响应没有图片数据。', { code: 'image_response_missing', status: 502 });
           return image;
         }
         const detail = upstreamErrorMessage(text);
         lastFailure = { response, status: response.status, detail, diagnostic: redact(text) };
+        // A confirmed account/model quota reset cannot recover by changing
+        // hosts. Hand the original 429 to the pool before a later transport
+        // failure can replace it and lose the model-specific reset time.
+        let hardQuota = false;
+        if (response.status === 429) {
+          try {
+            const details = JSON.parse(text)?.error?.details;
+            if (Array.isArray(details)) {
+              const quota = details.find(item => item?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo'
+                && item.reason === 'QUOTA_EXHAUSTED');
+              const positiveDuration = value => typeof value === 'string'
+                && /^(?:\d+(?:\.\d+)?(?:ms|[smhd]))+$/.test(value)
+                && [...value.matchAll(/\d+(?:\.\d+)?/g)].some(match => Number(match[0]) > 0);
+              hardQuota = Boolean(quota && (Date.parse(quota.metadata?.quotaResetTimeStamp) > Date.now()
+                || positiveDuration(quota.metadata?.quotaResetDelay)
+                || details.some(item => item?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
+                  && /^\d+(?:\.\d{1,9})?s$/.test(item.retryDelay || '') && positiveDuration(item.retryDelay))));
+            }
+          } catch { /* Unstructured/transient 429 retains the existing retry policy. */ }
+        }
+        if (hardQuota) {
+          throw new DirectProviderError(detail ? `Antigravity 上游生图失败：${detail}` : 'Antigravity 上游生图失败。', {
+            code: 'direct_image_upstream_error', status: 429, details: lastFailure.diagnostic
+          });
+        }
         if (response.status !== 429 && response.status < 500) {
           throw new DirectProviderError(detail ? `Antigravity 上游生图失败：${detail}` : 'Antigravity 上游生图失败。', {
             code: 'direct_image_upstream_error', status: response.status, details: detail
@@ -946,6 +944,11 @@ class DirectAntigravityProvider {
     });
   }
 
+  sessionOwner(auth) {
+    return auth.sourcePath.startsWith('managed-account:') ? auth.sourcePath
+      : JSON.stringify([auth.sourcePath || this.authFile, auth.refreshToken || auth.accessToken]);
+  }
+
   async send(normalized, model, options = {}) {
     const { signal, sessionId, auxiliaryScope = '' } = options;
     await this.access(signal);
@@ -954,8 +957,7 @@ class DirectAntigravityProvider {
     // refreshes for a known Google identity. Local/manual records include a
     // credential in the private namespace; the session store hashes it. Neither
     // private identity nor client session ID is emitted as an upstream field.
-    const owner = auth.sourcePath.startsWith('managed-account:') ? auth.sourcePath
-      : JSON.stringify([auth.sourcePath || this.authFile, auth.refreshToken || auth.accessToken]);
+    const owner = this.sessionOwner(auth);
     const scope = auxiliaryScope === 'compaction' ? '' : auxiliaryScope;
     return this.sessionStore.transact(owner, sessionId ? `${sessionId}\0${scope}` : '', signal,
       (state, checkpoint) => this.sendInSession(normalized, model, options, state, checkpoint));
@@ -966,9 +968,9 @@ class DirectAntigravityProvider {
     let project = await this.project(signal, token);
     const compactionProfile = nativeCompaction === CLAUDE_COMPACTION_PROFILE ? nativeCompaction : '';
     const native = { state: nativeState, modelInfo: this.modelInfo(model), checkpoint: auxiliaryScope === 'compaction' || Boolean(compactionProfile), compactionProfile,
-      clientProfile: model === CAPTURED_MODEL ? nativeClientProfile : '', imageStore: this.imageStore,
+      clientProfile: model === CAPTURED_MODEL ? nativeClientProfile : '', identityClientProfile: nativeClientProfile, imageStore: this.imageStore, signal,
       restoreStreamRecovery: this.retryPolicy === 'agy' };
-    const requestBody = buildDirectRequest(normalized, model, project, sessionId, repairInstruction, null, native);
+    const requestBody = await buildDirectRequestAsync(normalized, model, project, sessionId, repairInstruction, null, native);
     if (native.context.toolRecovery?.retryCount === 9) {
       // The actual tool receipt is retained, but the native retry budget is
       // exhausted. A new user turn may continue; identical SDK retries must
@@ -991,7 +993,7 @@ class DirectAntigravityProvider {
     }
     // A terminal function's arguments, not preceding prose, are the final
     // structured answer. Never stream text that will be replaced locally.
-    if (native.structuredSchema) onDelta = undefined;
+    if (normalized.structuredSchema != null) onDelta = undefined;
     try { this.imageStore?.cleanup(native.context.imagePaths); }
     catch (error) { this.reportDiagnostic('native_image_cache_cleanup_failed', { code: error.code || 'cache_cleanup_failed' }); }
     let deferredToolDispatch = this.retryPolicy === 'agy' && model === CAPTURED_MODEL && !native.checkpoint
@@ -1150,19 +1152,31 @@ class DirectAntigravityProvider {
       if (!reader) throw new DirectProviderError('Antigravity 流式响应缺少可读正文。', { code: 'direct_response_invalid' });
       const decoder = new TextDecoder();
       let buffer = '', eventLines = [];
-      const consumeLine = line => {
-        if (!nativeEventBoundary) {
-          const parsed = jsonFromSseLine(line);if (parsed) consumeUpstreamValue(parsed, state, onDelta, onThinkingDelta);
-          return;
+      const consumeEvent = () => {
+        const data = eventLines.join('\n'); eventLines = [];
+        if (!data || data === '[DONE]') return;
+        let parsed;
+        try { parsed = JSON.parse(data); }
+        catch {
+          // Legacy non-captured profiles also accepted one complete JSON per
+          // data line without event separators. Prefer the real SSE grammar;
+          // use this fallback only if every individual line is complete JSON.
+          const lines = data.split('\n');
+          const values = lines.map(line => line === '[DONE]' ? null : jsonFromSseLine(line));
+          if (!nativeEventBoundary && lines.every((line, i) => line === '[DONE]' || values[i])) {
+            for (const value of values) if (value) consumeUpstreamValue(value, state, onDelta, onThinkingDelta);
+            return;
+          }
+          throw new GatewayError('上游 SSE 事件不是有效 JSON。', { code: 'invalid_upstream_response', status: 502 });
         }
+        consumeUpstreamValue(parsed, state, onDelta, onThinkingDelta);
+      };
+      const consumeLine = line => {
         // Captured agy does not dispatch a JSON data line until the SSE event's
         // terminating blank line arrives. A complete tool event does not need
         // a later STOP event; an unfinished event is never an executable call.
-        if (line === '') {
-          const data = eventLines.join('\n');eventLines = [];
-          let parsed;try { parsed = JSON.parse(data); } catch { return; }
-          consumeUpstreamValue(parsed, state, onDelta, onThinkingDelta);
-        } else if (line.startsWith('data:')) eventLines.push(line.slice(5).replace(/^ /, ''));
+        if (line === '') consumeEvent();
+        else if (line.startsWith('data:')) eventLines.push(line.slice(5).replace(/^ /, ''));
       };
       try {
       while (true) {
@@ -1175,7 +1189,9 @@ class DirectAntigravityProvider {
           consumeLine(line);
         }
       }
-      if (!nativeEventBoundary) { const tail = jsonFromSseLine(buffer);if (tail) consumeUpstreamValue(tail, state, onDelta, onThinkingDelta); }
+      // Other profiles retain their existing clean-EOF compatibility. This
+      // does not extend high-profile read-error recovery or EOF tool dispatch.
+      if (!nativeEventBoundary) { if (buffer) consumeLine(buffer); consumeEvent(); }
       } finally {
         // Release the upstream body on parser errors and downstream cancellation.
         await reader.cancel().catch(() => {});
@@ -1278,8 +1294,18 @@ class DirectAntigravityProvider {
     if (state.calls.length) {
       for (const call of state.calls) if (!call.id) call.id = `call_${crypto.randomUUID().replaceAll('-', '')}`;
     }
-    const finished = finishResult(native.structuredSchema, state.calls);
-    const clientCalls = finished ? [] : state.calls.map(native.toolAdapter.toClient);
+    const termination = upstreamTermination(state);
+    if (termination === 'filtered' && state.calls.length) {
+      throw new GatewayError('被上游过滤的响应不能执行工具。', { code: 'invalid_tool_call', status: 502 });
+    }
+    if (termination !== 'complete' && native.structuredSchema && state.calls.some(call => call.name === 'finish')) {
+      // A locally executed finish receipt would falsely say the task completed.
+      // Do not synthesize that receipt for an explicitly truncated terminal call.
+      throw new GatewayError('上游结构化完成工具已截断，无法生成可信的完成回执。', { code: 'incomplete_structured_tool_call', status: 502 });
+    }
+    const finished = await finishResultAsync(native.structuredSchema, state.calls, { signal });
+    const clientCalls = [];
+    if (!finished) for (const call of state.calls) clientCalls.push(await native.toolAdapter.toClient(call));
     const historyParts = [];
     // Captured agy drops the thought-summary text on tool-call steps, but keeps
     // it on ordinary answer steps and always retains the provider signatures.
@@ -1291,12 +1317,12 @@ class DirectAntigravityProvider {
     contextCompleted = true;
     completeNativeContext(nativeState, native.context, model, { role: 'model', parts: historyParts });
     const visibleParts = historyParts.filter(p => !p.functionCall).concat(clientCalls.map(call => ({
-      functionCall: { id: call.id, name: call.name, args: parseJsonValue(call.arguments) },
+      functionCall: { id: call.id, name: call.name, args: call.arguments },
       ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {})
     })));
     if (!finished && clientCalls.some((call, i) => call !== state.calls[i])) {
       recordClientProjection(nativeState, native.context.sourceContents,
-        { role: 'model', parts: visibleParts }, model, [{ role: 'model', parts: historyParts }]);
+        { role: 'model', parts: visibleParts }, model, [{ role: 'model', parts: historyParts }], Date.now(), { kind: 'client_tools' });
     }
     if (toolReadRecovery) recordToolStreamError(nativeState, native.context.sourceContents, model,
       { role: 'model', parts: historyParts }, toolReadRecovery.retryCount, toolReadRecovery.readyAt);
@@ -1321,7 +1347,7 @@ class DirectAntigravityProvider {
     }
     if (clientProjection && !native.checkpoint) {
       const prefix = restoreClientProjections(nativeState, contentsFromNormalized(clientProjection.source, null, model), model, { clientProfile: native.clientProfile,
-        restoreStreamRecovery: native.restoreStreamRecovery });
+        restoreStreamRecovery: native.restoreStreamRecovery, toolAdapter: native.toolAdapter });
       const source = native.context.sourceContents;
       if (prefix.length <= source.length && prefix.every((c, i) => contentFingerprint(c) === contentFingerprint(source[i]))) {
         const text = deliveryText({ text: combinedText, images: clientProjection.images });
@@ -1341,9 +1367,15 @@ class DirectAntigravityProvider {
       thinking: recoveredThinking + state.thinking,
       streamedText: finished ? '' : combinedText,
       toolCalls: clientCalls,
+      ...(state.finishReason ? { finishReason: state.finishReason } : {}),
+      ...(state.promptBlockReason ? { promptBlockReason: state.promptBlockReason } : {}),
       usage: Object.fromEntries([...new Set([...Object.keys(state.usage), ...Object.keys(recoveredUsage)])]
         .map(key => [key, (state.usage[key] || 0) + (recoveredUsage[key] || 0)])),
       conversationId: sessionId,
+      // Internal metadata from this exact account's persisted native timeline.
+      // The image subrequest occupies the tool step after this agent response;
+      // its receipt will advance the timeline before the following generation.
+      ...(clientCalls.length ? { nativeToolContext: { trajectoryId: nativeState.trajectoryId, stepIndex: nativeState.nextStep } } : {}),
       internalToolUsed: false
     };
     } catch (error) {
@@ -1403,6 +1435,6 @@ module.exports = {
   IMAGE_MODEL,
   MODEL_SLUG,
   buildDirectRequest,
-  cleanToolSchema,
+  buildDirectRequestAsync,
   stableSessionId
 };

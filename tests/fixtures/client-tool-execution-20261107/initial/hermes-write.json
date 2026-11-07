@@ -1,0 +1,1993 @@
+{
+  "agent": "hermes",
+  "version": "0.21.7+11153.g2bd378e",
+  "commit": "2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19",
+  "scenario": "write",
+  "recordedAt": "2026-11-06T18:22:29.893Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "sourceBefore": {
+    "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+    "files": 53
+  },
+  "sourceAfter": {
+    "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+    "files": 53
+  },
+  "isolation": "fresh HOME; fake account; CLI explicit loopback ports; writes only private root; gateway forbidden to write client work directory",
+  "command": [
+    "/home/probe/.local/bin/hermes",
+    "chat",
+    "-q",
+    "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.",
+    "--oneshot",
+    "--provider",
+    "local-probe",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--format",
+    "stream-json",
+    "--max-turns",
+    "6",
+    "--toolsets",
+    "file"
+  ],
+  "plan": [
+    {
+      "name": "write_file",
+      "arguments": {
+        "path": "/tmp/client-gateway-verify/work/created.txt",
+        "content": "WRITE_hermes_VERIFIED\n"
+      }
+    }
+  ],
+  "issued": [
+    {
+      "id": "controlled_hermes_write_0",
+      "name": "write_file",
+      "args": {
+        "Path": "/tmp/client-gateway-verify/work/created.txt",
+        "Content": "WRITE_hermes_VERIFIED\n",
+        "Overwrite": true
+      }
+    }
+  ],
+  "outcome": {
+    "code": 0,
+    "signal": null
+  },
+  "checks": {
+    "clientSucceeded": true,
+    "gatewayHTTP": true,
+    "allPlannedToolsIssued": true,
+    "allClientReceiptsReturned": true,
+    "exactDiskContents": true,
+    "finalAnswer": true,
+    "noUpstreamError": true,
+    "sourceStable": true
+  },
+  "passed": true,
+  "disk": {
+    "file": "/tmp/client-gateway-verify/work/created.txt",
+    "before": null,
+    "expected": "WRITE_hermes_VERIFIED\n",
+    "actual": "WRITE_hermes_VERIFIED\n"
+  },
+  "errors": [],
+  "clientHTTP": [
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 93
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/v1/models\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tags",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/tags\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/props",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /v1/props\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/props",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 85
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /props\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 87
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /version\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "1800.0",
+        "content-length": "11002"
+      },
+      "body": {
+        "include": [
+          "reasoning.encrypted_content"
+        ],
+        "instructions": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->",
+        "model": "gemini-3.8-flash-high",
+        "parallel_tool_calls": true,
+        "prompt_cache_key": "pck_19176ad8800f0c9acfd4e11e",
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "store": false,
+        "stream": true,
+        "tool_choice": "auto",
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "name": "patch",
+            "description": "Targeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "File path to edit."
+                },
+                "old_string": {
+                  "type": "string",
+                  "description": "Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness."
+                },
+                "new_string": {
+                  "type": "string",
+                  "description": "Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text."
+                },
+                "replace_all": {
+                  "type": "boolean",
+                  "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+                  "default": false
+                }
+              },
+              "required": [
+                "path",
+                "old_string",
+                "new_string"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read_file",
+            "description": "Read a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to read (absolute, relative, or ~/path)"
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Line number to start reading from (1-indexed, default: 1)",
+                  "default": 1,
+                  "minimum": 1
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+                  "default": 2000,
+                  "maximum": 2000
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "search_files",
+            "description": "Search file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "content",
+                    "files"
+                  ],
+                  "description": "'content' searches inside file contents, 'files' searches for files by name",
+                  "default": "content"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Directory or file to search in (default: current working directory)",
+                  "default": "."
+                },
+                "file_glob": {
+                  "type": "string",
+                  "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of results to return (default: 50)",
+                  "default": 50
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Skip first N results for pagination (default: 0)",
+                  "default": 0
+                },
+                "order": {
+                  "type": "string",
+                  "enum": [
+                    "discovery",
+                    "modified"
+                  ],
+                  "description": "File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content",
+                  "default": "discovery"
+                },
+                "output_mode": {
+                  "type": "string",
+                  "enum": [
+                    "content",
+                    "files_only",
+                    "count"
+                  ],
+                  "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+                  "default": "content"
+                },
+                "context": {
+                  "type": "integer",
+                  "description": "Number of context lines before and after each match (grep mode only)",
+                  "default": 0
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "write_file",
+            "description": "Write content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Complete content to write to the file"
+                }
+              },
+              "required": [
+                "path",
+                "content"
+              ]
+            }
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_59001de540c549439dd81066a1b12921\",\"object\":\"response\",\"created_at\":1793989347,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"fc_8688f85c535e48b9ab593352c18a54c3\",\"type\":\"function_call\",\"status\":\"in_progress\",\"call_id\":\"controlled_hermes_write_0\",\"name\":\"write_file\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_hermes_VERIFIED\\\\n\\\"}\"},\"sequence_number\":1}\n\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_8688f85c535e48b9ab593352c18a54c3\",\"output_index\":0,\"delta\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_hermes_VERIFIED\\\\n\\\"}\",\"sequence_number\":2}\n\ndata: {\"type\":\"response.function_call_arguments.done\",\"item_id\":\"fc_8688f85c535e48b9ab593352c18a54c3\",\"output_index\":0,\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_hermes_VERIFIED\\\\n\\\"}\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"fc_8688f85c535e48b9ab593352c18a54c3\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_hermes_write_0\",\"name\":\"write_file\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_hermes_VERIFIED\\\\n\\\"}\"},\"sequence_number\":4}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":5,\"response\":{\"id\":\"resp_59001de540c549439dd81066a1b12921\",\"object\":\"response\",\"created_at\":1793989347,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"fc_8688f85c535e48b9ab593352c18a54c3\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_hermes_write_0\",\"name\":\"write_file\",\"arguments\":\"{\\\"path\\\":\\\"/tmp/client-gateway-verify/work/created.txt\\\",\\\"content\\\":\\\"WRITE_hermes_VERIFIED\\\\n\\\"}\"}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "1800.0",
+        "content-length": "11588"
+      },
+      "body": {
+        "include": [
+          "reasoning.encrypted_content"
+        ],
+        "instructions": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->",
+        "model": "gemini-3.8-flash-high",
+        "parallel_tool_calls": true,
+        "prompt_cache_key": "pck_19176ad8800f0c9acfd4e11e",
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "store": false,
+        "stream": true,
+        "tool_choice": "auto",
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          },
+          {
+            "type": "function_call",
+            "call_id": "controlled_hermes_write_0",
+            "name": "write_file",
+            "arguments": "{\"content\":\"WRITE_hermes_VERIFIED\\n\",\"path\":\"/tmp/client-gateway-verify/work/created.txt\"}"
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "controlled_hermes_write_0",
+            "output": "{\"bytes_written\": 22, \"dirs_created\": true, \"verified\": true, \"lint\": {\"status\": \"skipped\", \"message\": \"No linter for .txt files\"}, \"resolved_path\": \"/tmp/client-gateway-verify/work/created.txt\", \"files_modified\": [\"/tmp/client-gateway-verify/work/created.txt\"]}"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "name": "patch",
+            "description": "Targeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "File path to edit."
+                },
+                "old_string": {
+                  "type": "string",
+                  "description": "Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness."
+                },
+                "new_string": {
+                  "type": "string",
+                  "description": "Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text."
+                },
+                "replace_all": {
+                  "type": "boolean",
+                  "description": "Replace all occurrences instead of requiring a unique match (default: false)",
+                  "default": false
+                }
+              },
+              "required": [
+                "path",
+                "old_string",
+                "new_string"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "read_file",
+            "description": "Read a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to read (absolute, relative, or ~/path)"
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Line number to start reading from (1-indexed, default: 1)",
+                  "default": 1,
+                  "minimum": 1
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+                  "default": 2000,
+                  "maximum": 2000
+                }
+              },
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "search_files",
+            "description": "Search file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "pattern": {
+                  "type": "string",
+                  "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search"
+                },
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "content",
+                    "files"
+                  ],
+                  "description": "'content' searches inside file contents, 'files' searches for files by name",
+                  "default": "content"
+                },
+                "path": {
+                  "type": "string",
+                  "description": "Directory or file to search in (default: current working directory)",
+                  "default": "."
+                },
+                "file_glob": {
+                  "type": "string",
+                  "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)"
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Maximum number of results to return (default: 50)",
+                  "default": 50
+                },
+                "offset": {
+                  "type": "integer",
+                  "description": "Skip first N results for pagination (default: 0)",
+                  "default": 0
+                },
+                "order": {
+                  "type": "string",
+                  "enum": [
+                    "discovery",
+                    "modified"
+                  ],
+                  "description": "File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content",
+                  "default": "discovery"
+                },
+                "output_mode": {
+                  "type": "string",
+                  "enum": [
+                    "content",
+                    "files_only",
+                    "count"
+                  ],
+                  "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+                  "default": "content"
+                },
+                "context": {
+                  "type": "integer",
+                  "description": "Number of context lines before and after each match (grep mode only)",
+                  "default": 0
+                }
+              },
+              "required": [
+                "pattern"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "write_file",
+            "description": "Write content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)"
+                },
+                "content": {
+                  "type": "string",
+                  "description": "Complete content to write to the file"
+                }
+              },
+              "required": [
+                "path",
+                "content"
+              ]
+            }
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_510f7560db6542ae9b659bdbf2f0fe00\",\"object\":\"response\",\"created_at\":1793989348,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"output_index\":0,\"content_index\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"output_index\":0,\"content_index\":0,\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":7,\"response\":{\"id\":\"resp_510f7560db6542ae9b659bdbf2f0fe00\",\"object\":\"response\",\"created_at\":1793989348,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_4e5817d0e76044b39e30eb5e1b14a61f\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "30.0",
+        "content-length": "1389"
+      },
+      "body": {
+        "instructions": "You name chat sessions. Given the user's opening message, write a title that lets them find this conversation again in a list.\n\nRules:\n- 3 to 7 words, sentence case (capitalize only the first word and proper nouns).\n- Name what the user wants DONE, not that they asked a question.\n- Keep technical terms, filenames, numbers, and error codes exact.\n- Drop filler words: the, this, my, a, an.\n- No trailing punctuation, no quotes, no tool names, no 'Title:' prefix.\n- Never answer the message. Name it.\n- Always produce something, even for a bare greeting.\n- Write the title in the same language as the user's message.\nGood: {\"title\": \"Fix login button on mobile\"}\nGood: {\"title\": \"Postgres connection pool exhaustion\"}\nGood: {\"title\": \"Friendly greeting\"}\nToo vague: {\"title\": \"Code changes\"}\nToo long: {\"title\": \"Investigate and fix the issue where the login button does not respond on mobile devices\"}\n\nReply with JSON only: {\"title\": \"...\"}",
+        "model": "gemini-3.8-flash-high",
+        "prompt_cache_key": "pck_8a5035c0f2d3b287faf8339e",
+        "store": false,
+        "stream": true,
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_5f38a1d504e34ee3ba4dc8768bf5c371\",\"object\":\"response\",\"created_at\":1793989348,\"model\":\"gemini-3.8-flash-high\",\"status\":\"in_progress\",\"output\":[],\"error\":null,\"incomplete_details\":null,\"usage\":null},\"sequence_number\":0}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"in_progress\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"output_index\":0,\"content_index\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"output_index\":0,\"content_index\":0,\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_5f38a1d504e34ee3ba4dc8768bf5c371\",\"object\":\"response\",\"created_at\":1793989348,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_508e4cc6a7034648ba938fd32e4e577f\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}},\"sequence_number\":7}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1"
+      },
+      "body": "",
+      "status": 401,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 101
+      },
+      "responseBody": "{\"error\":{\"message\":\"API key 无效。\",\"type\":\"authentication_error\",\"code\":\"authentication_error\"}}"
+    }
+  ],
+  "upstream": [
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:loadCodeAssist",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "38"
+      },
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "25837"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/d0d0fe32-b94c-40ee-8733-33d2cc3395fe/1793989347916/c6f2c91b-fe91-451a-a577-4a43a4ea6de4/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:27+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"patch\": mcp_gateway_tool_ae8b8136a656efdd (mcp-direct), mcp_gateway_tool_be366255e3326494_json (mcp-json)\n\"read_file\": mcp_gateway_tool_9bb48e8eede6f8dd (mcp-direct), mcp_gateway_tool_b275e33756b844b1_json (mcp-json), read_file (native)\n\"search_files\": mcp_gateway_tool_14a038c0536ba0f9 (mcp-direct), mcp_gateway_tool_f6f54dfc429b5b79_json (mcp-json)\n\"write_file\": mcp_gateway_tool_445ad73f31051bc2 (mcp-direct), mcp_gateway_tool_a2dd711f0acc348c_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_ae8b8136a656efdd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_be366255e3326494_json; toolSummary is transport metadata only in this view.\nTargeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "File path to edit."
+                      },
+                      "old_string": {
+                        "type": "STRING",
+                        "description": "Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness."
+                      },
+                      "new_string": {
+                        "type": "STRING",
+                        "description": "Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text."
+                      },
+                      "replace_all": {
+                        "type": "BOOLEAN",
+                        "description": "Replace all occurrences instead of requiring a unique match (default: false)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "old_string",
+                      "new_string",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_be366255e3326494_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nTargeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"File path to edit.\"},\"old_string\":{\"type\":\"string\",\"description\":\"Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.\"},\"new_string\":{\"type\":\"string\",\"description\":\"Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.\"},\"replace_all\":{\"type\":\"boolean\",\"description\":\"Replace all occurrences instead of requiring a unique match (default: false)\",\"default\":false}},\"required\":[\"path\",\"old_string\",\"new_string\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9bb48e8eede6f8dd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_b275e33756b844b1_json; toolSummary is transport metadata only in this view.\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to read (absolute, relative, or ~/path)"
+                      },
+                      "offset": {
+                        "type": "INTEGER",
+                        "description": "Line number to start reading from (1-indexed, default: 1)",
+                        "minimum": 1
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+                        "maximum": 2000
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_b275e33756b844b1_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (absolute, relative, or ~/path)\"},\"offset\":{\"type\":\"integer\",\"description\":\"Line number to start reading from (1-indexed, default: 1)\",\"default\":1,\"minimum\":1},\"limit\":{\"type\":\"integer\",\"description\":\"Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.\",\"default\":2000,\"maximum\":2000}},\"required\":[\"path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read an explicit inclusive 1-indexed text range of at most 800 lines. Use absolute paths to ordinary text/source files. Images, PDF/document extraction, byte offsets, unrestricted/default reads and large-read switches use mcp_gateway_tool_b275e33756b844b1_json. This is a parameter view of the client's file reader: its byte limits, output formatting, permissions and observation rules remain in force; it does not implement the official executor's 46080-byte truncation.\nUnderlying client execution constraints (all remain applicable):\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "StartLine",
+                      "EndLine"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_14a038c0536ba0f9",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_f6f54dfc429b5b79_json; toolSummary is transport metadata only in this view.\nSearch file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search"
+                      },
+                      "target": {
+                        "type": "STRING",
+                        "description": "'content' searches inside file contents, 'files' searches for files by name",
+                        "enum": [
+                          "content",
+                          "files"
+                        ]
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "Directory or file to search in (default: current working directory)"
+                      },
+                      "file_glob": {
+                        "type": "STRING",
+                        "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)"
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Maximum number of results to return (default: 50)"
+                      },
+                      "offset": {
+                        "type": "INTEGER",
+                        "description": "Skip first N results for pagination (default: 0)"
+                      },
+                      "order": {
+                        "type": "STRING",
+                        "description": "File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content",
+                        "enum": [
+                          "discovery",
+                          "modified"
+                        ]
+                      },
+                      "output_mode": {
+                        "type": "STRING",
+                        "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+                        "enum": [
+                          "content",
+                          "files_only",
+                          "count"
+                        ]
+                      },
+                      "context": {
+                        "type": "INTEGER",
+                        "description": "Number of context lines before and after each match (grep mode only)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_f6f54dfc429b5b79_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Regex pattern for content search, or glob pattern (e.g., '*.py') for file search\"},\"target\":{\"type\":\"string\",\"enum\":[\"content\",\"files\"],\"description\":\"'content' searches inside file contents, 'files' searches for files by name\",\"default\":\"content\"},\"path\":{\"type\":\"string\",\"description\":\"Directory or file to search in (default: current working directory)\",\"default\":\".\"},\"file_glob\":{\"type\":\"string\",\"description\":\"Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)\"},\"limit\":{\"type\":\"integer\",\"description\":\"Maximum number of results to return (default: 50)\",\"default\":50},\"offset\":{\"type\":\"integer\",\"description\":\"Skip first N results for pagination (default: 0)\",\"default\":0},\"order\":{\"type\":\"string\",\"enum\":[\"discovery\",\"modified\"],\"description\":\"File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content\",\"default\":\"discovery\"},\"output_mode\":{\"type\":\"string\",\"enum\":[\"content\",\"files_only\",\"count\"],\"description\":\"Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file\",\"default\":\"content\"},\"context\":{\"type\":\"integer\",\"description\":\"Number of context lines before and after each match (grep mode only)\",\"default\":0}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_445ad73f31051bc2",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a2dd711f0acc348c_json; toolSummary is transport metadata only in this view.\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Complete content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a2dd711f0acc348c_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (will be created if it doesn't exist, overwritten if it does)\"},\"content\":{\"type\":\"string\",\"description\":\"Complete content to write to the file\"}},\"required\":[\"path\",\"content\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_a2dd711f0acc348c_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "d0d0fe32-b94c-40ee-8733-33d2cc3395fe",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "c6f2c91b-fe91-451a-a577-4a43a4ea6de4-0",
+            "root_cascade_id": "d0d0fe32-b94c-40ee-8733-33d2cc3395fe",
+            "trajectory_id": "c6f2c91b-fe91-451a-a577-4a43a4ea6de4",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "issuedToolCall": {
+        "id": "controlled_hermes_write_0",
+        "name": "write_file",
+        "args": {
+          "Path": "/tmp/client-gateway-verify/work/created.txt",
+          "Content": "WRITE_hermes_VERIFIED\n",
+          "Overwrite": true
+        }
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "26503"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/d0d0fe32-b94c-40ee-8733-33d2cc3395fe/1793989348264/c6f2c91b-fe91-451a-a577-4a43a4ea6de4/3",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:27+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "controlled_hermes_write_0",
+                    "name": "write_file",
+                    "args": {
+                      "Content": "WRITE_hermes_VERIFIED\n",
+                      "Overwrite": true,
+                      "Path": "/tmp/client-gateway-verify/work/created.txt"
+                    }
+                  },
+                  "thoughtSignature": "synthetic_controlled_hermes_write_0"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "controlled_hermes_write_0",
+                    "name": "write_file",
+                    "response": {
+                      "output": {
+                        "bytes_written": 22,
+                        "dirs_created": true,
+                        "files_modified": [
+                          "/tmp/client-gateway-verify/work/created.txt"
+                        ],
+                        "lint": {
+                          "message": "No linter for .txt files",
+                          "status": "skipped"
+                        },
+                        "resolved_path": "/tmp/client-gateway-verify/work/created.txt",
+                        "verified": true
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"patch\": mcp_gateway_tool_ae8b8136a656efdd (mcp-direct), mcp_gateway_tool_be366255e3326494_json (mcp-json)\n\"read_file\": mcp_gateway_tool_9bb48e8eede6f8dd (mcp-direct), mcp_gateway_tool_b275e33756b844b1_json (mcp-json), read_file (native)\n\"search_files\": mcp_gateway_tool_14a038c0536ba0f9 (mcp-direct), mcp_gateway_tool_f6f54dfc429b5b79_json (mcp-json)\n\"write_file\": mcp_gateway_tool_445ad73f31051bc2 (mcp-direct), mcp_gateway_tool_a2dd711f0acc348c_json (mcp-json), write_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_ae8b8136a656efdd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_be366255e3326494_json; toolSummary is transport metadata only in this view.\nTargeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "File path to edit."
+                      },
+                      "old_string": {
+                        "type": "STRING",
+                        "description": "Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness."
+                      },
+                      "new_string": {
+                        "type": "STRING",
+                        "description": "Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text."
+                      },
+                      "replace_all": {
+                        "type": "BOOLEAN",
+                        "description": "Replace all occurrences instead of requiring a unique match (default: false)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "old_string",
+                      "new_string",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_be366255e3326494_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nTargeted find-and-replace edits in files. Use this instead of sed/awk in terminal. Uses fuzzy matching (9 strategies) so minor whitespace/indentation differences won't break it. Returns a unified diff. Auto-runs syntax checks after editing. Finds a unique string and replaces it.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"File path to edit.\"},\"old_string\":{\"type\":\"string\",\"description\":\"Exact text to find and replace. Must be unique in the file unless replace_all=true. Include surrounding context lines to ensure uniqueness.\"},\"new_string\":{\"type\":\"string\",\"description\":\"Changed replacement text; it must differ from old_string. Pass empty string '' to delete the matched text.\"},\"replace_all\":{\"type\":\"boolean\",\"description\":\"Replace all occurrences instead of requiring a unique match (default: false)\",\"default\":false}},\"required\":[\"path\",\"old_string\",\"new_string\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9bb48e8eede6f8dd",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_b275e33756b844b1_json; toolSummary is transport metadata only in this view.\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to read (absolute, relative, or ~/path)"
+                      },
+                      "offset": {
+                        "type": "INTEGER",
+                        "description": "Line number to start reading from (1-indexed, default: 1)",
+                        "minimum": 1
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.",
+                        "maximum": 2000
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_b275e33756b844b1_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (absolute, relative, or ~/path)\"},\"offset\":{\"type\":\"integer\",\"description\":\"Line number to start reading from (1-indexed, default: 1)\",\"default\":1,\"minimum\":1},\"limit\":{\"type\":\"integer\",\"description\":\"Maximum number of lines to read (default: 2000, max: 2000). Reads are additionally capped at a ~100K-character budget with a next_offset continuation.\",\"default\":2000,\"maximum\":2000}},\"required\":[\"path\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read an explicit inclusive 1-indexed text range of at most 800 lines. Use absolute paths to ordinary text/source files. Images, PDF/document extraction, byte offsets, unrestricted/default reads and large-read switches use mcp_gateway_tool_b275e33756b844b1_json. This is a parameter view of the client's file reader: its byte limits, output formatting, permissions and observation rules remain in force; it does not implement the official executor's 46080-byte truncation.\nUnderlying client execution constraints (all remain applicable):\nRead a text file with line numbers and pagination. Use this instead of cat/head/tail in terminal. Output format: 'LINE_NUM|CONTENT'. Suggests similar filenames if not found. Use offset and limit for large files. Reads exceeding ~100K characters are truncated on a line boundary and return a next_offset; continue with offset to read the rest. Documents auto-extract to readable text: .ipynb, Office (.docx/.xlsx/.pptx and legacy .doc/.ppt/.xls), PDF (text layer), OpenDocument, RTF, EPUB, SQLite (.db/.sqlite: schema, row counts, first rows). Cannot read images/binary — use vision_analyze for images.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "StartLine",
+                      "EndLine"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_14a038c0536ba0f9",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_f6f54dfc429b5b79_json; toolSummary is transport metadata only in this view.\nSearch file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "pattern": {
+                        "type": "STRING",
+                        "description": "Regex pattern for content search, or glob pattern (e.g., '*.py') for file search"
+                      },
+                      "target": {
+                        "type": "STRING",
+                        "description": "'content' searches inside file contents, 'files' searches for files by name",
+                        "enum": [
+                          "content",
+                          "files"
+                        ]
+                      },
+                      "path": {
+                        "type": "STRING",
+                        "description": "Directory or file to search in (default: current working directory)"
+                      },
+                      "file_glob": {
+                        "type": "STRING",
+                        "description": "Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)"
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Maximum number of results to return (default: 50)"
+                      },
+                      "offset": {
+                        "type": "INTEGER",
+                        "description": "Skip first N results for pagination (default: 0)"
+                      },
+                      "order": {
+                        "type": "STRING",
+                        "description": "File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content",
+                        "enum": [
+                          "discovery",
+                          "modified"
+                        ]
+                      },
+                      "output_mode": {
+                        "type": "STRING",
+                        "description": "Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file",
+                        "enum": [
+                          "content",
+                          "files_only",
+                          "count"
+                        ]
+                      },
+                      "context": {
+                        "type": "INTEGER",
+                        "description": "Number of context lines before and after each match (grep mode only)"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "pattern",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_f6f54dfc429b5b79_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch file contents or find files by name. Use this instead of grep/rg/find/ls in terminal. Ripgrep-backed, faster than shell equivalents. On macOS, broad searches above the user home automatically skip TCC-protected folders (Desktop, Documents, Downloads, Library, Movies, Music, Pictures); target one directly when access is intentional.\n\nContent search (target='content'): Regex search inside files. Output modes: full matches with line numbers, file paths only, or match counts.\n\nFile search (target='files'): Find files by glob pattern (e.g., '*.py', '*config*'). Also use this instead of ls. Discovery order is the fast bounded default; exact global newest-first order is an explicit opt-in and may scan the full tree.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"pattern\":{\"type\":\"string\",\"description\":\"Regex pattern for content search, or glob pattern (e.g., '*.py') for file search\"},\"target\":{\"type\":\"string\",\"enum\":[\"content\",\"files\"],\"description\":\"'content' searches inside file contents, 'files' searches for files by name\",\"default\":\"content\"},\"path\":{\"type\":\"string\",\"description\":\"Directory or file to search in (default: current working directory)\",\"default\":\".\"},\"file_glob\":{\"type\":\"string\",\"description\":\"Filter files by pattern in grep mode (e.g., '*.py' to only search Python files)\"},\"limit\":{\"type\":\"integer\",\"description\":\"Maximum number of results to return (default: 50)\",\"default\":50},\"offset\":{\"type\":\"integer\",\"description\":\"Skip first N results for pagination (default: 0)\",\"default\":0},\"order\":{\"type\":\"string\",\"enum\":[\"discovery\",\"modified\"],\"description\":\"File-search order: 'discovery' is fast bounded traversal order; 'modified' is exact global newest-first and may scan the full tree; ignored for content\",\"default\":\"discovery\"},\"output_mode\":{\"type\":\"string\",\"enum\":[\"content\",\"files_only\",\"count\"],\"description\":\"Output format for grep mode: 'content' shows matching lines with line numbers, 'files_only' lists file paths, 'count' shows match counts per file\",\"default\":\"content\"},\"context\":{\"type\":\"integer\",\"description\":\"Number of context lines before and after each match (grep mode only)\",\"default\":0}},\"required\":[\"pattern\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_445ad73f31051bc2",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a2dd711f0acc348c_json; toolSummary is transport metadata only in this view.\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to write (will be created if it doesn't exist, overwritten if it does)"
+                      },
+                      "content": {
+                        "type": "STRING",
+                        "description": "Complete content to write to the file"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "content",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a2dd711f0acc348c_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to write (will be created if it doesn't exist, overwritten if it does)\"},\"content\":{\"type\":\"string\",\"description\":\"Complete content to write to the file\"}},\"required\":[\"path\",\"content\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create or completely replace a file. Overwrite must be true. Append and artifact metadata are not supported by this view. The client retains all read-before-write, permission, changed-file detection and syntax-check rules; use mcp_gateway_tool_a2dd711f0acc348c_json for additional client parameters.\nUnderlying client execution constraints (all remain applicable):\nWrite content to a file, completely replacing existing content. Use this instead of echo/cat heredoc in terminal. Creates parent directories automatically. OVERWRITES the entire file — use 'patch' for targeted edits. For an EXISTING file, call read_file first: write_file refuses (file untouched) when this task has no current full read/write of the file or the file changed on disk since; on refusal, read_file, merge, then retry. Auto-runs syntax checks on .py/.json/.yaml/.toml and other linted languages; only NEW errors introduced by this write are surfaced (pre-existing errors are filtered out). The result's verified:true means the on-disk content hash was confirmed — do NOT re-read the file to check the write landed.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "Content": {
+                        "type": "STRING"
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Must be true: this view creates or completely replaces the file."
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content",
+                      "Overwrite"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "d0d0fe32-b94c-40ee-8733-33d2cc3395fe",
+            "last_step_index": "2",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "c6f2c91b-fe91-451a-a577-4a43a4ea6de4-1",
+            "root_cascade_id": "d0d0fe32-b94c-40ee-8733-33d2cc3395fe",
+            "trajectory_id": "c6f2c91b-fe91-451a-a577-4a43a4ea6de4",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "2495"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/6df39598-da05-44d4-a8e4-46302b3acaef/1793989348279/46ef2977-1b85-418d-bada-b594711f5e0c/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local write test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/created.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:28+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You name chat sessions. Given the user's opening message, write a title that lets them find this conversation again in a list.\n\nRules:\n- 3 to 7 words, sentence case (capitalize only the first word and proper nouns).\n- Name what the user wants DONE, not that they asked a question.\n- Keep technical terms, filenames, numbers, and error codes exact.\n- Drop filler words: the, this, my, a, an.\n- No trailing punctuation, no quotes, no tool names, no 'Title:' prefix.\n- Never answer the message. Name it.\n- Always produce something, even for a bare greeting.\n- Write the title in the same language as the user's message.\nGood: {\"title\": \"Fix login button on mobile\"}\nGood: {\"title\": \"Postgres connection pool exhaustion\"}\nGood: {\"title\": \"Friendly greeting\"}\nToo vague: {\"title\": \"Code changes\"}\nToo long: {\"title\": \"Investigate and fix the issue where the login button does not respond on mobile devices\"}\n\nReply with JSON only: {\"title\": \"...\"}"
+              }
+            ]
+          },
+          "labels": {
+            "cascade_id": "6df39598-da05-44d4-a8e4-46302b3acaef",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "46ef2977-1b85-418d-bada-b594711f5e0c-0",
+            "root_cascade_id": "6df39598-da05-44d4-a8e4-46302b3acaef",
+            "trajectory_id": "46ef2977-1b85-418d-bada-b594711f5e0c",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    }
+  ],
+  "stdout": "{\"type\": \"system\", \"subtype\": \"init\", \"model\": \"gemini-3.8-flash-high\", \"session_id\": \"\", \"timestamp\": 1793989344610}\n{\"type\": \"tool_use\", \"name\": \"write_file\", \"tool_call_id\": \"controlled_hermes_write_0\", \"input\": {\"path\": \"/tmp/client-gateway-verify/work/created.txt\", \"content\": \"WRITE_hermes_VERIFIED\\n\"}, \"timestamp\": 1793989348192}\n{\"type\": \"tool_result\", \"name\": \"write_file\", \"tool_call_id\": \"controlled_hermes_write_0\", \"output\": \"{\\\"bytes_written\\\": 22, \\\"dirs_created\\\": true, \\\"verified\\\": true, \\\"lint\\\": {\\\"status\\\": \\\"skipped\\\", \\\"message\\\": \\\"No linter for .txt files\\\"}, \\\"resolved_path\\\": \\\"/tmp/client-gateway-verify/work/created.txt\\\", \\\"files_modified\\\": [\\\"/tmp/client-gateway-verify/work/created.txt\\\"]}\", \"duration_ms\": 60, \"is_error\": false, \"timestamp\": 1793989348253}\n{\"type\": \"text\", \"text\": \"\\n\\nCLIENT_EXECUTION_VERIFIED\", \"timestamp\": 1793989348267}\n{\"type\": \"result\", \"session_id\": \"local-d5022dc4d1c6e281f713251054d84e5663d71c746ec93d4db7baf71ac2455b7a\", \"exit_code\": 0, \"text\": \"CLIENT_EXECUTION_VERIFIED\", \"tokens\": {\"input\": 256, \"output\": 24, \"total\": 280, \"cache_read\": 0, \"cache_write\": 0}, \"duration_ms\": 3689, \"timestamp\": 1793989348300}\n",
+  "stderr": "Session: local-d5022dc4d1c6e281f713251054d84e5663d71c746ec93d4db7baf71ac2455b7a\n\nsession_id: local-d5022dc4d1c6e281f713251054d84e5663d71c746ec93d4db7baf71ac2455b7a\n",
+  "gatewayStderr": "[Antigravity Gateway Error] 接口不存在: /api/v1/models\n[Antigravity Gateway Error] 接口不存在: /api/tags\n[Antigravity Gateway Error] 接口不存在: /v1/props\n[Antigravity Gateway Error] 接口不存在: /props\n[Antigravity Gateway Error] 接口不存在: /version\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n"
+}

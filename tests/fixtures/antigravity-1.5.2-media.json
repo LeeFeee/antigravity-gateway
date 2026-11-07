@@ -1,0 +1,376 @@
+{
+  "protocol": "Google Antigravity API",
+  "agyVersion": "1.5.2",
+  "platform": "darwin/arm64",
+  "date": "2026-11-07",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "official": {
+    "image": {
+      "sourceRequest": "image/wire/3804c048-2cfd-47cb-b067-f8fdbd8bdf75.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "status": 200,
+      "model": "gemini-3.8-flash-low",
+      "requestType": "agent",
+      "media": [
+        {
+          "field": "inlineData",
+          "mimeType": "image/png",
+          "bytes": 186,
+          "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7"
+        }
+      ],
+      "wrapperTags": [
+        "USER_REQUEST",
+        "ADDITIONAL_METADATA",
+        "USER_SETTINGS_CHANGE"
+      ],
+      "containsUploadedMediaReference": true,
+      "declaresGenerateImage": false,
+      "answer": "Red"
+    },
+    "video": {
+      "sourceRequest": "video/wire/49c10102-8f48-4ef2-9e08-fa261cb5eee0.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "status": 200,
+      "model": "gemini-3.8-flash-low",
+      "requestType": "agent",
+      "media": [],
+      "wrapperTags": [
+        "USER_REQUEST",
+        "ADDITIONAL_METADATA",
+        "USER_SETTINGS_CHANGE"
+      ],
+      "containsUploadedMediaReference": false,
+      "declaresGenerateImage": false,
+      "answer": "VIDEO_NOT_AVAILABLE",
+      "entry": "ACP resource.resource.blob with mimeType=video/mp4",
+      "limitation": "Blob omitted from the upstream request by this ACP entry; not evidence that the model rejects video."
+    },
+    "generate": {
+      "sourceRequest": "generate/wire/5773ce48-2955-4be8-b955-e228bc8e6899.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "status": 200,
+      "model": "gemini-3.8-flash-low",
+      "requestType": "agent",
+      "media": [],
+      "wrapperTags": [
+        "USER_REQUEST",
+        "ADDITIONAL_METADATA",
+        "USER_SETTINGS_CHANGE"
+      ],
+      "containsUploadedMediaReference": false,
+      "declaresGenerateImage": false,
+      "answer": "IMAGE_TOOL_UNAVAILABLE"
+    }
+  },
+  "gateway": {
+    "runtime": {
+      "code": {
+        "direct-provider.js": "d03aefcb66e1aa7067f4b79255af3673f9392f8040e5d255010914f857efd151",
+        "agy-request-profile.js": "1bd0e3f503fa3b25ea22ba42561f04338bc88715f82fe33a943a0571c0c598d5",
+        "antigravity-model-config.js": "15c4b8db42f681a1c17e28b5ee4cca705fe5ce8bbf8314cb467f0178b35b927a",
+        "multimedia.js": "104ad768de547a9adda14e57266323b524ad9b3f7e83bdf3ad895a990df99fab"
+      },
+      "credentials": "Existing official login read in memory; no Gateway account store or import",
+      "retries": 0
+    },
+    "video": {
+      "evidence": "Gateway provider called the real upstream; not official CLI generation",
+      "sourceRequest": "gateway-validation/002.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "status": 200,
+      "outerFields": [
+        "project",
+        "requestId",
+        "request",
+        "model",
+        "userAgent",
+        "requestType"
+      ],
+      "requestFields": [
+        "contents",
+        "labels",
+        "generationConfig",
+        "sessionId"
+      ],
+      "model": "gemini-3.8-flash-low",
+      "requestType": "agent",
+      "generationConfig": {
+        "maxOutputTokens": 1024,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "LOW"
+        }
+      },
+      "media": [
+        {
+          "field": "inlineData",
+          "mimeType": "video/mp4",
+          "bytes": 8999,
+          "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4"
+        }
+      ],
+      "result": {
+        "scenario": "video",
+        "result": {
+          "text": "The two screen colors in chronological order are **red** and **blue**.",
+          "usage": {
+            "input_tokens": 204,
+            "output_tokens": 15,
+            "total_tokens": 268,
+            "thinking_tokens": 49,
+            "cache_read_tokens": 0
+          }
+        },
+        "inputSha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4"
+      }
+    },
+    "generation": {
+      "evidence": "Gateway provider called the real upstream; not official CLI generation",
+      "sourceRequest": "gateway-validation/003.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "status": 200,
+      "outerFields": [
+        "project",
+        "requestId",
+        "request",
+        "model",
+        "userAgent",
+        "requestType"
+      ],
+      "requestFields": [
+        "contents",
+        "generationConfig"
+      ],
+      "model": "gemini-3.1-flash-image",
+      "requestType": "image_gen",
+      "generationConfig": {
+        "candidateCount": 1,
+        "imageConfig": {
+          "aspectRatio": "1:1"
+        }
+      },
+      "media": [],
+      "result": {
+        "scenario": "generation",
+        "mimeType": "image/jpeg",
+        "model": "gemini-3.1-flash-image",
+        "bytes": 392577,
+        "sha256": "13c8d34e86d5590fb5024c3f1a646e6643b0476d08c77840c62acb758979f3d3",
+        "usage": {
+          "input_tokens": 23,
+          "output_tokens": 1430,
+          "total_tokens": 1453,
+          "thinking_tokens": 0,
+          "cache_read_tokens": 0
+        },
+        "width": 1024,
+        "height": 1024,
+        "centerMeanRGB": [
+          220.121,
+          0.883,
+          0.212
+        ]
+      },
+      "responseImagePath": "response.candidates[0].content.parts[0].inlineData",
+      "responseContainsThoughtSignature": true
+    },
+    "edit": {
+      "evidence": "Gateway provider called the real upstream; not official CLI generation",
+      "sourceRequest": "gateway-validation/004.request.json",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "status": 200,
+      "outerFields": [
+        "project",
+        "requestId",
+        "request",
+        "model",
+        "userAgent",
+        "requestType"
+      ],
+      "requestFields": [
+        "contents",
+        "generationConfig"
+      ],
+      "model": "gemini-3.1-flash-image",
+      "requestType": "image_gen",
+      "generationConfig": {
+        "candidateCount": 1,
+        "imageConfig": {
+          "aspectRatio": "1:1"
+        }
+      },
+      "media": [
+        {
+          "field": "inlineData",
+          "mimeType": "image/jpeg",
+          "bytes": 392577,
+          "sha256": "13c8d34e86d5590fb5024c3f1a646e6643b0476d08c77840c62acb758979f3d3"
+        }
+      ],
+      "result": {
+        "scenario": "edit",
+        "mimeType": "image/jpeg",
+        "model": "gemini-3.1-flash-image",
+        "bytes": 420591,
+        "sha256": "8b2b5f3164aea9ffbc69e72e75059361d07afe26f798eb4f3f11a61468df13ec",
+        "usage": {
+          "input_tokens": 283,
+          "output_tokens": 1281,
+          "total_tokens": 1564,
+          "thinking_tokens": 0,
+          "cache_read_tokens": 0
+        },
+        "width": 1024,
+        "height": 1024,
+        "centerMeanRGB": [
+          0.804,
+          34.568,
+          132.615
+        ]
+      },
+      "responseImagePath": "response.candidates[0].content.parts[0].inlineData",
+      "responseContainsThoughtSignature": true
+    }
+  },
+  "syntheticVideo": {
+    "bytes": 8999,
+    "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+    "streams": [
+      {
+        "codec": "h264",
+        "width": 128,
+        "height": 96,
+        "seconds": 2
+      },
+      {
+        "codec": "aac",
+        "seconds": 2
+      }
+    ],
+    "expectedColorSequence": [
+      "red",
+      "blue"
+    ]
+  },
+  "catalog": {
+    "evidence": "Official CLI fetchAvailableModels response; advertised capabilities, not individual MIME acceptance tests",
+    "sourceRequest": "image/wire/0d1acb70-0fe1-4b46-ad71-345d1cb8148c.request.json",
+    "imageGenerationModelIds": [
+      "gemini-3.1-flash-image"
+    ],
+    "models": {
+      "gemini-3.8-flash-low": {
+        "displayName": "Gemini 3.8 Flash (Low)",
+        "supportsImages": true,
+        "supportsVideo": true,
+        "supportedMimeTypes": {
+          "audio/ogg": true,
+          "application/vnd.oasis.opendocument.text": true,
+          "text/javascript": true,
+          "application/rtf": true,
+          "text/csv": true,
+          "video/audio/wav": true,
+          "audio/x-wav": true,
+          "audio/mp3": true,
+          "audio/aac": true,
+          "image/webp": true,
+          "application/x-typescript": true,
+          "text/plain": true,
+          "audio/m4a": true,
+          "audio/mp4": true,
+          "video/mp4": true,
+          "application/vnd.oasis.opendocument.spreadsheet": true,
+          "text/x-typescript": true,
+          "audio/mpeg": true,
+          "audio/l16": true,
+          "audio/wav": true,
+          "application/vnd.ms-powerpoint": true,
+          "application/x-ipynb+json": true,
+          "audio/webm": true,
+          "text/xml": true,
+          "text/x-python-script": true,
+          "video/jpeg2000": true,
+          "text/html": true,
+          "audio/webm;codecs=opus": true,
+          "application/x-javascript": true,
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation": true,
+          "video/videoframe/jpeg2000": true,
+          "application/x-python-code": true,
+          "application/pdf": true,
+          "image/heic": true,
+          "audio/wave": true,
+          "application/vnd.oasis.opendocument.presentation": true,
+          "audio/flac": true,
+          "application/msword": true,
+          "video/audio/s16le": true,
+          "audio/opus": true,
+          "text/css": true,
+          "text/rtf": true,
+          "text/markdown": true,
+          "image/jpeg": true,
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document": true,
+          "application/json": true,
+          "image/png": true,
+          "audio/vnd.wave": true,
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": true,
+          "text/x-python": true,
+          "video/text/timestamp": true,
+          "image/heif": true,
+          "application/vnd.ms-excel": true,
+          "video/webm": true
+        },
+        "maxTokens": 1048576,
+        "maxOutputTokens": 65536
+      },
+      "gemini-3.1-flash-image": {
+        "displayName": "Gemini 3.1 Flash Image",
+        "supportsImages": true,
+        "supportedMimeTypes": {
+          "text/javascript": true,
+          "text/xml": true,
+          "text/csv": true,
+          "text/plain": true,
+          "application/x-python-code": true,
+          "application/x-typescript": true,
+          "image/heic": true,
+          "image/jpeg": true,
+          "text/markdown": true,
+          "application/x-ipynb+json": true,
+          "video/videoframe/jpeg2000": true,
+          "video/text/timestamp": true,
+          "text/rtf": true,
+          "application/json": true,
+          "image/heif": true,
+          "image/png": true,
+          "image/webp": true,
+          "video/jpeg2000": true,
+          "application/x-javascript": true,
+          "text/x-python-script": true,
+          "text/css": true,
+          "text/x-python": true,
+          "application/rtf": true,
+          "text/x-typescript": true,
+          "text/html": true
+        },
+        "maxTokens": 65536,
+        "maxOutputTokens": 65536
+      },
+      "claude-sonnet-4-6": {
+        "displayName": "Claude Sonnet 4.6 (Thinking)",
+        "supportsImages": true,
+        "supportedMimeTypes": {
+          "video/jpeg2000": true,
+          "video/videoframe/jpeg2000": true,
+          "image/heic": true,
+          "image/heif": true,
+          "image/jpeg": true,
+          "image/png": true,
+          "image/webp": true
+        },
+        "maxTokens": 250000,
+        "maxOutputTokens": 64000
+      }
+    }
+  }
+}

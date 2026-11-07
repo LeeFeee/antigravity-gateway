@@ -1,5 +1,7 @@
 # Gemini App / Robin Provider（开发中）
 
+> 历史记录：本文对应已退役架构或此前验收阶段，保留用于追溯；其中启动、授权、路由与测试总数不适用于当前版本。当前使用方式见 [README](../README.md)，重构约定见 [产品规格](antigravity-gateway-refactor-spec.md)。
+
 Robin 是同一网关内部的独立上游，不是第二套后台。客户端仍使用原有端口及 Messages、Chat Completions、Responses 接口；明确请求 `gemini-4-argon` 才会进入 Robin 账号池。提示词内容不参与 Provider 选择。
 
 ## 授权与部署

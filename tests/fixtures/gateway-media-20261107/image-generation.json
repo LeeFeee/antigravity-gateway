@@ -1,0 +1,287 @@
+{
+  "scenario": "image-generation",
+  "model": "gemini-3.1-flash-image",
+  "recordedAt": "2026-11-06T18:11:47.184Z",
+  "evidence": "actual-http-real-gateway-real-google-native-tls",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "gatewayHTTP": true,
+      "requestedModelPreserved": true,
+      "originalGoTLS": true,
+      "officialUA": true,
+      "imageEnvelope": true,
+      "savedFileReadBack": true,
+      "decodableImage": true,
+      "requestedColor": true
+    },
+    "nativeGenerations": 1,
+    "nativeStatuses": [
+      200
+    ],
+    "answer": ""
+  },
+  "http": {
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+      "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+      "connection": "keep-alive",
+      "content-length": "1202",
+      "content-type": "application/json; charset=utf-8",
+      "date": "Fri, 06 Nov 2026 18:11:46 GMT",
+      "keep-alive": "timeout=5"
+    },
+    "body": {
+      "created": 1793988706,
+      "data": [
+        {
+          "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+          "revised_prompt": "Create a plain white square with one large solid red circle centered in it. No text, no gradients.",
+          "artifact": {
+            "id": "file_858a71893f0ed7bdcac7949027d80cc8",
+            "object": "artifact",
+            "type": "image",
+            "mime_type": "image/jpeg",
+            "filename": "generated_1793988706762_1.jpg",
+            "bytes": 205204,
+            "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_858a71893f0ed7bdcac7949027d80cc8.jpg",
+            "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+            "markdown": "![Generated image](http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content)"
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "file_858a71893f0ed7bdcac7949027d80cc8",
+          "object": "artifact",
+          "type": "image",
+          "mime_type": "image/jpeg",
+          "filename": "generated_1793988706762_1.jpg",
+          "bytes": 205204,
+          "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_858a71893f0ed7bdcac7949027d80cc8.jpg",
+          "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+          "markdown": "![Generated image](http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content)"
+        }
+      ]
+    },
+    "bytes": {
+      "bytes": 1202,
+      "sha256": "668d5f1b0e5681cecd029a29af5177a6b34e42618c6158c6830b41d723f0c7b6"
+    },
+    "blocked": false
+  },
+  "saved": {
+    "status": 200,
+    "mimeType": "image/jpeg",
+    "bytes": 205204,
+    "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f",
+    "sameAsGatewayDisk": true,
+    "sameAsNativeResponse": true,
+    "codec_name": "mjpeg",
+    "width": 1024,
+    "height": 1024,
+    "centerRGB": [
+      208,
+      19,
+      50
+    ],
+    "file": "/tmp/real-client-gateway/image-generation.jpg"
+  },
+  "trace": [
+    {
+      "type": "native-request",
+      "id": "e9c6a0e4-5fde-410e-87ef-337dd9e3c7a0",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "image_gen/1793988695952/e3b0a635-68e2-48af-bc86-e9541c11e669/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Create a plain white square with one large solid red circle centered in it. No text, no gradients."
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "candidateCount": 1,
+            "imageConfig": {
+              "aspectRatio": "1:1"
+            }
+          }
+        },
+        "model": "gemini-3.1-flash-image",
+        "userAgent": "antigravity",
+        "requestType": "image_gen"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "native-response",
+      "id": "e9c6a0e4-5fde-410e-87ef-337dd9e3c7a0",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-type": "application/json; charset=UTF-8",
+        "date": "Fri, 06 Nov 2026 18:11:40 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=10443",
+        "vary": "Origin, X-Origin, Referer",
+        "x-cloudaicompanion-trace-id": "bdaba0e82e4a0fb5",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-38f678bf428255a8e234"
+    },
+    {
+      "type": "native-body",
+      "id": "e9c6a0e4-5fde-410e-87ef-337dd9e3c7a0",
+      "body": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "thoughtSignature": {
+                      "sha256": "610a03dc31d4672ccce7140f5a2b545b59a5b2ac65e2803e985f51f42f1a72c8",
+                      "omitted": true
+                    },
+                    "inlineData": {
+                      "mimeType": "image/jpeg",
+                      "data": {
+                        "encoding": "base64",
+                        "bytes": 205204,
+                        "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f"
+                      }
+                    }
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 22,
+            "candidatesTokenCount": 1435,
+            "totalTokenCount": 1457
+          },
+          "modelVersion": "gemini-3.1-flash-image",
+          "responseId": "UxjuasrKE4fNrfcPreC6gQo"
+        },
+        "traceId": "bdaba0e82e4a0fb5",
+        "metadata": {}
+      }
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/images/generations",
+      "headers": {
+        "host": "127.0.0.1:60441",
+        "connection": "keep-alive",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "x-client-id": "gateway-media-verifier",
+        "x-session-id": "fc3d7771-fd68-4032-b6ab-1e8dec77812a",
+        "content-type": "application/json",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "193"
+      },
+      "body": {
+        "model": "gemini-3.1-flash-image",
+        "prompt": "Create a plain white square with one large solid red circle centered in it. No text, no gradients.",
+        "n": 1,
+        "size": "1024x1024",
+        "response_format": "url"
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 1202
+      },
+      "responseBody": {
+        "created": 1793988706,
+        "data": [
+          {
+            "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+            "revised_prompt": "Create a plain white square with one large solid red circle centered in it. No text, no gradients.",
+            "artifact": {
+              "id": "file_858a71893f0ed7bdcac7949027d80cc8",
+              "object": "artifact",
+              "type": "image",
+              "mime_type": "image/jpeg",
+              "filename": "generated_1793988706762_1.jpg",
+              "bytes": 205204,
+              "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_858a71893f0ed7bdcac7949027d80cc8.jpg",
+              "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+              "markdown": "![Generated image](http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content)"
+            }
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "file_858a71893f0ed7bdcac7949027d80cc8",
+            "object": "artifact",
+            "type": "image",
+            "mime_type": "image/jpeg",
+            "filename": "generated_1793988706762_1.jpg",
+            "bytes": 205204,
+            "gateway_path": "/tmp/real-client-gateway/gateway-data/media/file_858a71893f0ed7bdcac7949027d80cc8.jpg",
+            "url": "http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+            "markdown": "![Generated image](http://127.0.0.1:60441/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content)"
+          }
+        ]
+      }
+    },
+    {
+      "type": "client-http",
+      "method": "GET",
+      "path": "/v1/files/file_858a71893f0ed7bdcac7949027d80cc8/content",
+      "headers": {
+        "host": "127.0.0.1:60441",
+        "connection": "keep-alive",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "x-client-id": "gateway-media-verifier",
+        "x-session-id": "246362bc-3399-482f-ba30-69e54ba22b32",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "image/jpeg",
+        "content-length": 205204,
+        "content-disposition": "inline; filename=\"generated_1793988706762_1.jpg\"",
+        "cache-control": "private, max-age=3600",
+        "x-content-type-options": "nosniff"
+      },
+      "responseBody": {
+        "bytes": 205204,
+        "sha256": "9cd80739f24dad269ea06adc91fda6fb4cd4cf4e5ca6ac0a5cbca63a5a7b448f"
+      }
+    }
+  ]
+}

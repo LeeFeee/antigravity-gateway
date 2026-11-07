@@ -1,0 +1,55 @@
+{
+  "recordedAt": "2026-11-06T19:01:54.921Z",
+  "source": {
+    "sha256": "108427f424acf78aa8e59ba93a0be9cbbfd100237bf50fc0d68f9155e8a1f4cc",
+    "files": 53,
+    "verifierSha256": "886f45ac5056e9441d0a223f6a232d235e1f16296a76a1e3744d66da31eba75e"
+  },
+  "models": [
+    "gemini-3.8-flash-low"
+  ],
+  "scenarios": [
+    "video-multiturn-messages",
+    "video-multiturn-responses"
+  ],
+  "inputs": {
+    "image": {
+      "filename": "image-fixture.png",
+      "mimeType": "image/png",
+      "bytes": 186,
+      "sha256": "1951c0eba94f38034442b3e0cdbcecd1f033c5d73265616cf2dfef49f8663da7",
+      "streams": [
+        {
+          "codec_name": "png",
+          "codec_type": "video",
+          "width": 64,
+          "height": 64
+        }
+      ]
+    },
+    "video": {
+      "filename": "video-fixture.mp4",
+      "mimeType": "video/mp4",
+      "bytes": 8999,
+      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 128,
+          "height": 96
+        },
+        {
+          "codec_name": "aac",
+          "codec_type": "audio",
+          "sample_rate": "16000",
+          "channels": 1
+        }
+      ],
+      "duration": "2.000000"
+    }
+  },
+  "generationBudget": 4,
+  "accountDataRead": false,
+  "realRequestsSent": false
+}

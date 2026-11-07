@@ -1,0 +1,116 @@
+{
+  "evidence": "static-client-derived-real-google-metadata-verification",
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T20:01:02.485Z",
+  "source": {
+    "sha256": "fa87c5aa21548523287924c9b8886df5df9302dc34de8ed126a88d14f8950b98",
+    "files": 56
+  },
+  "scriptSha256": "bdb3e1624d453996b7f73867faef1e1e91de04265cd80234186f044154919e4d",
+  "approvedSource": {
+    "originalUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHozhBjwxCi7lkCK7syGVM2Nyn9LZTpodNwLGeZX0DcpGTbQgvVsJJt9NUqW80bpOImJ6i7FnYKyCMDAv-4Rm-WwENUeZ9nR3-ElNUQb1CjWUYxIE5INdbSOkbSFtVOcgDWBrGH",
+    "targetUrl": "https://note.com/fair_godwit407/n/nc4fbc66c256f",
+    "fixture": "tests/fixtures/client-web-tools-20261107/latest-release-batch/grounding-source-redirects.json",
+    "fixtureSha256": "52ee2c08d104cc1db511069ad60e7e778b6a3b7baed63e9308085af260261b79",
+    "chunkIndex": 1
+  },
+  "observations": [
+    {
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:rewriteUri",
+      "method": "POST",
+      "body": {
+        "originalUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHozhBjwxCi7lkCK7syGVM2Nyn9LZTpodNwLGeZX0DcpGTbQgvVsJJt9NUqW80bpOImJ6i7FnYKyCMDAv-4Rm-WwENUeZ9nR3-ElNUQb1CjWUYxIE5INdbSOkbSFtVOcgDWBrGH"
+      },
+      "transport": "unmodified AgyNativeTransport.fetch",
+      "dispatch": 1,
+      "status": 200
+    }
+  ],
+  "businessRpcLimit": 2,
+  "modelGenerationCount": 0,
+  "authenticationRefreshAllowed": false,
+  "retryPolicy": "no retry, host fallback, account fallback, alternative URL, or liveFetch",
+  "wireBoundary": "unchanged native transport and CLI UA; no independent packet capture",
+  "originalStateBefore": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "c2f6c87944c175556719ebd74c3cddf11097aca13e20d5661963a22e2b543228"
+  },
+  "originalAccountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "feaab42e75d0a88073e219aac208fb61792ac492bad478e7a2c91b2f478c2bf4"
+  },
+  "copiedState": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "c2f6c87944c175556719ebd74c3cddf11097aca13e20d5661963a22e2b543228",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "privateDirectoryMode": "700",
+  "privateAccountModes": [
+    "600",
+    "600",
+    "600",
+    "600",
+    "600",
+    "600"
+  ],
+  "nativeManifest": {
+    "sourceSha256": "47e34ff9c729c93109f673028e3e2435e7960b373e60b369dab9fa7e1be5f5dc",
+    "platform": "darwin-arm64",
+    "binarySha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5"
+  },
+  "selection": {
+    "eligibilityModel": "gemini-3.8-flash-low",
+    "noModelRequest": true,
+    "mechanism": "unmodified AccountPool eligibility and weighted selection with read-only copied QuotaManager data; no model catalog request",
+    "eligibleWithValidToken": 1,
+    "excludedExpiredOrMissingToken": 5,
+    "healthState": "available",
+    "enabled": true,
+    "quotaProtected": false,
+    "cooldownActive": false,
+    "modelCooldownActive": false
+  },
+  "requestHeaders": {
+    "authorization": "<REDACTED_CREDENTIAL>",
+    "content-type": "application/json",
+    "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+  },
+  "rewrite": {
+    "status": 200,
+    "structure": {},
+    "body": {}
+  },
+  "stoppedBecause": "rewrite_did_not_confirm_approved_target",
+  "nativeStopped": true,
+  "originalAccountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "feaab42e75d0a88073e219aac208fb61792ac492bad478e7a2c91b2f478c2bf4"
+  },
+  "originalAccountsUnchanged": true,
+  "originalStateAfter": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "c2f6c87944c175556719ebd74c3cddf11097aca13e20d5661963a22e2b543228"
+  },
+  "originalStateUnchanged": true,
+  "sourceAfter": {
+    "sha256": "fa87c5aa21548523287924c9b8886df5df9302dc34de8ed126a88d14f8950b98",
+    "files": 56
+  },
+  "sourceUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "businessRpcCount": 1,
+  "completedAt": "2026-11-06T20:01:03.315Z"
+}

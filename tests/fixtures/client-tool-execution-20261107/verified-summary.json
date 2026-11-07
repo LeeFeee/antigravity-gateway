@@ -1,0 +1,433 @@
+{
+  "recordedAt": "2026-11-06T18:28:00.505Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "passed": 12,
+  "total": 12,
+  "executedTools": 16,
+  "allTemporaryDirectoriesRemoved": true,
+  "records": [
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "scenario": "write",
+      "file": "claude-write-final/claude-write.json",
+      "sha256": "9a35cf5542948760fd766652b4ba84f3ec26a2dbb116fe904a0e51119056ab59",
+      "passed": true,
+      "checks": {
+        "clientCallArgumentsRestored": true,
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true
+      },
+      "sourceBefore": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "write_file"
+      ],
+      "clientToolNames": [
+        "Write"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "scenario": "edit",
+      "file": "native-fixed/claude-edit.json",
+      "sha256": "0535dec328d4dfdf8abc3899eca530e71e952ec7ffaf8c2ec4799af505e6af18",
+      "passed": true,
+      "checks": {
+        "clientCallArgumentsRestored": true,
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true
+      },
+      "sourceBefore": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "read_file",
+        "edit_file"
+      ],
+      "clientToolNames": [
+        "Read",
+        "Edit"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "scenario": "terminal",
+      "file": "terminal-fixed/claude-terminal.json",
+      "sha256": "65ddea7dc5404a1093e8d050a7bd89b4f89efe4aa773644cb653c58665800adf",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "actualTerminalOutput": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "mcp_gateway_tool_dfb6c4104fd098d4"
+      ],
+      "clientToolNames": [
+        "Bash"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "scenario": "write",
+      "file": "pi-native-fixed/pi-write.json",
+      "sha256": "568af2cc4c7a82bd0d7c8dc6161b06744b7bef1a2cf0b5173012f2ed3e9a4740",
+      "passed": true,
+      "checks": {
+        "clientCallArgumentsRestored": true,
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true
+      },
+      "sourceBefore": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "342de525c08f03707ef374afb67096737dc5a55805b458202529b01875393748",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "write_file"
+      ],
+      "clientToolNames": [
+        "write"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "scenario": "edit",
+      "file": "initial/pi-edit.json",
+      "sha256": "8bc1fb5ae34e529833f7769e8d5459f9f9a74756d90a4a6b8b6dba0a8bfa30fa",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "read_file",
+        "mcp_gateway_tool_315a1049195c8171"
+      ],
+      "clientToolNames": [
+        "read",
+        "edit"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "scenario": "terminal",
+      "file": "initial/pi-terminal.json",
+      "sha256": "fc3609d472fa532ceb1ba7a66e73bed66f957b8de1461b84e27d9e8e1f9218de",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "actualTerminalOutput": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "mcp_gateway_tool_db131d99db479022"
+      ],
+      "clientToolNames": [
+        "bash"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "scenario": "write",
+      "file": "initial/hermes-write.json",
+      "sha256": "f0943c45601c4f0aa4e7d06e79545fc267021cbc6a20702af14069c6b3bbe783",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "write_file"
+      ],
+      "clientToolNames": [
+        "write_file"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "scenario": "edit",
+      "file": "initial/hermes-edit.json",
+      "sha256": "e64ce41e8f43d9b66e44c0ae2ab4b1dc97322f722d89e6a72d567bf3f9941132",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "read_file",
+        "mcp_gateway_tool_ae8b8136a656efdd"
+      ],
+      "clientToolNames": [
+        "read_file",
+        "patch"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "scenario": "terminal",
+      "file": "initial/hermes-terminal.json",
+      "sha256": "fff30c974f75cb11b65b79da60628f85b5b5ff21b5bb138450d357ebd3b00bcd",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "actualTerminalOutput": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "mcp_gateway_tool_ea5f0a2555ec86ec_json"
+      ],
+      "clientToolNames": [
+        "terminal"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "scenario": "write",
+      "file": "initial/dsh-write.json",
+      "sha256": "b03f8fd4c33f077c7f39c53536f3f6e55dd2c6c150e96df6e69f12b907e939b1",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "write_file"
+      ],
+      "clientToolNames": [
+        "write"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "scenario": "edit",
+      "file": "initial/dsh-edit.json",
+      "sha256": "82b4dc15e572028a823725094c9f607f8db03178cd3e023896283958c9715697",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "read_file",
+        "edit_file"
+      ],
+      "clientToolNames": [
+        "read",
+        "edit"
+      ],
+      "diskVerified": true
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "scenario": "terminal",
+      "file": "terminal-fixed/dsh-terminal.json",
+      "sha256": "b5373afec436594ecfa42b8cb848da480b613ad8f7d6828f7f136696413ba1e5",
+      "passed": true,
+      "checks": {
+        "clientSucceeded": true,
+        "gatewayHTTP": true,
+        "allPlannedToolsIssued": true,
+        "allClientReceiptsReturned": true,
+        "exactDiskContents": true,
+        "finalAnswer": true,
+        "noUpstreamError": true,
+        "actualTerminalOutput": true,
+        "sourceStable": true,
+        "clientCallArgumentsRestored": true
+      },
+      "sourceBefore": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "sourceAfter": {
+        "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+        "files": 53
+      },
+      "nativeToolNames": [
+        "mcp_gateway_tool_db131d99db479022"
+      ],
+      "clientToolNames": [
+        "bash"
+      ],
+      "diskVerified": true
+    }
+  ],
+  "excluded": "Initial Claude/Pi write compatibility successes retained but superseded by official write views. Initial Claude edit identity branch failure and Claude/dsh terminal sandbox configuration failures retained. One concurrent gateway startup hit ownership guard port conflict and was retried sequentially; no inference/tool execution occurred for that failed startup."
+}

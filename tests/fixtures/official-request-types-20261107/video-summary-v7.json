@@ -1,0 +1,1693 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "video-summary",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [
+    "agent",
+    "video_summarization"
+  ],
+  "requestCount": 26,
+  "failure": null,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAdminControls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "models": {
+          "gemini-3.8-flash-low": {
+            "displayName": "Gemini 3.8 Flash (Low)",
+            "model": "MODEL_PLACEHOLDER_M320",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true,
+            "supportsThinking": true,
+            "minThinkingBudget": 32,
+            "thinkingLevel": 1,
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "image/png": true,
+              "video/mp4": true
+            }
+          },
+          "gemini-3.5-flash-lite": {
+            "displayName": "Synthetic search model",
+            "model": "MODEL_PLACEHOLDER_M50",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            }
+          },
+          "gemini-3.1-flash-image": {
+            "displayName": "Gemini 3.1 Flash Image",
+            "model": "MODEL_PLACEHOLDER_M21",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true
+          },
+          "synthetic-video-summary": {
+            "displayName": "Synthetic video summary model",
+            "model": "MODEL_PLACEHOLDER_M8",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "video/mp4": true
+            }
+          }
+        },
+        "defaultAgentModelId": "gemini-3.8-flash-low",
+        "agentModelSorts": [
+          {
+            "displayName": "Synthetic",
+            "groups": [
+              {
+                "modelIds": [
+                  "gemini-3.8-flash-low"
+                ]
+              }
+            ]
+          }
+        ],
+        "webSearchModelIds": [
+          "gemini-3.5-flash-lite"
+        ],
+        "imageGenerationModelIds": [
+          "gemini-3.1-flash-image"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:listExperiments",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "experiments": []
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "55"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "trajectoryId": "d4362853-875c-45c5-b9f8-ab0928ae367b"
+      },
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Transfer-Encoding",
+          "chunked"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "video_summarization/7b9ba35f-8f37-4e05-b1d0-d3474dad1f7a",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "inlineData": {
+                    "mimeType": "video/mp4",
+                    "data": "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"
+                  }
+                },
+                {
+                  "text": "Describe this video in A LOT OF detail. This text will be used in place of the video to answer questions about the video."
+                }
+              ]
+            }
+          ],
+          "generationConfig": {
+            "candidateCount": 1
+          }
+        },
+        "model": "synthetic-video-summary",
+        "userAgent": "antigravity",
+        "requestType": "video_summarization"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "SYNTHETIC_VIDEO_SUMMARY: red then blue rectangles."
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 20,
+            "candidatesTokenCount": 10,
+            "totalTokenCount": 30
+          },
+          "modelVersion": "synthetic-local-model",
+          "responseId": "synthetic-response"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:listExperiments",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "experiments": []
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "55"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "trajectoryId": "c8e5ee65-f561-4aac-8688-ac4d8833000f"
+      },
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Transfer-Encoding",
+          "chunked"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/c1efadd8-70b8-48e5-bd6d-e749a9094de1/1793992614675/c8e5ee65-f561-4aac-8688-ac4d8833000f/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nSynthetic Hub startup fixture.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T03:16:54+08:00.\n</ADDITIONAL_METADATA>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "<identity>\nYou are Antigravity, a powerful agentic AI coding assistant designed by the Google Deepmind team working on Advanced Agentic Coding.\nYou are pair programming with a USER to solve their coding task. The task may require creating a new codebase, modifying or debugging an existing codebase, or simply answering a question.\nThe USER will send you requests, which you must always prioritize addressing. User requests are enclosed within <USER_REQUEST> tags.\n</identity>\n<artifacts>\nArtifacts are special markdown (.md) documents that you can create to present structured information to the user.\nAll artifacts should be written to the artifact directory: `<appDataDir>/brain/<conversation-id>`. You do NOT need to create this directory yourself, it will be created automatically when you create artifacts.\n\n# When to Use Artifacts\n\n**Use artifacts for:**\n- Extensive reports and analysis summaries\n- Persistent information you'll update over time (task lists, experiment logs)\n- Code changes formatted as diffs\n\n**Don't use artifacts for:**\n- Simple one-off answers or very short paragraph content - just respond directly\n- Asking questions or requesting user input - just ask directly\n\n**After creating or updating an artifact**, DO NOT re-summarize the artifact contents in your response to the user. Instead, point the user to the artifact and highlight only key open questions or decisions that need their input.\n\n\n# Artifact Formatting Tips\nWhen creating markdown artifacts, use standard markdown and GitHub Flavored Markdown formatting.\n\n## Alerts\nUse GitHub-style alerts strategically to emphasize critical information. Do not place consecutively or nest:\n  > [!NOTE] Background context, implementation details, or explanations\n  > [!TIP] Performance optimizations, best practices, or efficiency suggestions\n  > [!IMPORTANT] Essential requirements, critical steps, or must-know information\n  > [!WARNING] Breaking changes, compatibility issues, or potential problems\n  > [!CAUTION] High-risk actions that could cause data loss or security vulnerabilities\n\n\n## Mermaid Diagrams\nCreate mermaid diagrams using fenced code blocks with language `mermaid` to visualize relationships, workflows, and architectures.\n- Only use supported diagram types:\n  - Flowcharts / Graphs: `flowchart TD` / `flowchart LR` / `graph TD` / `graph LR`\n  - Sequence Diagrams: `sequenceDiagram`\n  - State Diagrams: `stateDiagram-v2` or `stateDiagram`\n  - Class Diagrams: `classDiagram`\n  - Entity-Relationship Diagrams: `erDiagram`\n  - XY Charts: `xychart-beta`\n- All other diagram types are unsupported. For schedules, timelines, or roadmaps, use directed flowcharts (`flowchart LR` / `flowchart TD`) or Markdown tables instead.\n- To prevent syntax errors:\n  - Quote node labels containing special characters like parentheses or brackets. For example, `id[\"Label (Extra Info)\"]` instead of `id[Label (Extra Info)]`.\n  - Avoid HTML tags in labels.\n\n## File Links\n- Link to line ranges using [link text](file:///absolute/path/to/file#L123-L145) format.\n- **IMPORTANT**: If you are embedding a file in an artifact and the file is NOT already in <appDataDir>/brain/<conversation-id>, you MUST first copy the file to the artifacts directory before embedding it. Only embed files that are located in the artifacts directory. Always use its absolute path `![caption](/absolute/path)`.\n- **Use basenames for readability**: Use file basenames for the link text instead of the full path\n\n## Carousels\nUse ````carousel syntax with `<!-- slide -->` HTML comments to display related markdown snippets sequentially (before/after comparisons, UI progressions, alternative approaches, walkthroughs). Four backticks enable nesting code blocks within slides.\n\nExample:\n````carousel\n![Image description](/absolute/path/to/image1.png)\n<!-- slide -->\n```python\ndef example():\n    print(\"Code in carousel\")\n```\n````\n\n# Scratch Scripts and Files\n\nYou may find it useful to create scratch scripts or files for temporary purposes.\n\nExamples:\n- One-off scripts to debug code\n- Temporary data files for testing\n\nStore these files in the `<appDataDir>/brain/<conversation-id>/scratch/` directory. They will be persisted.\n\n</artifacts>\n<guidelines>\nFollow these behavioral guidelines at all times:\n- Maintain documentation integrity. Preserve all existing comments and docstrings that are unrelated to your code changes, unless the user specifies otherwise.\n- Never defeat or bypass an access control, permission check, credential requirement, network/proxy restriction, or sandbox/environment boundary - including writing to the state or processes such a check reads, spoofing identity, intercepting the check, probing undocumented local/host services, or modifying host, harness, or test infrastructure outside your task scope. Use documented, sanctioned paths only; if none of them work, you are blocked - report the error and stop.\n- Never solve, click through, wait out, compute, or bypass a CAPTCHA, \"verify you are human\" or anti-bot challenge, or proof-of-work gate (e.g., reCAPTCHA, hCaptcha, Cloudflare Turnstile, Altcha) using any tool - including browser actions, terminal commands, scripts, HTTP clients (such as curl, python, or headless browsers), or alternate/cached URLs. When a target resource is gated by one, or if asked to solve or bypass one, stop and report the block to the user (or let the user complete it directly in a visible UI when appropriate).\n\n</guidelines>\n<communication_style>\n- Keep your responses concise.\n- Format your responses in github-style markdown.\n- If you're unsure about the user's intent, ask for clarification rather than making assumptions.\n- You MUST create clickable links for all files and code symbols (classes, types, functions, structs). Use github style markdown links with the file:// scheme (e.g., [utils.py](file:///path/to/utils.py) or [`ClassName`](file:///path/to/utils.py#L10-L20)). For Windows, use forward slashes for paths.\n</communication_style>\n<slash_commands>\nSlash commands are user-facing shortcuts in the chat UI (e.g., typing `/goal` or `/schedule`) that automate complex workflows or trigger specialized agent behaviors.\n\nYou cannot execute these commands yourself. Your role is to recommend them to the user when they are a good fit for the task at hand, encouraging the user to explore and trigger them.\n\nTo recommend a slash command, suggest it clearly in your response (e.g., \"You can use the `/goal` command to...\").\n\n\nAvailable slash commands you can recommend to the user:\n- /goal: Recommend this when the user wants to run a long-running task (e.g., overnight) and wants the agent to be extra thorough and not stop until the goal is fully achieved.\n- /schedule: Recommend this when the user wants to run an instruction on a recurring schedule or set a one-time timer.\n- /grill-me: Recommend this when the user wants to align on a plan through an interactive interview to resolve design decisions.\n- /learn: Recommend this when the user has corrected the agent or solved a complex setup and wants the agent to persist this behavior for future tasks.\n\n\n</slash_commands>\n<messaging>\nYou are connected to a messaging system where you may receive messages from: background tasks, user-queued messages.\n\n## Receiving Messages\n\nYou receive messages automatically at the start of each invocation. All messages are delivered in full directly into your context — no manual retrieval is needed.\n\n## Reactive Wakeup (No Polling Needed)\n\nThe system automatically resumes your execution when:\n- A **background task** completes or sends you a notification\n- A **user-queued message** is ready to be dequeued\n\nThis means you do **NOT** need to poll in a loop while waiting for messages or updates. After launching anything that performs work asynchronously, you may continue other work or simply stop by calling no more tools. The system will notify you when there is something to process.\n</messaging>\n<user_information>\nThe USER's OS version is mac.\nActive Workspaces:\n- [TEMP_ROOT]/work\nCommand Working Directory: [TEMP_ROOT]/work\nCode relating to the user's requests should be written in the locations listed above. Avoid writing project code files to tmp, in the .gemini dir, or directly to the Desktop and similar folders unless explicitly asked.\nApp Data Directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nConversation ID: c1efadd8-70b8-48e5-bd6d-e749a9094de1\nArtifact Directory Path: [TEMP_ROOT]/home/.gemini/antigravity-cli/brain/c1efadd8-70b8-48e5-bd6d-e749a9094de1\n</user_information>"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read the contents of a text, image, or video file. Each read returns at most 800 lines or 46080 bytes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "ByteOffset": {
+                        "type": "INTEGER",
+                        "description": "Byte offset into the line range. Use to continue reading when content is truncated by the byte limit."
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "description": "End line to read (inclusive). Omit to read until the end of the file, within the per-read limits."
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to read."
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "description": "Start line to read (inclusive). Omit to read from the beginning of the file."
+                      }
+                    },
+                    "required": [
+                      "Path"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "run_command",
+                  "description": "Execute a command in the workspace. Operating System: mac. Shell: zsh. Each command runs in a new session (working directory changes and environment variables do not persist across calls). Commands that do not finish within the specified wait time continue running in the background as tasks; the system will notify you when they finish, so do not poll their status or set timers to check on them.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "CommandLine": {
+                        "type": "STRING",
+                        "description": "The exact command line string to execute."
+                      },
+                      "IsDaemon": {
+                        "type": "BOOLEAN",
+                        "description": "Set to true for long-running support processes that are meant to keep running in the background indefinitely and are not expected to finish on their own (e.g., dev servers, file watchers, tunnels). Leave false (the default) for normal commands that are expected to terminate."
+                      },
+                      "WaitMsBeforeAsync": {
+                        "type": "INTEGER",
+                        "description": "Milliseconds to wait for the command to finish before backgrounding it (500 to 10000). Set to a larger value (e.g. 5000-10000) for commands expected to finish synchronously; set to 500 for commands intended to run in the background."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the command task. Capitalize like a sentence. Some examples: 'Git status check', 'Unit test execution', 'Package build', 'Dev server startup'."
+                      }
+                    },
+                    "required": [
+                      "CommandLine",
+                      "toolSummary",
+                      "WaitMsBeforeAsync"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "manage_task",
+                  "description": "Manage the background tasks of this conversation: 'list' the running tasks, check a task's 'status' and recent log output, 'send_input' to a running task, or 'kill' one. Refer to tasks by the TaskId that 'list' reports; keep task references human-readable when talking to the user.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Action": {
+                        "type": "STRING",
+                        "description": "'list' reports the running tasks; the other actions operate on the task named in TaskId.",
+                        "enum": [
+                          "list",
+                          "kill",
+                          "status",
+                          "send_input"
+                        ]
+                      },
+                      "Input": {
+                        "type": "STRING",
+                        "description": "Input to deliver to the task. Required for 'send_input'."
+                      },
+                      "TaskId": {
+                        "type": "STRING",
+                        "description": "Task to manage, as reported by 'list'. Required for 'kill', 'status' and 'send_input'."
+                      }
+                    },
+                    "required": [
+                      "Action"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "send_message",
+                  "description": "Send a message to another agent, such as a subagent or a peer. Not a channel to the user.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Message": {
+                        "type": "STRING",
+                        "description": "Content of the message.",
+                        "minLength": "1"
+                      },
+                      "Recipient": {
+                        "type": "STRING",
+                        "description": "Conversation ID of the agent to message.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Recipient",
+                      "Message"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "schedule",
+                  "description": "Schedule a one-shot timer (DurationSeconds) or a recurring cron job (CronExpression) that notifies you via Prompt. This tool call runs as a background task and returns immediately; end your turn (call no more tools) to wait for notifications. A timer with a TimerCondition is cancelled early by a matching message, which is itself your wakeup. Set IsDaemon only for a cron that should keep firing after the current task is done. Set ExactTiming only when a cron must fire at the exact wall-clock time without jitter. Use the manage_task tool to cancel active schedules, and never use a shell sleep command as a timer.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "CronExpression": {
+                        "type": "STRING",
+                        "description": "Standard 5-field cron expression for a recurring schedule (e.g. '*/5 * * * *' for every 5 minutes). Mutually exclusive with DurationSeconds."
+                      },
+                      "DurationSeconds": {
+                        "type": "INTEGER",
+                        "description": "Seconds to wait for a one-shot timer. Mutually exclusive with CronExpression."
+                      },
+                      "ExactTiming": {
+                        "type": "BOOLEAN",
+                        "description": "Cron only. Set true only when the user explicitly requires the schedule to fire at the exact wall-clock time without jitter. Leave false (the default) for polling, monitoring, or periodic tasks so triggers are jittered to avoid load spikes."
+                      },
+                      "IsDaemon": {
+                        "type": "BOOLEAN",
+                        "description": "Cron only. Set true only for an independent standing job that should keep firing after the current task is done."
+                      },
+                      "MaxIterations": {
+                        "type": "INTEGER",
+                        "description": "Cron only. Maximum number of triggers before the schedule stops; defaults to unlimited."
+                      },
+                      "Prompt": {
+                        "type": "STRING",
+                        "description": "Message sent to you as a high-priority notification when the timer fires or the cron triggers."
+                      },
+                      "TimerCondition": {
+                        "type": "STRING",
+                        "description": "Timer only. Cancels the timer early when a matching message arrives: 'never' (default), 'any' (any message), or a sender ID (a message from that subagent or background task)."
+                      }
+                    },
+                    "required": [
+                      "Prompt"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "write_file",
+                  "description": "Create a new file with the given contents, or append to an existing file when Append is true. Parent directories are created automatically. Fails if the file already exists unless Overwrite or Append is true. When creating an artifact, always provide ArtifactMetadata. When creating non-artifact files, do not provide it.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Append": {
+                        "type": "BOOLEAN",
+                        "description": "Whether to append Content to the end of the file (creating the file if it does not exist). Cannot be combined with Overwrite=true."
+                      },
+                      "ArtifactMetadata": {
+                        "type": "OBJECT",
+                        "description": "Metadata that defines artifact properties. ONLY provide when creating an artifact file in the artifact directory. Omit this field when creating non-artifact files.",
+                        "properties": {
+                          "RequestFeedback": {
+                            "type": "BOOLEAN",
+                            "description": "Whether to request user feedback on this artifact if its contents are executable (e.g., a plan). The user is given a 'Proceed' button to execute it."
+                          },
+                          "Summary": {
+                            "type": "STRING",
+                            "description": "Detailed multi-line summary of the artifact's contents and purpose."
+                          },
+                          "UserFacing": {
+                            "type": "BOOLEAN",
+                            "description": "Whether this artifact should be presented to the user."
+                          }
+                        },
+                        "required": [
+                          "Summary",
+                          "UserFacing",
+                          "RequestFeedback"
+                        ]
+                      },
+                      "Content": {
+                        "type": "STRING",
+                        "description": "The full contents to write to the file."
+                      },
+                      "Overwrite": {
+                        "type": "BOOLEAN",
+                        "description": "Whether to overwrite an existing file, replacing its entire contents."
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to create.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Content"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "edit_file",
+                  "description": "Use this tool to edit an existing file. Follow these rules:\n1. Use this tool for a single contiguous block of edits. To edit multiple non-adjacent regions, make separate calls.\n2. Target must exactly match existing file text, including whitespace. Replacement must be a complete drop-in replacement for the Target.\n3. If Target appears multiple times in the file, every occurrence is replaced.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "ArtifactMetadata": {
+                        "type": "OBJECT",
+                        "description": "Metadata updates if updating an artifact file in the artifact directory. Omit this field when editing non-artifact files. Should be updated if the content is changing meaningfully.",
+                        "properties": {
+                          "RequestFeedback": {
+                            "type": "BOOLEAN",
+                            "description": "Whether to request user feedback on this artifact if its contents are executable (e.g., a plan). The user is given a 'Proceed' button to execute it."
+                          },
+                          "Summary": {
+                            "type": "STRING",
+                            "description": "Detailed multi-line summary of the artifact's contents and purpose."
+                          },
+                          "UserFacing": {
+                            "type": "BOOLEAN",
+                            "description": "Whether this artifact should be presented to the user."
+                          }
+                        },
+                        "required": [
+                          "Summary",
+                          "UserFacing",
+                          "RequestFeedback"
+                        ]
+                      },
+                      "Path": {
+                        "type": "STRING",
+                        "description": "The absolute path of the file to modify.",
+                        "minLength": "1"
+                      },
+                      "Replacement": {
+                        "type": "STRING",
+                        "description": "The content to replace the target with. Leave empty to delete the target."
+                      },
+                      "Target": {
+                        "type": "STRING",
+                        "description": "The exact string to be replaced. This must be the exact character-sequence to be replaced, including whitespace. Be very careful to include any leading whitespace otherwise this will not work at all. If the string appears multiple times in the file, every occurrence is replaced.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "Target",
+                      "Replacement"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "generate_image",
+                  "description": "Generate an image, or edit existing images, from a text prompt.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "AspectRatio": {
+                        "type": "STRING",
+                        "description": "Defaults to 1:1.",
+                        "enum": [
+                          "1:1",
+                          "2:3",
+                          "3:2",
+                          "3:4",
+                          "4:3",
+                          "9:16",
+                          "16:9"
+                        ]
+                      },
+                      "ImageName": {
+                        "type": "STRING",
+                        "description": "Short descriptive name for the saved file.",
+                        "minLength": "1"
+                      },
+                      "ImagePaths": {
+                        "type": "ARRAY",
+                        "description": "Images to edit, combine, or use as references.",
+                        "items": {
+                          "type": "STRING"
+                        },
+                        "maxItems": "3"
+                      },
+                      "Prompt": {
+                        "type": "STRING",
+                        "description": "What the image should depict, or how to edit the given images.",
+                        "minLength": "1"
+                      }
+                    },
+                    "required": [
+                      "Prompt",
+                      "ImageName"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "search_web",
+                  "description": "Performs a web search for a given query. Returns a summary of relevant information along with URL citations.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "domain": {
+                        "type": "STRING",
+                        "description": "Optional domain to recommend the search prioritize"
+                      },
+                      "query": {
+                        "type": "STRING"
+                      }
+                    },
+                    "required": [
+                      "query"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "ask_question",
+                  "description": "Ask the user one or more multiple-choice questions, e.g. to clarify requirements, and wait for the answers. Don't use it for trivial yes/no questions; ask those in plain text.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "questions": {
+                        "type": "ARRAY",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "is_multi_select": {
+                              "type": "BOOLEAN",
+                              "description": "Whether the user can select several options."
+                            },
+                            "options": {
+                              "type": "ARRAY",
+                              "description": "Answers to choose from, unnumbered and without an 'Other' option; the UI adds both. Put a recommended answer first, prefixed with '(Recommended)'.",
+                              "items": {
+                                "type": "STRING"
+                              },
+                              "minItems": "2"
+                            },
+                            "question": {
+                              "type": "STRING",
+                              "description": "The question, without 'select all that apply' or similar; the UI adds that.",
+                              "minLength": "1"
+                            }
+                          },
+                          "required": [
+                            "question",
+                            "options"
+                          ]
+                        },
+                        "minItems": "1"
+                      }
+                    },
+                    "required": [
+                      "questions"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "c1efadd8-70b8-48e5-bd6d-e749a9094de1",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M320",
+            "request_id": "c8e5ee65-f561-4aac-8688-ac4d8833000f-0",
+            "root_cascade_id": "c1efadd8-70b8-48e5-bd6d-e749a9094de1",
+            "trajectory_id": "c8e5ee65-f561-4aac-8688-ac4d8833000f",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "LOW"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-low",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "response": {
+          "candidates": [
+            {
+              "content": {
+                "role": "model",
+                "parts": [
+                  {
+                    "text": "SYNTHETIC_PROBE_DONE"
+                  }
+                ]
+              },
+              "finishReason": "STOP"
+            }
+          ],
+          "usageMetadata": {
+            "promptTokenCount": 20,
+            "candidatesTokenCount": 10,
+            "totalTokenCount": 30
+          },
+          "modelVersion": "synthetic-local-model",
+          "responseId": "synthetic-response"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-length",
+          "22193"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-length",
+          "105"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    }
+  ],
+  "acp": [
+    {
+      "localHubMethod": "StartCascade",
+      "request": {
+        "workspaceUris": [
+          "file://[TEMP_ROOT]/work"
+        ],
+        "requestedModel": "MODEL_PLACEHOLDER_M320",
+        "source": "CORTEX_TRAJECTORY_SOURCE_CLI"
+      },
+      "status": 200,
+      "response": {
+        "cascadeId": "e65c542f-6313-475b-b5f8-8e84f5772626"
+      }
+    },
+    {
+      "localHubMethod": "SendUserCascadeMessage",
+      "request": {
+        "cascadeId": "e65c542f-6313-475b-b5f8-8e84f5772626",
+        "items": [
+          {
+            "text": "Summarize this synthetic video."
+          }
+        ],
+        "media": [
+          {
+            "mimeType": "video/mp4",
+            "inlineData": "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",
+            "uri": "file://[TEMP_ROOT]/work/synthetic-video.mp4"
+          }
+        ],
+        "blocking": false
+      },
+      "status": 200,
+      "response": {}
+    }
+  ],
+  "stderr": "error: interrupted\n",
+  "officialLog": "I1107 03:16:54.534824      82 server.go:2275] Starting language server process with pid 39265\nI1107 03:16:54.535599      82 server.go:2333] Language server version: 1.5.2\nI1107 03:16:54.535609      82 server.go:1077] Language server will attempt to listen on host localhost\nI1107 03:16:54.536270      82 server.go:1092] Language server listening on random port at 65242 for HTTPS (gRPC)\nI1107 03:16:54.536354      82 server.go:1100] Language server listening on random port at 65240 for HTTP\nI1107 03:16:54.536821      91 model_configs.go:195] Auth mode is unspecified, skipping fetchAvailableModels and returning empty response\nW1107 03:16:54.537063      67 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.537092      67 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.537282      91 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nI1107 03:16:54.538439      99 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nI1107 03:16:54.538454      99 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nW1107 03:16:54.539127      99 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nW1107 03:16:54.539139      99 cache.go:157] Cache(userInfo): Singleflight refresh failed: failed to get load code assist response: error getting token source: You are not logged into Antigravity.\nI1107 03:16:54.539604      82 server.go:2748] Generated and saved persistent installation UUID: ace1b382-3cec-4f3d-b4dc-a9a3d2819025\nW1107 03:16:54.539784     121 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.539794     121 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:16:54.547813      82 defaults.go:725] failed to get cs path: cs path /usr/bin/cs invalid\nI1107 03:16:54.547836      28 migrate.go:49] Migration marker [TEMP_ROOT]/home/.gemini/config/.migrated does not exist. Attempting migration from AppDataDir [TEMP_ROOT]/home/.gemini/antigravity-cli.\nI1107 03:16:54.547851      82 manager.go:119] Creating trajectory store manager with proto store and SQLite store\nI1107 03:16:54.547956      28 migrate.go:157] Migration complete, marked with [TEMP_ROOT]/home/.gemini/config/.migrated\nI1107 03:16:54.552244     137 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:16:54.552302     137 manager.go:113] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] starting\nI1107 03:16:54.552509     137 project_uris_migration.go:42] Starting ProjectUrisMigration\nI1107 03:16:54.552531     137 manager.go:133] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] completed successfully in 21.625µs\nI1107 03:16:54.552705     137 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:16:54.552740     137 manager.go:113] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] starting\nI1107 03:16:54.552950     137 manager.go:133] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] completed successfully in 40.208µs\nI1107 03:16:54.553132     137 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:16:54.553163     137 manager.go:113] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] starting\nI1107 03:16:54.553387     137 manager.go:133] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] completed successfully in 44.542µs\nI1107 03:16:54.553571     137 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:16:54.553579     137 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:16:54.553589     137 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:16:54.553605     137 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:16:54.568409      82 server.go:3543] initialized server successfully in 33.45575ms\nI1107 03:16:54.568445      72 server.go:4201] Auth succeeded, refreshing features and managers\nW1107 03:16:54.568553     128 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nW1107 03:16:54.568557     127 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.568572     128 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.568575     127 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:16:54.568608     127 rpcs_plugin_auth.go:105] Not reloading plugin MCP servers: cannot get the signed-in user: error getting token source: You are not logged into Antigravity.\nE1107 03:16:54.568615      72 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nW1107 03:16:54.568619       1 auto_updater.go:274] Directory /Users/leefee/.local/bin is not fully accessible (readable: false, writable: false), skipping update\nI1107 03:16:54.568645      72 server.go:4220] State refresh took 0ms\nI1107 03:16:54.568651      72 server.go:4233] [RemoteControl] Subscription callback triggered.\nI1107 03:16:54.568656       1 common.go:191] Launching CLI mode\nE1107 03:16:54.568667       1 launchsteps.go:95] Failed to resolve GeminiDir \".gemini\": .gemini must be an absolute path: path is not absolute, falling back to default\nI1107 03:16:54.568680       1 common.go:212] CLI app data directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nI1107 03:16:54.568694       1 server.go:313] Creating CLI server backend: product=antigravity workspaceDirs=[[TEMP_ROOT]/work] appDataDir=[TEMP_ROOT]/home/.gemini/antigravity-cli languageServer=true codeAssist=true\nI1107 03:16:54.568718      72 server.go:4236] [RemoteControl] RemoteControlEnabled value: false\nI1107 03:16:54.568722      72 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:16:54.568727      72 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:16:54.568735       1 auth_provider.go:954] [AuthProvider] SetEnableBusinessLogin called with enable: true\nI1107 03:16:54.568760      72 profiler.go:231] Continuous pprof profiling is disabled.\nI1107 03:16:54.568768     265 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:16:54.568812     265 manager.go:107] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:54.568817     265 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:16:54.568823     262 reconcile_summaries.go:94] [Summaries] reconcile checked 0 conversations, restored 0, cached 0, skipped 0, dropped 0, cancelled false in 0ms (resident: 0 -> 0)\nI1107 03:16:54.568846     265 manager.go:107] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:54.568850     265 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:16:54.568878     265 manager.go:107] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:54.568881     265 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:16:54.568884     265 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:16:54.568893     265 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:16:54.568897     265 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:16:54.569213     240 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nE1107 03:16:54.569275     240 server.go:3214] Failed to read conversations directory [TEMP_ROOT]/home/.gemini/antigravity/conversations: open [TEMP_ROOT]/home/.gemini/antigravity/conversations: no such file or directory\nI1107 03:16:54.569300     240 server.go:3116] ListConversations returning 0 summaries\nI1107 03:16:54.569306     240 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nI1107 03:16:54.569617       1 project.go:78] project: created project \"CLI Project\" (id=default-cli-project) at [TEMP_ROOT]/home/.gemini/config/projects/default-cli-project.json\nI1107 03:16:54.569625       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:16:54.569632       1 analytics.go:249] CLI startup completed (took 35.189ms, phases [main_entered=0ms ls_start=0ms ls_ready=34ms launch_cli=34ms backend_created=34ms project_resolved=35ms])\nI1107 03:16:54.569649       1 printmode.go:208] Print mode: starting (promptLength=30, model=\"\", conversationID=\"\")\nI1107 03:16:54.569660       1 manager.go:549] Initializing CLI store manager for workspace [TEMP_ROOT]/work\nW1107 03:16:54.569721       1 cli_setting_manager.go:450] cli settings not available, using defaults: failed to read cli settings: open [TEMP_ROOT]/home/.gemini/antigravity-cli/settings.json: no such file or directory\nI1107 03:16:54.569734       1 cli_setting_manager.go:81] config.json not found or unreadable, using CLI settings only: open [TEMP_ROOT]/home/.gemini/config/config.json: no such file or directory\nI1107 03:16:54.569762       1 cli_setting_manager.go:96] CLI settings initialized: permissions=<nil>, toolPermission=request-review\nI1107 03:16:54.569932       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:16:54.569943       1 manager.go:723] CLI store manager initialized successfully\nI1107 03:16:54.570681     248 manager.go:1674] Reloading system slash commands and skills\nI1107 03:16:54.570692     248 manager.go:1630] Reloading system slash commands\nI1107 03:16:54.570701     248 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:16:54.570816       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:16:54.570827       1 printmode.go:409] Print mode: not authenticated, trying silent auth\nI1107 03:16:54.579862     293 keyring.go:64] keyringAuth: loaded token, expiry=2099-01-01 00:00:00 +0000 UTC expired=false\nI1107 03:16:54.589636       1 auth.go:157] ChainedAuth: authenticated via keyring (effective: keyring)\nI1107 03:16:54.589652       1 server_oauth.go:221] applyAuthResult: email=fixture@example.invalid, authMethod=consumer, quotaProject=\nI1107 03:16:54.589661       1 server_oauth.go:226] OAuth: authenticated successfully as fixture@example.invalid\nI1107 03:16:54.589665       1 server_oauth.go:235] b.codeAssistClient.AuthProvider (0x3b705d60f590) is same as b.cliAuth (0x3b705d60f590)\nW1107 03:16:54.589793     373 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nW1107 03:16:54.589810     366 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nI1107 03:16:54.599931     372 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.601000     372 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.613315     305 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels\nI1107 03:16:54.613646       1 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nI1107 03:16:54.613661     279 quota_manager.go:45] doRefreshQuota: starting reload (force=true)\nW1107 03:16:54.614403       1 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nI1107 03:16:54.614428       1 printmode.go:411] Print mode: silent auth succeeded\nI1107 03:16:54.614474     280 experiment_manager.go:66] Starting experiment refresh after login\nI1107 03:16:54.616930     398 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.617707     280 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:16:54.617713     280 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:16:54.617718     280 experiment_manager.go:70] Experiments refreshed after login\nI1107 03:16:54.617728     442 manager.go:1630] Reloading system slash commands\nI1107 03:16:54.619496     353 http_helpers.go:571] Failed to make code assist backend request (https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls): {\"error\": {\"code\": 404, \"message\": \"No forwarding: local request-type mock has no handler\"}}\nI1107 03:16:54.622113     398 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.622285     393 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse ResponseID: synthetic-response\nI1107 03:16:54.622896     391 latency_breakdown.go:168] SEND_USER_CASCADE_MESSAGE_LATENCY latency breakdown: map[active_user_state_latency_ms:0 blocking:false cascade_id:e65c542f-6313-475b-b5f8-8e84f5772626 cascade_send_latency_ms:0 hydrate_slash_commands_latency_ms:0 load_trajectory_latency_ms:0 media_count:1 media_summaries_latency_ms:16 message_origin:AGENT_MESSAGE_ORIGIN_UNSPECIFIED resolve_agent_config_latency_ms:0 save_media_latency_ms:0 saved_media_count:0 status:OK total_latency_ms:16 trajectory_id:d4362853-875c-45c5-b9f8-ab0928ae367b]\nE1107 03:16:54.624782     335 errorreport.go:247] failed to construct executor: plan model not specified; you must specify a valid model\nE1107 03:16:54.624843     335 errorreport.go:247] plan model not specified; you must specify a valid model\nI1107 03:16:54.629566     398 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.634008     398 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.635159     398 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nW1107 03:16:54.635170     398 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nI1107 03:16:54.635184     280 experiment_manager.go:66] Starting experiment refresh after login\nI1107 03:16:54.635197     279 quota_manager.go:45] doRefreshQuota: starting reload (force=true)\nI1107 03:16:54.636739     484 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.637042     280 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:16:54.637048     280 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:16:54.637052     280 experiment_manager.go:70] Experiments refreshed after login\nI1107 03:16:54.637063     502 manager.go:1630] Reloading system slash commands\nI1107 03:16:54.637872     502 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:16:54.639287     484 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:54.666544       1 conversation_manager.go:686] Starting new conversation (agent=false)\nI1107 03:16:54.666572       1 server.go:1199] Creating new cascade trajectory (agentScript=false)\nI1107 03:16:54.666583       1 server.go:1225] Conversation using project ID: default-cli-project\nI1107 03:16:54.670253       1 server.go:1242] Created conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (backend=BACKEND_TYPE_UNSPECIFIED)\nI1107 03:16:54.670720       1 server.go:3369] GetConversationDetail: found conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (active=true)\nI1107 03:16:54.670861       1 server.go:3369] GetConversationDetail: found conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (active=true)\nI1107 03:16:54.670866       1 conversation_manager.go:740] project: switching to conversation belonging to project ID: default-cli-project\nI1107 03:16:54.670897       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:16:54.670903       1 cli_setting_manager.go:226] ApplyProjectPermissionGrants: no grants for project \"CLI Project\", cleared project permissions\nI1107 03:16:54.670909       1 conversation_manager.go:756] project: synced active project to \"CLI Project\" (id=default-cli-project) from conversation switch\nI1107 03:16:54.670914       1 conversation_manager.go:1068] Streaming conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1\nI1107 03:16:54.670922     507 manager.go:1674] Reloading system slash commands and skills\nI1107 03:16:54.670932     507 manager.go:1630] Reloading system slash commands\nI1107 03:16:54.671014       1 server.go:3369] GetConversationDetail: found conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (active=true)\nI1107 03:16:54.671129       1 server.go:1260] Starting conversation update stream for c1efadd8-70b8-48e5-bd6d-e749a9094de1\nI1107 03:16:54.671168       1 session.go:201] Print mode: conversation=c1efadd8-70b8-48e5-bd6d-e749a9094de1, sending message\nI1107 03:16:54.671177       1 manager.go:1630] Reloading system slash commands\nI1107 03:16:54.671455     504 http_helpers.go:571] Failed to make code assist backend request (https://daily-cloudcode-pa.googleapis.com/v1internal:writeTrajectoryAcls): {\"error\": {\"code\": 404, \"message\": \"No forwarding: local request-type mock has no handler\"}}\nI1107 03:16:54.672026       1 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:16:54.672042     507 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:16:54.672094       1 conversation_manager.go:875] Forwarding user message to conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (items=1, media=0)\nI1107 03:16:54.672100       1 server.go:1826] Sending user message to conversation c1efadd8-70b8-48e5-bd6d-e749a9094de1 (items=1, media=0)\nI1107 03:16:54.672349       1 latency_breakdown.go:168] SEND_USER_CASCADE_MESSAGE_LATENCY latency breakdown: map[active_user_state_latency_ms:0 blocking:false cascade_id:c1efadd8-70b8-48e5-bd6d-e749a9094de1 cascade_send_latency_ms:0 hydrate_slash_commands_latency_ms:0 load_trajectory_latency_ms:0 media_count:0 media_summaries_latency_ms:0 message_origin:AGENT_MESSAGE_ORIGIN_UNSPECIFIED resolve_agent_config_latency_ms:0 save_media_latency_ms:0 saved_media_count:0 status:OK total_latency_ms:0 trajectory_id:c8e5ee65-f561-4aac-8688-ac4d8833000f]\nI1107 03:16:54.925681     242 server.go:3876] Got signal terminated, shutting down\nI1107 03:16:54.925768     538 server.go:3918] Language server shutting down\nI1107 03:16:54.925803     538 server.go:3940] Waiting for migrations to complete to prevent partial migration state...\nI1107 03:16:54.927714     509 manager.go:647] Ignoring IDLE update at 1 steps; it predates the sent message (0 steps at send)\nI1107 03:16:54.928348     510 server.go:1323] Stream goroutine exited for c1efadd8-70b8-48e5-bd6d-e749a9094de1, sending completion signal\nI1107 03:16:54.928362     510 conversation_manager.go:1239] Stream completed for c1efadd8-70b8-48e5-bd6d-e749a9094de1, clearing ResponsePending\nI1107 03:16:54.939883       1 manager.go:961] CLI store manager shutting down\nI1107 03:16:54.940494       1 conversation_manager.go:1020] Stopping conversation stream\nE1107 03:16:54.943585     538 server.go:4033] Failed to shutdown telemetry client: Clearcut responded with HTTP code: 404\n"
+}

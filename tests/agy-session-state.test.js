@@ -13,6 +13,7 @@ const { nativeCloudCodeFetch } = require('../src/agy-native-transport');
 const { AccountPool } = require('../src/account-pool');
 const { prepareNativeMultimodal } = require('../src/protocol');
 
+const { declaredCall, declaredParts, fixtureTools } = require('./helpers/declared-tool-fixture');
 const model = 'gemini-3.8-flash-high';
 const input = text => ({ system: 'Use the client tools.', messages: [{ role: 'user', text }], tools: [] });
 const reply = parts => new Response(JSON.stringify({ candidates: [{ content: { parts } }] }), {
@@ -45,28 +46,31 @@ test('captured agent envelope ordering, labels and generation profile replace pr
   assert.deepEqual(Object.keys(request.request.labels), ['cascade_id', 'last_step_index', 'model_enum', 'request_id',
     'root_cascade_id', 'trajectory_id', 'used_claude', 'used_claude_conservative', 'used_non_gemini_model']);
   assert.equal(request.request.labels.model_enum, 'MODEL_PLACEHOLDER_M318');
-  assert.deepEqual(request.request.generationConfig, { maxOutputTokens: 65536, thinkingConfig: { includeThoughts: true, thinkingBudget: -1 } });
+  assert.deepEqual(request.request.generationConfig, { maxOutputTokens: 65536, thinkingConfig: { includeThoughts: true, thinkingLevel: 'HIGH' } });
   assert.equal(request.request.sessionId, '-3750763034362895579');
   assert.doesNotMatch(JSON.stringify(request), /private-account|private-session|client-secret-id/);
   assert.equal(request.request.toolConfig, undefined);
 });
 
-test('explicit client output and tool constraints remain native fields; catalog wins over captured fallback', () => {
+test('client output and tool constraints remain native fields; catalog labels do not override the named thinking tier', () => {
   const request = buildDirectRequest({ ...input('hello'), generationConfig: { maxOutputTokens: 2048, temperature: 0.2 },
     tools: [{ name: 'read_file' }], toolChoice: { type: 'tool', name: 'read_file' } }, model, 'p', 's', '', null,
   { modelInfo: { model: 'MODEL_UPDATED', supportsThinking: true, thinkingBudget: 4096, maxOutputTokens: 32768 } });
   assert.equal(request.request.labels.model_enum, 'MODEL_UPDATED');
   assert.deepEqual(request.request.generationConfig, { maxOutputTokens: 2048, temperature: 0.2,
-    thinkingConfig: { includeThoughts: true, thinkingBudget: 4096 } });
-  assert.deepEqual(request.request.toolConfig, { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: ['read_file'] } });
+    thinkingConfig: { includeThoughts: true, thinkingLevel: 'HIGH' } });
+  assert.deepEqual(request.request.toolConfig, { functionCallingConfig: { mode: 'ANY', allowedFunctionNames: [request.request.tools.find(t => t.functionDeclarations[0].name.endsWith('_json')).functionDeclarations[0].name] } });
 });
 
-test('native preparation preserves the entire caller system prompt and confines image instructions to its tool', () => {
+test('native preparation preserves the caller system prompt and carries image delivery guidance separately from its official descriptor', () => {
   const source = input('hello'), prepared = prepareNativeMultimodal(source);
   assert.equal(prepared.normalized.system, source.system);
   assert.equal(prepared.normalized.tools.length, 1);
   assert.equal(prepared.normalized.tools[0].name, 'generate_image');
-  assert.match(prepared.normalized.tools[0].description, /delivered automatically once/);
+  assert.equal(prepared.normalized.tools[0].description, 'Generate an image, or edit existing images, from a text prompt.');
+  const adapter = require('../src/antigravity-tool-contract').prepareAntigravityTools(prepared.normalized);
+  assert.match(adapter.instructions, /delivered automatically once/);
+  assert.equal(adapter.normalized.system, source.system);
   const constrained = { ...source, toolChoice: 'none' };
   assert.equal(prepareNativeMultimodal(constrained).normalized, constrained);
 });
@@ -75,13 +79,13 @@ test('catalog and read-only authentication requests use the captured project bod
   const seen = [];
   const p = provider(new AgySessionStore({ directory: '' }), async (url, options) => {
     seen.push({ url, body: JSON.parse(options.body) });
-    return new Response(JSON.stringify({ models: { [model]: { model: 'MODEL_PLACEHOLDER_M318', supportsThinking: true, thinkingBudget: -1 } } }),
+    return new Response(JSON.stringify({ models: { [model]: { model: 'MODEL_PLACEHOLDER_M318', supportsThinking: true, thinkingLevel: 'HIGH' } } }),
       { headers: { 'content-type': 'application/json' } });
   });
   await p.listModels(); await p.probeAuthentication();
   assert.equal(seen.length, 2);
   for (const item of seen) assert.deepEqual(item.body, { project: 'test-project' });
-  assert.equal(p.modelInfo(model).thinkingBudget, -1);
+  assert.equal(p.modelInfo(model).thinkingLevel, 'HIGH');
   assert.equal(p.modelInfo(model).model, 'MODEL_PLACEHOLDER_M318');
 });
 
@@ -127,17 +131,17 @@ test('tool history restores exact signature after restart and returns result as 
   const dir = directory(t), requests = [], tool = { id: 'call_123', name: 'read_file', args: { path: 'probe' } };
   await provider(new AgySessionStore({ directory: dir }), async (_url, options) => {
     requests.push(JSON.parse(options.body));
-    return reply([{ thought: true, text: 'Read the file.' }, { functionCall: tool, thoughtSignature: 'call-signature' }]);
-  }).send(input('Read a file.'), model, { sessionId: 'tool-session' });
+    return reply(declaredParts(requests.at(-1), [{ thought: true, text: 'Read the file.' }, { functionCall: tool, thoughtSignature: 'call-signature' }]));
+  }).send({ ...input('Read a file.'), tools: fixtureTools('read_file') }, model, { sessionId: 'tool-session' });
   await provider(new AgySessionStore({ directory: dir }), async (_url, options) => {
     requests.push(JSON.parse(options.body)); return reply([{ text: 'coral' }]);
-  }).send({ ...input('Read a file.'), messages: [...input('Read a file.').messages,
+  }).send({ ...input('Read a file.'), tools: fixtureTools('read_file'), messages: [...input('Read a file.').messages,
     { role: 'assistant', parts: [{ type: 'tool_call', id: tool.id, name: tool.name, arguments: tool.args }] },
     { role: 'user', parts: [{ type: 'tool_result', id: tool.id, content: 'coral' }, { type: 'text', text: 'Summarize.' }] }
   ] }, model, { sessionId: 'tool-session' });
-  assert.deepEqual(requests[1].request.contents[1], { role: 'model', parts: [{ functionCall: tool, thoughtSignature: 'call-signature' }] });
+  assert.deepEqual(requests[1].request.contents[1], { role: 'model', parts: [{ functionCall: declaredCall(requests[0], tool), thoughtSignature: 'call-signature' }] });
   assert.deepEqual(requests[1].request.contents[2], { role: 'model', parts: [{ functionResponse: {
-    id: tool.id, name: tool.name, response: { output: 'coral' }
+    id: tool.id, name: declaredCall(requests[0], tool).name, response: { output: 'coral' }
   } }] });
   assert.equal(requests[1].request.contents[3].role, 'user');
   assert.equal(requests[1].request.labels.last_execution_id, undefined);

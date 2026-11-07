@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { AccountStoragePermissions } = require('./account-storage-permissions');
 
 function firstString(...values) {
   for (const value of values) if (typeof value === 'string' && value.trim()) return value.trim();
@@ -20,6 +21,20 @@ function accountId(record) {
   return record?.id || `account-${crypto.createHash('sha256').update(`${namespace}${stable || crypto.randomUUID()}`).digest('hex').slice(0, 16)}`;
 }
 
+function accountGrantGeneration(account = {}) {
+  if (account.grantGeneration) return String(account.grantGeneration);
+  // Legacy records get a deterministic identity until their next atomic save.
+  return `legacy:${crypto.createHash('sha256').update(JSON.stringify([
+    account.id, account.subjectId, account.email, account.refreshToken || account.accessToken,
+    account.clientId, account.clientSecret, account.projectId, account.authMethod
+  ])).digest('hex')}`;
+}
+
+function credentialFingerprint(account = {}) {
+  return JSON.stringify(['subjectId', 'email', 'accessToken', 'refreshToken', 'clientId',
+    'clientSecret', 'projectId', 'authMethod'].map(key => account[key] || ''));
+}
+
 function normalizeAccount(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const accessToken = firstString(raw.accessToken, raw.access_token);
@@ -34,6 +49,7 @@ function normalizeAccount(raw) {
   const now = new Date().toISOString();
   return {
     id: accountId(raw),
+    grantGeneration: firstString(raw.grantGeneration),
     providerType: firstString(raw.providerType, raw.provider_type) || 'cloudcode',
     accountType: firstString(raw.accountType, raw.account_type) || 'antigravity',
     subjectId: firstString(raw.subjectId, raw.subject_id),
@@ -69,19 +85,17 @@ function safeName(account) {
 }
 
 class AccountStore {
-  constructor({ configDir, fsImpl = fs, directoryName = 'accounts' } = {}) {
+  constructor({ configDir, fsImpl = fs, directoryName = 'accounts', platform = process.platform, permissions } = {}) {
     if (!configDir) throw new Error('AccountStore requires configDir');
     this.fs = fsImpl;
     if (!/^[a-z0-9][a-z0-9._-]*$/i.test(directoryName)) throw new Error('AccountStore directoryName is invalid');
     this.directory = path.join(configDir, directoryName);
-    this.privateStorage = ['robin-accounts', 'gemini-win-accounts'].includes(directoryName);
+    this.permissions = permissions || new AccountStoragePermissions({ fsImpl, platform });
   }
 
   ensureDirectory() {
-    // Keep existing Cloud Code storage behavior. Independent Robin OAuth
-    // credentials stay owner-only, including after atomic file replacement.
-    this.fs.mkdirSync(this.directory, { recursive: true, ...(this.privateStorage ? { mode: 0o700 } : {}) });
-    if (this.privateStorage) this.fs.chmodSync(this.directory, 0o700);
+    this.fs.mkdirSync(this.directory, { recursive: true, mode: 0o700 });
+    this.permissions.directory(this.directory);
   }
 
   list() {
@@ -89,8 +103,12 @@ class AccountStore {
     const accounts = [];
     for (const name of this.fs.readdirSync(this.directory)) {
       if (!name.endsWith('.json')) continue;
+      const file = path.join(this.directory, name);
+      // Permission failures must be visible instead of silently accepting a
+      // credential file whose privacy cannot be established.
+      this.permissions.file(file);
       try {
-        const account = normalizeAccount(JSON.parse(this.fs.readFileSync(path.join(this.directory, name), 'utf8')));
+        const account = normalizeAccount(JSON.parse(this.fs.readFileSync(file, 'utf8')));
         if (account) accounts.push(account);
       } catch {
         // One broken account file must not prevent other accounts from loading.
@@ -99,14 +117,30 @@ class AccountStore {
     return accounts.sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id));
   }
 
-  save(value) {
-    const account = normalizeAccount({ ...value, updatedAt: new Date().toISOString() });
+  save(value, { newGrant = false, expectedGrant = '' } = {}) {
+    let account = normalizeAccount({ ...value, updatedAt: new Date().toISOString() });
     if (!account) throw new Error('账号凭据缺少 access token 和 refresh token。');
-    this.ensureDirectory();
+    const existing = this.list().find(current => current.id === account.id
+      || (account.subjectId && current.subjectId === account.subjectId)
+      || (account.email && current.email.toLowerCase() === account.email.toLowerCase()));
+    if (expectedGrant && (!existing || accountGrantGeneration(existing) !== expectedGrant)) return null;
+    const sameCredentials = existing && credentialFingerprint(existing) === credentialFingerprint(account);
+    // Normal refresh uses the CAS path. Any other credential replacement,
+    // including an explicit reauthorization returning identical tokens, starts
+    // a fresh generation that old asynchronous work cannot modify.
+    account.grantGeneration = existing && !newGrant && (expectedGrant || sameCredentials)
+      ? accountGrantGeneration(existing) : crypto.randomUUID();
+    if (existing) { account.id = existing.id; account.createdAt = existing.createdAt; }
     const target = path.join(this.directory, safeName(account));
     const temporary = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
-    this.fs.writeFileSync(temporary, `${JSON.stringify(account, null, 2)}\n`, this.privateStorage ? { mode: 0o600 } : undefined);
-    this.fs.renameSync(temporary, target);
+    try {
+      this.fs.writeFileSync(temporary, `${JSON.stringify(account, null, 2)}\n`, { mode: 0o600, flag: 'wx' });
+      this.permissions.file(temporary);
+      this.fs.renameSync(temporary, target);
+      this.permissions.file(target);
+    } finally {
+      try { this.fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
     // If the account email became known after the first save, remove a stale
     // ID-named duplicate while leaving unrelated files untouched.
     for (const name of this.fs.readdirSync(this.directory)) {
@@ -120,6 +154,19 @@ class AccountStore {
       } catch { /* preserve unreadable user files */ }
     }
     return account;
+  }
+
+  updateCredentials(expected, updates) {
+    const generation = accountGrantGeneration(expected);
+    const current = this.list().find(account => account.id === expected.id);
+    if (!current || accountGrantGeneration(current) !== generation) return null;
+    const tokens = {};
+    for (const key of ['accessToken', 'refreshToken', 'expiresAt', 'projectId', 'authMethod']) {
+      if (Object.hasOwn(updates, key)) tokens[key] = updates[key];
+    }
+    // No await between compare and atomic replace: concurrent operations in the
+    // gateway cannot replace a newer grant or revert enabled/weight metadata.
+    return this.save({ ...current, ...tokens }, { expectedGrant: generation });
   }
 
   update(id, updates) {
@@ -150,4 +197,4 @@ class AccountStore {
   }
 }
 
-module.exports = { AccountStore, accountId, normalizeAccount };
+module.exports = { AccountStore, accountId, normalizeAccount, accountGrantGeneration };

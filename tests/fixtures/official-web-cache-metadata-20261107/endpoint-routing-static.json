@@ -1,0 +1,206 @@
+{
+  "evidence": "official-1.5.2-bounded-static-jetski-endpoint-routing",
+  "recordedAt": "2026-11-06T20:05:52.040928+00:00",
+  "binary": {
+    "version": "1.5.2",
+    "sha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+    "bytes": 206461088
+  },
+  "networkRequestsDuringStaticReview": 0,
+  "functions": [
+    {
+      "fileOffset": "0x1bf19e0",
+      "endFileOffset": "0x1bf1aa0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).FetchFromTrawlerCache",
+      "sha256": "dd66f6ee351ed3ce9b1496015659be28bc0e0ca640708ac246dee6c5044578d2"
+    },
+    {
+      "fileOffset": "0x1c24200",
+      "endFileOffset": "0x1c24380",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).GetWebSearchRedirect",
+      "sha256": "407b89e35fd439a4d0c92e896617b1c13a95bcd419e7ea19aa016a4e4c6c315f"
+    },
+    {
+      "fileOffset": "0x1c30e10",
+      "endFileOffset": "0x1c31050",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.doJetskiRequestAndUnmarshal[go.shape.*uint8]",
+      "sha256": "03c0244984498ea782eae9e515705f5f035cf910e69df7c8d7cc87b640c917b2"
+    },
+    {
+      "fileOffset": "0x1c05a00",
+      "endFileOffset": "0x1c05ab0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).constructJetskiEndpoint",
+      "sha256": "37ec1fd08d9a4a41861e5381cd1a9d90ce3730260aafae3a77077c1017986a51"
+    },
+    {
+      "fileOffset": "0x1c05770",
+      "endFileOffset": "0x1c058d0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).jetskiServiceEndpointURL",
+      "sha256": "847232865b9a1ec807479ba08cef518360b4493d01c09948d7956f92352f6e5a"
+    },
+    {
+      "fileOffset": "0x1c05500",
+      "endFileOffset": "0x1c05620",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.mapCCPAEndpointToAICode",
+      "sha256": "bd2af902ed94d91d01eef887d77bf3f81e336191e616c08adb5f7b83f9d6fde5"
+    },
+    {
+      "fileOffset": "0x1c05620",
+      "endFileOffset": "0x1c056c0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.aicodeBaseURL",
+      "sha256": "6431d2acb680ae36755ce115eb0fad52ec388d507df56deae2b8501fc385cec0"
+    },
+    {
+      "fileOffset": "0x1c058d0",
+      "endFileOffset": "0x1c05a00",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).shouldFallbackJetskiToCCPA",
+      "sha256": "ea0acd1e763444ee3e840e131964d9591781141a1c6168e27b9dfb1ea2cb2626"
+    },
+    {
+      "fileOffset": "0x1c05150",
+      "endFileOffset": "0x1c05220",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).constructCodeAssistEndpoint",
+      "sha256": "124562fabaf11d211eb6522dc124517ba3b990eb08c28cf40fe33a6c7cc18aad"
+    },
+    {
+      "fileOffset": "0x1c048f0",
+      "endFileOffset": "0x1c049f0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.SetUseAicodeJetskiEndpoint",
+      "sha256": "80924c001b568a277b9f82c17a34747f7ca1f0877050a6255a006a1d13d2ce57"
+    },
+    {
+      "fileOffset": "0x1be71d0",
+      "endFileOffset": "0x1be72f0",
+      "name": "google3/third_party/jetski/language_server/code_assist_client/codeassistclient.(*CodeAssistClient).isInAICodeScopeCooldown",
+      "sha256": "02f7829f391ef65c17fd621060d81f5a1733faa1eca1194719a8732dfe1c2f9f"
+    },
+    {
+      "fileOffset": "0x2981e90",
+      "endFileOffset": "0x2981f50",
+      "name": "google3/third_party/jetski/cli/backend/backend.NewServerBackend.func1",
+      "sha256": "1e714396045803c5931cf36e109e0bdc768dc63a3afbc8b6268e9bcf83b8b303"
+    }
+  ],
+  "literals": [
+    {
+      "fileOffset": "0x38b160c",
+      "length": 27,
+      "value": "JETSKI_SERVICE_ENDPOINT_URL"
+    },
+    {
+      "fileOffset": "0x38a5738",
+      "length": 26,
+      "value": "use-aicode-jetski-endpoint"
+    },
+    {
+      "fileOffset": "0x38b19bd",
+      "length": 27,
+      "value": "use-aicode-preprod-endpoint"
+    },
+    {
+      "fileOffset": "0x38f6de8",
+      "length": 34,
+      "value": "enable-inference-traffic-migration"
+    },
+    {
+      "fileOffset": "0x3928a09",
+      "length": 41,
+      "value": "https://daily-cloudcode-pa.googleapis.com"
+    },
+    {
+      "fileOffset": "0x38fe7bf",
+      "length": 35,
+      "value": "https://cloudcode-pa.googleapis.com"
+    },
+    {
+      "fileOffset": "0x3978f0e",
+      "length": 57,
+      "value": "https://preprod-daily-cloudcode-pa.sandbox.googleapis.com"
+    },
+    {
+      "fileOffset": "0x396408c",
+      "length": 52,
+      "value": "https://autopush-cloudcode-pa.sandbox.googleapis.com"
+    },
+    {
+      "fileOffset": "0x39470b4",
+      "length": 46,
+      "value": "https://autopush-aicode.sandbox.googleapis.com"
+    },
+    {
+      "fileOffset": "0x3941485",
+      "length": 45,
+      "value": "https://preprod-aicode.sandbox.googleapis.com"
+    },
+    {
+      "fileOffset": "0x38c7c9f",
+      "length": 29,
+      "value": "https://aicode.googleapis.com"
+    },
+    {
+      "fileOffset": "0x3736b50",
+      "length": 8,
+      "value": "%s/%s:%s"
+    },
+    {
+      "fileOffset": "0x3767df8",
+      "length": 10,
+      "value": "v1internal"
+    },
+    {
+      "fileOffset": "0x380c8f2",
+      "length": 17,
+      "value": "personal_consumer"
+    },
+    {
+      "fileOffset": "0x3980aa6",
+      "length": 59,
+      "value": "JetskiService request to %s failed (%v); falling back to %s"
+    }
+  ],
+  "callChain": [
+    "PlatformClient.FetchFromTrawlerCache -> CodeAssistClient.FetchFromTrawlerCache",
+    "PlatformClient.RewriteURL -> CodeAssistClient.GetWebSearchRedirect",
+    "doJetskiRequestAndUnmarshal -> constructJetskiEndpoint -> jetskiServiceEndpointURL",
+    "on error: shouldFallbackJetskiToCCPA -> constructCodeAssistEndpoint -> second request if permitted"
+  ],
+  "routeConditions": {
+    "environmentOverride": "JETSKI_SERVICE_ENDPOINT_URL when nonempty",
+    "base": "AuthProvider.GetEndpointURL, stripped trailing slash",
+    "aicodeMappingRequires": [
+      "Mendel use-aicode-jetski-endpoint is true",
+      "CodeAssistClient.isInAICodeScopeCooldown is false",
+      "AuthProvider.ResolveAuthMode returns personal_consumer without error"
+    ],
+    "knownMapping": {
+      "https://daily-cloudcode-pa.googleapis.com": "https://aicode.googleapis.com",
+      "https://cloudcode-pa.googleapis.com": "https://aicode.googleapis.com"
+    },
+    "pathFormat": "%s/%s:%s where version=v1internal and RPC method supplied by caller",
+    "flagSetterCallSites": [
+      {
+        "fileOffset": "0x28b1994",
+        "caller": "language_server.registerMendelUpdateListener.func1"
+      },
+      {
+        "fileOffset": "0x2981ee8",
+        "caller": "cli/backend.NewServerBackend.func1"
+      }
+    ],
+    "currentAccountMendelValue": "not observed; no metadata request made to discover it",
+    "currentOfficialCliPreferredHost": "not dynamically observed"
+  },
+  "authModeMethodEvidence": {
+    "standaloneAuthProviderItabFileOffset": "0xa2a8908",
+    "endpointSlot": "0x28 -> GetEndpointURL",
+    "authModeSlot": "0x80 -> ResolveAuthMode",
+    "authModeLiteral": "personal_consumer",
+    "note": "This is auth mode, not GetUserTier; GetUserTier is slot 0x58."
+  },
+  "interpretation": [
+    "The daily-cloudcode cache probe tested one statically defined CCPA route only.",
+    "A real official consumer CLI can choose aicode.googleapis.com first under an independently supplied Mendel flag.",
+    "The generic 404 NOT_FOUND response contains no cache-miss or route-missing discriminator.",
+    "No aicode host, fallback host, liveFetch, alternate URL, model or extra metadata request was sent."
+  ]
+}

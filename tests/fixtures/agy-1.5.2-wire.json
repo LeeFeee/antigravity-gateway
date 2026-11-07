@@ -1,0 +1,165 @@
+{
+  "provenance": "Unmodified installed agy 1.5.2, macOS arm64, 2026-11-06; real HTTPS proxy captures. Tokens/account/content excluded.",
+  "transport": {
+    "httpVersion": "HTTP/1.1",
+    "headers": [
+      [
+        "Host",
+        "daily-cloudcode-pa.googleapis.com"
+      ],
+      [
+        "User-Agent",
+        "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      ],
+      [
+        "Transfer-Encoding",
+        "chunked"
+      ],
+      [
+        "Authorization",
+        "Bearer [REDACTED]"
+      ],
+      [
+        "Content-Type",
+        "application/json"
+      ],
+      [
+        "Accept-Encoding",
+        "gzip"
+      ]
+    ],
+    "path": "/v1internal:streamGenerateContent?alt=sse",
+    "outerKeys": [
+      "project",
+      "requestId",
+      "request",
+      "model",
+      "userAgent",
+      "requestType"
+    ],
+    "requestKeys": [
+      "contents",
+      "systemInstruction",
+      "tools",
+      "labels",
+      "generationConfig",
+      "sessionId"
+    ]
+  },
+  "models": {
+    "gemini-3.8-flash-high": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "HIGH"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M318",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "169ac284a6cedb01ed502aefc9f7f77c1b0f0043eb4f00984bb5caf0a85ca941"
+    },
+    "gpt-oss-120b-medium": {
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 8192
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_OPENAI_GPT_OSS_120B_MEDIUM",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "3beca49622c04a62c579f7fe915b83459297c43bdb5cf7bffef61c1795644863"
+    },
+    "gemini-3.8-flash-medium": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "MEDIUM"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M319",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "48a50a10802020053253e7b7e3c1f033eb89bcc0db0c224e504048ac8894cc4f"
+    },
+    "claude-sonnet-4-6": {
+      "generationConfig": {
+        "maxOutputTokens": 64000,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M35",
+        "used_claude": "true",
+        "used_claude_conservative": "true",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "b61948772c4e2e01dc5d2ed96baf260c14ace659a06493a94d32bbe5e506ddbe"
+    },
+    "gemini-3.8-flash-low": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "LOW"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M320",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "f8e4e27d1773c78c4008f7cd3c455a3028731f6800f77bb59c00b35df0a49dc0"
+    },
+    "claude-opus-4-6-thinking": {
+      "generationConfig": {
+        "maxOutputTokens": 64000,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M26",
+        "used_claude": "true",
+        "used_claude_conservative": "true",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200,
+      "captureBodySha256": "c0038a489a03460943be6eb25322e4105e7689651b17bfa24eddc23d487b9b68"
+    }
+  }
+}

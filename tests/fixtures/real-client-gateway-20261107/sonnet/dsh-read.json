@@ -1,0 +1,66 @@
+{
+  "agent": "dsh",
+  "version": "0.2.1-rc.2",
+  "scenario": "read",
+  "recordedAt": "2026-11-06T17:54:15.790Z",
+  "model": "claude-sonnet-4-6",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "isolation": "fresh client HOME/workdir; separate copied agy account pool with original quota and health; CLI loopback only; original native Go TLS transport retained",
+  "source": {
+    "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+    "files": 51
+  },
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "bddf055cac2df96e89160ca27e7794e8c489f6978295bd6be925bab10733b70e",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/dsh",
+    "--profile",
+    "headless",
+    "--patch",
+    "/tmp/real-client-gateway/dsh-read/dsh-probe.yml",
+    "--json",
+    "This is an isolated file-reading test. Use your file-reading tool to read lines 1 through 2 of /tmp/real-client-gateway/dsh-read/work/probe-input.txt (offset 1, limit 2). Return only the exact second line. Do not use shell commands, write tools, other files, web, or subagents."
+  ],
+  "marker": "REAL_GATEWAY_READ_31ba63b8af7e700b",
+  "assessment": {
+    "passed": false,
+    "checks": {
+      "clientSucceeded": false,
+      "gatewayHTTP": false,
+      "realNativeTLS": false,
+      "finalMarkerDelivered": false,
+      "officialUA": true,
+      "actualFixtureResult": false,
+      "followupGeneration": false,
+      "originalClientToolName": false,
+      "noUnexpectedToolCall": true
+    },
+    "generationCount": 0,
+    "clientRequests": 0,
+    "nativeResultNames": []
+  },
+  "outcome": {
+    "code": 1,
+    "signal": null,
+    "clientReportedError": false
+  },
+  "trace": [],
+  "stdout": "",
+  "stderr": "node:fs:2801\n      const stats = binding.lstat(base, true, undefined, true /* throwIfNoEntry */);\n                            ^\n\nError: EPERM: operation not permitted, lstat '/home/probe'\n    at Object.realpathSync (node:fs:2801:29)\n    at toRealPath (node:internal/modules/helpers:61:13)\n    at Function._findPath (node:internal/modules/cjs/loader:760:22)\n    at resolveMainPath (node:internal/modules/run_main:39:23)\n    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:163:20)\n    at node:internal/main/run_main_module:36:49 {\n  errno: -1,\n  code: 'EPERM',\n  syscall: 'lstat',\n  path: '/home/probe'\n}\n\nNode.js v22.23.4\n"
+}

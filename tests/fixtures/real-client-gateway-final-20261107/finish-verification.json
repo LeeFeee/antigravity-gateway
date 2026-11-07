@@ -1,0 +1,115 @@
+{
+  "verifiedAt": "2026-11-06T18:42:50.310Z",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "sourceSHA256": "919d115ca217e164764e10e65b115efc33bca862e8c2d29d168c42d17b9f40c3",
+  "sourceUnchanged": true,
+  "sourceStillMatches": true,
+  "entries": [
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "model": "claude-sonnet-4-6",
+      "fixture": "claude-read.json",
+      "sha256": "6b28efe809dac1f3990ee7125bc81eb32957a7c448fd2f6ce8342418adfb8f93",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": [
+          "read_file"
+        ]
+      },
+      "nativeGenerationStatuses": [
+        200,
+        200
+      ],
+      "nativeFinishReasons": [
+        [
+          "STOP"
+        ],
+        [
+          "STOP"
+        ]
+      ],
+      "clientTerminals": [
+        {
+          "path": "/v1/messages?beta=true",
+          "status": 200,
+          "lastEvent": "message_stop",
+          "stopReason": "tool_use"
+        },
+        {
+          "path": "/v1/messages?beta=true",
+          "status": 200,
+          "lastEvent": "message_stop",
+          "stopReason": "end_turn"
+        }
+      ]
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "model": "claude-sonnet-4-6",
+      "fixture": "pi-read.json",
+      "sha256": "c4d651163ec387bbe3c0cbe4194c8b9a8226a694ddb7d05f061027611fd03cdd",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": [
+          "read_file"
+        ]
+      },
+      "nativeGenerationStatuses": [
+        200,
+        200
+      ],
+      "nativeFinishReasons": [
+        [
+          "STOP"
+        ],
+        [
+          "STOP"
+        ]
+      ],
+      "clientTerminals": [
+        {
+          "path": "/v1/responses",
+          "status": 200,
+          "lastEvent": "response.completed",
+          "responseStatus": "completed"
+        },
+        {
+          "path": "/v1/responses",
+          "status": 200,
+          "lastEvent": "response.completed",
+          "responseStatus": "completed"
+        }
+      ]
+    }
+  ],
+  "oauthTokenEndpointCounts": {},
+  "oauthProtocolVersionObserved": false
+}

@@ -4,10 +4,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { setTimeout: delay } = require('node:timers/promises');
-const { DirectAntigravityProvider } = require('../../src/direct-provider');
 const { QuotaManager } = require('../../src/quota-manager');
-const { RobinAccountPool } = require('../../src/robin-account-pool');
-const { LocalAccountImporter } = require('../../src/local-account-importer');
 const { AccountPool } = require('../../src/account-pool');
 const reload = AccountPool.prototype.reload;
 AccountPool.prototype.reload = function (...args) {
@@ -16,11 +13,9 @@ AccountPool.prototype.reload = function (...args) {
 };
 globalThis.fetch = async () => { throw new Error('生命周期测试禁止访问外部上游'); };
 QuotaManager.prototype.start = () => {};
-RobinAccountPool.prototype.start = () => {};
-LocalAccountImporter.prototype.importIfNew = async () => ({ status: 'none' });
-DirectAntigravityProvider.prototype.isConfigured = () => true;
-DirectAntigravityProvider.prototype.listModels = async () => ['gemini-test-high'];
-DirectAntigravityProvider.prototype.send = async function () {
+AccountPool.prototype.hasManagedAccounts = () => true;
+AccountPool.prototype.listModels = async () => ['gemini-test-high'];
+AccountPool.prototype.send = async function () {
   const root = process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR;
   fs.writeFileSync(path.join(root, 'transaction-started'), '1');
   while (!fs.existsSync(path.join(root, 'release-transaction'))) await delay(10);

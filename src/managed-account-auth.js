@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const { errorDetails } = require('./diagnostic-log');
 const { LocalAgyAuthProvider } = require('./local-agy-auth');
+const { nativeCloudCodeFetch } = require('./agy-native-transport');
 
 function privateAccountIdentity(account) {
   const subject = String(account.subjectId || '').trim();
@@ -32,7 +33,7 @@ function authRecord(account) {
 }
 
 class ManagedAccountAuthProvider {
-  constructor({ account, store, fetchImpl = globalThis.fetch, agyPath = '', diagnosticReporter } = {}) {
+  constructor({ account, store, fetchImpl = nativeCloudCodeFetch, agyPath = '', diagnosticReporter } = {}) {
     this.account = account;
     this.store = store;
     this.disabled = false;
@@ -81,16 +82,18 @@ class ManagedAccountAuthProvider {
     }
     if (this.disabled) throw new Error('账号已从账号池删除。');
     if (record !== before || record.accessToken !== this.account.accessToken || record.refreshToken !== this.account.refreshToken) {
-      this.account = this.store.save({
-        ...this.account,
+      const saved = this.store.updateCredentials(this.account, {
         accessToken: record.accessToken,
         refreshToken: record.refreshToken,
         expiresAt: record.expiry instanceof Date ? record.expiry.toISOString() : '',
         projectId: record.projectId || this.account.projectId,
-        clientId: this.account.clientId,
-        clientSecret: this.account.clientSecret,
         authMethod: record.authMethod || this.account.authMethod
       });
+      if (!saved) {
+        this.disabled = true;
+        throw Object.assign(new Error('账号授权已更新，旧刷新结果已丢弃。'), { code: 'account_credentials_changed', status: 409 });
+      }
+      this.account = saved;
     }
     if (refreshExpected) this.report('managed_token_refresh_succeeded', {
       durationMs: Date.now() - startedAt,

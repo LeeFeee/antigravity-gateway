@@ -1,16 +1,35 @@
 'use strict';
 
-// Observed agy 1.4.2 agent requests, not optional fields from a protocol schema.
-// The live account catalog takes precedence over this captured offline default.
+const { CAPTURED_MODELS, thinkingLevel, modelProfile, generationProfile,
+  resolveModelConfiguration, assertGenerationCompatibility } = require('./antigravity-model-config');
+
+// Observed Google Antigravity API protocol requests from agy 1.5.2 (2026-11-06).
 const AGY_SESSION_ID = '-3750763034362895579';
-const CAPTURED_MODELS = Object.freeze({
-  'gemini-3.8-flash-high': Object.freeze({ model: 'MODEL_PLACEHOLDER_M318',
-    displayName: 'Gemini 3.8 Flash (High)', maxOutputTokens: 65536, supportsThinking: true, thinkingBudget: -1 }),
-  'gemini-3.8-flash-medium': Object.freeze({ model: 'MODEL_PLACEHOLDER_M319',
-    displayName: 'Gemini 3.8 Flash (Medium)', maxOutputTokens: 65536, supportsThinking: true, thinkingBudget: 4000 }),
-  'gemini-3.8-flash-low': Object.freeze({ model: 'MODEL_PLACEHOLDER_M320',
-    displayName: 'Gemini 3.8 Flash (Low)', maxOutputTokens: 65536, supportsThinking: true, thinkingBudget: 1000 })
+
+const AGY_CLI_VERSION = '1.5.2';
+const AGY_BUILD = '1015175089';
+// Official 1.5.2 terminal OAuth captures use the Go OAuth transport, not the
+// model RPC transport. The dashboard keeps its own state-bound local callback.
+const AGY_OAUTH_PROFILE = Object.freeze({
+  authorizationEndpoint: 'https://accounts.google.com/o/oauth2/auth',
+  tokenEndpoint: 'https://oauth2.googleapis.com/token',
+  userinfoEndpoint: 'https://www.googleapis.com/oauth2/v2/userinfo',
+  userAgent: 'Go-http-client/2.0',
+  scopes: Object.freeze([
+    'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'https://www.googleapis.com/auth/cclog',
+    'https://www.googleapis.com/auth/experimentsandconfigs',
+    'https://www.googleapis.com/auth/aicode',
+    'openid'
+  ])
 });
+function cliUserAgent({ platform = process.platform, arch = process.arch, authMethod = 'consumer' } = {}) {
+  const os = platform === 'win32' ? 'windows' : platform;
+  const cpu = arch === 'x64' ? 'amd64' : arch;
+  return `antigravity/cli/${AGY_CLI_VERSION} (aidev_client; os_type=${os}; arch=${cpu}; cl=${AGY_BUILD}; auth_method=${authMethod})`;
+}
 
 // Fresh official high/medium/low switch captures preserve previous text and
 // tool-call signatures in both directions. Do not infer compatibility from a
@@ -19,18 +38,6 @@ const SHARED_HISTORY = new Set(['gemini-3.8-flash-high', 'gemini-3.8-flash-mediu
 function compatibleHistoryModels(source, target) {
   return typeof source === 'string' && source.length > 0 && typeof target === 'string' && target.length > 0
     && (source === target || (SHARED_HISTORY.has(source) && SHARED_HISTORY.has(target)));
-}
-
-function modelProfile(model, metadata) { return metadata || CAPTURED_MODELS[model] || {}; }
-
-function generationProfile(normalized, model, metadata) {
-  const profile = modelProfile(model, metadata);
-  const generation = { ...(profile.maxOutputTokens > 0 ? { maxOutputTokens: profile.maxOutputTokens } : {}),
-    ...normalized.generationConfig };
-  if (profile.supportsThinking && Number.isFinite(profile.thinkingBudget)) {
-    generation.thinkingConfig = { includeThoughts: true, thinkingBudget: profile.thinkingBudget };
-  }
-  return Object.keys(generation).length ? generation : null;
 }
 
 function agentEnvelope({ model, project, contents, systemInstruction, tools, generationConfig, toolConfig, state, metadata, step, requestType = 'agent', now = Date.now() }) {
@@ -44,9 +51,9 @@ function agentEnvelope({ model, project, contents, systemInstruction, tools, gen
     request_id: `${state.trajectoryId}-${state.requestIndex}`,
     root_cascade_id: state.cascadeId,
     trajectory_id: state.trajectoryId,
-    used_claude: String(Boolean(state.usedClaude)),
-    used_claude_conservative: 'false',
-    used_non_gemini_model: String(Boolean(state.usedNonGemini))
+    used_claude: String(Boolean(state.usedClaude) || /claude/i.test(model)),
+    used_claude_conservative: String(Boolean(state.usedClaude) || /claude/i.test(model)),
+    used_non_gemini_model: String(Boolean(state.usedNonGemini) || !/^gemini-/i.test(model))
   };
   return {
     project,
@@ -85,4 +92,6 @@ function nativeSchema(schema) {
   return result;
 }
 
-module.exports = { AGY_SESSION_ID, CAPTURED_MODELS, agentEnvelope, generationProfile, modelProfile, nativeSchema, compatibleHistoryModels };
+module.exports = { AGY_SESSION_ID, AGY_CLI_VERSION, AGY_BUILD, AGY_OAUTH_PROFILE, cliUserAgent, thinkingLevel,
+  CAPTURED_MODELS, agentEnvelope, generationProfile, modelProfile, nativeSchema, compatibleHistoryModels,
+  resolveModelConfiguration, assertGenerationCompatibility };

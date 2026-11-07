@@ -1,0 +1,77 @@
+{
+  "recordedAt": "2026-11-06T19:35:58.833961+00:00",
+  "sourceFixture": "tests/fixtures/client-web-tools-20261107/latest-release-batch/gemini-low-latest-release.json",
+  "sourceFixtureSha256": "0d4786a9efa55ab661382fd4851136abf71b680f4917fe9f0f25a75df500fbd6",
+  "publicRequestsOnly": true,
+  "modelGenerationCount": 0,
+  "credentialsOrCookiesSent": false,
+  "maximumDistinctInitialUris": 3,
+  "observations": [
+    {
+      "chunkIndex": 0,
+      "declaredTitle": "crystal-method.com",
+      "sourceUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEO9jouVD2Vms-PCbd9Hq6W24VoDu0lZ0FCPz458hEFTo-CUn-Mg32K1usdeBeDjKxshpluqF60w5jIE-YJymOmQJgwnUrhy20M0kfsMCoyD9jGayLWjQDGPJKCRzFxP6EnjDkSu3t9PpxxhNsHBob66v_-7YBO5Yd6wiNOLfIBBFCSmWAS3A==",
+      "sourceUriSha256": "d6cee1b526ff5a619de7fefbaeedf7341f3cca7a844b88e1ce074adbc6aff2f8",
+      "method": "HEAD",
+      "redirects": [
+        {
+          "statusLine": "HTTP/2 302 ",
+          "location": "https://crystal-method.com/ja/news/gemini-cli-v0-67-0-sandbox-editor-integration/"
+        }
+      ],
+      "curlExit": 28,
+      "error": "curl: (28) Connection timed out after 14905 milliseconds",
+      "effectiveUrl": "https://crystal-method.com/ja/news/gemini-cli-v0-67-0-sandbox-editor-integration/",
+      "effectiveHostname": "crystal-method.com",
+      "lastObservedStatus": 302,
+      "reachedEffectiveUrl": false,
+      "boundary": "Google Location header verified; target host did not finish responding"
+    },
+    {
+      "chunkIndex": 1,
+      "declaredTitle": "note.com",
+      "sourceUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHozhBjwxCi7lkCK7syGVM2Nyn9LZTpodNwLGeZX0DcpGTbQgvVsJJt9NUqW80bpOImJ6i7FnYKyCMDAv-4Rm-WwENUeZ9nR3-ElNUQb1CjWUYxIE5INdbSOkbSFtVOcgDWBrGH",
+      "sourceUriSha256": "c060845363b652e0b6acb3ad6f8a437610c759ecd7267202f87373fec49c4725",
+      "method": "HEAD",
+      "redirects": [
+        {
+          "statusLine": "HTTP/2 302 ",
+          "location": "https://note.com/fair_godwit407/n/nc4fbc66c256f"
+        },
+        {
+          "statusLine": "HTTP/2 200 "
+        }
+      ],
+      "curlExit": 0,
+      "error": "",
+      "effectiveUrl": "https://note.com/fair_godwit407/n/nc4fbc66c256f",
+      "effectiveHostname": "note.com",
+      "lastObservedStatus": 200,
+      "reachedEffectiveUrl": true,
+      "boundary": "Google Location header and target HTTP response verified"
+    },
+    {
+      "chunkIndex": 2,
+      "declaredTitle": "note.com",
+      "sourceUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQG8-KjZw97Vl0riBps3HOyxuOhfdsH-LTw8OXIW8f5LI70lMCTHZJcOOA0CVwO14o3RFHavKXF_Ksl8cStU7P52LExWfAr63xUCs9Wk4-uZ3go4JA8V-vr8qYblbbiLxTNr",
+      "sourceUriSha256": "c77753b7920d9fb9474042ab36f57092a1eff1291256d64807b7ecc90bbfe172",
+      "method": "HEAD",
+      "redirects": [
+        {
+          "statusLine": "HTTP/2 302 ",
+          "location": "https://note.com/kawaidesign/n/n47a03807d37f"
+        },
+        {
+          "statusLine": "HTTP/2 200 "
+        }
+      ],
+      "curlExit": 0,
+      "error": "",
+      "effectiveUrl": "https://note.com/kawaidesign/n/n47a03807d37f",
+      "effectiveHostname": "note.com",
+      "lastObservedStatus": 200,
+      "reachedEffectiveUrl": true,
+      "boundary": "Google Location header and target HTTP response verified"
+    }
+  ]
+}

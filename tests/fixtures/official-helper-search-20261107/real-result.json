@@ -1,0 +1,396 @@
+{
+  "evidence": "gateway-pool-catalog-selected-real-helper-search",
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T20:09:55.336Z",
+  "source": {
+    "sha256": "2dacba6b6b565bb754eb14278167defedabc02784fa2eafda38a09a61521b8d2",
+    "files": 56
+  },
+  "scriptSha256": "4003f78e861ca7221bfd78339b38ecb3c4c57c41513890767025ee7273d8a780",
+  "input": {
+    "query": "site:example.com Example Domain",
+    "domain": "example.com",
+    "maxOutputTokens": 2048
+  },
+  "physicalGenerationLimit": 1,
+  "observations": [
+    {
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "method": "POST",
+      "purpose": "eligibility-metadata",
+      "transport": "unmodified AgyNativeTransport.fetch",
+      "status": 200,
+      "webSearchModelIds": [
+        "gemini-3.5-flash-lite"
+      ]
+    },
+    {
+      "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+      "method": "POST",
+      "purpose": "single-helper-generation",
+      "transport": "unmodified AgyNativeTransport.fetch",
+      "status": 200
+    }
+  ],
+  "modelSelection": "unmodified AccountPool.searchWeb chooses an eligible account and its actual webSearchModelIds; no main-model override",
+  "retryPolicy": "no generation retry, account fallback, second trace request, alternative query or domain",
+  "rawResponseBoundary": "complete generation JSON before provider parsing, recursively credential/account redacted before disk",
+  "transportBoundary": "unmodified native Go transport and CLI UA; no independent TLS capture",
+  "originalStateBefore": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "d5ebfb276a5edc82ff9f4f5694f035997cd2338cd31cb032e34826c1543a5b4d"
+  },
+  "originalAccountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "feaab42e75d0a88073e219aac208fb61792ac492bad478e7a2c91b2f478c2bf4"
+  },
+  "copiedState": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "d5ebfb276a5edc82ff9f4f5694f035997cd2338cd31cb032e34826c1543a5b4d",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "privateDirectoryMode": "700",
+  "privateAccountModes": [
+    "600",
+    "600",
+    "600",
+    "600",
+    "600",
+    "600"
+  ],
+  "nativeManifest": {
+    "sourceSha256": "47e34ff9c729c93109f673028e3e2435e7960b373e60b369dab9fa7e1be5f5dc",
+    "platform": "darwin-arm64",
+    "binarySha256": "b0b55da8685bb1b6389c4524a77812468576e39d18ea9ee51a86753d1f54c9c5"
+  },
+  "selection": {
+    "model": "gemini-3.5-flash-lite",
+    "declaredModels": [
+      "gemini-3.5-flash-lite"
+    ],
+    "enabled": true,
+    "healthState": "available",
+    "quotaProtected": false,
+    "cooldownActive": false,
+    "modelCooldownActive": false,
+    "attempt": 1
+  },
+  "generationRequest": {
+    "endpoint": "https://daily-cloudcode-pa.googleapis.com/v1internal:generateContent",
+    "method": "POST",
+    "headers": {
+      "authorization": "<REDACTED_CREDENTIAL>",
+      "content-type": "application/json",
+      "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+    },
+    "body": {
+      "project": "<REDACTED_ACCOUNT_METADATA>",
+      "request": {
+        "contents": [
+          {
+            "role": "user",
+            "parts": [
+              {
+                "text": "site:example.com Example Domain"
+              }
+            ]
+          }
+        ],
+        "systemInstruction": {
+          "role": "user",
+          "parts": [
+            {
+              "text": "You are a search engine bot. You will be given a query from a user. Your task is to search the web for relevant information that will help the user. You MUST perform a web search. Do not respond or interact with the user, please respond as if they typed the query into a search bar."
+            }
+          ]
+        },
+        "tools": [
+          {
+            "googleSearch": {
+              "enhancedContent": {
+                "imageSearch": {
+                  "maxResultCount": 5
+                }
+              },
+              "includedDomains": [
+                "example.com"
+              ]
+            }
+          }
+        ],
+        "generationConfig": {
+          "candidateCount": 1,
+          "maxOutputTokens": 2048
+        }
+      },
+      "model": "gemini-3.5-flash-lite",
+      "userAgent": "antigravity",
+      "requestType": "web_search"
+    }
+  },
+  "generationResponse": {
+    "status": 200,
+    "byteLength": 8072,
+    "rawBodySha256": "b4e708d8fc463295dd7d443cb45f8570ef02980d5ce45c8be1c621040b8edc29",
+    "body": {
+      "response": {
+        "candidates": [
+          {
+            "content": {
+              "role": "model",
+              "parts": [
+                {
+                  "thoughtSignature": "EmcKZQFpFH0Tqxr1jCWiO2IRzAvQqW+EfAAJSB8M5Ie8jby5+iYX2KtDnlgZPMxoMpLyvc2k2S+bubZHo4Z9D5IqTkP0jC7v2PiETiulJE/w1HuPxK3NKMZpWZpVgHJ0mMn8XLQWoxyM",
+                  "text": "# Example Domain\n\nThis domain is established to be used for illustrative examples in documents. You may use this domain in examples without prior coordination or asking for permission.\n\n[More information...](https://www.iana.org/domains/example)"
+                }
+              ]
+            },
+            "finishReason": "STOP",
+            "groundingMetadata": {
+              "webSearchQueries": [
+                "site example com Example Domain"
+              ],
+              "searchEntryPoint": {
+                "renderedContent": "<style>\n.container {\n  align-items: center;\n  border-radius: 8px;\n  display: flex;\n  font-family: Google Sans, Roboto, sans-serif;\n  font-size: 14px;\n  line-height: 20px;\n  padding: 8px 12px;\n}\n.chip {\n  display: inline-block;\n  border: solid 1px;\n  border-radius: 16px;\n  min-width: 14px;\n  padding: 5px 16px;\n  text-align: center;\n  user-select: none;\n  margin: 0 8px;\n  -webkit-tap-highlight-color: transparent;\n}\n.carousel {\n  overflow: auto;\n  scrollbar-width: none;\n  white-space: nowrap;\n  margin-right: -12px;\n}\n.headline {\n  display: flex;\n  margin-right: 4px;\n}\n.gradient-container {\n  position: relative;\n}\n.gradient {\n  position: absolute;\n  transform: translate(3px, -9px);\n  height: 36px;\n  width: 9px;\n}\n@media (prefers-color-scheme: light) {\n  .container {\n    background-color: #fafafa;\n    box-shadow: 0 0 0 1px #0000000f;\n  }\n  .headline-label {\n    color: #1f1f1f;\n  }\n  .chip {\n    background-color: #ffffff;\n    border-color: #d2d2d2;\n    color: #5e5e5e;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #f2f2f2;\n  }\n  .chip:focus {\n    background-color: #f2f2f2;\n  }\n  .chip:active {\n    background-color: #d8d8d8;\n    border-color: #b6b6b6;\n  }\n  .logo-dark {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #fafafa 15%, #fafafa00 100%);\n  }\n}\n@media (prefers-color-scheme: dark) {\n  .container {\n    background-color: #1f1f1f;\n    box-shadow: 0 0 0 1px #ffffff26;\n  }\n  .headline-label {\n    color: #fff;\n  }\n  .chip {\n    background-color: #2c2c2c;\n    border-color: #3c4043;\n    color: #fff;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #353536;\n  }\n  .chip:focus {\n    background-color: #353536;\n  }\n  .chip:active {\n    background-color: #464849;\n    border-color: #53575b;\n  }\n  .logo-light {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #1f1f1f 15%, #1f1f1f00 100%);\n  }\n}\n</style>\n<div class=\"container\">\n  <div class=\"headline\">\n    <svg class=\"logo-light\" width=\"18\" height=\"18\" viewBox=\"9 9 35 35\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M42.8622 27.0064C42.8622 25.7839 42.7525 24.6084 42.5487 23.4799H26.3109V30.1568H35.5897C35.1821 32.3041 33.9596 34.1222 32.1258 35.3448V39.6864H37.7213C40.9814 36.677 42.8622 32.2571 42.8622 27.0064V27.0064Z\" fill=\"#4285F4\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 43.8555C30.9659 43.8555 34.8687 42.3195 37.7213 39.6863L32.1258 35.3447C30.5898 36.3792 28.6306 37.0061 26.3109 37.0061C21.8282 37.0061 18.0195 33.9811 16.6559 29.906H10.9194V34.3573C13.7563 39.9841 19.5712 43.8555 26.3109 43.8555V43.8555Z\" fill=\"#34A853\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M16.6559 29.8904C16.3111 28.8559 16.1074 27.7588 16.1074 26.6146C16.1074 25.4704 16.3111 24.3733 16.6559 23.3388V18.8875H10.9194C9.74388 21.2072 9.06992 23.8247 9.06992 26.6146C9.06992 29.4045 9.74388 32.022 10.9194 34.3417L15.3864 30.8621L16.6559 29.8904V29.8904Z\" fill=\"#FBBC05\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 16.2386C28.85 16.2386 31.107 17.1164 32.9095 18.8091L37.8466 13.8719C34.853 11.082 30.9659 9.3736 26.3109 9.3736C19.5712 9.3736 13.7563 13.245 10.9194 18.8875L16.6559 23.3388C18.0195 19.2636 21.8282 16.2386 26.3109 16.2386V16.2386Z\" fill=\"#EA4335\"/>\n    </svg>\n    <svg class=\"logo-dark\" width=\"18\" height=\"18\" viewBox=\"0 0 48 48\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"24\" cy=\"23\" fill=\"#FFF\" r=\"22\"/>\n      <path d=\"M33.76 34.26c2.75-2.56 4.49-6.37 4.49-11.26 0-.89-.08-1.84-.29-3H24.01v5.99h8.03c-.4 2.02-1.5 3.56-3.07 4.56v.75l3.91 2.97h.88z\" fill=\"#4285F4\"/>\n      <path d=\"M15.58 25.77A8.845 8.845 0 0 0 24 31.86c1.92 0 3.62-.46 4.97-1.31l4.79 3.71C31.14 36.7 27.65 38 24 38c-5.93 0-11.01-3.4-13.45-8.36l.17-1.01 4.06-2.85h.8z\" fill=\"#34A853\"/>\n      <path d=\"M15.59 20.21a8.864 8.864 0 0 0 0 5.58l-5.03 3.86c-.98-2-1.53-4.25-1.53-6.64 0-2.39.55-4.64 1.53-6.64l1-.22 3.81 2.98.22 1.08z\" fill=\"#FBBC05\"/>\n      <path d=\"M24 14.14c2.11 0 4.02.75 5.52 1.98l4.36-4.36C31.22 9.43 27.81 8 24 8c-5.93 0-11.01 3.4-13.45 8.36l5.03 3.85A8.86 8.86 0 0 1 24 14.14z\" fill=\"#EA4335\"/>\n    </svg>\n    <div class=\"gradient-container\"><div class=\"gradient\"></div></div>\n  </div>\n  <div class=\"carousel\">\n<a class=\"chip\" href=\"https://www.google.com/search?q=site+example+com+Example+Domain&client=app-vertex-grounding&safesearch=active\">site example com Example Domain</a>\n  </div>\n</div>"
+              },
+              "groundingChunks": [
+                {
+                  "web": {
+                    "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFmDTwIbjaxfvMTRLie5V8A7Qm1aGxKCkwwG4RNwSf1feAsPzXIPzs19nYQgnQMfoagaaVsk3neKR73HsMxsXfiaak2NYIuMahSKB68fA==",
+                    "title": "example.com"
+                  }
+                },
+                {
+                  "web": {
+                    "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEcb8zrPJtvacbMP9gNvSmyul3h51JH0PH0n9ZD2U_eW4W8QfrnczU8Ell9WChzpoF9n9aruye3JuSjorTSK4G9zpqZHObI_RbBdEF0LJVFxLu7BZpVGc3j9JO5-nsXxfygstVsH4QGNUPOobohs745mvPiC3z6TxWq_vOMefwitVZuS_fJW-hFoYoLS0zRc22xlVD3nOvGNDtCRO87uW3cabIEIgX_6b87dSSSl7_DAoLSsjZIqjoKYvWcXwC9XJC_5KisV9ObMLOtCNzP5vE0FT1xjWWzBfCG1x6I3s2_uUJeq2izRBQe8DdZDeAB-CvwbqTtCKwO7-yBTOR1D3z4As7LH8ABwofjI02K4009d6z-v5vpvLbkPXpSHu8=",
+                    "title": "quora.com"
+                  }
+                },
+                {
+                  "web": {
+                    "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFFxhCwUNmvgHOW2PNm3n1hNI60N5xkAC6L47nv3vDhR6h5-6WbYthXkd8jbHUpsjo4k07WPLbWLzS4C9E-YxFYKfUuMD7F-7H2HiX99Ru9Kf_ele6Uj4k1jKQlGFOy",
+                    "title": "wikipedia.org"
+                  }
+                }
+              ],
+              "groundingSupports": [
+                {
+                  "segment": {
+                    "startIndex": 96,
+                    "endIndex": 183,
+                    "text": "You may use this domain in examples without prior coordination or asking for permission"
+                  },
+                  "groundingChunkIndices": [
+                    0,
+                    1
+                  ]
+                },
+                {
+                  "segment": {
+                    "startIndex": 186,
+                    "endIndex": 245,
+                    "text": "[More information...](https://www.iana.org/domains/example)"
+                  },
+                  "groundingChunkIndices": [
+                    2
+                  ]
+                }
+              ]
+            }
+          }
+        ],
+        "usageMetadata": {
+          "promptTokenCount": 71,
+          "candidatesTokenCount": 70,
+          "totalTokenCount": 141
+        },
+        "modelVersion": "gemini-3.5-flash-lite",
+        "responseId": "DzTuarWcJ4yYvr0PjKuY6QU"
+      },
+      "traceId": "263d457f8a7bcb42",
+      "metadata": {}
+    }
+  },
+  "sourceFieldInspection": [
+    {
+      "finishReason": "STOP",
+      "metadataKeys": [
+        "webSearchQueries",
+        "searchEntryPoint",
+        "groundingChunks",
+        "groundingSupports"
+      ],
+      "queries": [
+        "site example com Example Domain"
+      ],
+      "chunks": [
+        {
+          "keys": [
+            "web"
+          ],
+          "webKeys": [
+            "uri",
+            "title"
+          ],
+          "upstreamSourceTextPresent": false,
+          "upstreamSourceTextBytes": 0
+        },
+        {
+          "keys": [
+            "web"
+          ],
+          "webKeys": [
+            "uri",
+            "title"
+          ],
+          "upstreamSourceTextPresent": false,
+          "upstreamSourceTextBytes": 0
+        },
+        {
+          "keys": [
+            "web"
+          ],
+          "webKeys": [
+            "uri",
+            "title"
+          ],
+          "upstreamSourceTextPresent": false,
+          "upstreamSourceTextBytes": 0
+        }
+      ]
+    }
+  ],
+  "parsedResult": {
+    "model": "gemini-3.5-flash-lite",
+    "modelVersion": "gemini-3.5-flash-lite",
+    "evidenceId": "8fdd6d3542487c5a25d8dcae97bbde7b9774a251cc137c85cbe519825779b7cb",
+    "queries": [
+      "site example com Example Domain"
+    ],
+    "sourceCandidates": [
+      {
+        "index": 0,
+        "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFmDTwIbjaxfvMTRLie5V8A7Qm1aGxKCkwwG4RNwSf1feAsPzXIPzs19nYQgnQMfoagaaVsk3neKR73HsMxsXfiaak2NYIuMahSKB68fA==",
+        "title": "example.com"
+      },
+      {
+        "index": 1,
+        "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEcb8zrPJtvacbMP9gNvSmyul3h51JH0PH0n9ZD2U_eW4W8QfrnczU8Ell9WChzpoF9n9aruye3JuSjorTSK4G9zpqZHObI_RbBdEF0LJVFxLu7BZpVGc3j9JO5-nsXxfygstVsH4QGNUPOobohs745mvPiC3z6TxWq_vOMefwitVZuS_fJW-hFoYoLS0zRc22xlVD3nOvGNDtCRO87uW3cabIEIgX_6b87dSSSl7_DAoLSsjZIqjoKYvWcXwC9XJC_5KisV9ObMLOtCNzP5vE0FT1xjWWzBfCG1x6I3s2_uUJeq2izRBQe8DdZDeAB-CvwbqTtCKwO7-yBTOR1D3z4As7LH8ABwofjI02K4009d6z-v5vpvLbkPXpSHu8=",
+        "title": "quora.com"
+      },
+      {
+        "index": 2,
+        "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFFxhCwUNmvgHOW2PNm3n1hNI60N5xkAC6L47nv3vDhR6h5-6WbYthXkd8jbHUpsjo4k07WPLbWLzS4C9E-YxFYKfUuMD7F-7H2HiX99Ru9Kf_ele6Uj4k1jKQlGFOy",
+        "title": "wikipedia.org"
+      }
+    ],
+    "derivedAnswer": "# Example Domain\n\nThis domain is established to be used for illustrative examples in documents. You may use this domain in examples without prior coordination or asking for permission.\n\n[More information...](https://www.iana.org/domains/example)",
+    "groundingMetadata": {
+      "webSearchQueries": [
+        "site example com Example Domain"
+      ],
+      "searchEntryPoint": {
+        "renderedContent": "<style>\n.container {\n  align-items: center;\n  border-radius: 8px;\n  display: flex;\n  font-family: Google Sans, Roboto, sans-serif;\n  font-size: 14px;\n  line-height: 20px;\n  padding: 8px 12px;\n}\n.chip {\n  display: inline-block;\n  border: solid 1px;\n  border-radius: 16px;\n  min-width: 14px;\n  padding: 5px 16px;\n  text-align: center;\n  user-select: none;\n  margin: 0 8px;\n  -webkit-tap-highlight-color: transparent;\n}\n.carousel {\n  overflow: auto;\n  scrollbar-width: none;\n  white-space: nowrap;\n  margin-right: -12px;\n}\n.headline {\n  display: flex;\n  margin-right: 4px;\n}\n.gradient-container {\n  position: relative;\n}\n.gradient {\n  position: absolute;\n  transform: translate(3px, -9px);\n  height: 36px;\n  width: 9px;\n}\n@media (prefers-color-scheme: light) {\n  .container {\n    background-color: #fafafa;\n    box-shadow: 0 0 0 1px #0000000f;\n  }\n  .headline-label {\n    color: #1f1f1f;\n  }\n  .chip {\n    background-color: #ffffff;\n    border-color: #d2d2d2;\n    color: #5e5e5e;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #f2f2f2;\n  }\n  .chip:focus {\n    background-color: #f2f2f2;\n  }\n  .chip:active {\n    background-color: #d8d8d8;\n    border-color: #b6b6b6;\n  }\n  .logo-dark {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #fafafa 15%, #fafafa00 100%);\n  }\n}\n@media (prefers-color-scheme: dark) {\n  .container {\n    background-color: #1f1f1f;\n    box-shadow: 0 0 0 1px #ffffff26;\n  }\n  .headline-label {\n    color: #fff;\n  }\n  .chip {\n    background-color: #2c2c2c;\n    border-color: #3c4043;\n    color: #fff;\n    text-decoration: none;\n  }\n  .chip:hover {\n    background-color: #353536;\n  }\n  .chip:focus {\n    background-color: #353536;\n  }\n  .chip:active {\n    background-color: #464849;\n    border-color: #53575b;\n  }\n  .logo-light {\n    display: none;\n  }\n  .gradient {\n    background: linear-gradient(90deg, #1f1f1f 15%, #1f1f1f00 100%);\n  }\n}\n</style>\n<div class=\"container\">\n  <div class=\"headline\">\n    <svg class=\"logo-light\" width=\"18\" height=\"18\" viewBox=\"9 9 35 35\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M42.8622 27.0064C42.8622 25.7839 42.7525 24.6084 42.5487 23.4799H26.3109V30.1568H35.5897C35.1821 32.3041 33.9596 34.1222 32.1258 35.3448V39.6864H37.7213C40.9814 36.677 42.8622 32.2571 42.8622 27.0064V27.0064Z\" fill=\"#4285F4\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 43.8555C30.9659 43.8555 34.8687 42.3195 37.7213 39.6863L32.1258 35.3447C30.5898 36.3792 28.6306 37.0061 26.3109 37.0061C21.8282 37.0061 18.0195 33.9811 16.6559 29.906H10.9194V34.3573C13.7563 39.9841 19.5712 43.8555 26.3109 43.8555V43.8555Z\" fill=\"#34A853\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M16.6559 29.8904C16.3111 28.8559 16.1074 27.7588 16.1074 26.6146C16.1074 25.4704 16.3111 24.3733 16.6559 23.3388V18.8875H10.9194C9.74388 21.2072 9.06992 23.8247 9.06992 26.6146C9.06992 29.4045 9.74388 32.022 10.9194 34.3417L15.3864 30.8621L16.6559 29.8904V29.8904Z\" fill=\"#FBBC05\"/>\n      <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M26.3109 16.2386C28.85 16.2386 31.107 17.1164 32.9095 18.8091L37.8466 13.8719C34.853 11.082 30.9659 9.3736 26.3109 9.3736C19.5712 9.3736 13.7563 13.245 10.9194 18.8875L16.6559 23.3388C18.0195 19.2636 21.8282 16.2386 26.3109 16.2386V16.2386Z\" fill=\"#EA4335\"/>\n    </svg>\n    <svg class=\"logo-dark\" width=\"18\" height=\"18\" viewBox=\"0 0 48 48\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"24\" cy=\"23\" fill=\"#FFF\" r=\"22\"/>\n      <path d=\"M33.76 34.26c2.75-2.56 4.49-6.37 4.49-11.26 0-.89-.08-1.84-.29-3H24.01v5.99h8.03c-.4 2.02-1.5 3.56-3.07 4.56v.75l3.91 2.97h.88z\" fill=\"#4285F4\"/>\n      <path d=\"M15.58 25.77A8.845 8.845 0 0 0 24 31.86c1.92 0 3.62-.46 4.97-1.31l4.79 3.71C31.14 36.7 27.65 38 24 38c-5.93 0-11.01-3.4-13.45-8.36l.17-1.01 4.06-2.85h.8z\" fill=\"#34A853\"/>\n      <path d=\"M15.59 20.21a8.864 8.864 0 0 0 0 5.58l-5.03 3.86c-.98-2-1.53-4.25-1.53-6.64 0-2.39.55-4.64 1.53-6.64l1-.22 3.81 2.98.22 1.08z\" fill=\"#FBBC05\"/>\n      <path d=\"M24 14.14c2.11 0 4.02.75 5.52 1.98l4.36-4.36C31.22 9.43 27.81 8 24 8c-5.93 0-11.01 3.4-13.45 8.36l5.03 3.85A8.86 8.86 0 0 1 24 14.14z\" fill=\"#EA4335\"/>\n    </svg>\n    <div class=\"gradient-container\"><div class=\"gradient\"></div></div>\n  </div>\n  <div class=\"carousel\">\n<a class=\"chip\" href=\"https://www.google.com/search?q=site+example+com+Example+Domain&client=app-vertex-grounding&safesearch=active\">site example com Example Domain</a>\n  </div>\n</div>"
+      },
+      "groundingChunks": [
+        {
+          "web": {
+            "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFmDTwIbjaxfvMTRLie5V8A7Qm1aGxKCkwwG4RNwSf1feAsPzXIPzs19nYQgnQMfoagaaVsk3neKR73HsMxsXfiaak2NYIuMahSKB68fA==",
+            "title": "example.com"
+          }
+        },
+        {
+          "web": {
+            "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEcb8zrPJtvacbMP9gNvSmyul3h51JH0PH0n9ZD2U_eW4W8QfrnczU8Ell9WChzpoF9n9aruye3JuSjorTSK4G9zpqZHObI_RbBdEF0LJVFxLu7BZpVGc3j9JO5-nsXxfygstVsH4QGNUPOobohs745mvPiC3z6TxWq_vOMefwitVZuS_fJW-hFoYoLS0zRc22xlVD3nOvGNDtCRO87uW3cabIEIgX_6b87dSSSl7_DAoLSsjZIqjoKYvWcXwC9XJC_5KisV9ObMLOtCNzP5vE0FT1xjWWzBfCG1x6I3s2_uUJeq2izRBQe8DdZDeAB-CvwbqTtCKwO7-yBTOR1D3z4As7LH8ABwofjI02K4009d6z-v5vpvLbkPXpSHu8=",
+            "title": "quora.com"
+          }
+        },
+        {
+          "web": {
+            "uri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQFFxhCwUNmvgHOW2PNm3n1hNI60N5xkAC6L47nv3vDhR6h5-6WbYthXkd8jbHUpsjo4k07WPLbWLzS4C9E-YxFYKfUuMD7F-7H2HiX99Ru9Kf_ele6Uj4k1jKQlGFOy",
+            "title": "wikipedia.org"
+          }
+        }
+      ],
+      "groundingSupports": [
+        {
+          "segment": {
+            "startIndex": 96,
+            "endIndex": 183,
+            "text": "You may use this domain in examples without prior coordination or asking for permission"
+          },
+          "groundingChunkIndices": [
+            0,
+            1
+          ]
+        },
+        {
+          "segment": {
+            "startIndex": 186,
+            "endIndex": 245,
+            "text": "[More information...](https://www.iana.org/domains/example)"
+          },
+          "groundingChunkIndices": [
+            2
+          ]
+        }
+      ]
+    },
+    "serverToolParts": [],
+    "usage": {
+      "input_tokens": 71,
+      "output_tokens": 70,
+      "total_tokens": 141,
+      "thinking_tokens": 0,
+      "cache_read_tokens": 0
+    },
+    "accountId": "<REDACTED_ACCOUNT_METADATA>"
+  },
+  "usage": {
+    "clientRequests": 0,
+    "upstreamCalls": 1,
+    "successfulUpstreamCalls": 1,
+    "failedUpstreamCalls": 0,
+    "inputTokens": 71,
+    "outputTokens": 70,
+    "thinkingTokens": 0,
+    "cachedTokens": 0,
+    "totalTokens": 141
+  },
+  "nativeStopped": true,
+  "originalAccountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "feaab42e75d0a88073e219aac208fb61792ac492bad478e7a2c91b2f478c2bf4"
+  },
+  "originalAccountsUnchanged": true,
+  "originalStateAfter": {
+    "state/account-pool.json": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+    "state/quota.json": "d5ebfb276a5edc82ff9f4f5694f035997cd2338cd31cb032e34826c1543a5b4d"
+  },
+  "originalStateUnchanged": true,
+  "sourceAfter": {
+    "sha256": "2dacba6b6b565bb754eb14278167defedabc02784fa2eafda38a09a61521b8d2",
+    "files": 56
+  },
+  "sourceUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "physicalGenerationCount": 1,
+  "requestCounts": {
+    "eligibility-metadata": 1,
+    "single-helper-generation": 1
+  },
+  "completedAt": "2026-11-06T20:09:58.660Z"
+}

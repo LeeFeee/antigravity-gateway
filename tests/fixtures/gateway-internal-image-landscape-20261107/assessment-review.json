@@ -1,0 +1,53 @@
+{
+  "reviewedAt": "2026-11-06T21:12:03.741Z",
+  "sourceEvidenceSha256": "72bdfb790076866e39da1966deedc536fa1ddcce34b5dbcda2058822d6627c31",
+  "sourceSummarySha256": "5123a52ea9cb26d39b441ddacb66932096a7d0c74a03bbe204291e6e37d85623",
+  "sourceSha256": "fd34ebe97ea3e8ce6b5a0c9688f1098c74fc3d8621fc404e9c0abf08c24105e8",
+  "verifierSha256AtRun": "9353bfe1eaf8f5c5e8a8b25852ab37b35f5af966720fcda6ddb508ef34cbe387",
+  "reviewedVerifierSha256": "5217f1cb4023c2eb0277cd1665ab7312cc1f006e6ee0036bc692cb39b98c18e9",
+  "realRequestsAddedByReview": 0,
+  "originalReportPreserved": true,
+  "originalAssessmentPassed": false,
+  "reason": "The original verifier compared JSON.stringify values. The original and replayed functionCall contain identical IDs, names and typed argument values with different object key order. Use node:util isDeepStrictEqual; changed argument, ID and signature negative cases still fail.",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "exactlyThreeGenerations": true,
+      "gatewayHTTP": true,
+      "clientCompleted": true,
+      "nativeHTTP": true,
+      "originalGoTLS": true,
+      "modelsAndRequestTypes": true,
+      "fixedLowThinking": true,
+      "sameNativeTrajectory": true,
+      "stepsOneTwoThree": true,
+      "sameAccountCredential": true,
+      "originalToolCallRetained": true,
+      "observedSignatureRetained": true,
+      "realImageReceipt": true,
+      "officialReceiptText": true,
+      "savedFileReadBack": true,
+      "decodableImage": true,
+      "noPrivateToolLeak": true,
+      "noGuardFailure": true,
+      "officialUA": true
+    },
+    "nativeGenerations": 3,
+    "nativeStatuses": [
+      200,
+      200,
+      200
+    ],
+    "internalToolCallObserved": true,
+    "toolWireName": "generate_image",
+    "upstreamToolSignatureObserved": true,
+    "imageSubrequestAccepted": true,
+    "imageFinishMessages": [],
+    "answer": "The generated watercolor illustration features a tranquil blue lake nestled between rolling, verdant green mountains partially shrouded in gentle morning mist. Warm, soft sunlight illuminates the sky and reflects across the calm water's surface. On the grassy lakeshore in the foreground sits a rustic wooden cabin complete with a small pier and a rowboat, creating a cozy and serene natural scene.\n\nImage artifact delivery:\n- ID: file_c9dcba83a8a264ec54bbac2d6967ea2b\n- Filename: lake_landscape.jpg\n- MIME type: image/jpeg\n- Bytes: 965271\n- Gateway local path: /tmp/real-client-gateway/gateway-data/media/file_c9dcba83a8a264ec54bbac2d6967ea2b.jpg\n- URL: http://127.0.0.1:55227/v1/files/file_c9dcba83a8a264ec54bbac2d6967ea2b/content\n- Markdown: ![Generated image](http://127.0.0.1:55227/v1/files/file_c9dcba83a8a264ec54bbac2d6967ea2b/content)"
+  },
+  "passed": true,
+  "productionAccountsUnchanged": true,
+  "productionStateUnchanged": true,
+  "temporaryCredentialsRemoved": true,
+  "ownedGatewayStopped": true
+}

@@ -1,0 +1,15 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "video-summary",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [],
+  "requestCount": 0,
+  "failure": "RuntimeError: Official Hub did not bind its local port",
+  "requests": [],
+  "acp": [],
+  "stderr": ""
+}

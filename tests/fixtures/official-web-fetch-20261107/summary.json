@@ -1,0 +1,36 @@
+{
+  "recordedAt": "2026-11-06T19:54:26.078426+00:00",
+  "officialBinarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "mockOnly": true,
+  "realGoogleRequests": false,
+  "runtimeFilesChanged": false,
+  "requestCount": 26,
+  "toolRequestedThroughOfficialConfig": "read_url_content",
+  "officialRegistryOutcome": [
+    "W1107 03:51:59.524211     418 registry.go:70] Tool \"read_url_content\" is deprecated and has no effect"
+  ],
+  "actualDeclarations": [
+    [
+      "manage_task"
+    ],
+    [
+      "read_file",
+      "run_command",
+      "manage_task",
+      "send_message",
+      "schedule",
+      "write_file",
+      "edit_file",
+      "generate_image",
+      "search_web",
+      "ask_question"
+    ]
+  ],
+  "fetchFromTrawlerCacheObserved": false,
+  "rewriteUriObserved": false,
+  "boundary": "A deprecated declared-component entry was requested through official configuration; the CLI did not declare the tool, so the mock never fabricated a tool call. This does not prove all retained binary branches unreachable.",
+  "scripts": {
+    "probe.py": "376cb444c7c9676df912815ed149a57f7819fd7d30c554ef551f3549fa67d0db",
+    "official-request-types-mock-proxy.py": "4bcbf9a4141a7ea150fe8f0121a047a0fdd9a14f7ca40dda65ed8eae359661f1"
+  }
+}

@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { upstreamTermination } = require('./protocol');
 const RECHECK_TIMEOUT_MS = 45_000;
 
 function recheckSignal(signal) {
@@ -25,7 +26,11 @@ async function probeAccountInference(provider, models, signal) {
     const result = await provider.send({ system: '', messages: [{ role: 'user', text: '请只回复：OK。' }],
       tools: [], toolChoice: null, stream: false }, model, { signal, sessionId, reuseConversation: false });
     signal?.throwIfAborted();
-    if (typeof result?.text !== 'string' || !result.text.trim() || result.toolCalls?.length) {
+    // A partial answer is not a successful health probe. Use the same terminal
+    // classification as Direct and both APIs, including their existing clean
+    // completion compatibility when the upstream omitted finishReason.
+    if (typeof result?.text !== 'string' || !result.text.trim() || result.toolCalls?.length
+      || upstreamTermination(result) !== 'complete') {
       throw Object.assign(new Error('实际推理未返回正常文本，账号异常状态保持不变。'), {
         code: 'account_recheck_inference_incomplete', status: 502
       });

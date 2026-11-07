@@ -1,0 +1,43 @@
+{
+  "model": "gemini-3.8-flash-high",
+  "messages": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "Perform a web search for the query: SYNTHETIC_TUI_SEARCH_QUERY"
+        }
+      ]
+    }
+  ],
+  "system": [
+    {
+      "type": "text",
+      "text": "x-anthropic-billing-header: cc_version=2.1.318.fixture; cc_entrypoint=cli;"
+    },
+    {
+      "type": "text",
+      "text": "You are Claude Code, Anthropic's official CLI for Claude."
+    },
+    {
+      "type": "text",
+      "text": "You run a web search for another Claude model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+    }
+  ],
+  "tools": [
+    {
+      "type": "web_search_20250305",
+      "name": "web_search",
+      "max_uses": 8
+    }
+  ],
+  "tool_choice": {
+    "type": "auto"
+  },
+  "max_tokens": 32000,
+  "output_config": {
+    "effort": "high"
+  },
+  "stream": true
+}

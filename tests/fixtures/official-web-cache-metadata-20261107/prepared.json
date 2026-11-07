@@ -1,0 +1,24 @@
+{
+  "evidence": "static-client-derived-real-google-metadata-verification",
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T19:59:41.536Z",
+  "source": {
+    "sha256": "ff0736801d14d8d9afe0cc34073cffc92c7efff842eca245a8015c61d22d2b36",
+    "files": 56
+  },
+  "scriptSha256": "bdb3e1624d453996b7f73867faef1e1e91de04265cd80234186f044154919e4d",
+  "approvedSource": {
+    "originalUri": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHozhBjwxCi7lkCK7syGVM2Nyn9LZTpodNwLGeZX0DcpGTbQgvVsJJt9NUqW80bpOImJ6i7FnYKyCMDAv-4Rm-WwENUeZ9nR3-ElNUQb1CjWUYxIE5INdbSOkbSFtVOcgDWBrGH",
+    "targetUrl": "https://note.com/fair_godwit407/n/nc4fbc66c256f",
+    "fixture": "tests/fixtures/client-web-tools-20261107/latest-release-batch/grounding-source-redirects.json",
+    "fixtureSha256": "52ee2c08d104cc1db511069ad60e7e778b6a3b7baed63e9308085af260261b79",
+    "chunkIndex": 1
+  },
+  "observations": [],
+  "businessRpcLimit": 2,
+  "modelGenerationCount": 0,
+  "authenticationRefreshAllowed": false,
+  "retryPolicy": "no retry, host fallback, account fallback, alternative URL, or liveFetch",
+  "wireBoundary": "unchanged native transport and CLI UA; no independent packet capture",
+  "preparedOnly": true
+}

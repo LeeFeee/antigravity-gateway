@@ -1,0 +1,26 @@
+{
+  "evidence": "user-driven-dashboard-oauth-real-google",
+  "startedAt": "2026-11-06T18:40:10.801Z",
+  "automaticAuthorization": false,
+  "formalAccountsRead": false,
+  "sourceHash": "747fa5f6d4b7a7495f26ecba6fd6b7c7e9089d4faa4ae5d382f2ed5c70470611",
+  "phase": "cancelled",
+  "passed": false,
+  "credentialPolicy": "Only this 0700 temporary config may briefly contain 0600 core account files; controller evidence contains structural metadata only.",
+  "observations": [
+    {
+      "event": "authorization",
+      "stage": "started"
+    },
+    {
+      "event": "authorization",
+      "stage": "cancelled"
+    }
+  ],
+  "gatewayStopped": true,
+  "portClosed": true,
+  "onboardingObserved": false,
+  "sourceUnchanged": true,
+  "completedAt": "2026-11-06T18:47:41.668Z",
+  "temporaryCredentialsRemoved": true
+}

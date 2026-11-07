@@ -1,0 +1,16 @@
+{
+  "evidence": "isolated-dashboard-oauth-preflight-only",
+  "date": "2026-11-07",
+  "officialVersion": "1.5.2",
+  "sourceHash": "eb163b117353e11f94b2de3cac6b2e9ff2a4061f13b67e89a49c9044b37b3898",
+  "emptyPool": true,
+  "rootMode": "0700",
+  "controlMode": "0600",
+  "verifiedNativeArtifactCount": 1,
+  "controllerTestsPassed": 7,
+  "relatedTestsPassed": 23,
+  "gatewayStarted": false,
+  "authorizationStarted": false,
+  "realGoogleAuthorizationVerified": false,
+  "preparedDirectoryRemoved": true
+}

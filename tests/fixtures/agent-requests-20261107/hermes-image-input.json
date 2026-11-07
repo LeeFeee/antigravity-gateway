@@ -1,0 +1,67 @@
+{
+  "agent": "hermes",
+  "version": "0.21.7+11153.g2bd378e",
+  "commit": "2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19",
+  "scenario": "image-input",
+  "recordedAt": "2026-11-06T16:56:27.195Z",
+  "platform": "darwin-arm64",
+  "evidence": "actual-client-loopback-capture",
+  "upstream": "synthetic-local-provider-only",
+  "realModelValidated": false,
+  "isolation": "fresh HOME/config/workdir; macOS Seatbelt denies non-loopback network and writes outside temporary root",
+  "command": [
+    "/home/probe/.local/bin/hermes",
+    "chat",
+    "-q",
+    "Inspect this generated test image and reply LOCAL_CAPTURE_OK. Do not use tools.",
+    "--oneshot",
+    "--provider",
+    "local-probe",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--format",
+    "stream-json",
+    "--max-turns",
+    "3",
+    "--image",
+    "/tmp/agent-probe/work/probe-image.png"
+  ],
+  "runs": [
+    {
+      "stage": "initial",
+      "args": [
+        "chat",
+        "-q",
+        "Inspect this generated test image and reply LOCAL_CAPTURE_OK. Do not use tools.",
+        "--oneshot",
+        "--provider",
+        "local-probe",
+        "--model",
+        "gemini-3.8-flash-high",
+        "--format",
+        "stream-json",
+        "--max-turns",
+        "3",
+        "--image",
+        "/tmp/agent-probe/work/probe-image.png"
+      ],
+      "code": 2,
+      "signal": null
+    }
+  ],
+  "syntheticResponse": {
+    "textDeltaChunks": 3,
+    "toolArgumentChunkSize": 19
+  },
+  "outcome": {
+    "code": 2,
+    "signal": null,
+    "timedOut": false,
+    "generationCount": 0,
+    "returnedReadTool": false,
+    "returnedDiscoveryTool": false
+  },
+  "captures": [],
+  "stdout": "{\"type\": \"system\", \"subtype\": \"init\", \"model\": \"gemini-3.8-flash-high\", \"session_id\": \"\", \"timestamp\": 1793984187153}\n{\"type\": \"result\", \"session_id\": \"\", \"exit_code\": 2, \"text\": \"\", \"tokens\": {\"input\": 0, \"output\": 0, \"total\": 0, \"cache_read\": 0, \"cache_write\": 0}, \"duration_ms\": 0, \"error\": \"Unsupported gateway CLI options: --image. No local fallback or policy changes were made.\\n  --image: use `hermes --tui` or the Desktop app to attach the image\", \"timestamp\": 1793984187153}\n",
+  "stderr": "Error: Unsupported gateway CLI options: --image. No local fallback or policy changes were made.\n  --image: use `hermes --tui` or the Desktop app to attach the image\n\nsession_id: \n"
+}

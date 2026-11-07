@@ -1,0 +1,133 @@
+{
+  "evidence": "captured-claude-request-replay-real-http-gateway-native-helper",
+  "actualCliExecuted": false,
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T20:40:10.463Z",
+  "sourceBefore": {
+    "sha256": "6ff6487b7558aba133f0d8fac0ca50e062b91b0d4f1b357f29b60ae2a20bfc92",
+    "files": 57
+  },
+  "scriptSha256": "5689e23826cbfc091c521678128fe05b07736506cdd1d6e760450fc6b28865ba",
+  "captured": {
+    "sourceFixture": "tests/fixtures/client-web-tools-20261107/claude-web-search.json",
+    "sourceFixtureSha256": "a7af4ebd6fa0a7125fd79dff3e09ed724af83016013f6b1555e8e37010bf1163",
+    "captureIndex": 2,
+    "modifications": [
+      "remove nonempty strict domain filter",
+      "replace only the user query with the fixed public query"
+    ],
+    "request": {
+      "method": "POST",
+      "path": "/v1/messages?beta=true",
+      "headers": {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "claude-cli/2.1.318 (external, sdk-cli)",
+        "x-claude-code-session-id": "92cec980-791c-4380-b8d4-c5ac81a682b7",
+        "x-stainless-arch": "arm64",
+        "x-stainless-lang": "js",
+        "x-stainless-os": "MacOS",
+        "x-stainless-package-version": "0.128.0",
+        "x-stainless-retry-count": "0",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v26.12.1",
+        "x-stainless-timeout": "600",
+        "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,thinking-token-count-2026-05-13,effort-2025-11-24",
+        "anthropic-dangerous-direct-browser-access": "true",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "<SYNTHETIC_CREDENTIAL>",
+        "x-app": "cli",
+        "connection": "keep-alive",
+        "host": "127.0.0.1:PROBE_PORT",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "content-length": "1019"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Perform a web search for the query: site:example.com Example Domain"
+              }
+            ]
+          }
+        ],
+        "system": [
+          {
+            "type": "text",
+            "text": "x-anthropic-billing-header: cc_version=2.1.318.8fb; cc_entrypoint=sdk-cli;"
+          },
+          {
+            "type": "text",
+            "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+          },
+          {
+            "type": "text",
+            "text": "You run a web search for another Claude model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+          }
+        ],
+        "tools": [
+          {
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "max_uses": 8
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "web_search"
+        },
+        "metadata": {
+          "user_id": "{\"device_id\":\"608d7eb1e7b8a6ea40fdf407614efab38792b8ffc78c61b5c17caf6c7944b0ee\",\"account_uuid\":\"\",\"session_id\":\"92cec980-791c-4380-b8d4-c5ac81a682b7\"}"
+        },
+        "max_tokens": 32000,
+        "thinking": {
+          "type": "disabled"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "high"
+        },
+        "stream": true
+      }
+    },
+    "prepared": {
+      "query": "site:example.com Example Domain",
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Perform a web search for the query: site:example.com Example Domain"
+            }
+          ]
+        }
+      ],
+      "instructions": "You run a web search for another model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results.",
+      "generationConfig": {
+        "maxOutputTokens": 32000,
+        "temperature": 1
+      },
+      "identityMetadata": {
+        "profile": {
+          "client": "claude",
+          "templateVersion": "2.1.318",
+          "evidence": [
+            "claude-sdk-search-helper-template"
+          ]
+        },
+        "rules": [
+          "claude-billing-marker",
+          "claude-sdk-identity",
+          "claude-search-helper-model-identity"
+        ]
+      }
+    }
+  },
+  "physicalGenerationLimit": 1,
+  "boundaries": "one HTTP request; no main-model invocation, webpage fetch, retry, fallback generation or lower-budget substitute",
+  "preparedOnly": true
+}

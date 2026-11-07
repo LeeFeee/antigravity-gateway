@@ -1,0 +1,364 @@
+{
+  "recordedAt": "2026-11-06T18:04:20.974Z",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "passed": 8,
+  "total": 8,
+  "model": "claude-sonnet-4-6",
+  "sameSourceSnapshotForAllAgents": false,
+  "scope": "Text and one read-only tool round trip. Source digests differ between the first three agents and Hermes; each individual run was stable. No claim about later source edits or all tools/models.",
+  "transportEvidence": "Original AgyNativeTransport.fetch invokes native agy-transport subprocess and receives actual Google responses. This is not a new ClientHello packet-capture comparison.",
+  "productionAccountsUnchanged": true,
+  "temporaryCredentialDirectoriesRemoved": true,
+  "records": [
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "scenario": "text",
+      "recordedAt": "2026-11-06T17:54:08.911Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet/claude-text.json",
+      "sha256": "15bf744881bd3130f0fa1a077d8e44ca0b1a2234b64b3d47fae40c93ed2a8027",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true
+        },
+        "generationCount": 1,
+        "clientRequests": 1,
+        "nativeResultNames": []
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "scenario": "read",
+      "recordedAt": "2026-11-06T17:54:14.952Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet/claude-read.json",
+      "sha256": "de7574a49ab349178ade2319dd096ac4e2c4eec366bc82b210356f46c9b58a9d",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": [
+          "read_file"
+        ]
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "scenario": "text",
+      "recordedAt": "2026-11-06T17:55:55.883Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-rest/pi-text.json",
+      "sha256": "f201f06ff92807ec58b76ab01c1ad5f16508154873c630fd6b99006d07e3af31",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true
+        },
+        "generationCount": 1,
+        "clientRequests": 1,
+        "nativeResultNames": []
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "scenario": "read",
+      "recordedAt": "2026-11-06T17:56:00.991Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-rest/pi-read.json",
+      "sha256": "f4ee4c7e82818d0eb87fa7918ba439d2992df486c653de73cc0f5fa7c9bd37d2",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": [
+          "read_file"
+        ]
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "scenario": "text",
+      "recordedAt": "2026-11-06T17:56:04.932Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-rest/dsh-text.json",
+      "sha256": "f523b8d2ba4279f6ebb011fe111604d9cf714f692915d42aa20aea59f7426458",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": []
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "scenario": "read",
+      "recordedAt": "2026-11-06T17:56:13.910Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-rest/dsh-read.json",
+      "sha256": "f213667d55062566eb2b01d43557a2809d1267476d5f8c6a765870e483d0c83c",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 3,
+        "clientRequests": 3,
+        "nativeResultNames": [
+          "mcp_gateway_tool_9120d3e96e5e451d"
+        ]
+      },
+      "source": {
+        "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+        "files": 51
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "scenario": "text",
+      "recordedAt": "2026-11-06T18:02:42.003Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-hermes-fixed/hermes-text.json",
+      "sha256": "58dd61fa589ef2e31fce697e00e924a7d41d1fbc410437f4650c1454e21671a1",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true
+        },
+        "generationCount": 2,
+        "clientRequests": 2,
+        "nativeResultNames": []
+      },
+      "source": {
+        "sha256": "584b09fc6d9dbccf48fe79a988dc4c941ba253dbd2555b2906eda636560acc66",
+        "files": 52
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "scenario": "read",
+      "recordedAt": "2026-11-06T18:02:57.150Z",
+      "model": "claude-sonnet-4-6",
+      "file": "sonnet-hermes-fixed/hermes-read.json",
+      "sha256": "2161983f187a02765f24b3a7437922fd0930a32166307cc74d503be7e1069cfb",
+      "assessment": {
+        "passed": true,
+        "checks": {
+          "clientSucceeded": true,
+          "gatewayHTTP": true,
+          "realNativeTLS": true,
+          "finalMarkerDelivered": true,
+          "officialUA": true,
+          "actualFixtureResult": true,
+          "followupGeneration": true,
+          "originalClientToolName": true,
+          "noUnexpectedToolCall": true
+        },
+        "generationCount": 3,
+        "clientRequests": 3,
+        "nativeResultNames": [
+          "mcp_gateway_tool_9bb48e8eede6f8dd"
+        ]
+      },
+      "source": {
+        "sha256": "584b09fc6d9dbccf48fe79a988dc4c941ba253dbd2555b2906eda636560acc66",
+        "files": 52
+      },
+      "sourceUnchanged": true,
+      "productionAccountsBefore": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsAfter": {
+        "fileCount": 6,
+        "jsonCount": 6,
+        "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+      },
+      "productionAccountsUnchanged": true
+    }
+  ],
+  "excludedEvidence": [
+    {
+      "file": "claude-text-high-429.json",
+      "reason": "Gemini high returned real generic HTTP 429 RESOURCE_EXHAUSTED; no precise capacity or balance cause in response. Not counted as protocol failure or success."
+    },
+    {
+      "file": "interrupted-gemini-summary.json",
+      "reason": "Low attempt interrupted by local controller/process lifecycle; no completed model result."
+    },
+    {
+      "file": "sonnet/summary.json",
+      "reason": "Only Claude succeeded in this initial group; other clients hit local sandbox setup errors and are superseded by separately retained successful runs."
+    },
+    {
+      "file": "sonnet-rest/summary.json",
+      "reason": "Only Pi and dsh succeeded in this group; Hermes could not connect its separate local WebSocket and made no model request."
+    },
+    {
+      "file": "sonnet-hermes/summary.json",
+      "reason": "Hermes diagnostic run still had local WebSocket blocked and made no model request."
+    }
+  ]
+}

@@ -232,7 +232,7 @@ test('a quota challenge after a pool reload marks the current account entry unhe
   await ready;
   const original = pool.entries.get(saved.id);
   pool.reload();
-  assert.notEqual(pool.entries.get(saved.id), original);
+  assert.equal(pool.entries.get(saved.id), original, 'same-grant reload keeps the in-flight entry authoritative');
   release();
   await assert.rejects(pending, /Verify your account/);
   assert.equal(pool.entries.get(saved.id).healthState, 'verification_required');

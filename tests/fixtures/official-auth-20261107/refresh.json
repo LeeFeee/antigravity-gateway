@@ -1,0 +1,333 @@
+{
+  "scenario": "refresh",
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "versionOutput": "1.5.2",
+  "realUpstream": false,
+  "realAccountRead": false,
+  "mockOnly": true,
+  "authorizationCompletedWithGoogle": false,
+  "requestObserved": true,
+  "exitCode": 0,
+  "authorizationUrl": null,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://oauth2.googleapis.com/token",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/x-www-form-urlencoded"
+        ],
+        [
+          "content-length",
+          "196"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {
+        "client_id": "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+        "client_secret": "[REDACTED]",
+        "grant_type": "refresh_token",
+        "refresh_token": "[REDACTED]"
+      },
+      "mockResponse": {
+        "access_token": "[REDACTED]",
+        "refresh_token": "[REDACTED]",
+        "token_type": "Bearer",
+        "expires_in": 3600
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://oauth2.googleapis.com/token",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/x-www-form-urlencoded"
+        ],
+        [
+          "content-length",
+          "196"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {
+        "client_id": "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com",
+        "client_secret": "[REDACTED]",
+        "grant_type": "refresh_token",
+        "refresh_token": "[REDACTED]"
+      },
+      "mockResponse": {
+        "access_token": "[REDACTED]",
+        "refresh_token": "[REDACTED]",
+        "token_type": "Bearer",
+        "expires_in": 3600
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=isolated-auth-probe/1.0)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockResponse": {
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ]
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:listExperiments",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=isolated-auth-probe/1.0)"
+        ],
+        [
+          "Content-Length",
+          "2"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {
+        "experiments": []
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=isolated-auth-probe/1.0)"
+        ],
+        [
+          "Content-Length",
+          "2"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {},
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=isolated-auth-probe/1.0)"
+        ],
+        [
+          "Content-Length",
+          "2"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {
+        "models": {},
+        "modelSorts": []
+      },
+      "mockStatus": 200
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer; host_path=isolated-auth-probe/1.0)"
+        ],
+        [
+          "Content-Length",
+          "2"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockResponse": {},
+      "mockStatus": 200
+    }
+  ],
+  "stdout": "{\"jsonrpc\":\"2.0\",\"result\":{\"protocolVersion\":1,\"agentCapabilities\":{\"loadSession\":true,\"load_session\":true,\"promptCapabilities\":{\"image\":true,\"audio\":false,\"embeddedContext\":true},\"sessionCapabilities\":{\"resume\":{},\"close\":{},\"load\":{},\"list\":{},\"additionalDirectories\":{}},\"session_capabilities\":{\"resume\":{},\"close\":{},\"load\":{},\"list\":{},\"additionalDirectories\":{}},\"auth\":{\"logout\":{}},\"_meta\":{\"antigravity\":{\"tier\":true,\"systemPrompt\":{\"append\":true}}}},\"agentInfo\":{\"name\":\"Antigravity ACP Server\",\"version\":\"1.5.2\"},\"authMethods\":[{\"id\":\"oauth-personal\",\"name\":\"Log in with Google\",\"description\":\"Log in with your Google account\"},{\"id\":\"oauth-business\",\"name\":\"Log in with Gemini Enterprise\",\"description\":\"Log in with your Gemini Enterprise account\"},{\"id\":\"gemini-api-key\",\"name\":\"Gemini API key\",\"description\":\"Use an API key with Gemini Developer API\"},{\"id\":\"agent-platform\",\"name\":\"Gemini Enterprise Agent Platform\",\"description\":\"Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials\"}]},\"id\":1}\n{\"jsonrpc\":\"2.0\",\"result\":{\"sessionId\":\"1cd98dfb-2649-4dd1-b2f6-43106df648f4\",\"modes\":{\"currentModeId\":\"default\",\"availableModes\":[{\"id\":\"default\",\"name\":\"Default\",\"description\":\"Ask before edits and commands, per your permission settings.\"},{\"id\":\"accept-edits\",\"name\":\"Accept edits\",\"description\":\"Approve file edits in the workspace without asking.\"},{\"id\":\"plan\",\"name\":\"Plan\",\"description\":\"Plan carefully before executing a task.\"}]},\"configOptions\":[{\"id\":\"mode\",\"name\":\"Mode\",\"category\":\"mode\",\"type\":\"select\",\"currentValue\":\"default\",\"options\":[{\"value\":\"default\",\"name\":\"Default\",\"description\":\"Ask before edits and commands, per your permission settings.\"},{\"value\":\"accept-edits\",\"name\":\"Accept edits\",\"description\":\"Approve file edits in the workspace without asking.\"},{\"value\":\"plan\",\"name\":\"Plan\",\"description\":\"Plan carefully before executing a task.\"}]}]},\"id\":2}\n",
+  "stderr": ""
+}

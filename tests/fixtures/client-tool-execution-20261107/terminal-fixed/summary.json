@@ -1,0 +1,36 @@
+[
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "terminal",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "actualTerminalOutput": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "dsh",
+    "version": "0.2.1-rc.2",
+    "scenario": "terminal",
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "actualTerminalOutput": true,
+      "sourceStable": true
+    }
+  }
+]

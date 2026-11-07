@@ -3,7 +3,7 @@ require('./helpers/gateway-environment');
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const { SessionManager } = require('../src/session-manager');
-const input = { model: 'gemini-4-argon', messages: [{ role: 'user', text: '读取笔记。' }] };
+const input = { model: 'gemini-3.8-flash-high', messages: [{ role: 'user', text: '读取笔记。' }] };
 function request(session, user = 'anonymous-a', version = '0.1.0-rc.5', extra = {}) {
   return { headers: { authorization: 'Bearer synthetic-local-key',
     'user-agent': 'deepseek-harness/' + version + ' (+https://github.com/deepseek-ai/deepseek-harness)',
@@ -14,15 +14,15 @@ function request(session, user = 'anonymous-a', version = '0.1.0-rc.5', extra = 
 test('captured Claude Code session header is authoritative across restart and metadata changes', () => {
   const req = { headers: { 'x-api-key': 'synthetic-key', 'user-agent': 'claude-cli/2.1.285 (external, sdk-cli)',
     'x-claude-code-session-id': 'opaque-claude-session-a' }, socket: { remoteAddress: '127.0.0.1' } };
-  for (const taskProvider of ['', 'robin', 'gemini-windows']) {
-    const first = new SessionManager().resolveIdentity(req, { metadata: { user_id: '{"device_id":"old","session_id":"opaque-claude-session-a"}' } }, input, null, { taskProvider });
-    const resumed = new SessionManager().resolveIdentity(req, { metadata: { user_id: 'changed-client-metadata' } }, input, null, { taskProvider });
+  {
+    const first = new SessionManager().resolveIdentity(req, { metadata: { user_id: '{"device_id":"old","session_id":"opaque-claude-session-a"}' } }, input);
+    const resumed = new SessionManager().resolveIdentity(req, { metadata: { user_id: 'changed-client-metadata' } }, input);
     assert.equal(first.sessionId, resumed.sessionId);
     assert.equal(first.routingKey, resumed.routingKey);
     assert.equal(first.reuseConversation, true);
     assert.equal(first.anonymousTask, undefined);
-    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-claude-code-session-id': 'opaque-claude-session-b' } }, {}, input, null, { taskProvider }).sessionId, first.sessionId);
-    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-api-key': 'another-key' } }, {}, input, null, { taskProvider }).sessionId, first.sessionId);
+    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-claude-code-session-id': 'opaque-claude-session-b' } }, {}, input).sessionId, first.sessionId);
+    assert.notEqual(new SessionManager().resolveIdentity({ ...req, headers: { ...req.headers, 'x-api-key': 'another-key' } }, {}, input).sessionId, first.sessionId);
   }
   const common = { ...req, headers: { ...req.headers, 'x-session-id': 'explicit-session' } };
   const oldAlias = { ...req, headers: { ...req.headers, 'x-claude-session-id': 'explicit-session' } };
@@ -95,21 +95,12 @@ test('DSH auxiliary scopes follow explicit compaction headers or tool declaratio
   assert.equal(manager.resolveIdentity(req, {}, { ...mainInput, messages: [{ role: 'user', text: 'compaction title 标题压缩' }] }).auxiliaryScope, undefined);
 });
 
-test('Robin separates no-tool auxiliary requests without guessing their intent or changing Cloud Code routing', () => {
-  const manager = new SessionManager(), req = { headers: { 'x-claude-code-session-id': 'same-session' } };
-  const main = { ...input, tools: [{ name: 'Bash' }] }, auxiliary = { ...input, tools: [] };
-  assert.equal(manager.resolveIdentity(req, {}, main, null, { taskProvider: 'robin' }).auxiliaryScope, undefined);
-  assert.equal(manager.resolveIdentity(req, {}, auxiliary, null, { taskProvider: 'robin' }).auxiliaryScope, 'no-client-tools');
-  assert.equal(manager.resolveIdentity(req, {}, auxiliary).auxiliaryScope, undefined);
-  assert.equal(manager.resolveIdentity(req, {}, { ...auxiliary, messages: [{ role: 'user', parts: [{ type: 'tool_result', id: 'call' }] }] }, null, { taskProvider: 'robin' }).auxiliaryScope, undefined);
-});
-
-test('Chat handlers retain DSH tool ownership across turns without injecting routing headers into model content', async t => {
-  const { RobinAccountPool } = require('../src/robin-account-pool');
+test('Responses handlers retain DSH tool ownership across turns without injecting routing headers into model content', async t => {
+  const { AccountPool } = require('../src/account-pool');
   const { createServer } = require('../antigravity-gateway');
   const seen = [];
-  t.mock.method(RobinAccountPool.prototype, 'listModels', async () => ['gemini-4-argon']);
-  t.mock.method(RobinAccountPool.prototype, 'send', async (normalized, _model, options) => {
+  t.mock.method(AccountPool.prototype, 'listModels', async () => ['gemini-3.8-flash-high']);
+  t.mock.method(AccountPool.prototype, 'send', async (normalized, _model, options) => {
     seen.push({ normalized, options });
     const done = normalized.messages.some(message => message.parts.some(part => part.type === 'tool_result'));
     return { text: done ? '读回完成。' : '', usage: null, usageKnown: false,
@@ -119,24 +110,24 @@ test('Chat handlers retain DSH tool ownership across turns without injecting rou
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const preflight = await fetch(`${base}/v1/chat/completions`, { method: 'OPTIONS', headers: { origin: base,
+  const preflight = await fetch(`${base}/v1/responses`, { method: 'OPTIONS', headers: { origin: base,
     'access-control-request-headers': 'x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-claude-code-session-id' } });
   assert.equal(preflight.status, 204);
   for (const header of ['x-deepseek-harness-session-id', 'x-deepseek-harness-user-id', 'x-deepseek-harness-compact', 'x-claude-code-session-id']) {
     assert.ok(preflight.headers.get('access-control-allow-headers').split(', ').includes(header));
   }
-  const body = { model: 'gemini-4-argon', messages: [{ role: 'user', content: '读取笔记。' }],
-    tools: [{ type: 'function', function: { name: 'read_note', parameters: { type: 'object', properties: {} } } }] };
+  const body = { model: 'gemini-3.8-flash-high', input: [{ role: 'user', content: '读取笔记。' }],
+    tools: [{ type: 'function', name: 'read_note', parameters: { type: 'object', properties: {} } }] };
   async function send(session, payload, version) {
     const headers = { ...request(session, 'opaque-dsh-user-unique', version).headers, 'content-type': 'application/json' };
-    const response = await fetch(`http://127.0.0.1:${server.address().port}/v1/chat/completions`, {
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/v1/responses`, {
       method: 'POST', headers, body: JSON.stringify(payload) });
     assert.equal(response.status, 200); return response.json();
   }
   const first = await send('opaque-dsh-session-a-unique', body);
   await send('opaque-dsh-session-b-unique', body);
-  await send('opaque-dsh-session-a-unique', { ...body, messages: [...body.messages,
-    first.choices[0].message, { role: 'tool', tool_call_id: 'same-call-id', content: 'note content' }] }, '0.1.0-rc.6');
+  await send('opaque-dsh-session-a-unique', { ...body, input: [...body.input,
+    ...first.output, { type: 'function_call_output', call_id: 'same-call-id', output: 'note content' }] }, '0.1.0-rc.6');
   assert.equal(seen[0].options.sessionId, seen[2].options.sessionId);
   assert.equal(seen[0].options.clientId, seen[2].options.clientId);
   assert.equal(seen[0].options.routingKey, seen[2].options.routingKey);

@@ -1,0 +1,36 @@
+[
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "write",
+    "passed": false,
+    "checks": {
+      "clientCallArgumentsRestored": false,
+      "clientSucceeded": false,
+      "gatewayHTTP": false,
+      "allPlannedToolsIssued": false,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": false,
+      "finalAnswer": false,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  },
+  {
+    "agent": "claude",
+    "version": "2.1.318",
+    "scenario": "edit",
+    "passed": true,
+    "checks": {
+      "clientCallArgumentsRestored": true,
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "allPlannedToolsIssued": true,
+      "allClientReceiptsReturned": true,
+      "exactDiskContents": true,
+      "finalAnswer": true,
+      "noUpstreamError": true,
+      "sourceStable": true
+    }
+  }
+]

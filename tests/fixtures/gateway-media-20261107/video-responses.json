@@ -1,0 +1,315 @@
+{
+  "scenario": "video-responses",
+  "model": "gemini-3.8-flash-low",
+  "recordedAt": "2026-11-06T18:11:29.203Z",
+  "evidence": "actual-http-real-gateway-real-google-native-tls",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "gatewayHTTP": true,
+      "requestedModelPreserved": true,
+      "originalGoTLS": true,
+      "officialUA": true,
+      "exactMediaBytes": true,
+      "mediaUnderstood": true
+    },
+    "nativeGenerations": 1,
+    "nativeStatuses": [
+      200
+    ],
+    "answer": "Red, Blue"
+  },
+  "expectedMedia": {
+    "filename": "video-fixture.mp4",
+    "mimeType": "video/mp4",
+    "bytes": 8999,
+    "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4",
+    "streams": [
+      {
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 128,
+        "height": 96
+      },
+      {
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "sample_rate": "16000",
+        "channels": 1
+      }
+    ],
+    "duration": "2.000000"
+  },
+  "http": {
+    "status": 200,
+    "headers": {
+      "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+      "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+      "connection": "keep-alive",
+      "content-length": "433",
+      "content-type": "application/json; charset=utf-8",
+      "date": "Fri, 06 Nov 2026 18:11:28 GMT",
+      "keep-alive": "timeout=5",
+      "x-antigravity-model": "gemini-3.8-flash-low"
+    },
+    "body": {
+      "id": "resp_1abf5d9d2a014407a1e6e3a58484f7c6",
+      "object": "response",
+      "created_at": 1793988688,
+      "status": "completed",
+      "error": null,
+      "incomplete_details": null,
+      "model": "gemini-3.8-flash-low",
+      "output": [
+        {
+          "id": "msg_9d32ca925981426e93e08b45e0a7d27e",
+          "type": "message",
+          "status": "completed",
+          "role": "assistant",
+          "content": [
+            {
+              "type": "output_text",
+              "text": "Red, Blue",
+              "annotations": []
+            }
+          ]
+        }
+      ],
+      "usage": {
+        "input_tokens": 206,
+        "output_tokens": 81,
+        "total_tokens": 287
+      }
+    },
+    "bytes": {
+      "bytes": 433,
+      "sha256": "720f24e0f659fcd24dde350a131e6bf86a10679553b82cd7700adea2aaac9199"
+    },
+    "blocked": false
+  },
+  "trace": [
+    {
+      "type": "native-request",
+      "id": "ac671e6c-1ca9-4f16-856b-51eede434ad1",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "agent/0a488283-f8c6-4ce0-b06e-7be8ad3a86ab/1793988685166/2a662552-a38b-4b8c-9101-8d91d2c22f88/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "Inspect this attached video. State only the first and then the second solid background colors, in temporal order, in English. Do not use tools."
+                },
+                {
+                  "inlineData": {
+                    "mimeType": "video/mp4",
+                    "data": {
+                      "encoding": "base64",
+                      "bytes": 8999,
+                      "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "0a488283-f8c6-4ce0-b06e-7be8ad3a86ab",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M320",
+            "request_id": "2a662552-a38b-4b8c-9101-8d91d2c22f88-0",
+            "root_cascade_id": "0a488283-f8c6-4ce0-b06e-7be8ad3a86ab",
+            "trajectory_id": "2a662552-a38b-4b8c-9101-8d91d2c22f88",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 2048,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "LOW"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-low",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "native-response",
+      "id": "ac671e6c-1ca9-4f16-856b-51eede434ad1",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-disposition": "attachment",
+        "content-type": "text/event-stream",
+        "date": "Fri, 06 Nov 2026 18:11:22 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=3532",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-38f678bf428255a8e234"
+    },
+    {
+      "type": "native-body",
+      "id": "ac671e6c-1ca9-4f16-856b-51eede434ad1",
+      "body": {
+        "events": [
+          {
+            "response": {
+              "candidates": [
+                {
+                  "content": {
+                    "role": "model",
+                    "parts": [
+                      {
+                        "text": "Red, Blue"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "usageMetadata": {
+                "promptTokenCount": 206,
+                "candidatesTokenCount": 3,
+                "totalTokenCount": 287,
+                "thoughtsTokenCount": 78
+              },
+              "modelVersion": "gemini-3.8-flash-n",
+              "responseId": "SBjuaq6MFe2-vr0P1diggA4"
+            },
+            "traceId": "d5160920845445e0",
+            "metadata": {}
+          },
+          {
+            "response": {
+              "candidates": [
+                {
+                  "content": {
+                    "role": "model",
+                    "parts": [
+                      {
+                        "thoughtSignature": {
+                          "sha256": "41dd11de3f0e784d260b0e9307bd0ca3b40b32a236cf2c3b5ada5210342a95d3",
+                          "omitted": true
+                        },
+                        "text": ""
+                      }
+                    ]
+                  },
+                  "finishReason": "STOP"
+                }
+              ],
+              "usageMetadata": {
+                "promptTokenCount": 206,
+                "candidatesTokenCount": 3,
+                "totalTokenCount": 287,
+                "thoughtsTokenCount": 78
+              },
+              "modelVersion": "gemini-3.8-flash-n",
+              "responseId": "SBjuaq6MFe2-vr0P1diggA4"
+            },
+            "traceId": "d5160920845445e0",
+            "metadata": {}
+          }
+        ]
+      }
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:60441",
+        "connection": "keep-alive",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "x-client-id": "gateway-media-verifier",
+        "x-session-id": "88980eed-7114-455f-be3d-1e424ff5b969",
+        "content-type": "application/json",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "12345"
+      },
+      "body": {
+        "model": "gemini-3.8-flash-low",
+        "stream": false,
+        "max_output_tokens": 2048,
+        "input": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "Inspect this attached video. State only the first and then the second solid background colors, in temporal order, in English. Do not use tools."
+              },
+              {
+                "type": "input_video",
+                "video_url": {
+                  "dataUrl": "data:video/mp4;base64",
+                  "bytes": 8999,
+                  "sha256": "17ce432bfbce3c7ac17881b97156ee227082375d338ad3d57811a1ca06b5bed4"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 433,
+        "x-antigravity-model": "gemini-3.8-flash-low"
+      },
+      "responseBody": {
+        "id": "resp_1abf5d9d2a014407a1e6e3a58484f7c6",
+        "object": "response",
+        "created_at": 1793988688,
+        "status": "completed",
+        "error": null,
+        "incomplete_details": null,
+        "model": "gemini-3.8-flash-low",
+        "output": [
+          {
+            "id": "msg_9d32ca925981426e93e08b45e0a7d27e",
+            "type": "message",
+            "status": "completed",
+            "role": "assistant",
+            "content": [
+              {
+                "type": "output_text",
+                "text": "Red, Blue",
+                "annotations": []
+              }
+            ]
+          }
+        ],
+        "usage": {
+          "input_tokens": 206,
+          "output_tokens": 81,
+          "total_tokens": 287
+        }
+      }
+    }
+  ]
+}

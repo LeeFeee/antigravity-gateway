@@ -1,0 +1,1717 @@
+{
+  "agent": "hermes",
+  "version": "0.21.7+11153.g2bd378e",
+  "commit": "2bd378ed1b8d6bf2192cb26e0a55ff3091e6bd19",
+  "scenario": "terminal",
+  "recordedAt": "2026-11-06T18:22:40.575Z",
+  "evidence": "actual-cli-real-gateway-synthetic-google-tool-execution",
+  "realModelValidated": false,
+  "tlsValidated": false,
+  "sourceBefore": {
+    "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+    "files": 53
+  },
+  "sourceAfter": {
+    "sha256": "492778b63425b2a912f256d25b87e646e76e70c6d1c0c619e2c08d2070c6a122",
+    "files": 53
+  },
+  "isolation": "fresh HOME; fake account; CLI explicit loopback ports; writes only private root; gateway forbidden to write client work directory",
+  "command": [
+    "/home/probe/.local/bin/hermes",
+    "chat",
+    "-q",
+    "Controlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.",
+    "--oneshot",
+    "--provider",
+    "local-probe",
+    "--model",
+    "gemini-3.8-flash-high",
+    "--format",
+    "stream-json",
+    "--max-turns",
+    "6",
+    "--toolsets",
+    "terminal"
+  ],
+  "plan": [
+    {
+      "name": "terminal",
+      "arguments": {
+        "command": "printf '%s\\n' 'AGW_FIXED_TERMINAL_MARKER'",
+        "workdir": "/tmp/client-gateway-verify/work",
+        "timeout": 5,
+        "background": false
+      }
+    }
+  ],
+  "issued": [
+    {
+      "id": "controlled_hermes_terminal_0",
+      "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+      "args": {
+        "argumentsJson": "{\"command\":\"printf '%s\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\",\"workdir\":\"/tmp/client-gateway-verify/work\",\"timeout\":5,\"background\":false}",
+        "toolSummary": "Client tool request"
+      }
+    }
+  ],
+  "outcome": {
+    "code": 0,
+    "signal": null
+  },
+  "checks": {
+    "clientSucceeded": true,
+    "gatewayHTTP": true,
+    "allPlannedToolsIssued": true,
+    "allClientReceiptsReturned": true,
+    "exactDiskContents": true,
+    "finalAnswer": true,
+    "noUpstreamError": true,
+    "actualTerminalOutput": true,
+    "sourceStable": true
+  },
+  "passed": true,
+  "disk": {
+    "file": "/tmp/client-gateway-verify/work/edit.txt",
+    "before": "ALPHA = old\nBETA = old\n",
+    "expected": "ALPHA = old\nBETA = old\n",
+    "actual": "ALPHA = old\nBETA = old\n"
+  },
+  "errors": [],
+  "clientHTTP": [
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "user-agent": "node",
+        "accept-encoding": "gzip, deflate"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 93
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/v1/models\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/api/tags",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/tags\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/props",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /v1/props\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/props",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 85
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /props\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 87
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /version\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>"
+      },
+      "body": "",
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 2303
+      },
+      "responseBody": "{\"object\":\"list\",\"data\":[{\"id\":\"gemini-3.8-flash-high\",\"object\":\"model\",\"created\":0,\"owned_by\":\"antigravity\",\"display_name\":\"Synthetic Flash High\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"}}],\"models\":[{\"slug\":\"gemini-3.8-flash-high\",\"display_name\":\"Synthetic Flash High\",\"description\":\"Model provided through the local Antigravity Gateway.\",\"prefer_websockets\":false,\"support_verbosity\":false,\"default_verbosity\":\"low\",\"apply_patch_tool_type\":\"freeform\",\"web_search_tool_type\":\"text_and_image\",\"input_modalities\":[\"text\"],\"supports_images\":false,\"supports_video\":false,\"supports_audio\":false,\"supported_mime_types\":{},\"supports_image_detail_original\":false,\"truncation_policy\":{\"mode\":\"tokens\",\"limit\":10000},\"supports_parallel_tool_calls\":true,\"tool_mode\":\"direct\",\"multi_agent_version\":\"v1\",\"use_responses_lite\":false,\"include_skills_usage_instructions\":true,\"include_plugin_usage_instructions\":true,\"include_apps_usage_instructions\":true,\"auto_review_model_override\":null,\"context_window\":1048576,\"max_context_window\":1048576,\"max_output_tokens\":65536,\"auto_compact_token_limit\":null,\"comp_hash\":\"antigravity-gateway-1.7.5\",\"base_instructions\":\"Follow the client instructions and use only client-provided tools when needed.\",\"reasoning_summary_format\":\"experimental\",\"default_reasoning_summary\":\"none\",\"default_reasoning_level\":\"high\",\"supported_reasoning_levels\":[{\"effort\":\"high\",\"description\":\"Fixed by model name: gemini-3.8-flash-high\"}],\"fixed_thinking_config\":{\"includeThoughts\":true,\"thinkingLevel\":\"HIGH\"},\"shell_type\":\"shell_command\",\"visibility\":\"list\",\"minimal_client_version\":\"0.0.0\",\"supported_in_api\":true,\"availability_nux\":null,\"upgrade\":null,\"priority\":0,\"model_messages\":null,\"experimental_supported_tools\":[],\"available_in_plans\":[],\"supports_search_tool\":false,\"default_service_tier\":null,\"service_tiers\":[],\"additional_speed_tiers\":[],\"supports_reasoning_summaries\":false}],\"image_generation_model_ids\":[],\"default_model\":\"gemini-3.8-flash-high\",\"fast_model\":\"gemini-3.8-flash-high\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/api/show",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-length": "32",
+        "content-type": "application/json"
+      },
+      "body": {
+        "name": "gemini-3.8-flash-high"
+      },
+      "status": 404,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 88
+      },
+      "responseBody": "{\"error\":{\"message\":\"接口不存在: /api/show\",\"type\":\"not_found\",\"code\":\"not_found\"}}"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "1800.0",
+        "content-length": "10352"
+      },
+      "body": {
+        "include": [
+          "reasoning.encrypted_content"
+        ],
+        "instructions": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->",
+        "model": "gemini-3.8-flash-high",
+        "parallel_tool_calls": true,
+        "prompt_cache_key": "pck_77658f25d14d83b68b24050f",
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "store": false,
+        "stream": true,
+        "tool_choice": "auto",
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "name": "terminal",
+            "description": "Run shell commands on the OS/shell/backend named in your environment section. The working directory, files and exported variables persist between calls: activate a virtualenv or export once, not before every command.\n\nUse read_file, search_files, patch and write_file instead of cat/head/tail, grep/find/ls, sed/awk and echo/heredoc. Output is auto-truncated with the full text saved to a file; never pipe through head/tail to shorten it.\n\nForeground (default) returns as soon as the command finishes. To wait a fixed time, run the wait in the foreground; never background a sleep or polling loop. Background is only for commands that must keep running after this call returns; health-check a server in a separate call and manage jobs with process_manage. When a command changes directory, trust the result's \"cwd\" instead of prefixing later commands with cd.\n",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "The shell command to execute"
+                },
+                "background": {
+                  "type": "boolean",
+                  "description": "Keep running after this call returns; returns a session_id.",
+                  "default": false
+                },
+                "timeout": {
+                  "type": "integer",
+                  "description": "Max seconds (default 180, foreground max 600). Finishing early returns at once, so set it generously. Above 600s the command runs as a tracked background process with notify_on_complete=true (the result says so; do not re-run it).",
+                  "minimum": 1
+                },
+                "workdir": {
+                  "type": "string",
+                  "description": "Absolute working directory for this command only."
+                },
+                "pty": {
+                  "type": "boolean",
+                  "description": "With background=true: pseudo-terminal for interactive CLIs (REPLs, coding agents); drive it with process_manage write/submit. Local backend only.",
+                  "default": false
+                },
+                "notify": {
+                  "description": "With background=true. true: one notification on exit; use it for anything that ends (builds, tests, deploys), or the job runs silently. ['pattern', ...]: notify when a line matches, only for one-shot readiness on processes that never exit; rate-limited. Omit for servers/daemons.",
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "heartbeat": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "With background=true: also notify every N seconds (min 60) with new output; quiet ticks are skipped. For bounded jobs you must react to mid-run, never servers. Implies notify=true; 0 = off."
+                },
+                "persist_on_release": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "With background=true: survive session end, /new, compression and other cleanup (not host exit). Only for jobs the user explicitly wants to outlive the conversation."
+                }
+              },
+              "required": [
+                "command"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_search",
+            "description": "Search 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "queries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel."
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Max matches per query (default 5)."
+                }
+              },
+              "required": [
+                "queries"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_describe",
+            "description": "Load the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name."
+                }
+              },
+              "required": [
+                "names"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_call",
+            "description": "Invoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "calls": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Exact tool name to invoke."
+                      },
+                      "arguments": {
+                        "type": "object",
+                        "description": "Arguments matching the tool schema."
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "arguments"
+                    ]
+                  },
+                  "description": "One or more independent deferred tool invocations."
+                }
+              },
+              "required": [
+                "calls"
+              ]
+            }
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_1b6be6bec713439292738a17055c171f\",\"object\":\"response\",\"created_at\":1793989358,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"fc_30ed517db2f24f68b5189d94f555c3f5\",\"type\":\"function_call\",\"status\":\"in_progress\",\"call_id\":\"controlled_hermes_terminal_0\",\"name\":\"terminal\",\"arguments\":\"{\\\"command\\\":\\\"printf '%s\\\\\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\\\",\\\"workdir\\\":\\\"/tmp/client-gateway-verify/work\\\",\\\"timeout\\\":5,\\\"background\\\":false}\"},\"sequence_number\":1}\n\ndata: {\"type\":\"response.function_call_arguments.delta\",\"item_id\":\"fc_30ed517db2f24f68b5189d94f555c3f5\",\"output_index\":0,\"delta\":\"{\\\"command\\\":\\\"printf '%s\\\\\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\\\",\\\"workdir\\\":\\\"/tmp/client-gateway-verify/work\\\",\\\"timeout\\\":5,\\\"background\\\":false}\",\"sequence_number\":2}\n\ndata: {\"type\":\"response.function_call_arguments.done\",\"item_id\":\"fc_30ed517db2f24f68b5189d94f555c3f5\",\"output_index\":0,\"arguments\":\"{\\\"command\\\":\\\"printf '%s\\\\\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\\\",\\\"workdir\\\":\\\"/tmp/client-gateway-verify/work\\\",\\\"timeout\\\":5,\\\"background\\\":false}\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"fc_30ed517db2f24f68b5189d94f555c3f5\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_hermes_terminal_0\",\"name\":\"terminal\",\"arguments\":\"{\\\"command\\\":\\\"printf '%s\\\\\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\\\",\\\"workdir\\\":\\\"/tmp/client-gateway-verify/work\\\",\\\"timeout\\\":5,\\\"background\\\":false}\"},\"sequence_number\":4}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":5,\"response\":{\"id\":\"resp_1b6be6bec713439292738a17055c171f\",\"object\":\"response\",\"created_at\":1793989358,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"fc_30ed517db2f24f68b5189d94f555c3f5\",\"type\":\"function_call\",\"status\":\"completed\",\"call_id\":\"controlled_hermes_terminal_0\",\"name\":\"terminal\",\"arguments\":\"{\\\"command\\\":\\\"printf '%s\\\\\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\\\",\\\"workdir\\\":\\\"/tmp/client-gateway-verify/work\\\",\\\"timeout\\\":5,\\\"background\\\":false}\"}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "1800.0",
+        "content-length": "10766"
+      },
+      "body": {
+        "include": [
+          "reasoning.encrypted_content"
+        ],
+        "instructions": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->",
+        "model": "gemini-3.8-flash-high",
+        "parallel_tool_calls": true,
+        "prompt_cache_key": "pck_77658f25d14d83b68b24050f",
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "store": false,
+        "stream": true,
+        "tool_choice": "auto",
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          },
+          {
+            "type": "function_call",
+            "call_id": "controlled_hermes_terminal_0",
+            "name": "terminal",
+            "arguments": "{\"background\":false,\"command\":\"printf '%s\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\",\"timeout\":5,\"workdir\":\"/tmp/client-gateway-verify/work\"}"
+          },
+          {
+            "type": "function_call_output",
+            "call_id": "controlled_hermes_terminal_0",
+            "output": "{\"output\": \"AGW_FIXED_TERMINAL_MARKER\", \"exit_code\": 0, \"error\": null}"
+          }
+        ],
+        "tools": [
+          {
+            "type": "function",
+            "name": "terminal",
+            "description": "Run shell commands on the OS/shell/backend named in your environment section. The working directory, files and exported variables persist between calls: activate a virtualenv or export once, not before every command.\n\nUse read_file, search_files, patch and write_file instead of cat/head/tail, grep/find/ls, sed/awk and echo/heredoc. Output is auto-truncated with the full text saved to a file; never pipe through head/tail to shorten it.\n\nForeground (default) returns as soon as the command finishes. To wait a fixed time, run the wait in the foreground; never background a sleep or polling loop. Background is only for commands that must keep running after this call returns; health-check a server in a separate call and manage jobs with process_manage. When a command changes directory, trust the result's \"cwd\" instead of prefixing later commands with cd.\n",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "command": {
+                  "type": "string",
+                  "description": "The shell command to execute"
+                },
+                "background": {
+                  "type": "boolean",
+                  "description": "Keep running after this call returns; returns a session_id.",
+                  "default": false
+                },
+                "timeout": {
+                  "type": "integer",
+                  "description": "Max seconds (default 180, foreground max 600). Finishing early returns at once, so set it generously. Above 600s the command runs as a tracked background process with notify_on_complete=true (the result says so; do not re-run it).",
+                  "minimum": 1
+                },
+                "workdir": {
+                  "type": "string",
+                  "description": "Absolute working directory for this command only."
+                },
+                "pty": {
+                  "type": "boolean",
+                  "description": "With background=true: pseudo-terminal for interactive CLIs (REPLs, coding agents); drive it with process_manage write/submit. Local backend only.",
+                  "default": false
+                },
+                "notify": {
+                  "description": "With background=true. true: one notification on exit; use it for anything that ends (builds, tests, deploys), or the job runs silently. ['pattern', ...]: notify when a line matches, only for one-shot readiness on processes that never exit; rate-limited. Omit for servers/daemons.",
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  ]
+                },
+                "heartbeat": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0,
+                  "description": "With background=true: also notify every N seconds (min 60) with new output; quiet ticks are skipped. For bounded jobs you must react to mid-run, never servers. Implies notify=true; 0 = off."
+                },
+                "persist_on_release": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "With background=true: survive session end, /new, compression and other cleanup (not host exit). Only for jobs the user explicitly wants to outlive the conversation."
+                }
+              },
+              "required": [
+                "command"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_search",
+            "description": "Search 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "queries": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel."
+                },
+                "limit": {
+                  "type": "integer",
+                  "description": "Max matches per query (default 5)."
+                }
+              },
+              "required": [
+                "queries"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_describe",
+            "description": "Load the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "names": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name."
+                }
+              },
+              "required": [
+                "names"
+              ]
+            }
+          },
+          {
+            "type": "function",
+            "name": "tool_call",
+            "description": "Invoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.",
+            "strict": false,
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "calls": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "description": "Exact tool name to invoke."
+                      },
+                      "arguments": {
+                        "type": "object",
+                        "description": "Arguments matching the tool schema."
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "arguments"
+                    ]
+                  },
+                  "description": "One or more independent deferred tool invocations."
+                }
+              },
+              "required": [
+                "calls"
+              ]
+            }
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_06ff290d0fad494289f07d5b9d3ff94f\",\"object\":\"response\",\"created_at\":1793989358,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"output_index\":0,\"content_index\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"output_index\":0,\"content_index\":0,\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":7,\"response\":{\"id\":\"resp_06ff290d0fad494289f07d5b9d3ff94f\",\"object\":\"response\",\"created_at\":1793989358,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_c9afa57753d1433d8261cb2c4e3916ba\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}}}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "accept": "application/json",
+        "content-type": "application/json",
+        "user-agent": "OpenAI/Python 2.54.0",
+        "x-stainless-lang": "python",
+        "x-stainless-package-version": "2.54.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "CPython",
+        "x-stainless-runtime-version": "3.14.9",
+        "x-stainless-async": "false",
+        "x-stainless-retry-count": "0",
+        "x-stainless-read-timeout": "30.0",
+        "content-length": "1389"
+      },
+      "body": {
+        "instructions": "You name chat sessions. Given the user's opening message, write a title that lets them find this conversation again in a list.\n\nRules:\n- 3 to 7 words, sentence case (capitalize only the first word and proper nouns).\n- Name what the user wants DONE, not that they asked a question.\n- Keep technical terms, filenames, numbers, and error codes exact.\n- Drop filler words: the, this, my, a, an.\n- No trailing punctuation, no quotes, no tool names, no 'Title:' prefix.\n- Never answer the message. Name it.\n- Always produce something, even for a bare greeting.\n- Write the title in the same language as the user's message.\nGood: {\"title\": \"Fix login button on mobile\"}\nGood: {\"title\": \"Postgres connection pool exhaustion\"}\nGood: {\"title\": \"Friendly greeting\"}\nToo vague: {\"title\": \"Code changes\"}\nToo long: {\"title\": \"Investigate and fix the issue where the login button does not respond on mobile devices\"}\n\nReply with JSON only: {\"title\": \"...\"}",
+        "model": "gemini-3.8-flash-high",
+        "prompt_cache_key": "pck_400ed05ae89e1a2db5ff0f59",
+        "store": false,
+        "stream": true,
+        "input": [
+          {
+            "type": "message",
+            "role": "user",
+            "content": "Controlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED."
+          }
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"response\":{\"id\":\"resp_e25f9be49ae94429998d71974b829753\",\"object\":\"response\",\"created_at\":1793989358,\"model\":\"gemini-3.8-flash-high\",\"status\":\"in_progress\",\"output\":[],\"error\":null,\"incomplete_details\":null,\"usage\":null},\"sequence_number\":0}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"in_progress\",\"content\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":2}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"output_index\":0,\"content_index\":0,\"delta\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"output_index\":0,\"content_index\":0,\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"output_index\":0,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.completed\",\"response\":{\"id\":\"resp_e25f9be49ae94429998d71974b829753\",\"object\":\"response\",\"created_at\":1793989358,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"gemini-3.8-flash-high\",\"output\":[{\"id\":\"msg_7954ec30ac3e4b3ab45ede1aaf6a4b9d\",\"type\":\"message\",\"role\":\"assistant\",\"status\":\"completed\",\"content\":[{\"type\":\"output_text\",\"text\":\"CLIENT_EXECUTION_VERIFIED\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":128,\"output_tokens\":12,\"total_tokens\":140}},\"sequence_number\":7}\n\ndata: [DONE]\n\n"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "headers": {
+        "host": "127.0.0.1:GATEWAY_PORT",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate",
+        "connection": "keep-alive",
+        "user-agent": "python-httpx/0.28.1"
+      },
+      "body": "",
+      "status": 401,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "application/json; charset=utf-8",
+        "content-length": 101
+      },
+      "responseBody": "{\"error\":{\"message\":\"API key 无效。\",\"type\":\"authentication_error\",\"code\":\"authentication_error\"}}"
+    }
+  ],
+  "upstream": [
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:loadCodeAssist",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "38"
+      },
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:retrieveUserQuotaSummary",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:fetchAvailableModels",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "31"
+      },
+      "body": {
+        "project": "synthetic-project"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "18583"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/1e0394a0-8c50-4351-97f7-979196596e3e/1793989358578/76a4b3c1-812f-4f1f-b3fc-987294ce21ae/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:38+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"terminal\": mcp_gateway_tool_ea5f0a2555ec86ec_json (mcp-json)\n\"tool_search\": mcp_gateway_tool_e03b58cb87c96a1c (mcp-direct), mcp_gateway_tool_a8e63363be3a3f58_json (mcp-json)\n\"tool_describe\": mcp_gateway_tool_2d08a2738aa7eaf1 (mcp-direct), mcp_gateway_tool_833a5925eced70d8_json (mcp-json)\n\"tool_call\": mcp_gateway_tool_f77b42b34afe45fb (mcp-direct), mcp_gateway_tool_60779962300c6af7_json (mcp-json)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRun shell commands on the OS/shell/backend named in your environment section. The working directory, files and exported variables persist between calls: activate a virtualenv or export once, not before every command.\n\nUse read_file, search_files, patch and write_file instead of cat/head/tail, grep/find/ls, sed/awk and echo/heredoc. Output is auto-truncated with the full text saved to a file; never pipe through head/tail to shorten it.\n\nForeground (default) returns as soon as the command finishes. To wait a fixed time, run the wait in the foreground; never background a sleep or polling loop. Background is only for commands that must keep running after this call returns; health-check a server in a separate call and manage jobs with process_manage. When a command changes directory, trust the result's \"cwd\" instead of prefixing later commands with cd.\n\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"The shell command to execute\"},\"background\":{\"type\":\"boolean\",\"description\":\"Keep running after this call returns; returns a session_id.\",\"default\":false},\"timeout\":{\"type\":\"integer\",\"description\":\"Max seconds (default 180, foreground max 600). Finishing early returns at once, so set it generously. Above 600s the command runs as a tracked background process with notify_on_complete=true (the result says so; do not re-run it).\",\"minimum\":1},\"workdir\":{\"type\":\"string\",\"description\":\"Absolute working directory for this command only.\"},\"pty\":{\"type\":\"boolean\",\"description\":\"With background=true: pseudo-terminal for interactive CLIs (REPLs, coding agents); drive it with process_manage write/submit. Local backend only.\",\"default\":false},\"notify\":{\"description\":\"With background=true. true: one notification on exit; use it for anything that ends (builds, tests, deploys), or the job runs silently. ['pattern', ...]: notify when a line matches, only for one-shot readiness on processes that never exit; rate-limited. Omit for servers/daemons.\",\"anyOf\":[{\"type\":\"boolean\"},{\"type\":\"array\",\"items\":{\"type\":\"string\"}}]},\"heartbeat\":{\"type\":\"integer\",\"minimum\":0,\"default\":0,\"description\":\"With background=true: also notify every N seconds (min 60) with new output; quiet ticks are skipped. For bounded jobs you must react to mid-run, never servers. Implies notify=true; 0 = off.\"},\"persist_on_release\":{\"type\":\"boolean\",\"default\":false,\"description\":\"With background=true: survive session end, /new, compression and other cleanup (not host exit). Only for jobs the user explicitly wants to outlive the conversation.\"}},\"required\":[\"command\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e03b58cb87c96a1c",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a8e63363be3a3f58_json; toolSummary is transport metadata only in this view.\nSearch 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "queries": {
+                        "type": "ARRAY",
+                        "description": "One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel.",
+                        "items": {
+                          "type": "STRING"
+                        }
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Max matches per query (default 5)."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "queries",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a8e63363be3a3f58_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"queries\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel.\"},\"limit\":{\"type\":\"integer\",\"description\":\"Max matches per query (default 5).\"}},\"required\":[\"queries\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_2d08a2738aa7eaf1",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_833a5925eced70d8_json; toolSummary is transport metadata only in this view.\nLoad the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "names": {
+                        "type": "ARRAY",
+                        "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.",
+                        "items": {
+                          "type": "STRING"
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "names",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_833a5925eced70d8_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nLoad the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.\"}},\"required\":[\"names\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_f77b42b34afe45fb",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_60779962300c6af7_json; toolSummary is transport metadata only in this view.\nInvoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "calls": {
+                        "type": "ARRAY",
+                        "description": "One or more independent deferred tool invocations.",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "name": {
+                              "type": "STRING",
+                              "description": "Exact tool name to invoke."
+                            },
+                            "arguments": {
+                              "type": "OBJECT",
+                              "description": "Arguments matching the tool schema.",
+                              "properties": {}
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "arguments"
+                          ]
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "calls",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_60779962300c6af7_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nInvoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"calls\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Exact tool name to invoke.\"},\"arguments\":{\"type\":\"object\",\"description\":\"Arguments matching the tool schema.\"}},\"required\":[\"name\",\"arguments\"]},\"description\":\"One or more independent deferred tool invocations.\"}},\"required\":[\"calls\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "1e0394a0-8c50-4351-97f7-979196596e3e",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "76a4b3c1-812f-4f1f-b3fc-987294ce21ae-0",
+            "root_cascade_id": "1e0394a0-8c50-4351-97f7-979196596e3e",
+            "trajectory_id": "76a4b3c1-812f-4f1f-b3fc-987294ce21ae",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "issuedToolCall": {
+        "id": "controlled_hermes_terminal_0",
+        "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+        "args": {
+          "argumentsJson": "{\"command\":\"printf '%s\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\",\"workdir\":\"/tmp/client-gateway-verify/work\",\"timeout\":5,\"background\":false}",
+          "toolSummary": "Client tool request"
+        }
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "19211"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/1e0394a0-8c50-4351-97f7-979196596e3e/1793989358947/76a4b3c1-812f-4f1f-b3fc-987294ce21ae/3",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:38+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionCall": {
+                    "id": "controlled_hermes_terminal_0",
+                    "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+                    "args": {
+                      "argumentsJson": "{\"command\":\"printf '%s\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\",\"workdir\":\"/tmp/client-gateway-verify/work\",\"timeout\":5,\"background\":false}",
+                      "toolSummary": "Client tool request"
+                    }
+                  },
+                  "thoughtSignature": "synthetic_controlled_hermes_terminal_0"
+                }
+              ]
+            },
+            {
+              "role": "model",
+              "parts": [
+                {
+                  "functionResponse": {
+                    "id": "controlled_hermes_terminal_0",
+                    "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+                    "response": {
+                      "output": {
+                        "error": null,
+                        "exit_code": 0,
+                        "output": "AGW_FIXED_TERMINAL_MARKER"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "PROBE_USER_SOUL: You are a fixture assistant. Preserve this user-authored identity.\n\nFor help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).\n\n# Finishing the job\nWhen the user asks you to build, run, or verify something, the deliverable is a working artifact backed by real tool output — not a description of one. Do not stop after writing a stub, a plan, or a single command. Keep working until you have actually exercised the code or produced the requested result, then report what real execution returned.\nIf a tool, install, or network call fails and blocks the real path, say so directly and try an alternative (different package manager, different approach, ask the user). NEVER substitute plausible-looking fabricated output (made-up data, invented file contents, synthesised API responses) for results you couldn't actually produce. Reporting a blocker honestly is always better than inventing a result.\n\n# Parallel tool calls\nWhen you need several pieces of information that don't depend on each other, request them together in a single response instead of one tool call per turn. Independent reads, searches, web fetches, and read-only commands should be batched into the same assistant turn — the runtime executes independent calls concurrently, and batching avoids resending the whole conversation on every extra round-trip.\nOnly serialize calls when a later call genuinely depends on an earlier call's result (e.g. you must read a file before you can patch it). When in doubt and the calls are independent, batch them.\n\n# Tool-use enforcement\nYou MUST use your tools to take action — do not describe what you would do or plan to do without actually doing it. When you say you will perform an action (e.g. 'I will run the tests', 'Let me check the file', 'I will create the project'), you MUST immediately make the corresponding tool call in the same response. Never end your turn with a promise of future action — execute it now.\nKeep working until the task is actually complete. Do not stop with a summary of what you plan to do next time. If you have tools available that can accomplish the task, use them instead of telling the user what you would do.\nEvery response should either (a) contain tool calls that make progress, or (b) deliver a final result to the user. Responses that only describe intentions without acting are not acceptable.\n\n# Google model operational directives\nFollow these operational rules strictly:\n- **Absolute paths:** Always construct and use absolute file paths for all file system operations. Combine the project root with relative paths.\n- **Verify first:** Use read_file/search_files to check file contents and project structure before making changes. Never guess at file contents.\n- **Dependency checks:** Never assume a library is available. Check package.json, requirements.txt, Cargo.toml, etc. before importing.\n- **Conciseness:** Keep explanatory text brief — a few sentences, not paragraphs. Focus on actions and results over narration.\n- **Non-interactive commands:** Use flags like -y, --yes, --non-interactive to prevent CLI tools from hanging on prompts.\n- **Keep going:** Work autonomously until the task is fully resolved. Don't stop with a plan — execute it.\n\nYou are in a plain terminal (CLI). Markdown does NOT render — asterisks, headers, and fences appear as literal characters, so write plain text (indentation and blank lines are your only layout tools). Files: there is no attachment channel and MEDIA:/path tags are NOT intercepted here (they print as literal text) — deliver a file by stating its absolute path or URL in plain text; the user opens it themselves.\n\nActive Hermes profile: default. Other profiles (if any) live under /tmp/client-gateway-verify/home/.hermes/profiles/<name>/. Each profile has its own skills/, plugins/, cron/, and memories/ that affect a different session than this one. Do not modify another profile's skills/plugins/cron/memories unless the user explicitly directs you to.\n\nConversation started: Saturday, November 07, 2026 (+08, UTC+08:00)\nModel: gemini-3.8-flash-high\nProvider: custom\nPlatform: cli\n\n# Hermes runtime environment\n\nHost: macOS (15.7)\nUser home directory: /tmp/client-gateway-verify/home\nCurrent working directory: /tmp/client-gateway-verify/work\nScratch directory: /tmp/client-gateway-verify/home/.hermes/cache/scratch (TMPDIR points here; write temporary files and probes there, never under the system temp dir; entries idle for 24h are pruned)\n\n<!-- End Hermes runtime environment -->\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"terminal\": mcp_gateway_tool_ea5f0a2555ec86ec_json (mcp-json)\n\"tool_search\": mcp_gateway_tool_e03b58cb87c96a1c (mcp-direct), mcp_gateway_tool_a8e63363be3a3f58_json (mcp-json)\n\"tool_describe\": mcp_gateway_tool_2d08a2738aa7eaf1 (mcp-direct), mcp_gateway_tool_833a5925eced70d8_json (mcp-json)\n\"tool_call\": mcp_gateway_tool_f77b42b34afe45fb (mcp-direct), mcp_gateway_tool_60779962300c6af7_json (mcp-json)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_ea5f0a2555ec86ec_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRun shell commands on the OS/shell/backend named in your environment section. The working directory, files and exported variables persist between calls: activate a virtualenv or export once, not before every command.\n\nUse read_file, search_files, patch and write_file instead of cat/head/tail, grep/find/ls, sed/awk and echo/heredoc. Output is auto-truncated with the full text saved to a file; never pipe through head/tail to shorten it.\n\nForeground (default) returns as soon as the command finishes. To wait a fixed time, run the wait in the foreground; never background a sleep or polling loop. Background is only for commands that must keep running after this call returns; health-check a server in a separate call and manage jobs with process_manage. When a command changes directory, trust the result's \"cwd\" instead of prefixing later commands with cd.\n\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"command\":{\"type\":\"string\",\"description\":\"The shell command to execute\"},\"background\":{\"type\":\"boolean\",\"description\":\"Keep running after this call returns; returns a session_id.\",\"default\":false},\"timeout\":{\"type\":\"integer\",\"description\":\"Max seconds (default 180, foreground max 600). Finishing early returns at once, so set it generously. Above 600s the command runs as a tracked background process with notify_on_complete=true (the result says so; do not re-run it).\",\"minimum\":1},\"workdir\":{\"type\":\"string\",\"description\":\"Absolute working directory for this command only.\"},\"pty\":{\"type\":\"boolean\",\"description\":\"With background=true: pseudo-terminal for interactive CLIs (REPLs, coding agents); drive it with process_manage write/submit. Local backend only.\",\"default\":false},\"notify\":{\"description\":\"With background=true. true: one notification on exit; use it for anything that ends (builds, tests, deploys), or the job runs silently. ['pattern', ...]: notify when a line matches, only for one-shot readiness on processes that never exit; rate-limited. Omit for servers/daemons.\",\"anyOf\":[{\"type\":\"boolean\"},{\"type\":\"array\",\"items\":{\"type\":\"string\"}}]},\"heartbeat\":{\"type\":\"integer\",\"minimum\":0,\"default\":0,\"description\":\"With background=true: also notify every N seconds (min 60) with new output; quiet ticks are skipped. For bounded jobs you must react to mid-run, never servers. Implies notify=true; 0 = off.\"},\"persist_on_release\":{\"type\":\"boolean\",\"default\":false,\"description\":\"With background=true: survive session end, /new, compression and other cleanup (not host exit). Only for jobs the user explicitly wants to outlive the conversation.\"}},\"required\":[\"command\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_e03b58cb87c96a1c",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_a8e63363be3a3f58_json; toolSummary is transport metadata only in this view.\nSearch 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "queries": {
+                        "type": "ARRAY",
+                        "description": "One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel.",
+                        "items": {
+                          "type": "STRING"
+                        }
+                      },
+                      "limit": {
+                        "type": "INTEGER",
+                        "description": "Max matches per query (default 5)."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "queries",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_a8e63363be3a3f58_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nSearch 1 additional tools that are loaded on demand. Send one keyword query per capability you need; returns matching tool names and descriptions. Then `tool_describe` loads schemas and `tool_call` invokes. Tools already in your tool list need no search.\n\nEvery tool listed below exists: never call it unavailable, and go straight to `tool_describe` when you see the exact name.\n\nDeferred tool catalog (call schemas via `tool_describe`, invoke via `tool_call`):\n- process_manage: Poll, wait on, send input to, or kill terminal(background=true) processes.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"queries\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"One query per capability: service + action + object keywords (e.g. ['gmail send email', 'github create issue']), never a question; every word must match tool text. Searched in parallel.\"},\"limit\":{\"type\":\"integer\",\"description\":\"Max matches per query (default 5).\"}},\"required\":[\"queries\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_2d08a2738aa7eaf1",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_833a5925eced70d8_json; toolSummary is transport metadata only in this view.\nLoad the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "names": {
+                        "type": "ARRAY",
+                        "description": "Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.",
+                        "items": {
+                          "type": "STRING"
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "names",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_833a5925eced70d8_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nLoad the full JSON schemas for tools returned by `tool_search`. Required before `tool_call` if a tool's parameters are unknown. Batch every schema you need into one call.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Exact tool names (as returned by tool_search). A single string is accepted and treated as one name.\"}},\"required\":[\"names\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_f77b42b34afe45fb",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_60779962300c6af7_json; toolSummary is transport metadata only in this view.\nInvoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "calls": {
+                        "type": "ARRAY",
+                        "description": "One or more independent deferred tool invocations.",
+                        "items": {
+                          "type": "OBJECT",
+                          "properties": {
+                            "name": {
+                              "type": "STRING",
+                              "description": "Exact tool name to invoke."
+                            },
+                            "arguments": {
+                              "type": "OBJECT",
+                              "description": "Arguments matching the tool schema.",
+                              "properties": {}
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "arguments"
+                          ]
+                        }
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "calls",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_60779962300c6af7_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nInvoke deferred tools: `calls` is an array of {name, arguments}, one entry per invocation (batch independent calls; results come back in order). Arguments match the schema from `tool_describe`; approvals and hooks apply as usual.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"properties\":{\"calls\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"description\":\"Exact tool name to invoke.\"},\"arguments\":{\"type\":\"object\",\"description\":\"Arguments matching the tool schema.\"}},\"required\":[\"name\",\"arguments\"]},\"description\":\"One or more independent deferred tool invocations.\"}},\"required\":[\"calls\"]}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "1e0394a0-8c50-4351-97f7-979196596e3e",
+            "last_step_index": "2",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "76a4b3c1-812f-4f1f-b3fc-987294ce21ae-1",
+            "root_cascade_id": "1e0394a0-8c50-4351-97f7-979196596e3e",
+            "trajectory_id": "76a4b3c1-812f-4f1f-b3fc-987294ce21ae",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    },
+    {
+      "path": "/v1internal:streamGenerateContent?alt=sse",
+      "headers": {
+        "host": "127.0.0.1:UPSTREAM_PORT",
+        "connection": "keep-alive",
+        "authorization": "<SYNTHETIC_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)",
+        "accept": "*/*",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "2495"
+      },
+      "body": {
+        "project": "synthetic-project",
+        "requestId": "agent/6adb5a2f-042c-48ab-bb4d-e3c77407f33c/1793989358963/6f3d41b8-6c53-4ebe-bce0-b4651c3c55e3/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nControlled local terminal test. Follow only the supplied tool calls for /tmp/client-gateway-verify/work/edit.txt. The terminal test only prints AGW_FIXED_TERMINAL_MARKER. End by reporting CLIENT_EXECUTION_VERIFIED.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T02:22:38+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Synthetic Flash High. No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "You name chat sessions. Given the user's opening message, write a title that lets them find this conversation again in a list.\n\nRules:\n- 3 to 7 words, sentence case (capitalize only the first word and proper nouns).\n- Name what the user wants DONE, not that they asked a question.\n- Keep technical terms, filenames, numbers, and error codes exact.\n- Drop filler words: the, this, my, a, an.\n- No trailing punctuation, no quotes, no tool names, no 'Title:' prefix.\n- Never answer the message. Name it.\n- Always produce something, even for a bare greeting.\n- Write the title in the same language as the user's message.\nGood: {\"title\": \"Fix login button on mobile\"}\nGood: {\"title\": \"Postgres connection pool exhaustion\"}\nGood: {\"title\": \"Friendly greeting\"}\nToo vague: {\"title\": \"Code changes\"}\nToo long: {\"title\": \"Investigate and fix the issue where the login button does not respond on mobile devices\"}\n\nReply with JSON only: {\"title\": \"...\"}"
+              }
+            ]
+          },
+          "labels": {
+            "cascade_id": "6adb5a2f-042c-48ab-bb4d-e3c77407f33c",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M318",
+            "request_id": "6f3d41b8-6c53-4ebe-bce0-b4651c3c55e3-0",
+            "root_cascade_id": "6adb5a2f-042c-48ab-bb4d-e3c77407f33c",
+            "trajectory_id": "6f3d41b8-6c53-4ebe-bce0-b4651c3c55e3",
+            "used_claude": "false",
+            "used_claude_conservative": "false",
+            "used_non_gemini_model": "false"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 65536,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingLevel": "HIGH"
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "gemini-3.8-flash-high",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      }
+    }
+  ],
+  "stdout": "{\"type\": \"system\", \"subtype\": \"init\", \"model\": \"gemini-3.8-flash-high\", \"session_id\": \"\", \"timestamp\": 1793989355685}\n{\"type\": \"tool_use\", \"name\": \"terminal\", \"tool_call_id\": \"controlled_hermes_terminal_0\", \"input\": {\"command\": \"printf '%s\\\\n' 'AGW_FIXED_TERMINAL_MARKER'\", \"workdir\": \"/tmp/client-gateway-verify/work\", \"timeout\": 5, \"background\": false}, \"timestamp\": 1793989358833}\n{\"type\": \"tool_result\", \"name\": \"terminal\", \"tool_call_id\": \"controlled_hermes_terminal_0\", \"output\": \"{\\\"output\\\": \\\"AGW_FIXED_TERMINAL_MARKER\\\", \\\"exit_code\\\": 0, \\\"error\\\": null}\", \"duration_ms\": 105, \"is_error\": false, \"timestamp\": 1793989358938}\n{\"type\": \"text\", \"text\": \"\\n\\nCLIENT_EXECUTION_VERIFIED\", \"timestamp\": 1793989358952}\n{\"type\": \"result\", \"session_id\": \"local-8ba1f390e8f5af32ddec9b6a816b824914ac62574e7d7856f2aa50a70f353695\", \"exit_code\": 0, \"text\": \"CLIENT_EXECUTION_VERIFIED\", \"tokens\": {\"input\": 256, \"output\": 24, \"total\": 280, \"cache_read\": 0, \"cache_write\": 0}, \"duration_ms\": 3298, \"timestamp\": 1793989358984}\n",
+  "stderr": "Session: local-8ba1f390e8f5af32ddec9b6a816b824914ac62574e7d7856f2aa50a70f353695\n\nsession_id: local-8ba1f390e8f5af32ddec9b6a816b824914ac62574e7d7856f2aa50a70f353695\n",
+  "gatewayStderr": "[Antigravity Gateway Error] 接口不存在: /api/v1/models\n[Antigravity Gateway Error] 接口不存在: /api/tags\n[Antigravity Gateway Error] 接口不存在: /v1/props\n[Antigravity Gateway Error] 接口不存在: /props\n[Antigravity Gateway Error] 接口不存在: /version\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n[Antigravity Gateway Error] 接口不存在: /api/show\n"
+}

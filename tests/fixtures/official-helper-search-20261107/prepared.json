@@ -1,0 +1,22 @@
+{
+  "evidence": "gateway-pool-catalog-selected-real-helper-search",
+  "officialCliDynamicCapture": false,
+  "startedAt": "2026-11-06T20:09:30.289Z",
+  "source": {
+    "sha256": "2dacba6b6b565bb754eb14278167defedabc02784fa2eafda38a09a61521b8d2",
+    "files": 56
+  },
+  "scriptSha256": "4003f78e861ca7221bfd78339b38ecb3c4c57c41513890767025ee7273d8a780",
+  "input": {
+    "query": "site:example.com Example Domain",
+    "domain": "example.com",
+    "maxOutputTokens": 2048
+  },
+  "physicalGenerationLimit": 1,
+  "observations": [],
+  "modelSelection": "unmodified AccountPool.searchWeb chooses an eligible account and its actual webSearchModelIds; no main-model override",
+  "retryPolicy": "no generation retry, account fallback, second trace request, alternative query or domain",
+  "rawResponseBoundary": "complete generation JSON before provider parsing, recursively credential/account redacted before disk",
+  "transportBoundary": "unmodified native Go transport and CLI UA; no independent TLS capture",
+  "preparedOnly": true
+}

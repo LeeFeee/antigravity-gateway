@@ -1,0 +1,336 @@
+{
+  "agent": "pi",
+  "version": "1.5.0",
+  "scenario": "text",
+  "recordedAt": "2026-11-06T17:55:55.883Z",
+  "model": "claude-sonnet-4-6",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "realModelValidated": true,
+  "tlsValidated": true,
+  "isolation": "fresh client HOME/workdir; separate copied agy account pool with original quota and health; CLI loopback only; original native Go TLS transport retained",
+  "source": {
+    "sha256": "97a6d784375f4c5930c2ea1aaa4f72bb8a343b72e3470f7bf0585e29284c0a5a",
+    "files": 51
+  },
+  "accountSnapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "bddf055cac2df96e89160ca27e7794e8c489f6978295bd6be925bab10733b70e",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "command": [
+    "/home/probe/.nvm/versions/node/v22.23.4/bin/pi",
+    "-p",
+    "This is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK.",
+    "--provider",
+    "local-probe",
+    "--model",
+    "claude-sonnet-4-6",
+    "--mode",
+    "json",
+    "--no-extensions",
+    "--no-mcp",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--offline",
+    "--tools",
+    "read"
+  ],
+  "marker": "REAL_GATEWAY_TEXT_OK",
+  "assessment": {
+    "passed": true,
+    "checks": {
+      "clientSucceeded": true,
+      "gatewayHTTP": true,
+      "realNativeTLS": true,
+      "finalMarkerDelivered": true,
+      "officialUA": true
+    },
+    "generationCount": 1,
+    "clientRequests": 1,
+    "nativeResultNames": []
+  },
+  "outcome": {
+    "code": 0,
+    "signal": null,
+    "clientReportedError": false
+  },
+  "trace": [
+    {
+      "type": "native-request",
+      "id": "f9e4a096-cba8-4ca4-92be-390ad19fdb58",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:streamGenerateContent?alt=sse",
+      "method": "POST",
+      "headers": {
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "content-type": "application/json",
+        "user-agent": "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+      },
+      "body": {
+        "project": "<REDACTED_ACCOUNT_METADATA>",
+        "requestId": "agent/30501d38-d01a-4fde-aa7f-91b2a96cd722/1793987753310/6ca0601b-313a-4ffe-a783-6e6e82a2e78a/1",
+        "request": {
+          "contents": [
+            {
+              "role": "user",
+              "parts": [
+                {
+                  "text": "<USER_REQUEST>\nThis is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK.\n</USER_REQUEST>\n<ADDITIONAL_METADATA>\nThe current local time is: 2026-11-07T01:55:53+08:00.\n</ADDITIONAL_METADATA>\n<USER_SETTINGS_CHANGE>\nThe user changed setting `Model Selection` from None to Claude Sonnet 4.6 (Thinking). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.\n</USER_SETTINGS_CHANGE>"
+                }
+              ]
+            }
+          ],
+          "systemInstruction": {
+            "role": "user",
+            "parts": [
+              {
+                "text": "Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use read to examine files instead of cat or sed.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/real-client-gateway/pi-text/work\n</cwd>\n\nTool reference index (names mentioned by the client refer to these declared functions; execute tools only through their declarations):\n\"read\": mcp_gateway_tool_9120d3e96e5e451d (mcp-direct), mcp_gateway_tool_8ced4fd46d19bb2d_json (mcp-json), read_file (native)"
+              }
+            ]
+          },
+          "tools": [
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_9120d3e96e5e451d",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Undeclared extra business fields use mcp_gateway_tool_8ced4fd46d19bb2d_json; toolSummary is transport metadata only in this view.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "path": {
+                        "type": "STRING",
+                        "description": "Path to the file to read (relative or absolute)"
+                      },
+                      "offset": {
+                        "type": "NUMBER",
+                        "description": "Line number to start reading from (1-indexed)"
+                      },
+                      "limit": {
+                        "type": "NUMBER",
+                        "description": "Maximum number of lines to read"
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "mcp_gateway_tool_8ced4fd46d19bb2d_json",
+                  "description": "Client-executed tool in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\nComplete original JSON Schema (validated locally before execution):\n{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}}",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "argumentsJson": {
+                        "type": "STRING",
+                        "description": "One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary."
+                      },
+                      "toolSummary": {
+                        "type": "STRING",
+                        "description": "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'."
+                      }
+                    },
+                    "required": [
+                      "argumentsJson",
+                      "toolSummary"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "functionDeclarations": [
+                {
+                  "name": "read_file",
+                  "description": "Read an explicit inclusive 1-indexed text range of at most 800 lines. Use absolute paths to ordinary text/source files. Images, PDF/document extraction, byte offsets, unrestricted/default reads and large-read switches use mcp_gateway_tool_8ced4fd46d19bb2d_json. This is a parameter view of the client's file reader: its byte limits, output formatting, permissions and observation rules remain in force; it does not implement the official executor's 46080-byte truncation.\nUnderlying client execution constraints (all remain applicable):\nRead the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+                  "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                      "Path": {
+                        "type": "STRING",
+                        "minLength": "1"
+                      },
+                      "StartLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      },
+                      "EndLine": {
+                        "type": "INTEGER",
+                        "minimum": 1
+                      }
+                    },
+                    "required": [
+                      "Path",
+                      "StartLine",
+                      "EndLine"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "labels": {
+            "cascade_id": "30501d38-d01a-4fde-aa7f-91b2a96cd722",
+            "last_step_index": "0",
+            "model_enum": "MODEL_PLACEHOLDER_M35",
+            "request_id": "6ca0601b-313a-4ffe-a783-6e6e82a2e78a-0",
+            "root_cascade_id": "30501d38-d01a-4fde-aa7f-91b2a96cd722",
+            "trajectory_id": "6ca0601b-313a-4ffe-a783-6e6e82a2e78a",
+            "used_claude": "true",
+            "used_claude_conservative": "true",
+            "used_non_gemini_model": "true"
+          },
+          "generationConfig": {
+            "maxOutputTokens": 8192,
+            "thinkingConfig": {
+              "includeThoughts": true,
+              "thinkingBudget": 1024
+            }
+          },
+          "sessionId": "-3750763034362895579"
+        },
+        "model": "claude-sonnet-4-6",
+        "userAgent": "antigravity",
+        "requestType": "agent"
+      },
+      "transport": "original-AgyNativeTransport.fetch"
+    },
+    {
+      "type": "native-response",
+      "id": "f9e4a096-cba8-4ca4-92be-390ad19fdb58",
+      "status": 200,
+      "headers": {
+        "alt-svc": "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000",
+        "content-disposition": "attachment",
+        "content-type": "text/event-stream",
+        "date": "Fri, 06 Nov 2026 17:55:49 GMT",
+        "server": "ESF",
+        "server-timing": "gfet4t7; dur=1765",
+        "vary": "Origin, X-Origin, Referer",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "SAMEORIGIN",
+        "x-xss-protection": "0"
+      },
+      "binary": "/tmp/real-client-gateway/gateway-data/native/agy-transport-c934cde151d9ca2b21fe"
+    },
+    {
+      "type": "native-body",
+      "id": "f9e4a096-cba8-4ca4-92be-390ad19fdb58",
+      "body": "data: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \"REAL_GATEWAY_TEXT_\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"text\": \"OK\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"thought\": true,\"thoughtSignature\": \"RW9zQ0NwUUJDQk1RQWhnQ0trQ2pLdkt5d0xBOUw3OFlPRUppK0V6L2tYN1JjUjMwdEJrN0Q0TG8zN3FzODFJRzM2azlnN1lGSVJwSFYwM0FIeXpwYW1sTkxMc0pHOXVxd1oySVp0eGVNaEZqYkdGMVpHVXRjMjl1Ym1WMExUUXROamdBUWdoMGFHbHVhMmx1WjFvTU9EZzBNelUwT1RFNU1EVXljaERzOU5TbXJSd1AzNFViN1V2RWZOYnBpQUVCcUFHbHFialhCckFCQWhJTStUN25Sc0tXTUhJanpVeHRHZ3lvdGcvWGtOVEZ0NGlmbmw4aU1GNlVKelNFOVBaZGlIZnkwU013VkdBbXd4QkRNM3hENERTZkFTRC92QS9BNTY5QWV1ZEdvTy8xT2NrTUkvNCs4aW9ralhkSmt4ZlpiclZBbUtmV041OUZUdndNdG1hbW9YVmF2Q3UvOGZvcmVXajRLbFNpR0FFPQ==\",\"text\": \"\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"REAL_GATEWAY_TEXT_\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"OK\"}]}}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 8,\"totalTokenCount\": 2304},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\ndata: {\"response\": {\"candidates\": [{\"content\": {\"role\": \"model\",\"parts\": [{\"text\": \"\"}]},\"finishReason\": \"STOP\"}],\"usageMetadata\": {\"promptTokenCount\": 2296,\"candidatesTokenCount\": 29,\"totalTokenCount\": 2325},\"modelVersion\": \"claude-sonnet-4-6\",\"responseId\": \"req_vrtx_011Cgn73FRgN6Z7gSnYC9DXQ\"},\"traceId\": \"a61e9f2ffbb7122b\",\"metadata\": {}}\r\n\r\n"
+    },
+    {
+      "type": "client-http",
+      "method": "POST",
+      "path": "/v1/responses",
+      "headers": {
+        "host": "127.0.0.1:59655",
+        "connection": "keep-alive",
+        "accept": "application/json",
+        "x-stainless-retry-count": "0",
+        "x-stainless-timeout": "300",
+        "x-stainless-lang": "js",
+        "x-stainless-package-version": "7.19.0",
+        "x-stainless-os": "MacOS",
+        "x-stainless-arch": "arm64",
+        "x-stainless-runtime": "node",
+        "x-stainless-runtime-version": "v22.23.4",
+        "authorization": "<REDACTED_CREDENTIAL>",
+        "user-agent": "pi/1.5.0 (darwin; node/v22.23.4; arm64)",
+        "session_id": "01a1b200-b51a-735a-9251-76cd925bf557",
+        "x-client-request-id": "01a1b200-b51a-735a-9251-76cd925bf557",
+        "content-type": "application/json",
+        "accept-language": "*",
+        "sec-fetch-mode": "cors",
+        "accept-encoding": "gzip, deflate",
+        "content-length": "2874"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "input": [
+          {
+            "role": "developer",
+            "content": "You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\n\n<tools>\n- read: Read file contents\n\nAdditional tools may be available.\n</tools>\n\n<rules>\n- Use read to examine files instead of cat or sed.\n- Be concise in your responses\n- Show file paths clearly when working with files\n</rules>\n\n<docs>\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\n</docs>\n\n<cwd>\n/tmp/real-client-gateway/pi-text/work\n</cwd>"
+          },
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "input_text",
+                "text": "This is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK."
+              }
+            ]
+          }
+        ],
+        "stream": true,
+        "prompt_cache_key": "01a1b200-b51a-735a-9251-76cd925bf557",
+        "store": false,
+        "max_output_tokens": 8192,
+        "tools": [
+          {
+            "type": "function",
+            "name": "read",
+            "description": "Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.",
+            "parameters": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Path to the file to read (relative or absolute)"
+                },
+                "offset": {
+                  "type": "number",
+                  "description": "Line number to start reading from (1-indexed)"
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum number of lines to read"
+                }
+              }
+            }
+          }
+        ],
+        "reasoning": {
+          "effort": "medium",
+          "summary": "auto"
+        },
+        "include": [
+          "reasoning.encrypted_content"
+        ]
+      },
+      "status": 200,
+      "responseHeaders": {
+        "access-control-allow-headers": "authorization, content-type, x-api-key, anthropic-version, anthropic-beta, x-session-id, session-id, session_id, x-session-affinity, x-claude-session-id, x-claude-code-session-id, x-codex-session-id, x-deepseek-harness-session-id, x-deepseek-harness-user-id, x-deepseek-harness-compact, x-client-session-id, conversation-id, x-conversation-id, x-thread-id, x-client-id, x-agent-id, x-client-name, parent-session-id, x-parent-session-id, x-affinity-id, x-routing-affinity-id, x-request-id",
+        "access-control-allow-methods": "GET, HEAD, POST, DELETE, OPTIONS",
+        "content-type": "text/event-stream; charset=utf-8",
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "x-accel-buffering": "no"
+      },
+      "responseBody": ": antigravity-gateway keep-alive\n\ndata: {\"type\":\"response.created\",\"sequence_number\":0,\"response\":{\"id\":\"resp_cfec0df8ba484b90b2ef872e8f96b642\",\"object\":\"response\",\"created_at\":1793987755,\"status\":\"in_progress\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[],\"usage\":{\"input_tokens\":2296,\"output_tokens\":29,\"total_tokens\":2325}}}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":0,\"item\":{\"id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"type\":\"reasoning\",\"status\":\"in_progress\",\"summary\":[]},\"sequence_number\":1}\n\ndata: {\"type\":\"response.reasoning_summary_part.added\",\"item_id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"\"},\"sequence_number\":2}\n\ndata: {\"type\":\"response.reasoning_summary_text.delta\",\"item_id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"output_index\":0,\"summary_index\":0,\"delta\":\"REAL_GATEWAY_TEXT_OK\",\"sequence_number\":3}\n\ndata: {\"type\":\"response.reasoning_summary_text.done\",\"item_id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"output_index\":0,\"summary_index\":0,\"text\":\"REAL_GATEWAY_TEXT_OK\",\"sequence_number\":4}\n\ndata: {\"type\":\"response.reasoning_summary_part.done\",\"item_id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"output_index\":0,\"summary_index\":0,\"part\":{\"type\":\"summary_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\"},\"sequence_number\":5}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":0,\"item\":{\"id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\"}]},\"sequence_number\":6}\n\ndata: {\"type\":\"response.output_item.added\",\"output_index\":1,\"item\":{\"id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"type\":\"message\",\"status\":\"in_progress\",\"role\":\"assistant\",\"content\":[]},\"sequence_number\":7}\n\ndata: {\"type\":\"response.content_part.added\",\"item_id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"output_index\":1,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"\",\"annotations\":[]},\"sequence_number\":8}\n\ndata: {\"type\":\"response.output_text.delta\",\"item_id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"output_index\":1,\"content_index\":0,\"delta\":\"REAL_GATEWAY_TEXT_OK\",\"sequence_number\":9}\n\ndata: {\"type\":\"response.output_text.done\",\"item_id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"output_index\":1,\"content_index\":0,\"text\":\"REAL_GATEWAY_TEXT_OK\",\"sequence_number\":10}\n\ndata: {\"type\":\"response.content_part.done\",\"item_id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"output_index\":1,\"content_index\":0,\"part\":{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"annotations\":[]},\"sequence_number\":11}\n\ndata: {\"type\":\"response.output_item.done\",\"output_index\":1,\"item\":{\"id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"annotations\":[]}]},\"sequence_number\":12}\n\ndata: {\"type\":\"response.completed\",\"sequence_number\":13,\"response\":{\"id\":\"resp_cfec0df8ba484b90b2ef872e8f96b642\",\"object\":\"response\",\"created_at\":1793987755,\"status\":\"completed\",\"error\":null,\"incomplete_details\":null,\"model\":\"claude-sonnet-4-6\",\"output\":[{\"id\":\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\",\"type\":\"reasoning\",\"status\":\"completed\",\"summary\":[{\"type\":\"summary_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\"}]},{\"id\":\"msg_cad2e9b838ad437ca154d5064533eda5\",\"type\":\"message\",\"status\":\"completed\",\"role\":\"assistant\",\"content\":[{\"type\":\"output_text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"annotations\":[]}]}],\"usage\":{\"input_tokens\":2296,\"output_tokens\":29,\"total_tokens\":2325}}}\n\ndata: [DONE]\n\n"
+    }
+  ],
+  "stdout": "{\"type\":\"session\",\"version\":3,\"id\":\"01a1b200-b51a-735a-9251-76cd925bf557\",\"timestamp\":\"2026-11-06T17:55:53.242Z\",\"cwd\":\"/tmp/real-client-gateway/pi-text/work\"}\n{\"type\":\"agent_start\"}\n{\"type\":\"turn_start\"}\n{\"type\":\"message_start\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use read to examine files instead of cat or sed.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/real-client-gateway/pi-text/work\\n</cwd>\"},\"timestamp\":1793987753266,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use read to examine files instead of cat or sed.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/real-client-gateway/pi-text/work\\n</cwd>\"},\"timestamp\":1793987753266,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"This is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK.\"}],\"timestamp\":1793987753266}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"This is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK.\"}],\"timestamp\":1793987753266}}\n{\"type\":\"message_start\",\"message\":{\"role\":\"assistant\",\"content\":[],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"claude-sonnet-4-6\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"stopReason\":\"pending\",\"timestamp\":1793987753279}}\n{\"type\":\"message_update\",\"usage\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"totalTokens\":0,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0}},\"assistantMessageEvent\":{\"type\":\"thinking_start\",\"contentIndex\":0}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"thinking_delta\",\"contentIndex\":0,\"delta\":\"REAL_GATEWAY_TEXT_OK\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"thinking_delta\",\"contentIndex\":0,\"delta\":\"\\n\\n\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"thinking_end\",\"contentIndex\":0,\"content\":\"REAL_GATEWAY_TEXT_OK\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_start\",\"contentIndex\":1}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_delta\",\"contentIndex\":1,\"delta\":\"REAL_GATEWAY_TEXT_OK\"}}\n{\"type\":\"message_update\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"assistantMessageEvent\":{\"type\":\"text_end\",\"contentIndex\":1,\"content\":\"REAL_GATEWAY_TEXT_OK\"}}\n{\"type\":\"message_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"REAL_GATEWAY_TEXT_OK\",\"thinkingSignature\":\"{\\\"id\\\":\\\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\\\",\\\"type\\\":\\\"reasoning\\\",\\\"status\\\":\\\"completed\\\",\\\"summary\\\":[{\\\"type\\\":\\\"summary_text\\\",\\\"text\\\":\\\"REAL_GATEWAY_TEXT_OK\\\"}]}\"},{\"type\":\"text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_cad2e9b838ad437ca154d5064533eda5\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"claude-sonnet-4-6\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793987753279,\"responseId\":\"resp_cfec0df8ba484b90b2ef872e8f96b642\",\"rawStopReason\":\"completed\",\"durationMs\":2434,\"thinkingLevel\":\"medium\"}}\n{\"type\":\"turn_end\",\"message\":{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"REAL_GATEWAY_TEXT_OK\",\"thinkingSignature\":\"{\\\"id\\\":\\\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\\\",\\\"type\\\":\\\"reasoning\\\",\\\"status\\\":\\\"completed\\\",\\\"summary\\\":[{\\\"type\\\":\\\"summary_text\\\",\\\"text\\\":\\\"REAL_GATEWAY_TEXT_OK\\\"}]}\"},{\"type\":\"text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_cad2e9b838ad437ca154d5064533eda5\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"claude-sonnet-4-6\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793987753279,\"responseId\":\"resp_cfec0df8ba484b90b2ef872e8f96b642\",\"rawStopReason\":\"completed\",\"durationMs\":2434,\"thinkingLevel\":\"medium\"},\"toolResults\":[]}\n{\"type\":\"agent_end\",\"messages\":[{\"role\":\"system\",\"content\":\"\",\"sections\":{\"preamble\":\"You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.\",\"tools\":\"<tools>\\n- read: Read file contents\\n\\nAdditional tools may be available.\\n</tools>\",\"rules\":\"<rules>\\n- Use read to examine files instead of cat or sed.\\n- Be concise in your responses\\n- Show file paths clearly when working with files\\n</rules>\",\"docs\":\"<docs>\\nPi documentation (read only when the user asks about the harness itself, its SDK, extensions, themes, skills, or TUI):\\n- Main documentation: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/README.md\\n- Additional docs: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/docs\\n- Examples: /home/probe/.nvm/versions/node/v22.23.4/lib/node_modules/@earendil-works/pi-coding-agent/examples (extensions, custom tools, SDK)\\n- When reading pi docs or examples, resolve docs/... under Additional docs and examples/... under Examples, not the current working directory\\n- When asked about: extensions (docs/extensions.md, examples/extensions/), themes (docs/themes.md), skills (docs/skills.md), prompt templates (docs/prompt-templates.md), TUI components (docs/tui.md), keybindings (docs/keybindings.md), SDK integrations (docs/sdk.md), custom providers (docs/custom-provider.md), adding models (docs/models.md), packages (docs/packages.md), environment variables (docs/environment-variables.md), MCP servers (docs/mcp.md), codemode scripts and non-LLM models such as classifiers and image models (docs/codemode.md)\\n- Before implementing harness changes, read the relevant docs and examples in full, following related cross-references.\\n</docs>\",\"cwd\":\"<cwd>\\n/tmp/real-client-gateway/pi-text/work\\n</cwd>\"},\"timestamp\":1793987753266,\"toolsAdded\":[{\"name\":\"read\",\"description\":\"Read the contents of a file. Supports text files and images (jpg, png, gif, webp, bmp). Images are sent as attachments. For text files, output is truncated to 2000 lines or 50KB (whichever is hit first). Use offset/limit for large files. When you need the full file, continue with offset until complete.\",\"parameters\":{\"type\":\"object\",\"required\":[\"path\"],\"properties\":{\"path\":{\"type\":\"string\",\"description\":\"Path to the file to read (relative or absolute)\"},\"offset\":{\"type\":\"number\",\"description\":\"Line number to start reading from (1-indexed)\"},\"limit\":{\"type\":\"number\",\"description\":\"Maximum number of lines to read\"}}},\"constrainedSampling\":{\"type\":\"json_schema\",\"strict\":\"prefer\"}}]},{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"This is an isolated connectivity test. Use no tools. Reply with exactly REAL_GATEWAY_TEXT_OK.\"}],\"timestamp\":1793987753266},{\"role\":\"assistant\",\"content\":[{\"type\":\"thinking\",\"thinking\":\"REAL_GATEWAY_TEXT_OK\",\"thinkingSignature\":\"{\\\"id\\\":\\\"rs_bc9cbcd3b6b54c39ab334e3d4a48cd3d\\\",\\\"type\\\":\\\"reasoning\\\",\\\"status\\\":\\\"completed\\\",\\\"summary\\\":[{\\\"type\\\":\\\"summary_text\\\",\\\"text\\\":\\\"REAL_GATEWAY_TEXT_OK\\\"}]}\"},{\"type\":\"text\",\"text\":\"REAL_GATEWAY_TEXT_OK\",\"textSignature\":\"{\\\"v\\\":1,\\\"id\\\":\\\"msg_cad2e9b838ad437ca154d5064533eda5\\\"}\"}],\"api\":\"openai-responses\",\"provider\":\"local-probe\",\"model\":\"claude-sonnet-4-6\",\"usage\":{\"input\":2296,\"output\":29,\"cacheRead\":0,\"cacheWrite\":0,\"reasoning\":0,\"totalTokens\":2325,\"cost\":{\"input\":0,\"output\":0,\"cacheRead\":0,\"cacheWrite\":0,\"total\":0,\"totalFromProvider\":false}},\"stopReason\":\"stop\",\"timestamp\":1793987753279,\"responseId\":\"resp_cfec0df8ba484b90b2ef872e8f96b642\",\"rawStopReason\":\"completed\",\"durationMs\":2434,\"thinkingLevel\":\"medium\"}],\"willRetry\":false}\n{\"type\":\"agent_settled\",\"aborted\":false}\n",
+  "stderr": ""
+}

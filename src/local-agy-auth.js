@@ -4,8 +4,10 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
+const { AGY_OAUTH_PROFILE } = require('./agy-request-profile');
+const { nativeCloudCodeFetch } = require('./agy-native-transport');
 
-const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+const TOKEN_ENDPOINT = AGY_OAUTH_PROFILE.tokenEndpoint;
 const KEYCHAIN_PREFIX = 'go-keyring-base64:';
 const DEFAULT_KEYCHAIN_SERVICE = 'gemini';
 const DEFAULT_KEYCHAIN_ACCOUNT = 'antigravity';
@@ -262,7 +264,7 @@ class LocalAgyAuthProvider {
     homeDir = os.homedir(),
     agyPath = '',
     authFile = process.env.ANTIGRAVITY_LOCAL_AUTH_FILE || '',
-    fetchImpl = globalThis.fetch,
+    fetchImpl = nativeCloudCodeFetch,
     tokenEndpoint = TOKEN_ENDPOINT,
     clientCredentials = [],
     platform = process.platform,
@@ -338,7 +340,9 @@ class LocalAgyAuthProvider {
       const form = new URLSearchParams({ client_id: candidate.clientId, client_secret: candidate.clientSecret, grant_type: 'refresh_token', refresh_token: refreshToken });
       let response;
       try {
-        response = await this.fetchImpl(this.tokenEndpoint, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal });
+        response = await this.fetchImpl(this.tokenEndpoint, { method: 'POST', headers: {
+          'content-type': 'application/x-www-form-urlencoded', 'user-agent': AGY_OAUTH_PROFILE.userAgent
+        }, body: form, signal });
       } catch (cause) {
         throw new LocalAgyAuthError('本地 agy 登录态刷新请求失败。', { code: 'local_agy_refresh_failed', status: 502, cause });
       }

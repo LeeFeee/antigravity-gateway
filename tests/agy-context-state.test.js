@@ -5,6 +5,7 @@ const { prepareNativeContext, completeNativeContext } = require('../src/agy-cont
 const { nativeSchema } = require('../src/agy-request-profile');
 const { DirectAntigravityProvider, buildDirectRequest } = require('../src/direct-provider');
 const { normalizeAnthropic } = require('../src/protocol');
+const { declaredParts, fixtureTools } = require('./helpers/declared-tool-fixture');
 const model = 'gemini-3.8-flash-high';
 const user = text => ({ role: 'user', parts: [{ text }] });
 const answer = text => ({ role: 'model', parts: [{ text }] });
@@ -31,7 +32,9 @@ test('wire Schema uses observed enum spelling, field ordering, sorted property m
   assert.equal(schema.properties.a.items.type, 'INTEGER');
   assert.deepEqual(Object.keys(schema.properties.z), ['type', 'description']);
   const request = buildDirectRequest({ messages: [{ role: 'user', text: 'tools' }], tools: [{ name: 'one', schema: { type: 'object' } }, { name: 'two', schema: { type: 'object' } }] }, model, 'p', 's');
-  assert.deepEqual(request.request.tools.map(t => t.functionDeclarations.length), [1, 1]);
+  assert.ok(request.request.tools.length >= 2);
+  assert.ok(request.request.tools.every(t => t.functionDeclarations.length === 1));
+  assert.ok(request.request.tools.flatMap(t => t.functionDeclarations).every(t => t.parameters.type === 'OBJECT'));
 });
 
 test('user whitespace is significant while client-only assistant trailing newline does not lose signatures', () => {
@@ -101,8 +104,8 @@ test('captured six-request parallel/compaction sequence survives provider restar
     // accidental process-global counter or client echo of the signatures.
     const provider = new DirectAntigravityProvider({ sessionStore: new AgySessionStore({ directory: dir }), accessToken: 'token', projectId: 'p', maxRetries: 0,
       localAuth: { isConfigured: () => false, load: () => ({ sourcePath: 'managed-account:account' }) },
-      fetchImpl: async (_url, opts) => { requests.push(JSON.parse(opts.body)); return reply(replies.shift()); } });
-    return provider.send({ messages, generationConfig: { maxOutputTokens: 65536 } }, model, { sessionId: 's', auxiliaryScope: compact ? 'compaction' : '' });
+      fetchImpl: async (_url, opts) => { requests.push(JSON.parse(opts.body)); return reply(declaredParts(requests.at(-1), replies.shift())); } });
+    return provider.send({ messages, tools: fixtureTools('read'), generationConfig: { maxOutputTokens: 65536 } }, model, { sessionId: 's', auxiliaryScope: compact ? 'compaction' : '' });
   };
   let messages = [{ role: 'user', text: 'Remember amber.' }];
   await send(messages);

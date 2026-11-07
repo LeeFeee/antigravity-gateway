@@ -1,0 +1,801 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "video-summary",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [],
+  "requestCount": 17,
+  "failure": "RuntimeError: Hub StartCascade: HTTP 400 {'code': 'invalid_argument', 'message': 'invalid_argument: CortexTrajectorySource is unspecified (error ID: d0535da99ca0496b90527f3b9af61890)'}",
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAdminControls",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "models": {
+          "gemini-3.8-flash-low": {
+            "displayName": "Gemini 3.8 Flash (Low)",
+            "model": "MODEL_PLACEHOLDER_M320",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true,
+            "supportsThinking": true,
+            "minThinkingBudget": 32,
+            "thinkingLevel": 1,
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "image/png": true,
+              "video/mp4": true
+            }
+          },
+          "gemini-3.5-flash-lite": {
+            "displayName": "Synthetic search model",
+            "model": "MODEL_PLACEHOLDER_M50",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            }
+          },
+          "gemini-3.1-flash-image": {
+            "displayName": "Gemini 3.1 Flash Image",
+            "model": "MODEL_PLACEHOLDER_M21",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsImages": true
+          },
+          "synthetic-video-summary": {
+            "displayName": "Synthetic video summary model",
+            "model": "MODEL_PLACEHOLDER_M8",
+            "apiProvider": "API_PROVIDER_GOOGLE_GEMINI",
+            "modelProvider": "MODEL_PROVIDER_GOOGLE",
+            "maxTokens": 1048576,
+            "maxOutputTokens": 65536,
+            "quotaInfo": {
+              "remainingFraction": 1,
+              "resetTime": "2099-01-01T00:00:00Z"
+            },
+            "supportsVideo": true,
+            "supportedMimeTypes": {
+              "video/mp4": true
+            }
+          }
+        },
+        "defaultAgentModelId": "gemini-3.8-flash-low",
+        "agentModelSorts": [
+          {
+            "displayName": "Synthetic",
+            "groups": [
+              {
+                "modelIds": [
+                  "gemini-3.8-flash-low"
+                ]
+              }
+            ]
+          }
+        ],
+        "webSearchModelIds": [
+          "gemini-3.5-flash-lite"
+        ],
+        "imageGenerationModelIds": [
+          "gemini-3.1-flash-image"
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "GET",
+      "url": "https://www.googleapis.com/oauth2/v2/userinfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "www.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "Go-http-client/1.1"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 200,
+      "mockResponse": {
+        "id": "synthetic-user",
+        "email": "fixture@example.invalid",
+        "verified_email": true,
+        "name": "Fixture"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "85"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "cloudaicompanionProject": "synthetic-project",
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-length",
+          "6129"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchUserInfo",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "31"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "project": "synthetic-project"
+      },
+      "mockStatus": 200,
+      "mockResponse": {}
+    },
+    {
+      "method": "POST",
+      "url": "https://play.googleapis.com/log",
+      "version": "HTTP/2.0",
+      "headers": [
+        [
+          "authorization",
+          "[REDACTED]"
+        ],
+        [
+          "content-type",
+          "application/octet-stream"
+        ],
+        [
+          "content-length",
+          "103"
+        ],
+        [
+          "accept-encoding",
+          "gzip"
+        ],
+        [
+          "user-agent",
+          "Go-http-client/2.0"
+        ]
+      ],
+      "body": {},
+      "mockStatus": 404,
+      "mockResponse": {
+        "error": {
+          "code": "[REDACTED]",
+          "message": "No forwarding: local request-type mock has no handler"
+        }
+      }
+    },
+    {
+      "method": "POST",
+      "url": "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist",
+      "version": "HTTP/1.1",
+      "headers": [
+        [
+          "Host",
+          "daily-cloudcode-pa.googleapis.com"
+        ],
+        [
+          "User-Agent",
+          "antigravity/cli/1.5.2 (aidev_client; os_type=darwin; arch=arm64; cl=1015175089; auth_method=consumer)"
+        ],
+        [
+          "Content-Length",
+          "38"
+        ],
+        [
+          "Authorization",
+          "[REDACTED]"
+        ],
+        [
+          "Content-Type",
+          "application/json"
+        ],
+        [
+          "Accept-Encoding",
+          "gzip"
+        ]
+      ],
+      "body": {
+        "metadata": {
+          "ideType": "ANTIGRAVITY"
+        }
+      },
+      "mockStatus": 200,
+      "mockResponse": {
+        "currentTier": {
+          "id": "free-tier"
+        },
+        "allowedTiers": [
+          {
+            "id": "free-tier",
+            "isDefault": true
+          }
+        ],
+        "cloudaicompanionProject": "synthetic-project"
+      }
+    }
+  ],
+  "acp": [
+    {
+      "localHubMethod": "StartCascade",
+      "request": {
+        "workspaceUris": [
+          "file://[TEMP_ROOT]/work"
+        ],
+        "requestedModel": "MODEL_PLACEHOLDER_M320"
+      },
+      "status": 400,
+      "response": {
+        "code": "invalid_argument",
+        "message": "invalid_argument: CortexTrajectorySource is unspecified (error ID: d0535da99ca0496b90527f3b9af61890)"
+      }
+    }
+  ],
+  "stderr": "error: context canceled\n",
+  "officialLog": "I1107 03:16:36.086448      38 server.go:2275] Starting language server process with pid 39244\nI1107 03:16:36.087144      38 server.go:2333] Language server version: 1.5.2\nI1107 03:16:36.087152      38 server.go:1077] Language server will attempt to listen on host localhost\nI1107 03:16:36.087651      38 server.go:1092] Language server listening on random port at 65210 for HTTPS (gRPC)\nI1107 03:16:36.087714      38 server.go:1100] Language server listening on random port at 65208 for HTTP\nI1107 03:16:36.088135      47 model_configs.go:195] Auth mode is unspecified, skipping fetchAvailableModels and returning empty response\nW1107 03:16:36.088321      66 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.088346      66 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.088501      47 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nI1107 03:16:36.089533      87 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nI1107 03:16:36.089554      87 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nW1107 03:16:36.090197      87 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nW1107 03:16:36.090210      87 cache.go:157] Cache(userInfo): Singleflight refresh failed: failed to get load code assist response: error getting token source: You are not logged into Antigravity.\nI1107 03:16:36.090724      38 server.go:2748] Generated and saved persistent installation UUID: 56e10664-7e03-4c98-9a44-3b1eecb0c6b2\nW1107 03:16:36.090929      78 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.090942      78 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:16:36.101647      38 defaults.go:725] failed to get cs path: cs path /usr/bin/cs invalid\nI1107 03:16:36.101664     135 migrate.go:49] Migration marker [TEMP_ROOT]/home/.gemini/config/.migrated does not exist. Attempting migration from AppDataDir [TEMP_ROOT]/home/.gemini/antigravity-cli.\nI1107 03:16:36.101675      38 manager.go:119] Creating trajectory store manager with proto store and SQLite store\nI1107 03:16:36.101786     135 migrate.go:157] Migration complete, marked with [TEMP_ROOT]/home/.gemini/config/.migrated\nI1107 03:16:36.106780     148 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:16:36.106865     148 manager.go:113] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] starting\nI1107 03:16:36.107085     148 project_uris_migration.go:42] Starting ProjectUrisMigration\nI1107 03:16:36.107112     148 manager.go:133] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] completed successfully in 27.291µs\nI1107 03:16:36.107300     148 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:16:36.107336     148 manager.go:113] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] starting\nI1107 03:16:36.107553     148 manager.go:133] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] completed successfully in 42.125µs\nI1107 03:16:36.107724     148 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:16:36.107762     148 manager.go:113] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] starting\nI1107 03:16:36.107988     148 manager.go:133] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] completed successfully in 36.75µs\nI1107 03:16:36.108187     148 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:16:36.108197     148 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:16:36.108210     148 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:16:36.108235     148 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nI1107 03:16:36.123030     151 server.go:4201] Auth succeeded, refreshing features and managers\nI1107 03:16:36.123006      38 server.go:3543] initialized server successfully in 36.447333ms\nW1107 03:16:36.123155     237 cache.go:157] Cache(loadCodeAssistResponse): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.123174     237 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nW1107 03:16:36.123156     236 cache.go:157] Cache(peopleInfo): Singleflight refresh failed: error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.123216     236 errorreport.go:247] error getting token source: You are not logged into Antigravity.\nE1107 03:16:36.123222     151 errorreport.go:247] Failed to poll ListExperiments: error getting token source: You are not logged into Antigravity.\nW1107 03:16:36.123248     236 rpcs_plugin_auth.go:105] Not reloading plugin MCP servers: cannot get the signed-in user: error getting token source: You are not logged into Antigravity.\nI1107 03:16:36.123290     151 server.go:4220] State refresh took 0ms\nI1107 03:16:36.123297     151 server.go:4233] [RemoteControl] Subscription callback triggered.\nI1107 03:16:36.123363     151 server.go:4236] [RemoteControl] RemoteControlEnabled value: false\nI1107 03:16:36.123367     151 server.go:5206] [RemoteControl] Session toggle is off, staying disconnected\nI1107 03:16:36.123371     151 server.go:4909] [RemoteControl] Resolved proxyServerURL: \"\"\nI1107 03:16:36.123403     151 profiler.go:231] Continuous pprof profiling is disabled.\nI1107 03:16:36.123413     258 manager.go:98] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] is enabled\nI1107 03:16:36.123459     258 manager.go:107] Migration [MIGRATION_ID_SANITY_CHECK_PROJECT_URIS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:36.123465     258 manager.go:98] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] is enabled\nI1107 03:16:36.123467     191 reconcile_summaries.go:94] [Summaries] reconcile checked 0 conversations, restored 0, cached 0, skipped 0, dropped 0, cancelled false in 0ms (resident: 0 -> 0)\nI1107 03:16:36.123497     258 manager.go:107] Migration [MIGRATION_ID_PLUGIN_ENABLEMENT] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:36.123501     258 manager.go:98] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] is enabled\nI1107 03:16:36.123532     258 manager.go:107] Migration [MIGRATION_ID_BUILTIN_SIDECARS_TO_PLUGINS] already has status MIGRATION_STATUS_COMPLETED, skipping\nI1107 03:16:36.123536     258 manager.go:95] Migration [MIGRATION_ID_LIN_BUILTIN_TO_MARKETPLACE] is disabled, skipping entirely\nI1107 03:16:36.123540     258 manager.go:95] Migration [MIGRATION_ID_ADOPT_BWG_INSTALLS] is disabled, skipping entirely\nI1107 03:16:36.123551     258 manager.go:95] Migration [MIGRATION_ID_GDRIVE_BUILTIN_PLUGIN] is disabled, skipping entirely\nI1107 03:16:36.123555     258 manager.go:95] Migration [MIGRATION_ID_SPLIT_SCIENCE_PLUGIN] is disabled, skipping entirely\nW1107 03:16:36.123573       1 auto_updater.go:274] Directory /Users/leefee/.local/bin is not fully accessible (readable: false, writable: false), skipping update\nI1107 03:16:36.123598       1 common.go:191] Launching CLI mode\nE1107 03:16:36.123607       1 launchsteps.go:95] Failed to resolve GeminiDir \".gemini\": .gemini must be an absolute path: path is not absolute, falling back to default\nI1107 03:16:36.123618       1 common.go:212] CLI app data directory: [TEMP_ROOT]/home/.gemini/antigravity-cli\nI1107 03:16:36.123631       1 server.go:313] Creating CLI server backend: product=antigravity workspaceDirs=[[TEMP_ROOT]/work] appDataDir=[TEMP_ROOT]/home/.gemini/antigravity-cli languageServer=true codeAssist=true\nI1107 03:16:36.123670       1 auth_provider.go:954] [AuthProvider] SetEnableBusinessLogin called with enable: true\nI1107 03:16:36.124111     270 store_client.go:714] summary store: starting background reconciliation (trigger=empty_on_open)\nE1107 03:16:36.124176     270 server.go:3214] Failed to read conversations directory [TEMP_ROOT]/home/.gemini/antigravity/conversations: open [TEMP_ROOT]/home/.gemini/antigravity/conversations: no such file or directory\nI1107 03:16:36.124202     270 server.go:3116] ListConversations returning 0 summaries\nI1107 03:16:36.124207     270 store_client.go:743] summary store: reconcile func returned 0 records, skipping\nI1107 03:16:36.124470       1 project.go:78] project: created project \"CLI Project\" (id=default-cli-project) at [TEMP_ROOT]/home/.gemini/config/projects/default-cli-project.json\nI1107 03:16:36.124477       1 server.go:2261] Backend project ID updated dynamically to: default-cli-project\nI1107 03:16:36.124484       1 analytics.go:249] CLI startup completed (took 38.38425ms, phases [main_entered=0ms ls_start=0ms ls_ready=37ms launch_cli=37ms backend_created=38ms project_resolved=38ms])\nI1107 03:16:36.124500       1 printmode.go:208] Print mode: starting (promptLength=30, model=\"\", conversationID=\"\")\nI1107 03:16:36.124518       1 manager.go:549] Initializing CLI store manager for workspace [TEMP_ROOT]/work\nW1107 03:16:36.124578       1 cli_setting_manager.go:450] cli settings not available, using defaults: failed to read cli settings: open [TEMP_ROOT]/home/.gemini/antigravity-cli/settings.json: no such file or directory\nI1107 03:16:36.124591       1 cli_setting_manager.go:81] config.json not found or unreadable, using CLI settings only: open [TEMP_ROOT]/home/.gemini/config/config.json: no such file or directory\nI1107 03:16:36.124618       1 cli_setting_manager.go:96] CLI settings initialized: permissions=<nil>, toolPermission=request-review\nI1107 03:16:36.124815       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:16:36.124828       1 manager.go:723] CLI store manager initialized successfully\nI1107 03:16:36.125527     159 manager.go:1674] Reloading system slash commands and skills\nI1107 03:16:36.125537     159 manager.go:1630] Reloading system slash commands\nI1107 03:16:36.125548     159 manager.go:1639] Slash commands unchanged, skipping update\nI1107 03:16:36.125690       1 hooks_manager.go:53] loaded 0 named hooks from 0 hooks.json file(s)\nI1107 03:16:36.125700       1 printmode.go:409] Print mode: not authenticated, trying silent auth\nI1107 03:16:36.136111      56 keyring.go:64] keyringAuth: loaded token, expiry=2099-01-01 00:00:00 +0000 UTC expired=false\nI1107 03:16:36.149873       1 auth.go:157] ChainedAuth: authenticated via keyring (effective: keyring)\nI1107 03:16:36.149889       1 server_oauth.go:221] applyAuthResult: email=fixture@example.invalid, authMethod=consumer, quotaProject=\nI1107 03:16:36.149896       1 server_oauth.go:226] OAuth: authenticated successfully as fixture@example.invalid\nI1107 03:16:36.149900       1 server_oauth.go:235] b.codeAssistClient.AuthProvider (0x1fa1a1349680) is same as b.cliAuth (0x1fa1a1349680)\nW1107 03:16:36.149986     372 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nW1107 03:16:36.150024     389 cache.go:189] Failed to refresh cache in background: admin controls not applicable\nI1107 03:16:36.150383     186 server.go:3876] Got signal terminated, shutting down\nI1107 03:16:36.150402     376 server.go:3918] Language server shutting down\nI1107 03:16:36.150417     376 server.go:3940] Waiting for migrations to complete to prevent partial migration state...\nI1107 03:16:36.159893      63 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.160782      63 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.172674      64 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels\nI1107 03:16:36.173073       1 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nW1107 03:16:36.173778       1 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nI1107 03:16:36.173802       1 printmode.go:411] Print mode: silent auth succeeded\nE1107 03:16:36.173809       1 printmode.go:297] Print mode: eligibility check failed: context canceled\nI1107 03:16:36.173821       1 manager.go:961] CLI store manager shutting down\nI1107 03:16:36.174956     353 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.176245     353 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.177705     353 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.181935     353 http_helpers.go:403] URL: https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist\nI1107 03:16:36.184351     353 model_config_manager.go:363] Propagating selected model override to backend: label=\"Gemini 3.8 Flash (Low)\"\nW1107 03:16:36.184360     353 cli_setting_manager.go:1104] Failed to read telemetry setting from server, defaulting to disabled: userSettings is nil\nE1107 03:16:36.185721     376 server.go:4033] Failed to shutdown telemetry client: Clearcut responded with HTTP code: 404\n"
+}

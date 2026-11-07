@@ -1,0 +1,46 @@
+{
+  "recordedAt": "2026-11-06T17:45:16.400Z",
+  "evidence": "actual-cli-real-gateway-real-google-native-tls",
+  "ran": false,
+  "productionAccountsBefore": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "productionAccountsAfter": {
+    "fileCount": 6,
+    "jsonCount": 6,
+    "digest": "a9e0027d0ce3910c2eee3dc072add6f18676611271639533373286fb094302db"
+  },
+  "productionAccountsUnchanged": true,
+  "sourceBefore": {
+    "sha256": "4db2201be7179fcea9b4bef7ad0356635bd2632a4514cef1d4f8f8c15358bfde",
+    "files": 51
+  },
+  "sourceAfter": {
+    "sha256": "4db2201be7179fcea9b4bef7ad0356635bd2632a4514cef1d4f8f8c15358bfde",
+    "files": 51
+  },
+  "sourceUnchanged": true,
+  "snapshot": {
+    "accounts": 6,
+    "stateFiles": [
+      {
+        "path": "state/account-pool.json",
+        "sha256": "c18c32383e2a8ba2142d23ba35436ecd152aef89b9f9dd8fec05312d0e4a9321",
+        "byteExact": true
+      },
+      {
+        "path": "state/quota.json",
+        "sha256": "bddf055cac2df96e89160ca27e7794e8c489f6978295bd6be925bab10733b70e",
+        "byteExact": true
+      }
+    ],
+    "disabledAccounts": 0
+  },
+  "startup": {},
+  "results": [],
+  "gatewayStdout": "",
+  "gatewayStderr": "",
+  "startupTrace": []
+}

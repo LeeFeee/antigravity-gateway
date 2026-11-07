@@ -1,0 +1,792 @@
+{
+  "generatedAt": "2026-11-06T18:17:02.532Z",
+  "source": {
+    "sha256": "f5352b06bf541043bb384e69efb76b1d831e6d47ec772faa45e6c3d5a69e5e57",
+    "files": 53
+  },
+  "realModelValidated": false,
+  "nativeResponseIsSynthetic": true,
+  "signature": "MOCK_NATIVE_SIGNATURE_FOR_OFFLINE_COMPACTION_REPLAY",
+  "records": [
+    {
+      "agent": "claude",
+      "version": "2.1.318",
+      "file": "verified/claude-compact.json",
+      "fixtureSha256": "08799c85db2f2b57940390841ac42ec88068c0bab4f00656682cbdad05ee4715",
+      "evidence": "offline-real-client-fixture-normalize-buildDirectRequest-prepareNativeContext-with-synthetic-native-projection",
+      "originalPrefixMatchesFirstReceipt": true,
+      "firstReceiptRestored": true,
+      "mockNativeName": "read_file",
+      "projectionCount": 1,
+      "rows": [
+        {
+          "index": 0,
+          "phase": "seed1",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "0d4c7b91c7ce67c42bc710d782672fa44d5f5f47f8b1fd05c31b5f8d79732754",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 1385,
+          "tools": 1
+        },
+        {
+          "index": 1,
+          "phase": "seed1",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "toolu_probe_1",
+              "name": "Read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "4697db2d0b97795fe52431c23ee453c870a1cf1c86711f6f96557cb2559edea6",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 1798,
+          "tools": 1
+        },
+        {
+          "index": 2,
+          "phase": "seed2",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "toolu_probe_1",
+              "name": "Read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "5335320fa1d52d0b30ef6c136250c76c23e634b42af54ac23c547dda8b2f950e",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 52391,
+          "tools": 1
+        },
+        {
+          "index": 3,
+          "phase": "seed3",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "toolu_probe_1",
+              "name": "Read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cb90aed0531fc76726318c9d041e799a2bc258a11555820b304b8ec3351350f8",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 102984,
+          "tools": 1
+        },
+        {
+          "index": 4,
+          "phase": "compact",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "toolu_probe_1",
+              "name": "Read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "c28eef742b1708a14eba66fc1295a8d53886038c76df6eb4a67f569f4a901f7c",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 109546,
+          "tools": 1
+        },
+        {
+          "index": 5,
+          "phase": "compact",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "toolu_probe_1",
+              "name": "Read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "8270a132052f7f8483afc5da741622619e8389998444db748168b9350a8b5304",
+          "sourceSystemDigest": "2b8f97ac32235c7e2f2c30274364669e6133f7229d86b98c8557a5f4a66ff0cb",
+          "inputChars": 109942,
+          "tools": 1
+        },
+        {
+          "index": 6,
+          "phase": "after",
+          "path": "/v1/messages?beta=true",
+          "profile": {
+            "client": "claude",
+            "templateVersion": "2.1.318",
+            "evidence": [
+              "claude-sdk-system-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "5d2cd95052632534dae94e04326bee4b50706ee1e6e44b987332cb252629b306",
+          "sourceSystemDigest": "1f5bc4d650a88010d400ebcf1259476ddc08e1b93051de0504c261e5cf202485",
+          "inputChars": 53743,
+          "tools": 1
+        }
+      ]
+    },
+    {
+      "agent": "pi",
+      "version": "1.5.0",
+      "file": "verified/pi-compact.json",
+      "fixtureSha256": "6fcb7d578b43b4c9c6ccc3a2ed5658e4aa2aa3967d1b31ec950e5b74973e5183",
+      "evidence": "offline-real-client-fixture-normalize-buildDirectRequest-prepareNativeContext-with-synthetic-native-projection",
+      "originalPrefixMatchesFirstReceipt": true,
+      "firstReceiptRestored": true,
+      "mockNativeName": "read_file",
+      "projectionCount": 1,
+      "rows": [
+        {
+          "index": 0,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "pi",
+            "templateVersion": "1.5.0",
+            "evidence": [
+              "pi-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cd05e36856ed51edb875ff858337d74804af51b17f6cf1fdeaeb64ffeaec3d96",
+          "sourceSystemDigest": "fcb3c26243b47827d7476353382f71a1cd5323cbe909214f089f4af7cdfae4dd",
+          "inputChars": 1946,
+          "tools": 1
+        },
+        {
+          "index": 1,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "pi",
+            "templateVersion": "1.5.0",
+            "evidence": [
+              "pi-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "3bfd9e4c793d854764bdf301bb01abf3655c41ca603bcaff5118496ba6e67035",
+          "sourceSystemDigest": "fcb3c26243b47827d7476353382f71a1cd5323cbe909214f089f4af7cdfae4dd",
+          "inputChars": 2294,
+          "tools": 1
+        },
+        {
+          "index": 2,
+          "phase": "seed2",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "pi",
+            "templateVersion": "1.5.0",
+            "evidence": [
+              "pi-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "ccae7ca845fcb38c1a263b6575b7ce742c7e5c71419af97f0da9f5220fe5ae8e",
+          "sourceSystemDigest": "fcb3c26243b47827d7476353382f71a1cd5323cbe909214f089f4af7cdfae4dd",
+          "inputChars": 52860,
+          "tools": 1
+        },
+        {
+          "index": 3,
+          "phase": "seed3",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "pi",
+            "templateVersion": "1.5.0",
+            "evidence": [
+              "pi-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cdc9a163806bf0ac4ffe669bd22935099406742400505b768294d86c14bd8fdb",
+          "sourceSystemDigest": "fcb3c26243b47827d7476353382f71a1cd5323cbe909214f089f4af7cdfae4dd",
+          "inputChars": 103427,
+          "tools": 1
+        },
+        {
+          "index": 4,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "d58db42648f0ad85038a115b9415581cfa17c640a7bb178dacf81cc784fcc670",
+          "sourceSystemDigest": "b909d497c68a7221bebda158b60a286395cdeed835d34f12d2a424bc6b03f4f2",
+          "inputChars": 102473,
+          "tools": 0
+        },
+        {
+          "index": 5,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "64d9a80011c3356205162e8ed4fdf7213870f60afde50978ecd16e77de47ff6a",
+          "sourceSystemDigest": "b909d497c68a7221bebda158b60a286395cdeed835d34f12d2a424bc6b03f4f2",
+          "inputChars": 1237,
+          "tools": 0
+        },
+        {
+          "index": 6,
+          "phase": "after",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "pi",
+            "templateVersion": "1.5.0",
+            "evidence": [
+              "pi-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "14544c7e6b10b73bd4460ef4b759766ca3a1a066019f25d773212cc9206e6184",
+          "sourceSystemDigest": "fcb3c26243b47827d7476353382f71a1cd5323cbe909214f089f4af7cdfae4dd",
+          "inputChars": 52849,
+          "tools": 1
+        }
+      ]
+    },
+    {
+      "agent": "dsh",
+      "version": "0.2.1-rc.2",
+      "file": "verified/dsh-compact.json",
+      "fixtureSha256": "f342dade692a0b50a9c757caf1da6f3d68d9125b1b58f86b048283bb250e836d",
+      "evidence": "offline-real-client-fixture-normalize-buildDirectRequest-prepareNativeContext-with-synthetic-native-projection",
+      "originalPrefixMatchesFirstReceipt": true,
+      "firstReceiptRestored": true,
+      "mockNativeName": "read_file",
+      "projectionCount": 1,
+      "rows": [
+        {
+          "index": 0,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "905139e492c57f3c516ace147f03d498a2447b7ee2143947de5d836930f3ca9e",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 3392,
+          "tools": 25
+        },
+        {
+          "index": 1,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "e1af8fbb7f2796157bcdf09aee9bc46f0a3b9ec19dd5fd450f548349932fa0cf",
+          "sourceSystemDigest": "e5f1ce303886ed722bd1dcb41551d3bf5844dd1e595cd10307d5ee1517de2282",
+          "inputChars": 780,
+          "tools": 0
+        },
+        {
+          "index": 2,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cdb3feb37d8de8dd2a6805467ef4ec1045e0d65c5105e512bf306a5beda1ff4f",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 3834,
+          "tools": 25
+        },
+        {
+          "index": 3,
+          "phase": "seed2",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "5f0f5883fdb91a057cb05fe4ea82f1ddb640e07459d7a58f9263b97b4605ec0a",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 54399,
+          "tools": 25
+        },
+        {
+          "index": 4,
+          "phase": "seed3",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "a18a9a5e0b98e2a9e921acd1933bba6d0790764dba1c4a1649bf27cf8da6c09b",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 104964,
+          "tools": 25
+        },
+        {
+          "index": 5,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read"
+            }
+          ],
+          "nativeToolNames": [
+            "read_file"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "5191192add45b650c1700cf0af7d91cc2b311124c8033dfa04a96ad20d953aba",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 106863,
+          "tools": 25
+        },
+        {
+          "index": 6,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "26f4c7de525967d78b2379e249cd39ea88548e9e547fbc3ed824dff99233556c",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 5029,
+          "tools": 25
+        },
+        {
+          "index": 7,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "4c44cf38ba870e72a7d34eec55efaca6a61d09a4eca7d9e3300aa61130a289ab",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 54293,
+          "tools": 25
+        },
+        {
+          "index": 8,
+          "phase": "after",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "19b4ac1f4538c031cbdc88b7e5b162c75cb30f9f0f12fa05659650c75362c0e2",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 55591,
+          "tools": 25
+        },
+        {
+          "index": 9,
+          "phase": "after",
+          "path": "/v1/responses",
+          "profile": {
+            "client": "dsh",
+            "templateVersion": "0.2.1-rc.2",
+            "evidence": [
+              "dsh-developer-template"
+            ]
+          },
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "a53a765d003b847c6714c7f9f0c158623f464f4c7fe2481a0d0dcb3e82506fe1",
+          "sourceSystemDigest": "424d3747d25ad0939724a874ac9327330dd6f51873b7f84707ebdf9c5a7f8286",
+          "inputChars": 4091,
+          "tools": 25
+        }
+      ]
+    },
+    {
+      "agent": "hermes",
+      "version": "0.21.7+11153.g2bd378e",
+      "file": "verified/hermes-compact.json",
+      "fixtureSha256": "7af1de2d366f8063874800605425baea54dc3750a93bae567f56250e76c057e3",
+      "evidence": "offline-real-client-fixture-normalize-buildDirectRequest-prepareNativeContext-with-synthetic-native-projection",
+      "originalPrefixMatchesFirstReceipt": true,
+      "firstReceiptRestored": true,
+      "mockNativeName": "mcp_gateway_tool_9bb48e8eede6f8dd",
+      "projectionCount": 1,
+      "rows": [
+        {
+          "index": 0,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cd05e36856ed51edb875ff858337d74804af51b17f6cf1fdeaeb64ffeaec3d96",
+          "sourceSystemDigest": "e32bbddb693a83c70775c5e858e172f8490e274ca2f93646f9ca11164ecc96f6",
+          "inputChars": 152,
+          "tools": 4
+        },
+        {
+          "index": 1,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read_file"
+            }
+          ],
+          "nativeToolNames": [
+            "mcp_gateway_tool_9bb48e8eede6f8dd"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "a6bcb79cedfd13790face951daa02df3c0d231ab4391b72a86e6fa97195c3d74",
+          "sourceSystemDigest": "e32bbddb693a83c70775c5e858e172f8490e274ca2f93646f9ca11164ecc96f6",
+          "inputChars": 582,
+          "tools": 4
+        },
+        {
+          "index": 2,
+          "phase": "seed1",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "cd05e36856ed51edb875ff858337d74804af51b17f6cf1fdeaeb64ffeaec3d96",
+          "sourceSystemDigest": "b01e959fff2dc760cd2e09e073270cc27394b5f4d5883609eb3b9d62e5222100",
+          "inputChars": 152,
+          "tools": 0
+        },
+        {
+          "index": 3,
+          "phase": "seed2",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read_file"
+            }
+          ],
+          "nativeToolNames": [
+            "mcp_gateway_tool_9bb48e8eede6f8dd"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "a537b15861b11a76cb5605a3548203182cec96617dc3dd64cad134ba44276a71",
+          "sourceSystemDigest": "e32bbddb693a83c70775c5e858e172f8490e274ca2f93646f9ca11164ecc96f6",
+          "inputChars": 51116,
+          "tools": 4
+        },
+        {
+          "index": 4,
+          "phase": "seed3",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [
+            {
+              "id": "call_probe_1",
+              "name": "read_file"
+            }
+          ],
+          "nativeToolNames": [
+            "mcp_gateway_tool_9bb48e8eede6f8dd"
+          ],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 1,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "464750af9939ab0d7df4f499c1a6df35c083e8ac2a41d274770f3d526cd320e4",
+          "sourceSystemDigest": "e32bbddb693a83c70775c5e858e172f8490e274ca2f93646f9ca11164ecc96f6",
+          "inputChars": 101650,
+          "tools": 4
+        },
+        {
+          "index": 5,
+          "phase": "compact",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "2232058104342c0628475c4ffb503980d3bde4ea1bfa7e81c89ee0349768f45d",
+          "sourceSystemDigest": "776e84186ddaa3b9834c7f98e53706737a7a2883163eea20b5629c2817b513f5",
+          "inputChars": 13877,
+          "tools": 0
+        },
+        {
+          "index": 6,
+          "phase": "after",
+          "path": "/v1/responses",
+          "profile": null,
+          "inputToolCalls": [],
+          "nativeToolNames": [],
+          "unrestoredToolCalls": [],
+          "restoredMockSignatures": 0,
+          "noSignatureInventedForSummaryText": true,
+          "userSoulPreserved": true,
+          "sourceMessageDigest": "40935136e9722960e01f4fca64e289cec8140b7bc5a1e0b28beea47e830a7ae3",
+          "sourceSystemDigest": "e32bbddb693a83c70775c5e858e172f8490e274ca2f93646f9ca11164ecc96f6",
+          "inputChars": 103834,
+          "tools": 4
+        }
+      ]
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,16 @@
+{
+  "officialVersion": "1.5.2",
+  "binarySha256": "d972bb48e8b98ba99479de8cd66b6f3b4e8184d95789ea8cce39dd18855d5184",
+  "scenario": "video-summary",
+  "mockOnly": true,
+  "realUpstream": false,
+  "realAccountRead": false,
+  "networkBoundary": "Seatbelt: client and all-response proxy permit loopback only",
+  "requestTypes": [],
+  "requestCount": 0,
+  "failure": "RuntimeError: Official Hub did not bind its local port",
+  "requests": [],
+  "acp": [],
+  "stderr": "",
+  "officialLog": "E0000 00:00:1793992443.041118 43199990 process_state.cc:796] RAW: Raising signal 15 with default behavior\n"
+}

@@ -1,25 +1,19 @@
 'use strict';
 const { directory } = require('./helpers/gateway-environment');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
 const { AccountPool } = require('../src/account-pool');
-const { AccountStore } = require('../src/account-store');
-const { RobinAccountPool } = require('../src/robin-account-pool');
-const { RobinAccountAuthProvider } = require('../src/robin-auth');
-const { RobinProvider } = require('../src/robin-provider');
 const { createServer } = require('../antigravity-gateway');
 
-async function fixture(t, { cloudcode = ['same-id'], robin = ['same-id'] } = {}) {
+async function fixture(t) {
   const operations = [];
-  for (const [Pool, provider, ids] of [[AccountPool, 'cloudcode', cloudcode], [RobinAccountPool, 'robin', robin]]) {
-    t.mock.method(Pool.prototype, 'status', () => ids.map(id => ({ id })));
-    for (const [method, action] of [['removeAccount', 'delete'], ['recheckAccount', 'recheck']]) {
-      t.mock.method(Pool.prototype, method, id => {
-        operations.push({ provider, action, id });
-        return { id, providerType: provider, action };
-      });
-    }
+  for (const [method, action] of [['removeAccount', 'delete'], ['recheckAccount', 'recheck']]) {
+    t.mock.method(AccountPool.prototype, method, id => {
+      operations.push({ action, id }); return { id, action };
+    });
   }
   const server = createServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -30,13 +24,13 @@ async function fixture(t, { cloudcode = ['same-id'], robin = ['same-id'] } = {})
     });
     return { status: response.status, body: await response.json() };
   };
-  return { operations, request };
+  return { operations, request, base: `http://127.0.0.1:${server.address().port}` };
 }
 
-test('dashboard account mutations reject invalid, empty and repeated provider parameters before touching either pool', async t => {
+test('dashboard mutations reject removed or ambiguous provider selectors without touching the active pool', async t => {
   const { operations, request } = await fixture(t);
   for (const action of ['recheck', 'delete']) {
-    for (const query of ['?provider=robni', '?provider=', '?provider=robin&provider=cloudcode', '?provider=cloudcode&provider=cloudcode']) {
+    for (const query of ['?provider=robin', '?provider=robni', '?provider=', '?provider=robin&provider=cloudcode', '?provider=cloudcode&provider=cloudcode']) {
       const response = await request(action, query);
       assert.equal(response.status, 400, `${action} ${query}`);
       assert.equal(response.body.error.type, 'invalid_account_provider');
@@ -45,65 +39,33 @@ test('dashboard account mutations reject invalid, empty and repeated provider pa
   assert.deepEqual(operations, []);
 });
 
-test('an unqualified account ID present in both providers is rejected instead of guessing a destructive target', async t => {
+test('both current and legacy qualified links target the single active pool', async t => {
   const { operations, request } = await fixture(t);
-  for (const action of ['recheck', 'delete']) {
-    const response = await request(action);
-    assert.equal(response.status, 409);
-    assert.equal(response.body.error.type, 'ambiguous_account_provider');
+  for (const query of ['', '?provider=cloudcode']) for (const action of ['recheck', 'delete']) {
+    const response = await request(action, query);
+    assert.equal(response.status, 200); assert.equal(response.body.id, 'same-id');
   }
-  assert.deepEqual(operations, []);
+  assert.deepEqual(operations, ['', '?provider=cloudcode'].flatMap(() => ['recheck', 'delete'].map(action => ({ action, id: 'same-id' }))));
 });
 
-test('an explicit provider targets only its own account even when both stores contain the same ID', async t => {
-  const { operations, request } = await fixture(t);
-  for (const provider of ['robin', 'cloudcode']) for (const action of ['recheck', 'delete']) {
-    const response = await request(action, `?provider=${provider}`);
-    assert.equal(response.status, 200);
-    assert.equal(response.body.providerType, provider);
-  }
-  assert.deepEqual(operations, ['robin', 'cloudcode'].flatMap(provider => ['recheck', 'delete'].map(action => ({ provider, action, id: 'same-id' }))));
-});
-
-test('legacy dashboard callers without a provider retain unique-account routing for both providers', async t => {
-  const { operations, request } = await fixture(t, { cloudcode: ['cloud-only'], robin: ['robin-only'] });
-  for (const [provider, id] of [['cloudcode', 'cloud-only'], ['robin', 'robin-only']]) {
-    for (const action of ['recheck', 'delete']) {
-      const response = await request(action, '', id);
-      assert.equal(response.status, 200);
-      assert.equal(response.body.providerType, provider);
+test('dashboard leaves retired credentials untouched and never includes them in current accounts', async t => {
+  const filenames = [];
+  for (const folder of ['robin-accounts', 'gemini-win-accounts']) {
+    const target = path.join(directory, folder); fs.mkdirSync(target, { recursive: true });
+    for (const [name, text] of [['valid.json', '{"id":"old","accessToken":"private-fixture"}'], ['broken.json', '{']]) {
+      const filename = path.join(target, name); fs.writeFileSync(filename, text); filenames.push([filename, text]);
     }
   }
-  assert.equal(operations.length, 4);
-});
-
-test('actual Robin pool status and manual recheck never expose stored OAuth or server credentials through dashboard HTTP', async t => {
-  const secrets = ['synthetic-access-do-not-return', 'synthetic-refresh-do-not-return',
-    'synthetic-oauth-secret-do-not-return', 'synthetic-server-token-do-not-return'];
-  const store = new AccountStore({ configDir: directory, directoryName: 'robin-accounts' });
-  const account = store.save({ id: 'credential-boundary', providerType: 'robin', accountType: 'gemini-app',
-    email: 'boundary@example.com', accessToken: secrets[0], refreshToken: secrets[1], clientSecret: secrets[2],
-    capabilities: ['gemini-4-argon'], providerMetadata: { robinServerToken: secrets[3] } });
-  t.after(() => store.delete(account.id));
-  t.mock.method(AccountPool.prototype, 'status', () => []);
-  t.mock.method(RobinAccountAuthProvider.prototype, 'get', async () => ({ accessToken: secrets[0], serverToken: secrets[3] }));
-  t.mock.method(RobinProvider.prototype, 'listModels', async () => ['gemini-4-argon']);
-  t.mock.method(RobinProvider.prototype, 'send', async () => ({ text: `OK ${secrets.join(' ')}`, toolCalls: [] }));
-  t.mock.method(RobinAccountPool.prototype, 'refreshQuota', async () => undefined);
-  const server = createServer();
-  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  for (const [method, route] of [['GET', '/dashboard/data'], ['POST', '/dashboard/accounts/credential-boundary/recheck?provider=robin']]) {
-    const response = await fetch(base + route, { method });
-    assert.equal(response.status, 200);
-    const body = await response.json(), text = JSON.stringify(body);
-    for (const secret of secrets) assert.equal(text.includes(secret), false);
-    assert.doesNotMatch(text, /accessToken|refreshToken|clientSecret|robinServerToken|providerMetadata/);
-    const visible = method === 'GET' ? body.accounts[0] : body;
-    assert.equal(visible.id, account.id);
-    assert.equal(visible.providerType, 'robin');
-    assert.deepEqual(visible.models, ['gemini-4-argon']);
-    assert.equal(visible.state, 'available');
-  }
+  const { base } = await fixture(t);
+  const nativeRead = fs.readFileSync;
+  t.mock.method(fs, 'readFileSync', (file, ...args) => {
+    assert.ok(!filenames.some(([filename]) => filename === String(file)), 'retired credentials must not be read');
+    return nativeRead(file, ...args);
+  });
+  const response = await fetch(base + '/dashboard/data');
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.deepEqual(body.accounts, []);
+  assert.doesNotMatch(JSON.stringify(body), /private-fixture|accessToken|refreshToken|clientSecret/);
+  for (const [filename, text] of filenames) assert.equal(nativeRead(filename, 'utf8'), text);
 });

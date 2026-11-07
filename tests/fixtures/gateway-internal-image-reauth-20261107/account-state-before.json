@@ -1,0 +1,71 @@
+{
+  "checkedAt": "2026-11-06T21:07:56.049Z",
+  "source": "current formal accounts and account-pool/quota state (read-only)",
+  "accounts": [
+    {
+      "label": "account-1",
+      "enabled": true,
+      "credentialSavedAt": "2026-11-06T20:56:45.456Z",
+      "health": "available",
+      "quotaObservedAt": "2026-11-06T21:04:35.443Z",
+      "imageQuota": {
+        "remainingFraction": 1,
+        "resetTime": "2026-11-07T02:04:28Z",
+        "available": true
+      },
+      "geminiProtected": false
+    },
+    {
+      "label": "account-2",
+      "enabled": true,
+      "credentialSavedAt": "2026-11-06T20:56:32.408Z",
+      "health": "available",
+      "quotaObservedAt": "2026-11-06T21:04:35.190Z",
+      "imageQuota": {
+        "remainingFraction": 1,
+        "resetTime": "2026-11-07T02:04:28Z",
+        "available": true
+      },
+      "geminiProtected": false
+    },
+    {
+      "label": "account-3",
+      "enabled": true,
+      "credentialSavedAt": "2026-11-06T20:56:40.075Z",
+      "health": "available",
+      "quotaObservedAt": "2026-11-06T21:04:33.933Z",
+      "imageQuota": {
+        "remainingFraction": 1,
+        "resetTime": "2026-11-07T02:04:27Z",
+        "available": true
+      },
+      "geminiProtected": false
+    },
+    {
+      "label": "account-4",
+      "enabled": true,
+      "credentialSavedAt": "2026-11-06T20:34:33.043Z",
+      "health": "available",
+      "quotaObservedAt": "2026-11-06T21:04:34.196Z",
+      "imageQuota": {
+        "remainingFraction": 0.99969286,
+        "resetTime": "2026-11-06T23:11:15Z",
+        "available": true
+      },
+      "geminiProtected": false
+    }
+  ],
+  "poolSavedAt": "2026-11-06T20:56:48.771Z",
+  "priorImageRuns": [
+    {
+      "fixture": "gateway-internal-image-20261107",
+      "start": "2026-11-06T19:49:16.684Z"
+    },
+    {
+      "fixture": "gateway-internal-image-native-20261107",
+      "start": "2026-11-06T20:47:26.248Z"
+    }
+  ],
+  "diagnosis": "Both image attempts predated the three reauthentications. Subsequent review incorrectly carried forward old health counts while comparing file hashes to an already recovered Opus snapshot. Recovery worked; no runtime health reset needed.",
+  "realGenerationRequestsAddedByThisReview": 0
+}

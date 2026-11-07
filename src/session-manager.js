@@ -3,14 +3,9 @@
 const crypto = require('node:crypto');
 const { detectNativeCompaction } = require('./agy-client-compaction');
 const { capturedNativeClient } = require('./agy-client-profile');
-const { trailingToolResultIds, hasToolResultHistory } = require('./tool-history');
 
 const DEFAULT_TTL_MS = 60 * 60_000;
 const DEFAULT_CAPACITY = 2000;
-
-class SessionIdentityError extends Error {
-  constructor(message, code) { super(message); this.name = 'SessionIdentityError'; this.code = code; this.status = 409; }
-}
 
 function firstString(...values) {
   for (const value of values) if (typeof value === 'string' && value.trim()) return value.trim();
@@ -127,9 +122,9 @@ function fallbackSeed(payload = {}, normalized = {}) {
   });
 }
 
-function auxiliaryScope(req, normalized, taskProvider = '') {
+function auxiliaryScope(req, normalized) {
   const dsh = firstString(header(req, 'x-deepseek-harness-session-id'));
-  if (!dsh && taskProvider !== 'robin') return '';
+  if (!dsh) return '';
   if (dsh && header(req, 'x-deepseek-harness-compact') === '1') return 'compaction';
   // Clients can send no-tool auxiliary and main tool requests under one ID.
   // Partition the declared tool surface, not natural-language intent. A tool
@@ -146,58 +141,14 @@ class SessionManager {
     this.capacity = Math.max(100, Number(capacity) || DEFAULT_CAPACITY);
     this.responses = new Map();
     this.aliases = new Map();
-    this.toolOwners = new Map();
-    this.toolBindings = new Map();
   }
 
   cleanup() {
     const cutoff = Date.now() - this.ttlMs;
     for (const [id, value] of this.responses) if (value.at < cutoff) this.responses.delete(id);
     for (const [id, value] of this.aliases) if (value.at < cutoff) this.aliases.delete(id);
-    for (const binding of this.toolBindings.values()) if (binding.at < cutoff) this.removeToolBinding(binding);
     while (this.responses.size > this.capacity) this.responses.delete(this.responses.keys().next().value);
     while (this.aliases.size > this.capacity * 2) this.aliases.delete(this.aliases.keys().next().value);
-    while (this.toolBindings.size > this.capacity) this.removeToolBinding(this.toolBindings.values().next().value);
-  }
-
-  removeToolBinding(binding) {
-    this.toolBindings.delete(binding.bindingKey);
-    const owners = this.toolOwners.get(binding.lookupKey);
-    owners?.delete(binding.sessionId);
-    if (!owners?.size) this.toolOwners.delete(binding.lookupKey);
-  }
-
-  toolOwner(taskProvider, clientId, ids) {
-    let matches;
-    for (const id of ids) {
-      const owners = this.toolOwners.get(digest(taskProvider, clientId, id));
-      if (!owners?.size) throw new SessionIdentityError('工具结果找不到当前客户端的活动任务。', 'tool_session_not_found');
-      matches = matches ? new Set([...matches].filter(sessionId => owners.has(sessionId))) : new Set(owners.keys());
-    }
-    if (matches?.size !== 1) throw new SessionIdentityError('工具结果无法唯一关联到一个活动任务，请提供明确的会话 ID。', 'tool_session_ambiguous');
-    const lookup = this.toolOwners.get(digest(taskProvider, clientId, ids[0]));
-    return lookup.get([...matches][0]);
-  }
-
-  bindToolCalls(identity, calls) {
-    if (!identity.anonymousTask || !identity.taskProvider) return;
-    this.cleanup();
-    for (const binding of this.toolBindings.values()) {
-      if (binding.taskProvider === identity.taskProvider && binding.clientId === identity.clientId
-          && binding.sessionId === identity.sessionId) this.removeToolBinding(binding);
-    }
-    for (const call of calls || []) {
-      if (!call?.id) continue;
-      const lookupKey = digest(identity.taskProvider, identity.clientId, call.id);
-      const bindingKey = digest(lookupKey, identity.sessionId);
-      const binding = { lookupKey, bindingKey, taskProvider: identity.taskProvider, clientId: identity.clientId,
-        sessionId: identity.sessionId, routingKey: identity.routingKey, at: Date.now() };
-      const owners = this.toolOwners.get(lookupKey) || new Map();
-      owners.set(identity.sessionId, binding);
-      this.toolOwners.set(lookupKey, owners);
-      this.toolBindings.set(bindingKey, binding);
-    }
-    this.cleanup();
   }
 
   alias(kind, scope, raw) {
@@ -210,53 +161,33 @@ class SessionManager {
     return entry.id;
   }
 
-  resolveIdentity(req, payload = {}, normalized = {}, previous = null, { taskProvider = '' } = {}) {
+  resolveIdentity(req, payload = {}, normalized = {}, previous = null) {
     this.cleanup();
     const scope = clientScope(req, payload);
     const explicit = explicitSessionId(req, payload);
     const parent = explicitParentSessionId(req, payload);
     const explicitAffinity = explicitAffinityId(req, payload);
     const fallback = fallbackSeed(payload, normalized);
-    const nativeExplicit = taskProvider ? explicitSessionId(req, payload, { legacy: false, cacheKey: false }) : explicit;
-    const conversationRaw = firstString(nativeExplicit, explicit, fallback);
+    const conversationRaw = firstString(explicit, fallback);
     const affinityRaw = firstString(explicitAffinity, parent, explicit, fallback);
-    const auxiliary = auxiliaryScope(req, normalized, taskProvider);
+    const auxiliary = auxiliaryScope(req, normalized);
     const nativeCompaction = detectNativeCompaction(req, normalized);
     const nativeClientProfile = capturedNativeClient(req, normalized);
-    const reliableConversation = Boolean(previous?.sessionId || (taskProvider ? nativeExplicit
-      : explicitSessionId(req, payload, { legacy: false })));
-    let anonymousTask = Boolean(previous?.anonymousTask), owner;
-    if (taskProvider && !reliableConversation) {
-      anonymousTask = true;
-      const ids = trailingToolResultIds(normalized);
-      if (ids.length) {
-        try { owner = this.toolOwner(taskProvider, scope, ids); }
-        catch (error) {
-          // A complete client-supplied history needs no previous owner's
-          // state. Start an isolated task, never guess or attach another one.
-          if (taskProvider !== 'robin' || error.code !== 'tool_session_not_found'
-              || !hasToolResultHistory(normalized, ids)) throw error;
-        }
-      }
-    }
+    const reliableConversation = Boolean(previous?.sessionId || explicitSessionId(req, payload, { legacy: false }));
     return {
       clientId: scope,
       clientLabel: safeLabel(clientIdentity(req, payload)),
-      sessionId: previous?.sessionId || owner?.sessionId || (anonymousTask
-        ? digest('anonymous-task', taskProvider, scope, crypto.randomUUID())
-        : this.alias('conversation', scope, conversationRaw)),
-      routingKey: previous?.routingKey || owner?.routingKey || this.alias('affinity', scope, affinityRaw),
+      sessionId: previous?.sessionId || this.alias('conversation', scope, conversationRaw),
+      routingKey: previous?.routingKey || this.alias('affinity', scope, affinityRaw),
       requestId: `req_${crypto.randomUUID().replaceAll('-', '')}`,
       ...(auxiliary ? { auxiliaryScope: auxiliary } : {}),
       ...(nativeCompaction ? { nativeCompaction } : {}),
       ...(nativeClientProfile ? { nativeClientProfile } : {}),
-      sessionSource: previous?.sessionId ? 'previous_response' : owner ? 'tool_result' : anonymousTask ? 'anonymous' : explicit ? 'explicit' : 'fallback',
+      sessionSource: previous?.sessionId ? 'previous_response' : explicit ? 'explicit' : 'fallback',
       affinitySource: previous?.routingKey ? 'previous_response' : explicitAffinity ? 'explicit' : parent ? 'parent' : explicit ? 'conversation' : 'fallback',
       // A legacy user identifier or a prompt fingerprint is not evidence of
       // one conversation. Never attach such a caller to saved upstream history.
-      reuseConversation: reliableConversation,
-      ...(taskProvider ? { taskProvider } : {}),
-      ...(anonymousTask ? { anonymousTask: true } : {})
+      reuseConversation: reliableConversation
     };
   }
 
@@ -285,7 +216,6 @@ class SessionManager {
 
 module.exports = {
   SessionManager,
-  SessionIdentityError,
   callerScope,
   clientScope,
   credentialScope,

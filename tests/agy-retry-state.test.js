@@ -5,6 +5,7 @@ const fs = require('node:fs'), os = require('node:os'), path = require('node:pat
 const test = require('node:test');
 const { AgySessionStore } = require('../src/agy-session-state');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
+const { declaredCall, fixtureTools } = require('./helpers/declared-tool-fixture');
 const model = 'gemini-3.8-flash-high';
 const reply = parts => new Response(JSON.stringify({ candidates: [{ content: { parts } }] }),
   { headers: { 'content-type': 'application/json' } });
@@ -37,19 +38,19 @@ test('captured 429 tool-result retry preserves signed history and its error step
   const { requests, provider } = fixture(t);
   const call = { id: 'native-call', name: 'read_file', args: { path: 'owned.txt' } };
   const messages = [{ role: 'user', text: 'Read the file.' }];
-  await provider(async () => reply([{ functionCall: call, thoughtSignature: 'signed-call' }]))
-    .send({ messages }, model, { sessionId: 'conversation' });
+  await provider(async (_url, options) => reply([{ functionCall: declaredCall(JSON.parse(options.body), call), thoughtSignature: 'signed-call' }]))
+    .send({ messages, tools: fixtureTools('read_file') }, model, { sessionId: 'conversation' });
   messages.push({ role: 'assistant', parts: [{ type: 'tool_call', id: call.id, name: call.name, arguments: call.args }] },
     { role: 'user', parts: [{ type: 'tool_result', id: call.id, content: 'cedar' }] });
   let attempt = 0;
   await provider(async () => ++attempt === 1 ? new Response('controlled capacity failure', { status: 429 })
     : reply([{ text: 'cedar', thoughtSignature: 'signed-answer' }]))
-    .send({ messages }, model, { sessionId: 'conversation' });
+    .send({ messages, tools: fixtureTools('read_file') }, model, { sessionId: 'conversation' });
   onlyRetryMetadataChanges(requests[1], requests[2]);
   assert.equal(requests[2].request.contents[1].parts[0].thoughtSignature, 'signed-call');
   assert.equal(requests[2].request.contents.length, 3);
   messages.push({ role: 'assistant', text: 'cedar' }, { role: 'user', text: 'Recall.' });
-  await provider(async () => reply([{ text: 'cedar' }])).send({ messages }, model, { sessionId: 'conversation' });
+  await provider(async () => reply([{ text: 'cedar' }])).send({ messages, tools: fixtureTools('read_file') }, model, { sessionId: 'conversation' });
   assert.deepEqual(requests.map(step), [1, 3, 4, 6]);
   assert.deepEqual(requests.map(counter), [0, 1, 1, 2]);
   assert.equal(requests[3].request.contents[3].parts[0].thoughtSignature, 'signed-answer');

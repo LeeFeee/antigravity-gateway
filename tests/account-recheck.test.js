@@ -5,41 +5,36 @@ const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 const { AccountStore } = require('../src/account-store');
-const { GeminiAccountStore } = require('../src/gemini-account-store');
 const { AccountPool } = require('../src/account-pool');
-const { RobinAccountPool } = require('../src/robin-account-pool');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
 const { AgySessionStore } = require('../src/agy-session-state');
 const { probeAccountInference } = require('../src/account-recheck');
 const tick = () => new Promise(resolve => setImmediate(resolve));
-const MODEL = 'gemini-4-argon';
+const MODEL = 'gemini-3.8-flash-high';
 const denial = () => Object.assign(new Error('This service has been disabled: TOS_VIOLATION'), { status: 403 });
 
 function fixture(t, channel, send) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'account-recheck-'));
-  const cloud = channel === 'cloudcode';
-  const store = cloud ? new AccountStore({ configDir: dir }) : new GeminiAccountStore({ configDir: dir });
+  const store = new AccountStore({ configDir: dir });
   const record = store.save({ id: 'a', subjectId: 'test-a', email: 'a@example.com', accessToken: 'test-access', refreshToken: 'test-refresh',
-    providerType: cloud ? 'cloudcode' : 'robin', accountType: cloud ? 'antigravity' : 'gemini-app', capabilities: [MODEL],
-    authMethod: channel === 'windows' ? 'gemini-windows-session' : 'oauth',
-    providerMetadata: channel === 'windows' ? { geminiWindows: { cookies: [{ name: 'SID', value: 'test', domain: '.google.com' }] } } : {} });
+    providerType: 'cloudcode', accountType: 'antigravity', capabilities: [MODEL],
+    authMethod: 'oauth' });
   let attempts = 0;
   const provider = {
     localAuth: { account: record }, auth: { account: record, get: async () => ({}) },
     probeAuthentication: async () => ({ ok: true, status: 200 }), listModels: async () => [MODEL],
     send: async (...args) => { attempts++; return send(...args); }
   };
-  const pool = cloud ? new AccountPool({ store, providerFactory: () => provider }) : new RobinAccountPool({ store, providerFactory: () => provider });
+  const pool = new AccountPool({ store, providerFactory: () => provider });
   const entry = pool.entries.get('a');
-  if (cloud) pool.markAccountIssue(entry, denial());
-  else pool.saveHealth(entry, 'account', 'access_denied', 'TOS_VIOLATION', Infinity);
+  pool.markAccountIssue(entry, denial());
   // Verification must not change any client's account affinity.
-  if (cloud) pool.bindSession('existing-conversation', 'a'); else pool.bind('existing-conversation', 'a');
+  pool.bindSession('existing-conversation', 'a');
   t.after(() => { pool.stop(); fs.rmSync(dir, { recursive: true, force: true }); });
   return { pool, provider, store, entry, attempts: () => attempts, state: () => pool.status().find(a => a.id === 'a')?.state };
 }
 
-for (const channel of ['cloudcode', 'oauth', 'windows']) {
+for (const channel of ['api']) {
   test(`${channel}: catalog success alone never restores an unavailable account`, async t => {
     let outcome = denial();
     const f = fixture(t, channel, async (input, model, options) => {
@@ -87,7 +82,7 @@ for (const channel of ['cloudcode', 'oauth', 'windows']) {
     let resolve;
     const f = fixture(t, channel, () => new Promise(done => { resolve = done; }));
     const pending = f.pool.recheckAccount('a');
-    const rejected = assert.rejects(pending, { code: channel === 'cloudcode' ? 'account_recheck_changed' : 'robin_credentials_changed' });
+    const rejected = assert.rejects(pending, { code: 'account_recheck_changed' });
     await tick();
     if (mutation === 'delete') f.pool.removeAccount('a');
     else f.store.update('a', mutation === 'disable' ? { enabled: false } : { refreshToken: 'different-grant' });
@@ -98,7 +93,7 @@ for (const channel of ['cloudcode', 'oauth', 'windows']) {
   });
 }
 
-test('Cloud Code reproduces catalog HTTP 200 followed by inference HTTP 403/TOS without recovery', async t => {
+test('Google Antigravity API reproduces catalog HTTP 200 followed by inference HTTP 403/TOS without recovery', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'account-real-provider-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const store = new AccountStore({ configDir: dir }); store.save({ id: 'a', accessToken: 'test-access', projectId: 'test' });
@@ -118,11 +113,11 @@ test('Cloud Code reproduces catalog HTTP 200 followed by inference HTTP 403/TOS 
   assert.equal(pool.status()[0].state, 'access_denied');
 });
 
-test('Cloud Code token renewal during failed recheck keeps quarantine across reload and restart', async t => {
+test('Google Antigravity API token renewal during failed recheck keeps quarantine across reload and restart', async t => {
   let f;
-  f = fixture(t, 'cloudcode', async () => { throw Object.assign(new Error('network timeout'), { status: 502 }); });
+  f = fixture(t, 'api', async () => { throw Object.assign(new Error('network timeout'), { status: 502 }); });
   f.provider.probeAuthentication = async () => {
-    const renewed = f.store.update('a', { accessToken: 'refreshed-access' });
+    const renewed = f.store.updateCredentials(f.store.list().find(account => account.id === 'a'), { accessToken: 'refreshed-access' });
     f.provider.localAuth.account = renewed;
     f.pool.reload(); assert.equal(f.state(), 'access_denied');
     return { ok: true };
@@ -141,15 +136,38 @@ test('manual inference selects a text model and refuses an image-only catalog', 
   await assert.rejects(probeAccountInference(provider, ['gemini-image']), { code: 'account_recheck_model_missing' });
 });
 
-test('Robin OAuth renewal cannot clear quarantine after unsuccessful inference', async t => {
-  const f = fixture(t, 'oauth', async () => { throw new Error('network timeout'); });
-  f.provider.auth.get = async () => {
-    f.provider.auth.account = f.store.update('a', { accessToken: 'renewed-access' });
-    f.pool.reload(); assert.equal(f.state(), 'access_denied');
-    return {};
-  };
-  await assert.rejects(f.pool.recheckAccount('a'));
-  f.pool.reload(); assert.equal(f.state(), 'access_denied');
-  const restored = new RobinAccountPool({ store: f.store, providerFactory: () => f.provider });
-  assert.equal(restored.status()[0].state, 'access_denied'); restored.stop();
+test('partial or filtered recheck text cannot clear quarantine; normal completion preserves quota protection', async t => {
+  let outcome, refreshes = 0;
+  const f = fixture(t, 'api', async () => outcome);
+  const protection = { protected: true, fiveHour: { protected: true, remainingFraction: 0.01 } };
+  f.pool.quotaManager = { isQuotaProtected: () => true, protection: () => protection,
+    refreshAccount: async () => { refreshes++; } };
+  for (const terminal of [{ finishReason: 'MAX_TOKENS' }, { finishReason: 'SAFETY' },
+    { promptBlockReason: 'PROHIBITED_CONTENT' }, { finishReason: 'FUTURE_REASON' }]) {
+    outcome = { text: 'O', toolCalls: [], ...terminal };
+    await assert.rejects(f.pool.recheckAccount('a'), { code: terminal.finishReason === 'FUTURE_REASON'
+      ? 'unsupported_upstream_finish_reason' : 'account_recheck_inference_incomplete' });
+    f.pool.reload();
+    assert.equal(f.state(), 'access_denied');
+    assert.equal(f.pool.health.get('a').state, 'access_denied');
+    assert.equal(refreshes, 0);
+  }
+  outcome = { text: 'OK', toolCalls: [], finishReason: 'STOP' };
+  assert.equal((await f.pool.recheckAccount('a')).recovered, true);
+  assert.equal(f.pool.health.has('a'), false);
+  assert.equal(f.state(), 'quota_protected');
+  assert.equal(protection.fiveHour.protected, true);
+  assert.equal(refreshes, 1);
+});
+
+test('recheck follows Direct clean-completion compatibility without inventing a missing finishReason', async () => {
+  for (const finishReason of [undefined, 'STOP', 'MAX_TOKENS', 'SAFETY']) {
+    const provider = new DirectAntigravityProvider({ accessToken: 'test-access', projectId: 'test', maxRetries: 0,
+      baseUrl: 'https://example.invalid', sessionStore: new AgySessionStore({ directory: '' }),
+      fetchImpl: async () => Response.json({ candidates: [{ ...(finishReason ? { finishReason } : {}),
+        content: { parts: [{ text: 'OK' }] } }] }) });
+    const check = probeAccountInference(provider, ['gemini-3.8-flash-low']);
+    if (!finishReason || finishReason === 'STOP') assert.equal((await check).model, 'gemini-3.8-flash-low');
+    else await assert.rejects(check, { code: 'account_recheck_inference_incomplete' });
+  }
 });

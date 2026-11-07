@@ -7,3 +7,5 @@ oauth_creds.json
 *.log
 .DS_Store
 .finesse/
+__pycache__/
+*.pyc

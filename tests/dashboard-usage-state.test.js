@@ -48,8 +48,8 @@ function view(data, selected = 'all') {
   } };
 }
 
-test('an unmetered Robin account displays unknown tokens but real calls, failure rate and native quota', () => {
-  const data = fixture([{ id: 'r', providerType: 'robin', enabled: true, state: 'available', models: ['gemini-4-argon'],
+test('an explicitly unmetered account displays unknown tokens but real calls, failure rate and native quota', () => {
+  const data = fixture([{ id: 'r', providerType: 'cloudcode', tokenUsageKnown: false, enabled: true, state: 'available', models: ['gemini-4-argon'],
     quota: { groups: [{ buckets: [{ window: '5h', remainingFraction: .75, resetTime: at }] }] } }],
   { r: counters(0, 3, 1) }, { r: { 'gemini-4-argon': counters(0, 3, 1) } });
   const original = JSON.stringify(data);
@@ -79,8 +79,8 @@ test('an unmetered Robin account displays unknown tokens but real calls, failure
   assert.equal(JSON.stringify(data), original, 'presentation must not rewrite stored counters');
 });
 
-test('mixed providers retain metered token totals and every request without false zero-token Robin series', () => {
-  const data = fixture([{ id: 'c', enabled: true, providerType: 'cloudcode' }, { id: 'r', enabled: true, providerType: 'robin' }],
+test('mixed usage capabilities retain metered token totals and every request without false zero-token series', () => {
+  const data = fixture([{ id: 'c', enabled: true, providerType: 'cloudcode' }, { id: 'r', enabled: true, providerType: 'cloudcode', tokenUsageKnown: false }],
     { c: counters(100, 1), r: counters(999, 3, 1) },
     { c: { 'cloud-model': counters(100, 1) }, r: { 'gemini-4-argon': counters(999, 3, 1) } });
   const snapshot = view(data);
@@ -110,8 +110,8 @@ test('mixed providers retain metered token totals and every request without fals
   assert.match(snapshot.node('trendChart').innerHTML, /<svg/);
 });
 
-test('a genuinely measured zero is not mistaken for missing usage, including an explicitly metered future Robin provider', () => {
-  for (const providerType of ['cloudcode', 'robin']) {
+test('a genuinely measured zero is not mistaken for missing usage, whether its legacy provider discriminator is present or absent', () => {
+  for (const providerType of ['cloudcode', undefined]) {
     const account = { id: 'a', enabled: true, providerType, tokenUsageKnown: true };
     const data = fixture([account], { a: counters(0, 3) }, { a: { 'known-model': counters(0, 3) } });
     const snapshot = view(data);
@@ -126,7 +126,7 @@ test('a genuinely measured zero is not mistaken for missing usage, including an 
 });
 
 test('model names shared by a metered and unmetered account are combined only from the measured account', () => {
-  const data = fixture([{ id: 'c', enabled: true }, { id: 'r', enabled: true, providerType: 'robin' }],
+  const data = fixture([{ id: 'c', enabled: true }, { id: 'r', enabled: true, providerType: 'cloudcode', tokenUsageKnown: false }],
     { c: counters(100, 1), r: counters(900, 1) }, { c: { shared: counters(100, 1) }, r: { shared: counters(900, 1) } });
   const snapshot = view(data);
   assert.equal(snapshot.node('periodTotal').textContent, '100');
@@ -142,9 +142,8 @@ test('dashboard data declares missing usage without dropping requests, quota or 
   let summaryCalls = 0;
   const data = dashboardData({
     usageStore: { summary: () => { summaryCalls++; return raw; } },
-    accountPool: { status: () => [{ id: 'c' }] },
-    robinAccountPool: { status: () => [{ id: 'r', quota }] },
-    quotaManager: { peek: id => { assert.equal(id, 'c'); return { groups: [] }; } }, version: '1.5.1'
+    accountPool: { status: () => [{ id: 'c' }, { id: 'r', tokenUsageKnown: false }] },
+    quotaManager: { peek: id => id === 'r' ? quota : { groups: [] } }, version: '1.5.1'
   });
   assert.deepEqual(data.tokenUsageMetadata, { complete: false, unmeteredAccountIds: ['r'] });
   assert.equal(data.accounts[0].tokenUsageKnown, true);

@@ -6,6 +6,8 @@ const { streamErrorContent } = require('./agy-stream-recovery');
 const { modelProfile } = require('./agy-request-profile');
 const { saveImageReference } = require('./agy-image-references');
 const { CLAUDE_COMPACTION_PROFILE, capturedSummaryReplacement } = require('./agy-client-compaction');
+const { runSync, runAsync } = require('./schema-steps');
+const { translateSubmittedToolHistory, translateSubmittedToolHistoryAsync } = require('./agy-submitted-tool-history');
 const MAX_TIMELINE = 2048;
 const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 
@@ -77,9 +79,9 @@ function wireContent(content, entry, { checkpointInstruction = false, nativeStre
   return { role: content.role, parts };
 }
 
-function prepareNativeContext(state, sourceContents, model, { metadata, now = Date.now(), checkpoint = false, compactionProfile = '', clientProfile = '', imageStore, restoreStreamRecovery = true } = {}) {
-  const nativeErrors = new Set(), pendingRecovery = {};
-  sourceContents = restoreClientProjections(state, sourceContents, model, { nativeErrors, clientProfile, restoreStreamRecovery,
+function* prepareNativeContextSteps(state, sourceContents, model, { translateHistory = translateSubmittedToolHistory, metadata, now = Date.now(), checkpoint = false, compactionProfile = '', clientProfile = '', imageStore, restoreStreamRecovery = true, toolAdapter } = {}) {
+  const nativeErrors = new Set(), verifiedToolSteps = new Set(), pendingRecovery = {};
+  sourceContents = restoreClientProjections(state, sourceContents, model, { nativeErrors, verifiedToolSteps, clientProfile, restoreStreamRecovery, toolAdapter, now,
     ...(!checkpoint ? { pendingRecovery } : {}) });
   const inputContents = pendingRecovery.inputContents || sourceContents;
   const streamRecovery = pendingRecovery.recovery || null;
@@ -133,12 +135,21 @@ function prepareNativeContext(state, sourceContents, model, { metadata, now = Da
   }
   state.nextStep = nextStep;
   state.timeline = entries.filter((_, i) => i !== instructionIndex).slice(-MAX_TIMELINE);
-  const restored = restoreHistory(state, sourceContents, model);
+  const restored = restoreHistory(state, sourceContents, model, { verifiedToolSteps });
+  // Signatures supplied by the caller are opaque bytes, not proof that this
+  // account issued the step at this prefix. Conversely, a genuine upstream
+  // step without a signature remains valid evidence of what was actually sent.
+  const unrestoredToolCalls = restored.flatMap((content, index) => verifiedToolSteps.has(index) ? []
+    : content.parts.filter(part => part.functionCall).map(part => ({
+      id: part.functionCall.id || '', name: part.functionCall.name || ''
+    })));
   const savedPaths = new Set();
-  const contents = restored.map((c, i) => wireContent(c, entries[i], {
+  const submitted = yield translateHistory(restored, toolAdapter, verifiedToolSteps);
+  const contents = submitted.map((c, i) => wireContent(c, entries[i], {
     checkpointInstruction: i === instructionIndex, nativeStreamError: nativeErrors.has(i), imageStore, cascadeId: state.cascadeId, savedPaths
   }));
-  return { sourceContents, inputContents, streamRecovery, toolRecovery: pendingRecovery.toolRecovery, step: Math.max(1, nextStep), checkpoint, compactionProfile, retainedTimeline, imagePaths: savedPaths,
+  return { sourceContents, inputContents, streamRecovery, toolRecovery: pendingRecovery.toolRecovery, unrestoredToolCalls,
+    step: Math.max(1, nextStep), checkpoint, compactionProfile, retainedTimeline, imagePaths: savedPaths,
     contents };
 }
 
@@ -196,4 +207,6 @@ function interruptCheckpointContext(state, context, { terminalFailure = false } 
   delete state.pendingCompaction;
 }
 
-module.exports = { prepareNativeContext, completeNativeContext, interruptNativeContext, interruptCheckpointContext, continueInterruptedStream, alignTimeline, localTimestamp };
+const prepareNativeContext = (...args) => runSync(prepareNativeContextSteps(...args));
+const prepareNativeContextAsync = (state, contents, model, options = {}) => runAsync(prepareNativeContextSteps(state, contents, model, { ...options, translateHistory: translateSubmittedToolHistoryAsync }));
+module.exports = { prepareNativeContext, prepareNativeContextAsync, completeNativeContext, interruptNativeContext, interruptCheckpointContext, continueInterruptedStream, alignTimeline, localTimestamp };
