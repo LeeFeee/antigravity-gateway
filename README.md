@@ -1,21 +1,20 @@
 # Antigravity Gateway
 
-当前版本：**2.0.1**。
+当前版本：**2.0.2**。
 
-将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.2** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
+将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.6** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
 
-## 2.0.1 更新
+## 2.0.2 更新
 
-- 完整 JSON Schema 编译和校验改为有资源上限、超时可终止的独立线程，异常正则不会阻塞整个网关。
-- 修复重新认证与后台刷新、账号池 reload 与在途请求的竞态，保留统一切号、固定粘性和额度判断；账号凭据具有明确的私有文件权限。
-- 上传输入与服务端生成图片分离。新生成图片继续提供公开链接；旧文件保留，但旧版仅凭 `purpose=generated` 的链接需原凭据访问。
-- HTTP 默认关闭服务器本地路径读取；可信本机流程可显式限定媒体目录。上传、`file_id`、内联内容、图片生成和视频理解继续保留。
+- 对齐 agy 1.5.6 的上游请求，模型 RPC 通过原生传输协商 HTTP/2，并更新请求头和搜索格式。
+- 适配 Claude Code 2.1.322、Hermes 0.23.1、Pi 1.5.2、Codex CLI 0.167.2 和 DSH 0.2.2-rc.1。
+- 更新 Claude Code Auto Mode 和 WebSearch 的请求识别，Codex 同时支持 `exec` 和交互界面的新版模板。
 
-本版通过 **1106 项回归测试**；本机安装的 Claude Code、Hermes、Pi、dsh 经过隔离网关到合成上游的对话与实际读取共 **8 个场景通过**。该矩阵不代表真实 Google 上游或全部操作系统的验收。完整修复范围、配置与验证边界见 [2.0.1 审计修复说明](docs/audit-fixes-2.0.1.md)。
+五个客户端均完成隔离网关的文本和工具往返验证。Claude Code 文本与文件读取、Pi 文本、视频理解及独立生图已实连 Google 验证。详见 [agy 1.5.6 验证记录](docs/agy-1.5.6-compatibility.md)和 [历史更新](CHANGELOG.md)。
 
 ## 安装和更新
 
@@ -84,7 +83,7 @@ Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回
 
 ## Claude Code CLI
 
-已捕获版本：**2.1.318**；使用 Anthropic Messages。将下列环境设置合并到自己的 Claude Code 设置中，或在启动前设置等价环境变量：
+已捕获版本：**2.1.322**；使用 Anthropic Messages。将下列环境设置合并到自己的 Claude Code 设置中，或在启动前设置等价环境变量：
 
 ```json
 {
@@ -108,7 +107,7 @@ Auto Mode 无需额外配置分类器模型：网关将识别到的默认 `claud
 
 ## Codex CLI
 
-已捕获版本：**0.164.0**；使用 OpenAI Responses。将以下设置合并到 `~/.codex/config.toml`，顶层选项放在第一个 TOML 表之前；自定义 `CODEX_HOME` 的用户沿用自己的配置目录：
+已捕获版本：**0.167.2**；使用 OpenAI Responses。将以下设置合并到 `~/.codex/config.toml`，顶层选项放在第一个 TOML 表之前；自定义 `CODEX_HOME` 的用户沿用自己的配置目录：
 
 ```toml
 model = "gemini-3.8-flash-high"
@@ -138,7 +137,7 @@ codex exec "说明当前项目的结构"
 
 ## Hermes
 
-已捕获版本：**0.21.7+11153.g2bd378e**。在当前 Hermes 配置中添加一个自定义 provider，明确指定 `codex_responses`；这里的配置名称表示 Responses 传输，不要求使用另一客户端。
+已捕获版本：**0.23.1**。在当前 Hermes 配置中添加一个自定义 provider，明确指定 `codex_responses`；这里的配置名称表示 Responses 传输，不要求使用另一客户端。
 
 将下列内容合并到 `~/.hermes/config.yaml`（使用自定义 `HERMES_HOME` 时按原目录）：
 
@@ -162,7 +161,7 @@ hermes chat --provider antigravity --model gemini-3.8-flash-high
 
 ## Pi
 
-已捕获版本：**1.5.0**。将 provider 合并到 `~/.pi/agent/models.json`（或 `PI_CODING_AGENT_DIR` 指定目录），显式使用 `openai-responses`：
+已捕获版本：**1.5.2**。将 provider 合并到 `~/.pi/agent/models.json`（或 `PI_CODING_AGENT_DIR` 指定目录），显式使用 `openai-responses`：
 
 ```json
 {
@@ -193,7 +192,7 @@ pi --provider antigravity --model gemini-3.8-flash-high
 
 ## dsh
 
-已捕获版本：**0.2.1-rc.2**。通过配置 patch 明确选择 `openai-responses`。保存为自己的 `antigravity.yml`：
+已捕获版本：**0.2.2-rc.1**。通过配置 patch 明确选择 `openai-responses`。保存为自己的 `antigravity.yml`：
 
 ```yaml
 - id: agent-default-model
@@ -293,13 +292,15 @@ HTTP 请求默认不接受网关服务器上的 `file_path` 或 `file://`。客�
 
 ## 验证范围与开发
 
-本轮四客户端证据是 **真实安装客户端 → 本机合成服务** 的隔离捕获，覆盖首轮、工具读取、错误结果、并行调用、思考参数、会话续接及各客户端可用的图片路径。它证明客户端请求与工具往返的结构，不等于“客户端 → 重构网关 → 真实 Google 上游”的完整验收。具体失败样本和未覆盖项保留在请求目录中。
+[agy 1.5.6 与五个新版客户端的验证记录](docs/agy-1.5.6-compatibility.md)包含传输变更、客户端请求差异和各验证场景。
+
+早期四客户端证据是 **真实安装客户端 → 本机合成服务** 的隔离捕获，覆盖首轮、工具读取、错误结果、并行调用、思考参数、会话续接及各客户端可用的图片路径。它证明客户端请求与工具往返的结构，不等于“客户端 → 重构网关 → 真实 Google 上游”的完整验收。具体失败样本和未覆盖项保留在请求目录中。
 
 随后新增的 [真实网关链路验证](docs/client-gateway-integration.md) 已完成四客户端各文本与临时文件读取两个场景（8/8）：真实 CLI 经过真实网关转换后连接本机合成 Google Antigravity API，读取结果实际返回上游协议。此项仍不验证真实 Google 模型、OAuth 或 TLS。
 
 [真实 Google 上游最小验收](docs/real-client-gateway-validation.md) 另已完成四 CLI 文本/读取 8/8，经原生 Go 传输共 16 次生成；明确使用 `claude-sonnet-4-6`，各运行源码摘要分别保存。它覆盖实际文本及读取闭环，其他工具、压缩、媒体和新账号授权按各自报告验收。
 
-认证实现已按[官方发包证据](docs/official-auth-protocol-evidence.md)接入 PKCE、Go HTTP/2 token 请求及首次初始化轮询；原模型 HTTP/1.1 配置保留。隔离看板真实新增授权、保存、目录、额度及刷新已通过；首次项目初始化尚缺未初始化测试账号。图片、视频和文件的 HTTP 链路见[媒体验收](docs/gateway-media-integration.md)，安装与旧数据兼容见[升级回退演练](docs/upgrade-rehearsal.md)。
+认证实现已按[官方发包证据](docs/official-auth-protocol-evidence.md)接入 PKCE、Go HTTP/2 token 请求及首次初始化轮询；agy 1.5.6 的模型请求通过原生传输协商 HTTP/2。隔离看板真实新增授权、保存、目录、额度及刷新已通过；首次项目初始化尚缺未初始化测试账号。图片、视频和文件的 HTTP 链路见[媒体验收](docs/gateway-media-integration.md)，安装与旧数据兼容见[升级回退演练](docs/upgrade-rehearsal.md)。
 
 [补充官方请求取证](docs/antigravity-api-1.5.2-additional-request-types.md)覆盖搜索、生图、编辑和视频摘要；[字段字典](docs/antigravity-api-1.5.2-rpc-field-dictionary.md)列出 64 个 RPC、66 条 REST 绑定及完整引用类型，分别标记实际发包和静态发现。它们不代表所有路径均已通过真实 Google 验收。
 
@@ -312,4 +313,4 @@ npm run check
 npm test
 ```
 
-历史验收与退役通道文档仅供追溯，不能作为当前启动、添加账号或客户端接入说明。新请求类型必须先补捕获证据、字段规则和回归用例，再纳入固定 1.5.2 协议配置。
+历史验收与退役通道文档仅供追溯，不能作为当前启动、添加账号或客户端接入说明。新请求类型必须先补捕获证据、字段规则和回归用例，再纳入当前协议配置。

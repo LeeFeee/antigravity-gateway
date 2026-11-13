@@ -15,7 +15,7 @@ const processHelpers = require('./verify-client-gateway');
 const { prepareServerSearchForward } = require('../src/server-search-protocol');
 const { searchRequest } = require('../src/antigravity-server-search');
 const { anthropicResponse } = require('../src/protocol');
-const SOURCE_FIXTURE = 'tests/fixtures/client-web-tools-20261107/claude-web-search.json';
+const SOURCE_FIXTURE = 'tests/fixtures/claude-sdk-search-helper-2.1.322.json';
 const QUERY = 'site:example.com Example Domain';
 const sha = value => crypto.createHash('sha256').update(value).digest('hex');
 

@@ -1,11 +1,11 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { CODEX_164_CLIENT_PROFILE } = require('./agy-client-profile');
+const { CODEX_167_CLIENT_PROFILE } = require('./agy-client-profile');
 
 // Evidence: tests/fixtures/agent-requests-20261107; these are template matches, not client authentication.
-const VERSIONS = Object.freeze({ claude: '2.1.318', hermes: '0.21.7+11153.g2bd378e', pi: '1.5.0', dsh: '0.2.1-rc.2', codex: '0.164.0' });
-// Captured independently with and without the gateway model catalog. Header
+const VERSIONS = Object.freeze({ claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1', codex: '0.167.2' });
+// Codex 0.167.2 emits the same fallback template as the archived 0.164.0 capture. Header
 // version/profile alone is insufficient: require the exact first developer
 // template and its intact normalized instruction projection as well.
 const CODEX_FALLBACK_LENGTH = 16979;
@@ -15,21 +15,21 @@ const CODEX_IDENTITY_NOTE = 'Within this context, Codex refers to the open-sourc
 const CODEX_NEUTRAL_CATALOG = 'Follow the client instructions and use only client-provided tools when needed.';
 const CLAUDE_IDENTITY = "You are a Claude agent, built on Anthropic's Claude Agent SDK.";
 const CLAUDE_TUI_IDENTITY = "You are Claude Code, Anthropic's official CLI for Claude.";
-// Interactive 2.1.318 uses a different entrypoint and identity from `-p`.
+// Interactive Claude Code uses a different entrypoint and identity from `-p`.
 // The first 2111 characters of its following framework block were captured
 // independently of user rules. Memory, environment and session-specific
 // instructions begin after that exact prefix and are never part of this edit.
 const CLAUDE_TUI_CORE_LENGTH = 2111;
 const CLAUDE_TUI_CORE_HASH = '2fb163696951183b1ef28b34885a5475bc968591c78c24ccb2a85b9de7a27bcd';
-const CLAUDE_CLI_BILLING = /^x-anthropic-billing-header: cc_version=2\.1\.318(?:\.[a-z0-9]+)?; cc_entrypoint=cli;$/;
+const CLAUDE_CLI_BILLING = /^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=cli;$/;
 // The same classifier policies were captured from interactive and print mode.
 // Keep this broader entrypoint match scoped to classifier source evidence;
 // the independent interactive search helper still requires its own CLI match.
-const CLAUDE_CLASSIFIER_BILLING = /^x-anthropic-billing-header: cc_version=2\.1\.318(?:\.[a-z0-9]+)?; cc_entrypoint=(?:cli|sdk-cli);$/;
+const CLAUDE_CLASSIFIER_BILLING = /^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=(?:cli|sdk-cli);$/;
 // Exact independent classifier captures; keep private policy text out of fixtures.
 // These fingerprints authorize removing only the separate first billing block.
 const CLAUDE_CLASSIFIER_POLICIES = Object.freeze({
-  severity: Object.freeze({ length: 140015, sha256: '6b3d8f64bbbc091f82dbd59891ed562e9d76fccdc5c7951e1638eb1d488ea6d6' }),
+  severity: Object.freeze({ length: 140918, sha256: '3e91aa36d70794fc8d99bff41e3c55a9afa1f74fa8b1d3d0c544564e6675f4b1' }),
   block: Object.freeze({ length: 140239, sha256: '6013166619a307df2fd9a0c62dfc78fae80611155a9b41d7823d97410712117c' })
 });
 const LEGACY_CLAUDE_IDENTITY = 'You are an AI coding agent operating behind a protocol-compatible client.';
@@ -66,7 +66,7 @@ function quotedAt(text, offset) {
 function claudeTuiPrefix(text) {
   const leading = text.length - text.trimStart().length;
   const rest = text.slice(leading);
-  const billing = rest.match(/^x-anthropic-billing-header: cc_version=2\.1\.318(?:\.[a-z0-9]+)?; cc_entrypoint=cli;\n/);
+  const billing = rest.match(/^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=cli;\n/);
   if (!billing || !rest.startsWith(CLAUDE_TUI_IDENTITY + '\n', billing[0].length)) return null;
   const end = leading + billing[0].length + CLAUDE_TUI_IDENTITY.length + 1;
   const framework = text.slice(end);
@@ -79,7 +79,7 @@ function claudePrefix(text) {
   const tui = claudeTuiPrefix(text);
   if (tui) return tui;
   let rest = text.trimStart();
-  const billing = rest.match(/^x-anthropic-billing-header: cc_version=2\.1\.318(?:\.[a-z0-9]+)?; cc_entrypoint=sdk-cli;\s*/);
+  const billing = rest.match(/^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=sdk-cli;\s*/);
   if (billing) rest = rest.slice(billing[0].length);
   const identity = [CLAUDE_IDENTITY, LEGACY_CLAUDE_IDENTITY].find(value => rest.startsWith(value));
   if (!identity) return null;
@@ -88,7 +88,7 @@ function claudePrefix(text) {
     && (rest.length === CLAUDE_SEARCH_CORE.length || rest[CLAUDE_SEARCH_CORE.length] === '\n')) {
     return { end: text.length - rest.length, billing: true, searchHelper: true };
   }
-  // The same installed 2.1.318 CLI selects this shorter template for a
+  // The installed CLI selects this shorter template for a
   // non-Claude model. Verified by actual-cli-real-gateway-synthetic-google-upstream.
   if (billing && rest.startsWith(CLAUDE_COMPACT_CORE + '\n\n')
     && rest.includes('\n# Harness\n - Text you output outside of tool use is displayed to the user as Github-flavored markdown in a terminal.')
@@ -149,7 +149,7 @@ function instructionSources(normalized) {
 }
 
 function codexTemplate(normalized, { clientProfile } = {}) {
-  if (clientProfile !== CODEX_164_CLIENT_PROFILE || normalized?.protocol !== 'responses' || normalized.instructions) return null;
+  if (clientProfile !== CODEX_167_CLIENT_PROFILE || normalized?.protocol !== 'responses' || normalized.instructions) return null;
   const first = normalized.instructionMessages?.[0];
   if (first?.role !== 'developer' || typeof first.text !== 'string') return null;
   const projected = normalized.instructionMessages.map(item => item.text).filter(Boolean).join('\n\n');

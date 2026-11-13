@@ -6,6 +6,7 @@
 // route: it builds a normal AUTO request, then changes only toolConfig to ANY.
 // No client tool executes and no follow-up generation is permitted.
 const assert = require('node:assert/strict');
+const { withClaude322Billing } = require('../tests/helpers/claude-capture');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -36,7 +37,7 @@ function buildDiagnostic(project = 'synthetic-project', modelInfo) {
   const fixture = JSON.parse(sourceBytes);
   const captured = fixture.captures.find(item => item.body?.tools?.some(tool => tool.name === 'Read'))?.body;
   assert(captured, 'Captured versioned Claude Read declaration is required');
-  const payload = { model: MODEL, stream: true, max_tokens: 2048, system: structuredClone(captured.system),
+  const payload = { model: MODEL, stream: true, max_tokens: 2048, system: structuredClone(withClaude322Billing(captured).system),
     messages: [{ role: 'user', content: PROMPT }], tools: [structuredClone(captured.tools.find(tool => tool.name === 'Read'))] };
   const normalized = normalizeAnthropic(payload), native = { modelInfo };
   const baseline = buildDirectRequest(normalized, MODEL, project, 'opus-forced-tool-diagnostic', '', null, native);

@@ -200,7 +200,7 @@ async function run({ runCli = true, outFile, timeoutMs = 60000 } = {}) {
     const streamed = await post('search-stream', searchBody(true));
     assert.equal(streamed.status, 200); assert.equal(streamed.generationCount, 1); assertSearchMessage(parseMessage(streamed.responseBody, true));
     assert.equal(streamed.responseHeaders['x-antigravity-model'], HELPER);
-    const tui = structuredClone(require('../tests/fixtures/claude-tui-search-helper-2.1.318.json'));
+    const tui = structuredClone(require('../tests/fixtures/claude-tui-search-helper-2.1.322.json'));
     const tuiResult = await post('tui-helper-auto-stream', tui);
     assert.equal(tuiResult.status, 200); assert.equal(tuiResult.generationCount, 1); assert.equal(tuiResult.searchCount, 1);
     assertSearchMessage(parseMessage(tuiResult.responseBody, true));
@@ -211,7 +211,7 @@ async function run({ runCli = true, outFile, timeoutMs = 60000 } = {}) {
     assert.equal(tuiWire.request.systemInstruction.parts.length, 2);
     assert.equal(tuiWire.request.systemInstruction.parts[1].text, tui.system[2].text.replace('another Claude model', 'another model'));
     assert.doesNotMatch(JSON.stringify(tuiWire), /clientSystemProvenance|billing-header|official CLI/);
-    const unknownTui = structuredClone(tui); unknownTui.system[0].text = unknownTui.system[0].text.replace('2.1.318', '99.0.0');
+    const unknownTui = structuredClone(tui); unknownTui.system[0].text = unknownTui.system[0].text.replace('2.1.322', '99.0.0');
     for (const [name, body] of [['tui-unknown-template', unknownTui], ['ordinary-auto-rejection', searchBody(false, { tool_choice: { type: 'auto' } })]]) {
       const rejected = await post(name, body);
       assert.equal(rejected.status, 400); assert.equal(rejected.generationCount, 0);
@@ -252,8 +252,9 @@ async function run({ runCli = true, outFile, timeoutMs = 60000 } = {}) {
       // A manual HTTP response can finish appending its trace after fetch has
       // resolved in this process. Attribute by the observed CLI UA, not a racy
       // starting array length which could swallow an earlier expected 400.
+      const claudeUserAgentPrefix = `claude-cli/${helpers.version('claude').version} `;
       const cliHttp = readTrace(traceFile).filter(entry => entry.kind !== 'ingress' && /^\/v1\/messages(?:\?|$)/.test(entry.path)
-        && /^claude-cli\/2\.1\.318\b/.test(entry.headers?.['user-agent'] || ''));
+        && entry.headers?.['user-agent']?.startsWith(claudeUserAgentPrefix));
       assert.ok(cliHttp.length > 1); assert.ok(cliHttp.every(entry => entry.status === 200));
       const captures = cliHttp.filter(entry => entry.body?.tools?.some(tool => tool.type === 'web_search_20250305'));
       assert.equal(captures.length, 1);

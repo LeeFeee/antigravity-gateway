@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Capture official agy 1.5.2 auth requests against an entirely local fake upstream.
+"""Capture official agy 1.5.6 auth requests against an entirely local fake upstream.
 
 macOS only: sandbox-exec and mitmdump are required. Uses synthetic tokens/code,
 fresh HOME, per-process proxy CA, no browser, no real user config or account data.
@@ -72,8 +72,8 @@ async def run(scenario, root, binary, proxy_binary, timeout):
         env=env, cwd=work, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     version_stdout, _ = await asyncio.wait_for(version_process.communicate(), 5)
     version_text = version_stdout.decode().strip()
-    if version_process.returncode != 0 or not re.search(r'(?<!\d)1\.5\.2(?!\d)', version_text):
-        raise RuntimeError('This evidence probe requires official agy 1.5.2')
+    if version_process.returncode != 0 or not re.search(r'(?<!\d)1\.5\.6(?!\d)', version_text):
+        raise RuntimeError('This evidence probe requires official agy 1.5.6')
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]
@@ -154,7 +154,7 @@ async def run(scenario, root, binary, proxy_binary, timeout):
         captured = records(out)
         expected = 'authorization_code' if scenario == 'login' else 'refresh_token'
         satisfied = any(item['url'].endswith(':onboardUser') for item in captured) if scenario.startswith('onboard') else any(item['body'].get('grant_type') == expected for item in captured)
-        return {'scenario': scenario, 'officialVersion': '1.5.2', 'binarySha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
+        return {'scenario': scenario, 'officialVersion': '1.5.6', 'binarySha256': hashlib.sha256(binary.read_bytes()).hexdigest(),
                 'versionOutput': version_text,
                 'realUpstream': False, 'realAccountRead': False, 'mockOnly': True,
                 'authorizationCompletedWithGoogle': False, 'requestObserved': satisfied,

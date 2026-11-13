@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const fixture = require('./fixtures/agy-1.5.2-wire.json');
+const fixture = require('./fixtures/agy-1.5.6-wire.json');
 const { buildDirectRequest, DirectAntigravityProvider } = require('../src/direct-provider');
 const { generationProfile, cliUserAgent } = require('../src/agy-request-profile');
 const { AgySessionStore, newState } = require('../src/agy-session-state');
@@ -13,7 +13,7 @@ const { normalizeChat, normalizeAnthropic, normalizeResponses, prepareNativeMult
 const { finishResult } = require('../src/agy-structured-output');
 
 for (const [model, captured] of Object.entries(fixture.models)) {
-  test(`1.5.2 captured ${model}: generation, first-turn flags and envelope`, () => {
+  test(`1.5.6 captured ${model}: generation, first-turn flags and envelope`, () => {
     assert.equal(captured.status, 200);
     const request = buildDirectRequest({ messages: [{ role: 'user', text: 'hello' }] }, model, 'fixture-project', 'client-session');
     assert.deepEqual(Object.keys(request), fixture.transport.outerKeys);
@@ -46,7 +46,7 @@ test('provider metadata and generation carry captured UA and Bearer headers with
   });
   await provider.listModels();
   await provider.send({ messages: [{ role: 'user', text: 'hello' }] }, 'gemini-3.8-flash-high');
-  const capturedUA = fixture.transport.headers.find(([key]) => key === 'User-Agent')[1];
+  const capturedUA = fixture.transport.headers.find(([key]) => key === 'user-agent')[1];
   assert.equal(cliUserAgent({ platform: 'darwin', arch: 'arm64' }), capturedUA);
   for (const options of seen) assert.deepEqual(options.headers, {
     authorization: 'Bearer fixture-token', 'content-type': 'application/json', 'user-agent': cliUserAgent()

@@ -193,7 +193,7 @@ function assessVideoContinuation(scenario, trace, turns, expectedMedia) {
     originalGoTLS: requests.length === 2 && requests.every(request => trace.some(event => event.type === 'native-response'
       && event.id === request.id && /agy-transport-/.test(event.binary || ''))),
     requestedModelPreserved: requests.length === 2 && requests.every(request => request.body?.model === TEXT_MODEL),
-    officialUA: requests.length === 2 && requests.every(request => /^antigravity\/cli\/1\.5\.2 /.test(request.headers?.['user-agent'] || '')),
+    officialUA: requests.length === 2 && requests.every(request => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(request.headers?.['user-agent'] || '')),
     originalVideoOnBothTurns: requests.length === 2 && requests.every(originalMedia),
     originalContentPrefixRetained: firstContents.length > 0 && secondContents.length > firstContents.length
       && JSON.stringify(secondContents.slice(0, firstContents.length)) === JSON.stringify(firstContents),
@@ -225,7 +225,7 @@ function assess(scenario, trace, http, expectedMedia, saved) {
     gatewayHTTP: http.status === 200 && !http.aborted,
     requestedModelPreserved: requests.length > 0,
     originalGoTLS: responses.some(item => item.status === 200 && /agy-transport-/.test(item.binary || '')),
-    officialUA: requests.length > 0 && requests.every(item => /^antigravity\/cli\/1\.5\.2 /.test(item.headers?.['user-agent'] || ''))
+    officialUA: requests.length > 0 && requests.every(item => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(item.headers?.['user-agent'] || ''))
   };
   if (expectedMedia) checks.exactMediaBytes = requests.some(item => nativeMedia(item.body).some(media =>
     media.mimeType === expectedMedia.mimeType && media.data?.sha256 === expectedMedia.sha256 && media.data?.bytes === expectedMedia.bytes));
@@ -284,7 +284,7 @@ function assessInternalImage(trace, http, saved) {
     decodableImage: Boolean(saved?.width > 0 && saved?.height > 0),
     noPrivateToolLeak: Array.isArray(http.body?.content) && !http.body.content.some(part => part.type === 'tool_use'),
     noGuardFailure: !trace.some(event => event.type === 'internal-image-guard-stop'),
-    officialUA: requests.length === 3 && requests.every(request => /^antigravity\/cli\/1\.5\.2 /.test(request.headers?.['user-agent'] || ''))
+    officialUA: requests.length === 3 && requests.every(request => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(request.headers?.['user-agent'] || ''))
   };
   const imageBodies = trace.filter(event => event.type === 'native-body' && event.id === imageRequest?.id)
     .flatMap(event => event.body?.events || [event.body]);

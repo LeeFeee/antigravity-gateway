@@ -28,8 +28,8 @@ function result(overrides = {}) {
   return { ...value, finishReason: 'STOP', usage: { input_tokens: 20, output_tokens: 7, thinking_tokens: 2, cache_read_tokens: 4 }, ...overrides };
 }
 function captured() {
-  const fixture = require('./fixtures/client-web-tools-20261107/claude-web-search.json');
-  return structuredClone(fixture.captures.find(item => item.body?.tools?.some(entry => entry.type === 'web_search_20250305')).body);
+  const fixture = require('./fixtures/claude-sdk-search-helper-2.1.322.json');
+  return structuredClone(fixture.captures[0].body);
 }
 function freeze(value) {
   if (value && typeof value === 'object') { Object.values(value).forEach(freeze); Object.freeze(value); }
@@ -105,7 +105,7 @@ test('ordinary auto is rejected without a planner; only the captured dedicated h
     assert.equal(prepareServerSearchForward(input).skipSearch, false);
     // Merely copying a phrase into a user message or an approximate system
     // instruction does not establish the complete captured helper template.
-    input.system[0].text = input.system[0].text.replace('2.1.318', '99.0.0');
+    input.system[0].text = input.system[0].text.replace('2.1.322', '99.0.0');
     assert.throws(() => prepareServerSearchForward(input), { code: 'unsupported_server_search_tool_choice' });
   }
 });

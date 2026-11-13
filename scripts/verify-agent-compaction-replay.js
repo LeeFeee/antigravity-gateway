@@ -2,6 +2,7 @@
 'use strict';
 // Offline integration replay only. No sockets, credentials, provider or CLI.
 const fs = require('node:fs');
+const { withClaude322Billing } = require('../tests/helpers/claude-capture');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { normalizeAnthropic, normalizeResponses } = require('../src/protocol');
@@ -15,7 +16,7 @@ const SELECTED = Object.fromEntries(['claude', 'pi', 'dsh', 'hermes'].map(agent 
 const MODEL = 'claude-sonnet-4-6';
 const SIGNATURE = 'MOCK_NATIVE_SIGNATURE_FOR_OFFLINE_COMPACTION_REPLAY';
 const digest = value => crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex');
-function normalized(capture) { return capture.path.includes('/messages') ? normalizeAnthropic(structuredClone(capture.body)) : normalizeResponses(structuredClone(capture.body)); }
+function normalized(capture) { return capture.path.includes('/messages') ? normalizeAnthropic(withClaude322Billing(structuredClone(capture.body))) : normalizeResponses(structuredClone(capture.body)); }
 function build(capture, state) { const source = normalized(capture), native = { state, now: 1793988700000 }; const request = buildDirectRequest(source, MODEL, 'mock-project', 'mock-session', '', null, native); return { source, native, request }; }
 function replay(agent) {
   const file = SELECTED[agent], raw = fs.readFileSync(path.join(ROOT, file));

@@ -185,6 +185,7 @@ function configure(agent, root, base) {
     HERMES_HOME: path.join(home, '.hermes'), HERMES_DISABLE_LAZY_INSTALLS: '1', DSH_HOME: path.join(home, '.dsh') };
   let command, args, stdin;
   if (agent === 'claude') {
+    env.CLAUDE_CODE_TMPDIR = path.join(root, 'tmp');
     command = path.join(NODE_BIN, 'claude');
     args = ['-p', PROMPT, '--model', 'claude-sonnet-4-6', '--permission-mode', 'dontAsk', '--allowedTools', 'Read,ToolSearch',
       '--permission-prompts', 'none', '--output-format', 'stream-json', '--verbose', '--max-turns', '3', '--setting-sources', ''];

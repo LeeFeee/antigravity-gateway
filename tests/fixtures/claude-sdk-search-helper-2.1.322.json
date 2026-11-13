@@ -1,0 +1,67 @@
+{
+  "version": "2.1.322",
+  "evidence": "Actual CLI loopback capture, with synthetic query, billing suffix redacted, session metadata and authorization omitted.",
+  "captures": [
+    {
+      "method": "POST",
+      "path": "/v1/messages?beta=true",
+      "headers": {
+        "content-type": "application/json",
+        "user-agent": "claude-cli/2.1.322 (external, sdk-cli)",
+        "anthropic-beta": "claude-code-20250219,interleaved-thinking-2025-05-14,context-management-2025-06-27,thinking-token-count-2026-05-13,effort-2025-11-24",
+        "anthropic-version": "2023-06-01"
+      },
+      "body": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": [
+              {
+                "type": "text",
+                "text": "Perform a web search for the query: ANTIGRAVITY_LOCAL_WEBSEARCH_PROBE_20261107"
+              }
+            ]
+          }
+        ],
+        "system": [
+          {
+            "type": "text",
+            "text": "x-anthropic-billing-header: cc_version=2.1.322.fixture; cc_entrypoint=sdk-cli;"
+          },
+          {
+            "type": "text",
+            "text": "You are a Claude agent, built on Anthropic's Claude Agent SDK."
+          },
+          {
+            "type": "text",
+            "text": "You run a web search for another Claude model, which is waiting on the result and can search again. Search once, then reply with a brief summary of the results."
+          }
+        ],
+        "tools": [
+          {
+            "type": "web_search_20250305",
+            "name": "web_search",
+            "allowed_domains": [
+              "example.com"
+            ],
+            "max_uses": 8
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "web_search"
+        },
+        "max_tokens": 32000,
+        "thinking": {
+          "type": "disabled"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "high"
+        },
+        "stream": true
+      }
+    }
+  ]
+}

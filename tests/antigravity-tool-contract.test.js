@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { normalizeAnthropic, normalizeResponses } = require('../src/protocol');
 const { sanitizeClientIdentity } = require('../src/client-identity');
 const { prepareAntigravityTools, projectSimple, validPatch, APPLY_PATCH_GRAMMAR } = require('../src/antigravity-tool-contract');
+const { withClaude322Billing } = require('./helpers/claude-capture');
 const official = require('./fixtures/antigravity-1.5.2-file-tools.json');
 const mcp = require('./fixtures/antigravity-1.5.2-mcp.json');
 const agentNames = ['claude', 'pi', 'hermes', 'dsh'];
@@ -13,7 +14,7 @@ function captured(agent, scenario = 'first', last = false) {
   const fixture = require(`./fixtures/agent-requests-20261107/${agent}-${scenario}.json`);
   const captures = fixture.captures.filter(item => item.body?.tools?.length);
   const capture = last ? captures.at(-1) : captures[0];
-  return (agent === 'claude' ? normalizeAnthropic : normalizeResponses)(capture.body);
+  return agent === 'claude' ? normalizeAnthropic(withClaude322Billing(capture.body)) : normalizeResponses(capture.body);
 }
 function current(agent, scenario = 'first', last = false, overrides = {}) {
   const source = captured(agent, scenario, last), cleaned = sanitizeClientIdentity(source);
@@ -71,11 +72,11 @@ test('指纹使用清理前 sourceTools，描述使用清理后内容，模板�
   assert.ok(unknown.records.find(record => record.clientName === 'Read').views.length);
 });
 
-test('Claude 2.1.318 按模型切换的精简 harness 使用独立实抓完整指纹', () => {
+test('Claude 按模型切换的精简 harness 使用独立实抓完整指纹', () => {
   const fixture = require('./fixtures/client-gateway-20261107/failures/claude-read-compact-template.json');
-  const source = normalizeAnthropic(structuredClone(fixture.clientHTTP.find(item => item.body?.tools?.length).body));
+  const source = normalizeAnthropic(withClaude322Billing(fixture.clientHTTP.find(item => item.body?.tools?.length).body));
   const cleaned = sanitizeClientIdentity(source);
-  assert.equal(cleaned.metadata.profile.templateVersion, '2.1.318');
+  assert.equal(cleaned.metadata.profile.templateVersion, '2.1.322');
   assert.ok(cleaned.metadata.profile.evidence.includes('claude-sdk-compact-system-template'));
   const adapter = prepareAntigravityTools(cleaned.normalized, { sourceTools: source.tools, clientIdentity: cleaned.metadata.profile });
   for (const name of ['read_file', 'write_file', 'edit_file']) assert.ok(adapter.declarations.some(tool => tool.name === name));
@@ -318,7 +319,7 @@ test('未知 internal 标记与外部同名字段均不能授予模型服务执�
 test('合法工具名与对象原型键相同仍走完整兼容声明', () => {
   for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
     const normalized = { tools: [{ name, description: 'A real client tool.', schema: { type: 'object', properties: { value: { type: 'integer' } }, required: ['value'], additionalProperties: false } }] };
-    const adapter = prepareAntigravityTools(normalized, { clientIdentity: { client: 'claude', templateVersion: '2.1.318' } });
+    const adapter = prepareAntigravityTools(normalized, { clientIdentity: { client: 'claude', templateVersion: '2.1.322' } });
     const issued = adapter.toProvider({ name, arguments: { value: 1 } });
     assert.deepEqual(adapter.toClient(issued).arguments, { value: 1 });
     assert.equal(adapter.toClient(issued).name, name);

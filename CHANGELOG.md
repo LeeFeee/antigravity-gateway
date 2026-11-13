@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 - 2026-11-13
+
+- 对齐 agy 1.5.6 的请求头与 HTTP/2 模型传输，重新构建 macOS、Linux、Windows 的 arm64 和 x64 组件。搜索域名提示随查询文本发送。
+- 适配 Claude Code 2.1.322、Hermes 0.23.1、Pi 1.5.2、Codex CLI 0.167.2 和 DSH 0.2.2-rc.1。更新 Claude Code 的身份、Auto Mode 和 WebSearch 模板，以及 Codex `exec` 和交互界面的身份识别。
+- 五个客户端通过隔离网关的文本与工具往返验证，另验证了真实 Google 上游的文本、文件读取、视频理解及独立生图。完整范围见 [agy 1.5.6 验证记录](docs/agy-1.5.6-compatibility.md)。
+
 ## 2.0.1 - 2026-11-07
 
 - 将生产请求的 Schema 编译、历史参数与返回值校验移入有界 worker 池，保留完整 Ajv 语义；编译、匹配、排队及输入分别设限，超时与取消会终止线程，异常输入不再阻塞整个网关主线程。

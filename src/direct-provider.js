@@ -782,9 +782,9 @@ class DirectAntigravityProvider {
 
   webSearchModelCatalog() { return [...this.webSearchModels]; }
 
-  async searchWeb({ query, model, domain, maxOutputTokens, contents, instructions, generationConfig } = {}, { signal, onUpstreamAttempt } = {}) {
+  async searchWeb({ query, model, maxOutputTokens, contents, instructions, generationConfig } = {}, { signal, onUpstreamAttempt } = {}) {
     signal?.throwIfAborted();
-    validateSearchParameters({ query, domain, maxOutputTokens, contents, instructions, generationConfig });
+    validateSearchParameters({ query, maxOutputTokens, contents, instructions, generationConfig });
     if (!this.modelsDiscoveredAt) await this.listModels(signal);
     signal?.throwIfAborted();
     if (!model || !this.webSearchModels.includes(model)) {
@@ -792,7 +792,7 @@ class DirectAntigravityProvider {
     }
     const token = await this.access(signal);
     const project = await this.project(signal, token);
-    const body = searchRequest({ project, model, query, domain, maxOutputTokens, contents, instructions, generationConfig });
+    const body = searchRequest({ project, model, query, maxOutputTokens, contents, instructions, generationConfig });
     signal?.throwIfAborted();
     const base = this.baseUrls()[0];
     // A logical server-tool execution performs one physical helper request.

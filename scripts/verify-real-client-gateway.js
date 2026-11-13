@@ -204,7 +204,7 @@ function assess(agent, scenario, trace, outcome, marker) {
     gatewayHTTP: client.length > 0 && client.every(item => item.status === 200),
     realNativeTLS: generations.length > 0 && responses.some(item => item.status === 200 && /agy-transport-/.test(item.binary || '')),
     finalMarkerDelivered: visibleText.includes(marker),
-    officialUA: generations.every(item => /^antigravity\/cli\/1\.5\.2 /.test(item.headers?.['user-agent'] || ''))
+    officialUA: generations.every(item => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(item.headers?.['user-agent'] || ''))
   };
   if (scenario === 'read') {
     checks.actualFixtureResult = upstreamResults.some(item => JSON.stringify(item).includes(marker));

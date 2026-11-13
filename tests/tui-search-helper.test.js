@@ -8,7 +8,7 @@ const { prepareServerSearchForward } = require('../src/server-search-protocol');
 
 // Captured framework only. Query and billing build suffix are synthetic;
 // no private session metadata or user rules are stored in this fixture.
-const fixture = require('./fixtures/claude-tui-search-helper-2.1.318.json');
+const fixture = require('./fixtures/claude-tui-search-helper-2.1.322.json');
 const input = () => structuredClone(fixture);
 const ordinary = payload => normalizeAnthropic({ ...payload, tools: [], tool_choice: undefined });
 const neutral = fixture.system[2].text.replace('another Claude model', 'another model');
@@ -64,7 +64,7 @@ test('TUI auto requires the captured independent single-user text query contract
 
 test('unknown, quoted, merged or changed TUI source templates never authorize auto search or identity cleanup', () => {
   const changes = [
-    payload => { payload.system[0].text = payload.system[0].text.replace('2.1.318', '99.0.0'); },
+    payload => { payload.system[0].text = payload.system[0].text.replace('2.1.322', '99.0.0'); },
     payload => { payload.system[0].text = payload.system[0].text.replace('entrypoint=cli', 'entrypoint=other'); },
     payload => { payload.system[0].text = payload.system[0].text.replace('entrypoint=cli', 'entrypoint=sdk-cli'); },
     payload => { payload.system[1].text += ' Changed identity.'; },

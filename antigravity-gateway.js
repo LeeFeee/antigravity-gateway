@@ -537,7 +537,7 @@ function startupBanner({ models = [], modelError = '', credentialSource = creden
     `    OpenAI: ${baseUrl}/v1`,
     ` API Key: ${apiKey}`,
     ` 本地密钥: ${credentialSource}`,
-    ' 上游协议: Google Antigravity API（agy 1.5.2）',
+    ` 上游协议: Google Antigravity API（agy ${AGY_CLI_VERSION}）`,
     ' 可用模型:'
   ];
   const selected = featuredModels(models);
@@ -580,7 +580,7 @@ function printHelp() {
   service uninstall       停止并移除后台服务（保留历史日志）
 
 账号与上游:
-  仅使用 Google Antigravity API（agy 1.5.2）及原 accounts 账号池。
+  仅使用 Google Antigravity API（agy ${AGY_CLI_VERSION}）及原 accounts 账号池。
   新增账号请运行 antigravity-gateway stats，在看板中完成 OAuth 授权。
 
 接口:

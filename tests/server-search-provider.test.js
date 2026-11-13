@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { searchRequest, parseSearchResponse } = require('../src/antigravity-server-search');
 const { DirectAntigravityProvider } = require('../src/direct-provider');
-const official = require('./fixtures/official-request-types-20261107/web-search-v2.json');
+const { webSearch } = require('./fixtures/agy-1.5.6-wire.json');
 const recorded = require('./fixtures/client-web-tools-20261107/latest-release-batch/gemini-low-latest-release.json');
 const helper = 'gemini-3.5-flash-lite';
 
@@ -13,10 +13,10 @@ const grounded = () => ({ candidates: [{ finishReason: 'STOP', content: { parts:
     groundingSupports: [{ segment: { text: 'Generated summary, not a page quote.' }, groundingChunkIndices: [0] }] } }],
   usageMetadata: { promptTokenCount: 11, candidatesTokenCount: 9, totalTokenCount: 20 } });
 
-test('search helper request exactly matches the captured official 1.5.2 envelope', () => {
-  const request = official.requests.find(entry => entry.body?.requestType === 'web_search').body;
+test('search helper request matches the 1.5.6 envelope with the site hint in the query', () => {
+  const request = webSearch;
   assert.deepEqual(searchRequest({ project: request.project, model: request.model,
-    query: request.request.contents[0].parts[0].text, domain: request.request.tools[0].googleSearch.includedDomains[0] }), request);
+    query: request.request.contents[0].parts[0].text }), request);
   const plain = searchRequest({ project: 'controlled-project', model: helper, query: 'controlled query' });
   assert.equal(plain.requestId, undefined);
   assert.equal(plain.request.generationConfig.thinkingConfig, undefined);

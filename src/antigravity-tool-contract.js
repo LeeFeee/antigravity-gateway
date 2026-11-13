@@ -9,7 +9,7 @@ const { trustedModelServiceDefinition } = require('./agy-model-service-tools');
 const VERSION = 1;
 const MAX_ARGUMENT_BYTES = 4 * 1024 * 1024;
 const SUMMARY = "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'.";
-const VERSIONS = { claude: '2.1.318', hermes: '0.21.7+11153.g2bd378e', pi: '1.5.0', dsh: '0.2.1-rc.2' };
+const VERSIONS = { claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1' };
 // Full declaration fingerprints, not name-only rules. Evidence lives in
 // tests/fixtures/agent-requests-20261107. No runtime dependency on test files.
 const PROFILES = {

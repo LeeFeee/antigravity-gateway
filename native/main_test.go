@@ -177,7 +177,7 @@ func TestCapturedMetadataHasContentLengthInsteadOfGenerationChunks(t *testing.T)
 	}
 }
 
-func TestOAuthNegotiatesHTTP2WithoutChangingModelTransport(t *testing.T) {
+func TestOAuthAndModelRPCNegotiateHTTP2(t *testing.T) {
 	observed := make(chan *http.Request, 2)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data, _ := io.ReadAll(r.Body)
@@ -193,7 +193,7 @@ func TestOAuthNegotiatesHTTP2WithoutChangingModelTransport(t *testing.T) {
 	roots := x509.NewCertPool()
 	roots.AddCert(server.Certificate())
 	modelClient, _ := newClient()
-	oauthClient, _ := newOAuthClient()
+	oauthClient, _ := newClient()
 	modelClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
 	oauthClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
 	h := newHarness(t, modelClient, oauthClient)
@@ -205,15 +205,18 @@ func TestOAuthNegotiatesHTTP2WithoutChangingModelTransport(t *testing.T) {
 			t.Fatalf("unexpected response: %#v", e)
 		}
 		r := <-observed
+		if r.ProtoMajor != 2 || r.TLS.NegotiatedProtocol != "h2" || len(r.TransferEncoding) != 0 {
+			t.Fatalf("profile %s did not negotiate HTTP/2: %#v", profile, r)
+		}
 		if profile == "oauth" {
-			if r.ProtoMajor != 2 || r.TLS.NegotiatedProtocol != "h2" || r.ContentLength != int64(len(body)) || len(r.TransferEncoding) != 0 {
-				t.Fatalf("OAuth did not use HTTP/2 and fixed-length form: %#v", r)
+			if r.ContentLength != int64(len(body)) {
+				t.Fatalf("OAuth form length changed: %d", r.ContentLength)
 			}
 			if r.Header.Get("User-Agent") != "Go-http-client/2.0" || r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 				t.Fatal("OAuth headers changed")
 			}
-		} else if r.ProtoMajor != 1 || r.TLS.NegotiatedProtocol != "" || r.ContentLength != -1 {
-			t.Fatalf("model transport was changed by OAuth support: %#v", r)
+		} else if r.ContentLength != -1 {
+			t.Fatalf("streaming RPC sent a content length: %d", r.ContentLength)
 		}
 		h.send(command{Type: "credit", ID: profile})
 		if e := h.next(); e.Type != "end" {

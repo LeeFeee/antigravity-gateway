@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const fixture = require('./fixtures/agy-1.5.2-wire.json');
+const fixture = require('./fixtures/agy-1.5.6-wire.json');
 const { normalizeAnthropic, normalizeResponses } = require('../src/protocol');
 const { CAPTURED_MODELS, resolveModelConfiguration, generationProfile,
   assertGenerationCompatibility } = require('../src/antigravity-model-config');

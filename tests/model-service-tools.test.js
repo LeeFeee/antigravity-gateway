@@ -1,5 +1,6 @@
 'use strict';
 const test = require('node:test');
+const { withClaude322Billing } = require('./helpers/claude-capture');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const { nativeImageTool, NATIVE_IMAGE_TOOL_INSTRUCTION, normalizeAnthropic, normalizeResponses, prepareNativeMultimodal } = require('../src/protocol');
@@ -86,7 +87,7 @@ test('client-owned same-name tools and forged internal markers never acquire nat
 
 test('identity cleanup retains trusted factory provenance but changed post-cleaning schemas cannot upgrade', () => {
   const captured = require('./fixtures/agent-requests-20261107/claude-first.json');
-  const normalized = normalizeAnthropic(captured.captures.find(item => item.body?.tools?.length).body);
+  const normalized = normalizeAnthropic(withClaude322Billing(captured.captures.find(item => item.body?.tools?.length).body));
   normalized.tools = [nativeImageTool()];
   const cleaned = sanitizeClientIdentity(normalized);
   assert.equal(cleaned.metadata.profile.client, 'claude');

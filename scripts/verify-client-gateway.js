@@ -108,6 +108,7 @@ function configure(agent, root, base, { model = MODEL, prompt = PROMPT, apiKey =
   let command, args, stdin;
   if (agent === 'claude') {
     command = path.join(NODE_BIN, 'claude');
+    env.CLAUDE_CODE_TMPDIR = path.join(root, 'tmp');
     args = ['-p', prompt, '--model', model, '--permission-mode', 'dontAsk', '--allowedTools', 'Read,ToolSearch',
       '--permission-prompts', 'none', '--output-format', 'stream-json', '--verbose', '--max-turns', '3', '--setting-sources', ''];
     if (scenario === 'thinking') args.push('--effort', 'high');
@@ -270,7 +271,7 @@ function assessEvidence(agent, scenario, upstream, client, outcome) {
     nativeGenerationEnvelope: generations.length > 0 && generations.every(item => item.body.requestType === 'agent'
       && item.body.userAgent === 'antigravity' && typeof item.body.project === 'string' && item.body.request?.contents?.length > 0),
     fixedModelThinking: generations.every(item => item.body.model === MODEL && item.body.request?.generationConfig?.thinkingConfig?.thinkingLevel === 'HIGH'),
-    apiUserAgent: generations.every(item => /^antigravity\/cli\/1\.5\.2 /.test(item.headers['user-agent'] || '')),
+    apiUserAgent: generations.every(item => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(item.headers['user-agent'] || '')),
     finalTextDelivered: answers.includes(COMPLETION) || answers.includes('LOCAL_GATEWAY_') && answers.includes('VERIFIED')
   };
   if (scenario === 'read') {

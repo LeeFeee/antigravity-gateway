@@ -1,5 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
+const { withClaude322Billing } = require('./helpers/claude-capture');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
@@ -16,7 +17,7 @@ for (const agent of ['claude', 'hermes', 'pi', 'dsh']) for (const scenario of ['
     assert.deepEqual(record.upstreamErrors, []);
     assert.equal(assessEvidence(agent, scenario, record.upstream, record.clientHTTP, record.outcome).passed, true);
     const client = record.clientHTTP.find(item => /^\/v1\/(messages|responses)(?:\?|$)/.test(item.path));
-    const normalized = agent === 'claude' ? normalizeAnthropic(client.body) : normalizeResponses(client.body);
+    const normalized = agent === 'claude' ? normalizeAnthropic(withClaude322Billing(client.body)) : normalizeResponses(client.body);
     const rebuilt = buildDirectRequest(normalized, client.body.model, 'synthetic-project', 'synthetic-session');
     assert.equal(rebuilt.request.generationConfig.thinkingConfig.thinkingLevel, 'HIGH');
     assert.equal(rebuilt.requestType, 'agent');

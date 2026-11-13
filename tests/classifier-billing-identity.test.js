@@ -7,7 +7,7 @@ const { normalizeAnthropic } = require('../src/protocol');
 const { buildDirectRequest } = require('../src/direct-provider');
 const { anthropicSystemBlockEvidence, sanitizeClientIdentity } = require('../src/client-identity');
 
-const billing = 'x-anthropic-billing-header: cc_version=2.1.318.abc; cc_entrypoint=cli;';
+const billing = 'x-anthropic-billing-header: cc_version=2.1.322.abc; cc_entrypoint=cli;';
 const digest = text => crypto.createHash('sha256').update(text).digest('hex');
 const syntheticPolicy = 'Auto Mode classification process. Respond with <severity>N</severity>. Keep all permission boundaries.';
 const context = 'Synthetic session context. Preserve SOUL, user rules and permission instructions.';
@@ -54,7 +54,7 @@ test('unknown, quoted, merged, missing and non-text source layouts produce no bi
     source.map(block => block.text).join('\n'),
     [{ type: 'text', text: source.map(block => block.text).join('\n') }],
     source.slice(0, 2), [...source, { type: 'text', text: 'Extra block.' }],
-    [{ type: 'text', text: billing.replace('2.1.318', '2.1.319') }, ...source.slice(1)],
+    [{ type: 'text', text: billing.replace('2.1.322', '2.1.319') }, ...source.slice(1)],
     [{ type: 'text', text: billing.replace('=cli', '=unknown-cli') }, ...source.slice(1)],
     [{ type: 'text', text: `Quoted header:\n${billing}` }, ...source.slice(1)],
     [source[0], { type: 'image', text: syntheticPolicy }, source[2]],

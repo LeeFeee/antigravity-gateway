@@ -100,19 +100,12 @@ func certificatePool() (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func newClient() (*http.Client, error) { return newClientForProfile(false) }
-
-func newOAuthClient() (*http.Client, error) { return newClientForProfile(true) }
-
-func newClientForProfile(oauth bool) (*http.Client, error) {
+func newClient() (*http.Client, error) {
 	roots, err := certificatePool()
 	if err != nil {
 		return nil, err
 	}
-	// agy 1.5.2 model RPC captures: HTTP/1.1, no ALPN, Go cipher/extension ordering,
-	// hybrid ML-KEM groups and no client session ticket cache. Do not clone
-	// http.DefaultTransport. OAuth separately negotiates HTTP/2; changing that
-	// transport must not change the model RPC ClientHello or connection pool.
+	// agy 1.5.6 model RPCs and OAuth both negotiate HTTP/2 over TLS.
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
@@ -122,7 +115,7 @@ func newClientForProfile(oauth bool) (*http.Client, error) {
 		IdleConnTimeout:       90 * time.Second,
 		MaxIdleConns:          100,
 		MaxIdleConnsPerHost:   8,
-		ForceAttemptHTTP2:     oauth,
+		ForceAttemptHTTP2:     true,
 	}
 	return &http.Client{
 		Transport: transport,
@@ -180,14 +173,10 @@ func (b *bridge) start(c command) {
 		if c.Body != "" {
 			reader := bytes.NewReader([]byte(c.Body))
 			if c.Profile == "oauth" || (method == http.MethodPost && capturedFixedLengthPath(parsed.Path)) {
-				// Raw agy captures use Content-Length for metadata and synchronous
-				// generateContent (web_search/image_gen), while streamGenerateContent
-				// is chunked. A known-length Reader lets net/http emit the captured
-				// header order and UTF-8 byte length without a caller-supplied header.
+				// Metadata, OAuth and synchronous generation send a known byte length.
 				body = reader
 			} else {
-				// Preserve the observed streaming-generation framing and the existing
-				// fallback for paths whose native wire shape is still unknown.
+				// Streaming RPCs omit Content-Length and carry the body in DATA frames.
 				body = io.NopCloser(reader)
 			}
 		}
@@ -312,7 +301,7 @@ func main() {
 	client, err := newClient()
 	if err == nil {
 		var oauthClient *http.Client
-		oauthClient, err = newOAuthClient()
+		oauthClient, err = newClient()
 		if err == nil {
 			err = run(os.Stdin, os.Stdout, client, oauthClient)
 		}

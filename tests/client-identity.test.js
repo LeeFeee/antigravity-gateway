@@ -6,12 +6,13 @@ const path = require('node:path');
 const test = require('node:test');
 const { normalizeAnthropic, normalizeResponses } = require('../src/protocol');
 const { inferClientProfile, sanitizeClientIdentity, sanitizeToolDescription } = require('../src/client-identity');
+const { withClaude322Billing } = require('./helpers/claude-capture');
 
 const fixtures = path.join(__dirname, 'fixtures/agent-requests-20261107');
 const interactiveClaude = require('./fixtures/claude-tui-2.1.318-framework.json');
 
 function interactiveClaudeSystem() {
-  return [interactiveClaude.billingTemplate, interactiveClaude.identity,
+  return [interactiveClaude.billingTemplate.replace('2.1.318', '2.1.322'), interactiveClaude.identity,
     interactiveClaude.corePrefix + '\n# Session-specific guidance\n - Keep every client permission rule.\n'
       + '\n# Memory\nUser-authored SOUL: keep my chosen Claude persona.\n'
       + '\n# Environment\n - Working directory: /synthetic/project\n'
@@ -28,7 +29,7 @@ test('actual interactive Claude template removes only its separate billing and C
       { role: 'user', content: 'User rule: preserve my SOUL and project instructions.' }] });
   const original = structuredClone(normalized);
   const cleaned = sanitizeClientIdentity(freeze(normalized));
-  assert.deepEqual(cleaned.metadata.profile, { client: 'claude', templateVersion: '2.1.318', evidence: ['claude-tui-system-template'] });
+  assert.deepEqual(cleaned.metadata.profile, { client: 'claude', templateVersion: '2.1.322', evidence: ['claude-tui-system-template'] });
   assert.deepEqual(cleaned.metadata.rules, ['claude-billing-marker', 'claude-tui-identity']);
   assert.equal(cleaned.normalized.system, blocks[2] + '\n\n' + hookContext);
   assert.deepEqual(cleaned.normalized.messages, original.messages);
@@ -52,7 +53,7 @@ test('interactive cleanup preserves all user rules, literal quotations, argument
 
 test('unknown interactive versions, edited framework prefixes and quoted identities remain untouched', () => {
   const blocks = interactiveClaudeSystem(), template = blocks.join('\n');
-  for (const system of [template.replace('2.1.318', '2.1.319'), template.replace('cc_entrypoint=cli;', 'cc_entrypoint=sdk-cli;'),
+  for (const system of [template.replace('2.1.322', '2.1.319'), template.replace('cc_entrypoint=cli;', 'cc_entrypoint=sdk-cli;'),
     template.replace(interactiveClaude.identity, interactiveClaude.identity + ' User custom identity.'),
     template.replace('using your own judgment', 'using my custom judgment'),
     template.replace('\n# Session-specific guidance\n', '\n# User-defined guidance\n'),
@@ -68,8 +69,9 @@ function fixture(name, { rawClaudeSystem = false } = {}) {
   const capture = record.captures.find(item => /^\/v1\/(?:messages|responses)(?:\?|$)/.test(item.path)
     && item.body && typeof item.body === 'object');
   assert.ok(capture, name);
-  const normalized = capture.path.startsWith('/v1/messages') ? normalizeAnthropic(capture.body) : normalizeResponses(capture.body);
-  if (rawClaudeSystem && Array.isArray(capture.body.system)) normalized.system = capture.body.system.map(part => part.text).join('\n');
+  const body = record.agent === 'claude' ? withClaude322Billing(capture.body) : capture.body;
+  const normalized = capture.path.startsWith('/v1/messages') ? normalizeAnthropic(body) : normalizeResponses(body);
+  if (rawClaudeSystem && Array.isArray(body.system)) normalized.system = body.system.map(part => part.text).join('\n');
   return { record, capture, normalized };
 }
 function instructionText(normalized) {
@@ -151,7 +153,7 @@ for (const [agent, scenario] of [['claude', 'write'], ['claude', 'edit'], ['pi',
   test(`真实受限工具模板 ${agent}/${scenario} 保留执行约束并清理框架身份`, () => {
     const record = JSON.parse(fs.readFileSync(path.join(__dirname, `fixtures/client-tool-execution-20261107/initial/${agent}-${scenario}.json`), 'utf8'));
     const body = record.clientHTTP.find(item => item.body?.tools?.length).body;
-    const normalized = agent === 'claude' ? normalizeAnthropic(body) : normalizeResponses(body);
+    const normalized = agent === 'claude' ? normalizeAnthropic(withClaude322Billing(body)) : normalizeResponses(body);
     const before = structuredClone(normalized), cleaned = sanitizeClientIdentity(normalized);
     assert.equal(cleaned.metadata.profile.client, agent);
     assert.deepEqual(normalized, before);
@@ -307,14 +309,14 @@ function compactClaudeFixture() {
   const captured = JSON.parse(fs.readFileSync(path.join(__dirname,
     'fixtures/client-gateway-20261107/failures/claude-read-compact-template.json'), 'utf8'));
   const body = captured.clientHTTP.find(item => item.path.startsWith('/v1/messages')).body;
-  return normalizeAnthropic(body);
+  return normalizeAnthropic(withClaude322Billing(body));
 }
 
 test('actual Claude compact template for Gemini preserves harness rules while removing its SDK identity and default attribution', () => {
   const original = compactClaudeFixture();
   const { normalized, metadata } = sanitizeClientIdentity(freeze(original));
   assert.equal(metadata.profile.client, 'claude');
-  assert.equal(metadata.profile.templateVersion, '2.1.318');
+  assert.equal(metadata.profile.templateVersion, '2.1.322');
   assert.deepEqual(metadata.profile.evidence, ['claude-sdk-compact-system-template']);
   assert.match(normalized.system, /Tools run behind a user-selected permission mode/);
   assert.match(normalized.system, /For actions that are hard to reverse or outward-facing, confirm first unless durably authorized/);
@@ -344,7 +346,8 @@ test('compact Claude attribution requires the proven first-turn layout and exact
 function claudeSearchFixtures() {
   const captured = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/client-web-tools-20261107/claude-web-search.json'), 'utf8'));
   return captured.captures.filter(item => Array.isArray(item.body?.system)
-    && item.body.system.some(part => part.text?.startsWith('You run a web search for another Claude model,')));
+    && item.body.system.some(part => part.text?.startsWith('You run a web search for another Claude model,')))
+    .map(item => ({ ...item, body: withClaude322Billing(item.body) }));
 }
 
 test('both actual Claude search helper requests preserve search behavior while clearing their exact three-block identity', () => {
@@ -353,7 +356,7 @@ test('both actual Claude search helper requests preserve search behavior while c
     const source = { system: capture.body.system.map(part => part.text).join('\n'),
       messages: structuredClone(capture.body.messages), tools: structuredClone(capture.body.tools) };
     const original = structuredClone(source), { normalized, metadata } = sanitizeClientIdentity(freeze(source));
-    assert.deepEqual(metadata.profile, { client: 'claude', templateVersion: '2.1.318', evidence: ['claude-sdk-search-helper-template'] });
+    assert.deepEqual(metadata.profile, { client: 'claude', templateVersion: '2.1.322', evidence: ['claude-sdk-search-helper-template'] });
     assert.equal(normalized.system, capture.body.system[2].text.replace('another Claude model', 'another model'));
     assert.match(normalized.system, /which is waiting on the result and can search again\. Search once, then reply with a brief summary of the results\./);
     assert.doesNotMatch(normalized.system, /billing-header|Anthropic|Claude|Google|Antigravity/);
@@ -379,7 +382,7 @@ test('search helper cleanup preserves SOUL, project suffixes, quoted copies and 
 test('near matches and user quotations of the Claude search template are not treated as framework instructions', () => {
   const capture = claudeSearchFixtures()[0], blocks = capture.body.system.map(part => part.text), template = blocks.join('\n');
   for (const system of [blocks[2], blocks.slice(1).join('\n'), [blocks[0], blocks[2]].join('\n'),
-    template.replace('2.1.318', '2.1.319'), template.replace('Search once,', 'Search twice,'),
+    template.replace('2.1.322', '2.1.319'), template.replace('Search once,', 'Search twice,'),
     template + ' This is my custom paragraph.', '# SOUL.md\n' + template,
     'Review this example:\n```text\n' + template + '\n```', '<quote>\n' + template + '\n</quote>']) {
     const source = { system, messages: [], tools: [] };

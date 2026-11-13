@@ -3,17 +3,14 @@
 const crypto = require('node:crypto');
 const { GatewayError } = require('./protocol');
 
-// Captured from the unmodified agy 1.5.2 search_web auxiliary request.
+// Captured from the unmodified agy 1.5.6 search_web auxiliary request.
 // This model service is separate from the caller's answer/planning model.
 const SEARCH_INSTRUCTION = 'You are a search engine bot. You will be given a query from a user. Your task is to search the web for relevant information that will help the user. You MUST perform a web search. Do not respond or interact with the user, please respond as if they typed the query into a search bar.';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-function validateSearchParameters({ query, domain, maxOutputTokens, contents, instructions, generationConfig } = {}) {
+function validateSearchParameters({ query, maxOutputTokens, contents, instructions, generationConfig } = {}) {
   if (typeof query !== 'string' || !query.trim()) {
     throw new GatewayError('服务器搜索缺少有效查询。', { code: 'invalid_server_search_request', status: 400 });
-  }
-  if (domain !== undefined && (typeof domain !== 'string' || !domain.trim())) {
-    throw new GatewayError('搜索域名提示必须是非空字符串。', { code: 'invalid_server_search_request', status: 400 });
   }
   if (maxOutputTokens !== undefined && (!Number.isSafeInteger(maxOutputTokens) || maxOutputTokens <= 0)) {
     throw new GatewayError('服务器搜索输出预算必须是正整数。', { code: 'invalid_server_search_budget', status: 400 });
@@ -41,8 +38,8 @@ function validateSearchParameters({ query, domain, maxOutputTokens, contents, in
   }
 }
 
-function searchRequest({ project, model, query, domain, maxOutputTokens, contents, instructions, generationConfig } = {}) {
-  validateSearchParameters({ query, domain, maxOutputTokens, contents, instructions, generationConfig });
+function searchRequest({ project, model, query, maxOutputTokens, contents, instructions, generationConfig } = {}) {
+  validateSearchParameters({ query, maxOutputTokens, contents, instructions, generationConfig });
   if (typeof project !== 'string' || !project.trim() || typeof model !== 'string' || !model.trim()) {
     throw new GatewayError('服务器搜索缺少项目或搜索模型。', { code: 'invalid_server_search_request', status: 400 });
   }
@@ -51,8 +48,7 @@ function searchRequest({ project, model, query, domain, maxOutputTokens, content
     request: {
       contents: contents === undefined ? [{ role: 'user', parts: [{ text: query }] }] : structuredClone(contents),
       systemInstruction: { role: 'user', parts: [{ text: SEARCH_INSTRUCTION }, ...(instructions ? [{ text: instructions }] : [])] },
-      tools: [{ googleSearch: { enhancedContent: { imageSearch: { maxResultCount: 5 } },
-        ...(domain === undefined ? {} : { includedDomains: [domain] }) } }],
+      tools: [{ googleSearch: { enhancedContent: { imageSearch: { maxResultCount: 5 } } } }],
       generationConfig: { candidateCount: 1, ...structuredClone(generationConfig || {}), ...(maxOutputTokens === undefined ? {} : { maxOutputTokens }) }
     },
     model,

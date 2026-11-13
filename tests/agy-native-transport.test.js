@@ -237,7 +237,7 @@ test('packaged native helper selects HTTP2 ALPN for both captured OAuth endpoint
 });
 
 test('native TLS matches captured agy extensions, including signature algorithms beyond JA3', async t => {
-  const expected = require('./fixtures/agy-1.5.2-tls.json');
+  const expected = require('./fixtures/agy-1.5.6-tls.json');
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-native-hello-'));
   const binary = resolveNativeBinary({ cacheDir: directory });
   const sockets = new Set();

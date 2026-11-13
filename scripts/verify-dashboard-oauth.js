@@ -12,6 +12,7 @@ const path = require('node:path');
 const { execFile, spawn } = require('node:child_process');
 const { setTimeout: delay } = require('node:timers/promises');
 const { resolveAgyCommand } = require('../src/agy-installation');
+const { AGY_CLI_VERSION } = require('../src/agy-request-profile');
 const { resolveNativeBinary, nativeCloudCodeFetch, closeNativeTransport } = require('../src/agy-native-transport');
 const { AccountStore } = require('../src/account-store');
 const { ManagedAccountAuthProvider } = require('../src/managed-account-auth');
@@ -61,7 +62,7 @@ function requestEvidence(url, options = {}) {
     grantType: ['authorization_code', 'refresh_token'].includes(body?.grant_type) ? body.grant_type : null,
     formEncoded: headers.get('content-type') === 'application/x-www-form-urlencoded',
     goOAuthUserAgent: headers.get('user-agent') === 'Go-http-client/2.0',
-    cliUserAgent: /^antigravity\/cli\/1\.5\.2 /.test(headers.get('user-agent') || '') };
+    cliUserAgent: /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(headers.get('user-agent') || '') };
 }
 function observerSource(traceFile) {
   // Preserve the actual transport implementation; retain only an allowlisted
@@ -105,8 +106,8 @@ async function unusedPort() {
 }
 function version(binary, env) {
   return new Promise((resolve, reject) => execFile(binary, ['--version'], { env, timeout: 5000, encoding: 'utf8' }, (error, stdout) => {
-    if (error || !/\b1\.5\.2\b/.test(stdout)) reject(new Error('Official agy 1.5.2 must be installed before preparation'));
-    else resolve('1.5.2');
+    if (error || stdout.trim() !== AGY_CLI_VERSION) reject(new Error(`Official agy ${AGY_CLI_VERSION} must be installed before preparation`));
+    else resolve(AGY_CLI_VERSION);
   }));
 }
 async function prepare({ reportFile, agyPath, probeVersion = version, nativeResolver = resolveNativeBinary } = {}) {

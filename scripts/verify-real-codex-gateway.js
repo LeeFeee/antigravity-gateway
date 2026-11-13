@@ -167,7 +167,7 @@ function assess(scenario, trace, outcome, marker, file) {
     completeSSE: !parseError && events.length > 0 && events.every(completeResponses),
     physicalBudget: requests.length >= 1 && requests.length <= 4,
     originalNativeTLS: responses.length === requests.length && responses.every(item => item.status === 200 && /agy-transport-/.test(item.binary || '')),
-    officialUA: requests.length > 0 && requests.every(item => /^antigravity\/cli\/1\.5\.2 /.test(item.headers?.['user-agent'] || '')),
+    officialUA: requests.length > 0 && requests.every(item => /^antigravity\/cli\/\d+\.\d+\.\d+ /.test(item.headers?.['user-agent'] || '')),
     finalMarker: visible.includes(marker),
     noGuardFailure: !trace.some(item => ['guard-denied', 'generation-failed'].includes(item.type))
   };

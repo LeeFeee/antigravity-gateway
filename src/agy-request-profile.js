@@ -3,13 +3,12 @@
 const { CAPTURED_MODELS, thinkingLevel, modelProfile, generationProfile,
   resolveModelConfiguration, assertGenerationCompatibility } = require('./antigravity-model-config');
 
-// Observed Google Antigravity API protocol requests from agy 1.5.2 (2026-11-06).
+// Observed Google Antigravity API protocol requests from agy 1.5.6 (2026-11-12).
 const AGY_SESSION_ID = '-3750763034362895579';
 
-const AGY_CLI_VERSION = '1.5.2';
-const AGY_BUILD = '1015175089';
-// Official 1.5.2 terminal OAuth captures use the Go OAuth transport, not the
-// model RPC transport. The dashboard keeps its own state-bound local callback.
+const AGY_CLI_VERSION = '1.5.6';
+const AGY_BUILD = '1018951551';
+// OAuth keeps its own Go user agent and the dashboard's state-bound callback.
 const AGY_OAUTH_PROFILE = Object.freeze({
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/auth',
   tokenEndpoint: 'https://oauth2.googleapis.com/token',
