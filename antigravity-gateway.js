@@ -481,6 +481,9 @@ function claudeConfigBody(models) {
   const ordered = displayModels(models);
   return {
     $schema: 'https://json.schemastore.org/claude-code-settings.json',
+    // Google Antigravity does not provide Anthropic's server-side safeguards.
+    // Keep Claude's own classifier active; its default model is routed below.
+    env: { CLAUDE_CODE_AUTO_MODE_SERVER: '0' },
     modelPicker: {
       options: ordered.map((model) => ({
         model,
@@ -568,7 +571,7 @@ function printHelp() {
   --models                 显示当前账号的全部真实模型 ID
   --codex-catalog-path    显示自动生成的 Codex 模型目录绝对路径
   --claude-config-path    显示自动生成的 Claude Code 模型配置路径
-  --claude-config         输出 Claude Code modelPicker 配置 JSON
+  --claude-config         输出 Claude Code 模型与 Auto 兼容配置 JSON
   stats                   在默认浏览器打开本地 Token 用量看板
 
 后台保活:

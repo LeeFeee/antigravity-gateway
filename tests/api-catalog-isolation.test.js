@@ -15,6 +15,7 @@ test('catalog artifacts include only managed API models despite old transport se
     assert.deepEqual(await refreshClientModelCatalogs(), models);
     const claude = JSON.parse(fs.readFileSync(claudeConfigPath(), 'utf8'));
     const codex = JSON.parse(fs.readFileSync(codexCatalogPath(), 'utf8'));
+    assert.deepEqual(claude.env, { CLAUDE_CODE_AUTO_MODE_SERVER: '0' });
     assert.deepEqual(claude.modelPicker.options.map(item => item.model).sort(), [...models].sort());
     assert.deepEqual(codex.models.map(item => item.slug).sort(), [...models].sort());
     assert.doesNotMatch(startupBanner({ models }), /Robin|Windows WebChannel|CLI stream-json/);

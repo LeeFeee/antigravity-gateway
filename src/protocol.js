@@ -447,6 +447,12 @@ function* structuredSchemaFromSteps(format, compiler) {
 }
 
 function* normalizeAnthropicSteps(payload, compiler = compileSchema) {
+  if (payload.safeguards != null && (!Array.isArray(payload.safeguards) || payload.safeguards.length > 0)) {
+    throw new GatewayError(
+      'The safeguards field requests Anthropic server-side review, which Google Antigravity does not provide. Configure Claude Code with CLAUDE_CODE_AUTO_MODE_SERVER=0 to send its own classifier requests.',
+      { code: 'invalid_request_error', status: 400 }
+    );
+  }
   // Keep the original source text here. Identity cleanup happens at the
   // upstream boundary using verified templates, not global string matching.
   const systemParts = [textFromContent(payload.system, 'anthropic')];
@@ -774,7 +780,17 @@ function* finalizeModelResultSteps(normalized, agyResult, validator = validateSc
   const nativeToolCalls = Array.isArray(agyResult.toolCalls);
   let text = nativeToolCalls ? String(agyResult.text || '') : (toolCalls.length ? '' : String(agyResult.text || ''));
   if (termination === 'filtered' && toolCalls.length) throw new GatewayError('被上游过滤的响应不能执行工具。', { code: 'invalid_tool_call', status: 502 });
-  if (normalized.autoMode && termination === 'complete') text = normalizeAutoMode(text, normalized.autoModeFormat);
+  if (normalized.autoMode) {
+    if (termination !== 'complete') {
+      // Do not deliver a truncated/filtered permission verdict or replay it as
+      // a formatting repair. The client decides how to retry or request approval.
+      throw new GatewayError('Auto Mode 判定未完成；请由客户端重试或进行审批。', {
+        code: 'incomplete_auto_mode_classifier_output', status: 502,
+        details: `finishReason=${agyResult.promptBlockReason || agyResult.finishReason}`
+      });
+    }
+    text = normalizeAutoMode(text, normalized.autoModeFormat);
+  }
   if (normalized.structuredSchema != null && !toolCalls.length && termination === 'complete') text = yield* normalizeStructuredSteps(text, normalized.structuredSchema, validator);
   return { ...agyResult, text, toolCalls, thinking: normalized.includeThinking ? String(agyResult.thinking || '') : '' };
 }

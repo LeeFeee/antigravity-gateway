@@ -1,6 +1,6 @@
 # 响应结束状态与工具 JSON 边界
 
-更新：2026-11-07。本页说明本次本地协议修复及仍然明确保留的边界，不构成新的真实上游取证记录。
+更新：2026-11-13。本页说明本地协议修复、对应实测范围及保留的边界。
 
 ## 结束状态
 
@@ -33,9 +33,29 @@ Direct 保留 Google Antigravity API 响应中的 `candidate.finishReason` 与 `
 
 返回路径继续校验完整判定：缺失、重复、冲突或越界值仍返回 `502 invalid_auto_mode_classifier_output`。网关不补数字、不补闭合标签、不生成允许执行结论。
 
+agy 1.5.8 实连确认，默认 Claude 分类请求的 `max_tokens=64` 会被固定 LOW 档思考耗尽，Google 返回 `MAX_TOKENS` 而没有判定文本。仅对已识别的 `severity`／`block` 分类器，上游思考请求增加输出额度：命名档位使用 4096 tokens 下限，数值预算至少保留“客户端输出额度 + 思考预算”，最终受模型目录输出上限约束。客户端原始请求、分类政策和固定思考档位不修改；普通请求、未知分类格式和未开启思考的模型不应用此下限。
+
+分类器的截断或过滤终止会返回 `incomplete_auto_mode_classifier_output`（非流式 HTTP 502；流式 `error` 事件），即使截断文本已经包含一个完整样式的判定也不转成成功。该错误不会触发网关的格式修复重发，由客户端决定重试或审批。普通对话仍保留原有 `max_tokens`／`refusal` 终止语义。
+
+2026-11-13 修复后，已捕获的 Claude Code 2.1.322 TUI 和 SDK 原始 Auto 请求分别经隔离网关实连 Google，通过 agy 1.5.8 原生传输返回完整判定，耗时 33.401 秒和 60.884 秒。输入均保持 `claude-sonnet-5`、`max_tokens=64`，未设置分类器模型覆盖；实际提交 Flash Low／LOW、上限 4096。两次均只有一次生成请求，完整政策和会话上下文保留，计费身份头清理，返回 `end_turn`。原捕获工具设置了 `CLAUDE_CODE_AUTO_MODE_SERVER=0`；此验收仅重放独立分类器请求，不执行被判定的工具命令，也未覆盖默认服务器审核路径。源码组合摘要为 `4987ae228d4e23bc2e48dd326e1c9e142f2e9809cdac39a2bfad0ce32535c7ff`，生产账号和配置/状态文件前后摘要一致。
+
+回归新增覆盖思考耗尽额度、完整样式但被截断的判定、过滤结束、非流式错误和 SSE 错误；确认未完成判定不会触发格式修复重发，普通请求的输出额度与终止行为仍保留。全部 1111 项 Node 测试及 75 个运行/脚本文件语法检查通过。
+
 Claude Code 2.1.318 的独立分类器不含主对话身份句，另按原始三个 text system 块核对来源：首块必须是该版本已捕获的 `cli` 或 `sdk-cli` billing 行，第二块必须完整匹配已确认 `severity` 或 `block` 政策的长度和 SHA-256，第三块保留原会话上下文。通过后只删除首 billing 块；政策内品牌文字、权限、用户规则、消息和附加 system 指令不改。来源证据仅含类型、长度和哈希，不转发上游；合并块、未知版本、政策改动或来源证据不匹配均不清理。完整私有政策不存入仓库测试夹具，正例用外部私有捕获离线回放。独立搜索 helper 仍单独要求其已捕获的 `cli` 模板。
 
-Claude Code 默认以 `claude-sonnet-5` 发起的 Auto Mode 分类请求，内置路由至 `gemini-3.8-flash-low`，无需配置 `CLAUDE_CODE_AUTO_MODE_MODEL`。该映射仅对已识别的分类请求生效；普通 Sonnet 对话及其他显式分类器模型保持原样。上游思考配置由实际选中的 Low 模型名决定，客户端的输出上限、完整分类政策和会话上下文保持。可用账号仍由统一账号池按额度和冷却选择；没有可用 Low 账号时保留真实错误，不生成批准结论。
+Claude Code 默认以 `claude-sonnet-5` 发起的 Auto Mode 分类请求，内置路由至 `gemini-3.8-flash-low`，无需配置 `CLAUDE_CODE_AUTO_MODE_MODEL`。该映射仅对已识别的分类请求生效；普通 Sonnet 对话及其他显式分类器模型保持原样。上游思考配置由实际选中的 Low 模型名决定，客户端原始请求、完整分类政策和会话上下文保持，上游输出额度按上述规则预留思考空间。可用账号仍由统一账号池按额度和冷却选择；没有可用 Low 账号时保留真实错误，不生成批准结论。
+
+## Claude Code 2.1.322 的服务器审核与客户端独立审核
+
+默认 Auto 会在主 Messages 请求中发送 `dangerous-tool-use-2026-09-03` beta 和顶层 `safeguards: [{ type, classifier_context }]`，从响应读取 `safeguard_results`。Google Antigravity 没有等价的 Anthropic 服务器审核接口；网关不能忽略这一要求后声称已审核，也不能编造允许执行结果。
+
+2026-11-13 使用本机实际 Claude Code 2.1.322 TUI、隔离 HOME 和仅允许回环网络的合成服务复现：Gemini Flash High 和 Sonnet 4.6 主模型收到缺少审核结果的响应时，均提示无法检查；明确返回命名 `safeguards` 的 `400 invalid_request_error` 后，客户端虽去掉该字段重试，但仍未发起独立分类器。此行为与官方文档所述自动回退并不一致，不能依赖该回退。
+
+设置官方参数 `CLAUDE_CODE_AUTO_MODE_SERVER=0` 后，同一客户端改为自己发送 `claude-sonnet-5` 独立分类器请求，并根据判定管理执行；已有路由将该请求转到 Flash Low。网关生成的 Claude 配置现包含此项，用户自建配置需要合并并重启会话。不设置 `CLAUDE_CODE_AUTO_MODE_MODEL`，不修改权限模式或允许列表，也不改变用户所选主模型。该选择保留审核，只改变审核请求的发起方式。[官方服务器审核说明](https://code.claude.com/docs/en/permission-modes#server-side-classifier-review)
+
+网关现在对非空或格式错误的顶层 `safeguards` 返回 `400 invalid_request_error`，明确说明兼容设置；在账号分配和 SSE 开始前返回。缺省、`null`、空数组和工具 Schema 等业务数据中的同名字段不被拒绝。回归覆盖以上入口边界和生成配置持久化。客户端工具始终由 Claude 执行。
+
+2026-11-13 补充真实闭环：实际 Claude Code 2.1.322 TUI 加载网关生成配置，使用 Flash High 主模型和 Auto 模式，无允许规则、无手动确认；客户端置于独立 HOME 和仅允许回环的沙箱。三次请求全部经本机网关实连 Google：主请求 9.680 秒 → 独立 `claude-sonnet-5` 请求路由 Flash Low，10.117 秒返回 `<severity>0</severity>`／`end_turn` → Claude 执行只输出固定字符串的 `node -e` 命令 → 主模型 12.099 秒正常续答。请求不含 `safeguards`，无合成模型响应、无分类器模型覆盖。工具结果为 `AGW_AUTO_ACTION_OK`、`is_error=false`。本轮 1112 项 Node 回归通过。此结论限定当前已捕获客户端版本及所测路径。
 
 ## 客户端历史与统一账号切换
 

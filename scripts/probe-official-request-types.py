@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Official 1.5.6 request-type probe: loopback only, synthetic account and responses."""
+"""Official 1.5.8 request-type probe: loopback only, synthetic account and responses."""
 import argparse
 import asyncio
 import hashlib
@@ -59,8 +59,8 @@ async def probe(args, root):
         '--version', env=env, cwd=work, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     version_out, _ = await asyncio.wait_for(version_child.communicate(), 5)
     version = version_out.decode().strip()
-    if version_child.returncode or not re.search(r'(?<!\d)1\.5\.6(?!\d)', version):
-        raise RuntimeError('Official agy 1.5.6 required')
+    if version_child.returncode or not re.search(r'(?<!\d)1\.5\.8(?!\d)', version):
+        raise RuntimeError('Official agy 1.5.8 required')
     with socket.socket() as sock:
         sock.bind(('127.0.0.1', 0))
         port = sock.getsockname()[1]

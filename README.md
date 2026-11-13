@@ -1,12 +1,21 @@
 # Antigravity Gateway
 
-当前版本：**2.0.2**。
+当前版本：**2.0.3**。
 
-将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.6** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
+将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.8** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.0.3 更新
+
+- 对齐 agy 1.5.8 的 UA/build 和模型 HTTP/1.1 传输；OAuth 继续使用独立 HTTP/2 传输。
+- 修复 Claude Code 原始 Auto 判断请求的思考额度转换，保留默认 Flash Low／LOW 路由，无需配置分类器模型覆盖。
+- 截断或过滤的 Auto 判定明确返回错误，由客户端处理。
+- 生成的 Claude 配置选择客户端独立审核路径；对不支持的服务器 `safeguards` 请求明确返回 400，避免静默忽略。
+
+Claude Code 2.1.322 的 TUI、SDK **独立分类器请求**已重放至真实 Google 并返回完整判定。该记录不代表默认服务器审核路径已受支持。补充使用生成配置的实际 TUI 测试已完成“主模型调用 → 独立模型判断 → 客户端执行工具 → 主模型续答”闭环，1112 项回归通过。范围见 [Auto Mode 验收记录](docs/response-termination-and-json-boundaries.md#auto-mode-分类器的闭合停止序列)。
 
 ## 2.0.2 更新
 
@@ -90,7 +99,8 @@ Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:9897",
     "ANTHROPIC_AUTH_TOKEN": "antigravity-gateway",
-    "ANTHROPIC_MODEL": "gemini-3.8-flash-high"
+    "ANTHROPIC_MODEL": "gemini-3.8-flash-high",
+    "CLAUDE_CODE_AUTO_MODE_SERVER": "0"
   }
 }
 ```
@@ -101,9 +111,13 @@ Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回
 claude --settings "$(antigravity-gateway --claude-config-path)"
 ```
 
-该文件仍位于原数据目录，随账号池模型目录更新。现有项目规则、权限设置和工具审批由 Claude Code 保持。
+该文件仍位于原数据目录，随账号池模型目录更新，并包含 `CLAUDE_CODE_AUTO_MODE_SERVER=0`。使用已有自建配置时也须合并这一项并重启 Claude 会话。现有项目规则、权限设置和工具审批由 Claude Code 保持。
+
+Claude Code 2.1.322 默认把审核放进主请求的 `safeguards`，等待 Anthropic 服务器返回 `safeguard_results`。Google Antigravity 不提供这项服务。上述 `CLAUDE_CODE_AUTO_MODE_SERVER=0` 让 Claude 自己发起独立判断请求，**不是关闭 Auto 审核**。本机该版本实测：仅返回“不支持 safeguards”的 400 并不会恢复独立判断；必须使用兼容配置。官方参数说明见 [服务器审核文档](https://code.claude.com/docs/en/permission-modes#server-side-classifier-review)。
 
 Auto Mode 无需额外配置分类器模型：网关将识别到的默认 `claude-sonnet-5` 判断请求自动路由至 `gemini-3.8-flash-low`。普通对话仍使用所选主模型；其他显式分类器模型也保留原选择。分类政策和判断由 Claude 与实际模型负责，网关只转换并转发，不补写允许执行结论。
+
+Auto 判断请求会在上游输出额度中预留思考空间，避免 Claude 的 `max_tokens=64` 在 Gemini 生成判定前耗尽：带思考配置的分类请求至少申请 4096 tokens，数值思考预算另计，并受模型输出上限约束。模型名称对应的思考档位保持不变。被截断或过滤的判定返回 `incomplete_auto_mode_classifier_output`，交给客户端处理；普通对话的输出额度保持原有规则。
 
 ## Codex CLI
 
@@ -300,7 +314,7 @@ HTTP 请求默认不接受网关服务器上的 `file_path` 或 `file://`。客�
 
 [真实 Google 上游最小验收](docs/real-client-gateway-validation.md) 另已完成四 CLI 文本/读取 8/8，经原生 Go 传输共 16 次生成；明确使用 `claude-sonnet-4-6`，各运行源码摘要分别保存。它覆盖实际文本及读取闭环，其他工具、压缩、媒体和新账号授权按各自报告验收。
 
-认证实现已按[官方发包证据](docs/official-auth-protocol-evidence.md)接入 PKCE、Go HTTP/2 token 请求及首次初始化轮询；agy 1.5.6 的模型请求通过原生传输协商 HTTP/2。隔离看板真实新增授权、保存、目录、额度及刷新已通过；首次项目初始化尚缺未初始化测试账号。图片、视频和文件的 HTTP 链路见[媒体验收](docs/gateway-media-integration.md)，安装与旧数据兼容见[升级回退演练](docs/upgrade-rehearsal.md)。
+认证实现已按[官方发包证据](docs/official-auth-protocol-evidence.md)接入 PKCE、Go HTTP/2 token 请求及首次初始化轮询；当前 agy 1.5.8 的模型请求通过原生传输协商 HTTP/1.1。隔离看板真实新增授权、保存、目录、额度及刷新已通过；首次项目初始化尚缺未初始化测试账号。图片、视频和文件的 HTTP 链路见[媒体验收](docs/gateway-media-integration.md)，安装与旧数据兼容见[升级回退演练](docs/upgrade-rehearsal.md)。
 
 [补充官方请求取证](docs/antigravity-api-1.5.2-additional-request-types.md)覆盖搜索、生图、编辑和视频摘要；[字段字典](docs/antigravity-api-1.5.2-rpc-field-dictionary.md)列出 64 个 RPC、66 条 REST 绑定及完整引用类型，分别标记实际发包和静态发现。它们不代表所有路径均已通过真实 Google 验收。
 

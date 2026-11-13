@@ -3,11 +3,11 @@
 const { CAPTURED_MODELS, thinkingLevel, modelProfile, generationProfile,
   resolveModelConfiguration, assertGenerationCompatibility } = require('./antigravity-model-config');
 
-// Observed Google Antigravity API protocol requests from agy 1.5.6 (2026-11-12).
+// Observed Google Antigravity API protocol requests from agy 1.5.8 (2026-11-13).
 const AGY_SESSION_ID = '-3750763034362895579';
 
-const AGY_CLI_VERSION = '1.5.6';
-const AGY_BUILD = '1018951551';
+const AGY_CLI_VERSION = '1.5.8';
+const AGY_BUILD = '1020628950';
 // OAuth keeps its own Go user agent and the dashboard's state-bound callback.
 const AGY_OAUTH_PROFILE = Object.freeze({
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/auth',

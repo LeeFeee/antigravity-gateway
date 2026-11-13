@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"io"
@@ -177,7 +178,7 @@ func TestCapturedMetadataHasContentLengthInsteadOfGenerationChunks(t *testing.T)
 	}
 }
 
-func TestOAuthAndModelRPCNegotiateHTTP2(t *testing.T) {
+func TestOAuthAndModelRPCUseSeparateHTTPProtocols(t *testing.T) {
 	observed := make(chan *http.Request, 2)
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		data, _ := io.ReadAll(r.Body)
@@ -188,12 +189,13 @@ func TestOAuthAndModelRPCNegotiateHTTP2(t *testing.T) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	server.EnableHTTP2 = true
+	server.TLS = &tls.Config{NextProtos: []string{"h2", "http/1.1"}}
 	server.StartTLS()
 	defer server.Close()
 	roots := x509.NewCertPool()
 	roots.AddCert(server.Certificate())
 	modelClient, _ := newClient()
-	oauthClient, _ := newClient()
+	oauthClient, _ := newOAuthClient()
 	modelClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
 	oauthClient.Transport.(*http.Transport).TLSClientConfig.RootCAs = roots
 	h := newHarness(t, modelClient, oauthClient)
@@ -205,18 +207,16 @@ func TestOAuthAndModelRPCNegotiateHTTP2(t *testing.T) {
 			t.Fatalf("unexpected response: %#v", e)
 		}
 		r := <-observed
-		if r.ProtoMajor != 2 || r.TLS.NegotiatedProtocol != "h2" || len(r.TransferEncoding) != 0 {
-			t.Fatalf("profile %s did not negotiate HTTP/2: %#v", profile, r)
-		}
 		if profile == "oauth" {
-			if r.ContentLength != int64(len(body)) {
-				t.Fatalf("OAuth form length changed: %d", r.ContentLength)
+			if r.ProtoMajor != 2 || r.TLS.NegotiatedProtocol != "h2" || r.ContentLength != int64(len(body)) || len(r.TransferEncoding) != 0 {
+				t.Fatalf("OAuth did not use HTTP/2 and fixed-length form: %#v", r)
 			}
 			if r.Header.Get("User-Agent") != "Go-http-client/2.0" || r.Header.Get("Content-Type") != "application/x-www-form-urlencoded" {
 				t.Fatal("OAuth headers changed")
 			}
-		} else if r.ContentLength != -1 {
-			t.Fatalf("streaming RPC sent a content length: %d", r.ContentLength)
+		} else if r.Proto != "HTTP/1.1" || r.TLS.NegotiatedProtocol != "http/1.1" ||
+			r.ContentLength != -1 || len(r.TransferEncoding) != 1 || r.TransferEncoding[0] != "chunked" {
+			t.Fatalf("model transport did not use HTTP/1.1 with chunked framing: %#v", r)
 		}
 		h.send(command{Type: "credit", ID: profile})
 		if e := h.next(); e.Type != "end" {

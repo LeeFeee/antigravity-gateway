@@ -78,13 +78,13 @@ test('copied or edited source evidence cannot clear unrelated normalized instruc
   }
 });
 
-test('source evidence never reaches upstream and classifier budget translation is unchanged', () => {
+test('source evidence never reaches upstream and classifier thinking has its own allowance', () => {
   const normalized = normalizeAnthropic({ model: 'claude-sonnet-4-6', max_tokens: 64, thinking: { type: 'disabled' },
     system: blocks(), messages: [{ role: 'user', content: 'Synthetic pending action.' }] });
   const before = structuredClone(normalized);
   const wire = buildDirectRequest(normalized, normalized.model, 'synthetic-project', 'synthetic-session');
   assert.equal(wire.request.systemInstruction.parts[0].text, normalized.system, 'unknown policy remains untouched');
-  assert.equal(wire.request.generationConfig.maxOutputTokens, 64);
+  assert.equal(wire.request.generationConfig.maxOutputTokens, 4096);
   assert.deepEqual(wire.request.generationConfig.thinkingConfig, { includeThoughts: true, thinkingBudget: 1024 });
   assert.doesNotMatch(JSON.stringify(wire), /clientSystemProvenance|anthropic-system-blocks/);
   assert.deepEqual(normalized, before);

@@ -295,7 +295,7 @@ test('OAuth flow initializes a first-login Antigravity project before saving the
     metadata: { ideType: 'ANTIGRAVITY' }
   });
   assert.equal(onboard.options.headers['x-goog-api-client'], undefined);
-  assert.match(onboard.options.headers['user-agent'], /^antigravity\/cli\/1\.5\.6 /);
+  assert.match(onboard.options.headers['user-agent'], /^antigravity\/cli\/1\.5\.8 /);
 });
 
 test('OAuth flow prefers the official Antigravity client over an earlier embedded client', async () => {

@@ -1,44 +1,44 @@
 {
   "protocol": 1,
   "goVersion": "go1.27.2",
-  "profile": "agy-1.5.6",
-  "sourceSha256": "72060be3fed46bfdeb56bfa4daea300647006d902c1200f13ca0a93394de4fd1",
+  "profile": "agy-1.5.8",
+  "sourceSha256": "6623238e139a0405043ccf840fc79afccc0c6e025e5430cff7408b32d32e4a22",
   "platforms": {
     "darwin-arm64": {
       "file": "agy-transport-darwin-arm64.gz",
       "bytes": 6335954,
-      "sha256": "987b323ecf9696912508611a31ce1d6a26efbfccb32a74cdac83ca8e09890681",
-      "compressedSha256": "ef91f20af1800dd786e77a701c664f69297985359acedec92b1a85498370fc78"
+      "sha256": "2077871d31927e2970ccab403d360795576ebaed4130056dcaab1650a2b2fdac",
+      "compressedSha256": "6d57f2ed1c43014de9f833daa24057126ef9786d504086bc4c0a07951a428440"
     },
     "darwin-x64": {
       "file": "agy-transport-darwin-x64.gz",
       "bytes": 6860688,
-      "sha256": "4c38a8c2f6b705a12d2abdb0583fd74f93c4b2bae178579722958bab1b49360a",
-      "compressedSha256": "0304959f82c0f0ad806a5c4d73f5a3a5ccc3c373c2a952be9829160029257d69"
+      "sha256": "226e961d62210db9833b7cc4d6ac3bcccd5520b2a83eef808c00b04f9b90a7c8",
+      "compressedSha256": "5250dcf5b7dbaa22320e0acc93b40c687164867b573a266e9215aee8895b153b"
     },
     "linux-arm64": {
       "file": "agy-transport-linux-arm64.gz",
       "bytes": 6226044,
-      "sha256": "f53be89d296b282e03a66fed2685bfaddc71c8b88317199d0966a588032f4b60",
-      "compressedSha256": "5566bd410f17be3ec1966b0ac103915f8360c73befb7064257a6faa0073e17ba"
+      "sha256": "c11bed2a4e73d291d74ba0e7b6481fbae42bff2b139a594001a5bb6e306e5682",
+      "compressedSha256": "b90b65de0a5d65f804e7aa41002b767a9309d506c20d4943a963b73da6029744"
     },
     "linux-x64": {
       "file": "agy-transport-linux-x64.gz",
       "bytes": 6705276,
-      "sha256": "b5fb62c8fdfd802de5792a83efbc35efded7480caec5f8bc15e7adcf5b94de14",
-      "compressedSha256": "4a6d0237a10af0b04d5a78ab8b49d0f02dbd4a66f8dec1a6e5dfd107ad3c5f56"
+      "sha256": "84ac587eababd926f3ed1c3e9b288a9952a8d70cee2bb843f6c44ddbe9575873",
+      "compressedSha256": "15a1ec2b46171c1ba83ab130b5c037d1596d8790a500d2584374b66c0a367679"
     },
     "win32-arm64": {
       "file": "agy-transport-win32-arm64.gz",
-      "bytes": 6249984,
-      "sha256": "746e222b79bc93dbc5327d1bd55908c574689113ee01f7398d04ebaba8bdc1bf",
-      "compressedSha256": "f512b873223ad302d3b27e6a95f45a5dc7ead54dedd07ae6c7714a1dc8054406"
+      "bytes": 6250496,
+      "sha256": "aea1d3a8f4c1a7bfe48556f5259fce37da91d0c3742a40ecaf4cac1451f75f80",
+      "compressedSha256": "7c0221917fe77a931284d3792518d27712cb62dada1984db8f7cb7323c5fbbde"
     },
     "win32-x64": {
       "file": "agy-transport-win32-x64.gz",
       "bytes": 6904832,
-      "sha256": "eb03f7c88b03e8388246266843f1c774b74c9a8fbe414c038ddd39ba86cf7c8b",
-      "compressedSha256": "cd46e591e043931036ad2409fb48d05e1b2dab973f5abffe77a694e773fbae4c"
+      "sha256": "11813560e5b7d7c68bf04f36492dfdf9798fc968f8f5d46dee4b930dd7ca83ee",
+      "compressedSha256": "9f772ee71196f1687a290007207a4b3343dc987c620ceb64d609b735a294497b"
     }
   }
 }

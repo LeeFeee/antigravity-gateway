@@ -59,7 +59,7 @@ test('empty account pool remains empty despite local credentials and retired tra
   const health = await fetch(base).then(r => r.json());
   assert.equal(health.transport, 'direct');
   assert.equal(health.upstream_protocol, 'Google Antigravity API');
-  assert.equal(health.agy.version, '1.5.6');
+  assert.equal(health.agy.version, '1.5.8');
   assert.equal(health.capabilities.chat_completions, false);
   assert.equal(health.capabilities.local_agy_session_bridge, false);
   assert.deepEqual(health.account_pool.accounts, []);

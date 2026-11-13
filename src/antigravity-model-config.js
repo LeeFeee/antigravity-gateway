@@ -67,6 +67,10 @@ const CLIENT_THINKING_FIELDS = new Set([
   'includeThoughts', 'reasoning', 'reasoning_effort', 'reasoningEffort',
   'include_reasoning', 'includeThinking'
 ]);
+// The captured Claude classifier asks for only 64 output tokens. Gemini counts
+// its fixed-tier thoughts against maxOutputTokens too; 64 can end before XML.
+// 4096 was verified with the original policy and LOW thinking on agy 1.5.8.
+const AUTO_MODE_MIN_OUTPUT_TOKENS = 4096;
 function generationProfile(normalized = {}, model, metadata) {
   const resolved = resolveModelConfiguration(model, metadata);
   const client = normalized?.generationConfig;
@@ -86,6 +90,17 @@ function generationProfile(normalized = {}, model, metadata) {
     if (!generation.stopSequences.length) delete generation.stopSequences;
   }
   if (resolved.thinkingConfig) generation.thinkingConfig = resolved.thinkingConfig;
+  const thinking = resolved.thinkingConfig;
+  if (classifierClosingTag && (thinking?.thinkingLevel || thinking?.thinkingBudget > 0 || thinking?.thinkingBudget === -1)
+    && Number.isFinite(generation.maxOutputTokens) && generation.maxOutputTokens > 0) {
+    // Numeric budgets need room for both thoughts and the client's verdict;
+    // named tiers use a bounded floor without changing the tier itself.
+    const thoughtBudget = Math.max(0, thinking.thinkingBudget || 0);
+    const modelLimit = Number.isFinite(resolved.profile.maxOutputTokens) && resolved.profile.maxOutputTokens > 0
+      ? resolved.profile.maxOutputTokens : Infinity;
+    generation.maxOutputTokens = Math.min(modelLimit,
+      Math.max(AUTO_MODE_MIN_OUTPUT_TOKENS, generation.maxOutputTokens + thoughtBudget));
+  }
   return Object.keys(generation).length ? generation : null;
 }
 

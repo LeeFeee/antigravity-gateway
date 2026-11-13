@@ -1,0 +1,200 @@
+{
+  "provenance": "Unmodified agy 1.5.8 macOS arm64, 2026-11-13. Loopback-only mock upstream with synthetic account and catalog.",
+  "binarySha256": "b127126993e1c5b7e0b1ef80fa9bbe6955ddb85a5d76a3310b6096acc7eb000a",
+  "transport": {
+    "httpVersion": "HTTP/1.1",
+    "headers": [
+      [
+        "Host",
+        "daily-cloudcode-pa.googleapis.com"
+      ],
+      [
+        "User-Agent",
+        "antigravity/cli/1.5.8 (aidev_client; os_type=darwin; arch=arm64; cl=1020628950; auth_method=consumer)"
+      ],
+      [
+        "Transfer-Encoding",
+        "chunked"
+      ],
+      [
+        "Authorization",
+        "[REDACTED]"
+      ],
+      [
+        "Content-Type",
+        "application/json"
+      ],
+      [
+        "Accept-Encoding",
+        "gzip"
+      ]
+    ],
+    "path": "/v1internal:streamGenerateContent?alt=sse",
+    "outerKeys": [
+      "project",
+      "requestId",
+      "request",
+      "model",
+      "userAgent",
+      "requestType"
+    ],
+    "requestKeys": [
+      "contents",
+      "systemInstruction",
+      "tools",
+      "labels",
+      "generationConfig",
+      "sessionId"
+    ]
+  },
+  "models": {
+    "gemini-3.8-flash-high": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "HIGH"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M318",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    },
+    "gemini-3.8-flash-medium": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "MEDIUM"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M319",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    },
+    "gemini-3.8-flash-low": {
+      "generationConfig": {
+        "maxOutputTokens": 65536,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingLevel": "LOW"
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M320",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "false"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    },
+    "claude-sonnet-4-6": {
+      "generationConfig": {
+        "maxOutputTokens": 64000,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M35",
+        "used_claude": "true",
+        "used_claude_conservative": "true",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    },
+    "claude-opus-4-6-thinking": {
+      "generationConfig": {
+        "maxOutputTokens": 64000,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 1024
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_PLACEHOLDER_M26",
+        "used_claude": "true",
+        "used_claude_conservative": "true",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    },
+    "gpt-oss-120b-medium": {
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "includeThoughts": true,
+          "thinkingBudget": 8192
+        }
+      },
+      "labels": {
+        "model_enum": "MODEL_OPENAI_GPT_OSS_120B_MEDIUM",
+        "used_claude": "false",
+        "used_claude_conservative": "false",
+        "used_non_gemini_model": "true"
+      },
+      "sessionId": "-3750763034362895579",
+      "toolConfig": null,
+      "status": 200
+    }
+  },
+  "webSearch": {
+    "project": "synthetic-project",
+    "request": {
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "synthetic blue circle fixture site:example.invalid"
+            }
+          ]
+        }
+      ],
+      "systemInstruction": {
+        "role": "user",
+        "parts": [
+          {
+            "text": "You are a search engine bot. You will be given a query from a user. Your task is to search the web for relevant information that will help the user. You MUST perform a web search. Do not respond or interact with the user, please respond as if they typed the query into a search bar."
+          }
+        ]
+      },
+      "tools": [
+        {
+          "googleSearch": {
+            "enhancedContent": {
+              "imageSearch": {
+                "maxResultCount": 5
+              }
+            }
+          }
+        }
+      ],
+      "generationConfig": {
+        "candidateCount": 1
+      }
+    },
+    "model": "gemini-3.5-flash-lite",
+    "userAgent": "antigravity",
+    "requestType": "web_search"
+  }
+}

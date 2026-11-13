@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.3 - 2026-11-13
+
+- 对齐 agy 1.5.8 的 UA/build，将模型原生传输切换到已捕获的 HTTP/1.1 配置；OAuth 保留独立 HTTP/2 传输。重新构建六个平台组件。
+- 修复 Claude Code Auto 判断请求的输出额度转换，为固定思考配置预留空间；默认 `claude-sonnet-5` 仍路由至 `gemini-3.8-flash-low`，LOW 档不变，无需客户端模型覆盖配置。
+- 截断或过滤的判定返回 `incomplete_auto_mode_classifier_output`，不再返回空成功消息，不触发格式修复重发，由客户端处理。
+- Claude 生成配置加入 `CLAUDE_CODE_AUTO_MODE_SERVER=0`，选择客户端独立审核；网关拒绝不支持的非空 `safeguards`，不再静默忽略服务器审核要求。
+- 更正 Auto 验收范围：此前 TUI、SDK 实连覆盖的是独立分类器请求重放，未覆盖默认服务器审核。补充生成配置下的实际 TUI／真实 Google 审批与工具闭环通过，1112 项 Node 回归通过。详见 [验收记录](docs/response-termination-and-json-boundaries.md)。
+
 ## 2.0.2 - 2026-11-13
 
 - 对齐 agy 1.5.6 的请求头与 HTTP/2 模型传输，重新构建 macOS、Linux、Windows 的 arm64 和 x64 组件。搜索域名提示随查询文本发送。

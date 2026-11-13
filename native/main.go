@@ -100,22 +100,31 @@ func certificatePool() (*x509.CertPool, error) {
 	return pool, nil
 }
 
-func newClient() (*http.Client, error) {
+func newClient() (*http.Client, error) { return newClientForProfile(false) }
+
+func newOAuthClient() (*http.Client, error) { return newClientForProfile(true) }
+
+func newClientForProfile(oauth bool) (*http.Client, error) {
 	roots, err := certificatePool()
 	if err != nil {
 		return nil, err
 	}
-	// agy 1.5.6 model RPCs and OAuth both negotiate HTTP/2 over TLS.
+	// agy 1.5.8 model RPCs advertise only HTTP/1.1. The separate OAuth
+	// transport continues to negotiate HTTP/2.
+	tlsConfig := &tls.Config{RootCAs: roots}
+	if !oauth {
+		tlsConfig.NextProtos = []string{"http/1.1"}
+	}
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		DialContext:           (&net.Dialer{Timeout: 30 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
-		TLSClientConfig:       &tls.Config{RootCAs: roots},
+		TLSClientConfig:       tlsConfig,
 		TLSHandshakeTimeout:   15 * time.Second,
 		ResponseHeaderTimeout: 300 * time.Second,
 		IdleConnTimeout:       90 * time.Second,
 		MaxIdleConns:          100,
 		MaxIdleConnsPerHost:   8,
-		ForceAttemptHTTP2:     true,
+		ForceAttemptHTTP2:     oauth,
 	}
 	return &http.Client{
 		Transport: transport,
@@ -176,7 +185,7 @@ func (b *bridge) start(c command) {
 				// Metadata, OAuth and synchronous generation send a known byte length.
 				body = reader
 			} else {
-				// Streaming RPCs omit Content-Length and carry the body in DATA frames.
+				// Streaming RPCs use chunked request framing over HTTP/1.1.
 				body = io.NopCloser(reader)
 			}
 		}
@@ -301,7 +310,7 @@ func main() {
 	client, err := newClient()
 	if err == nil {
 		var oauthClient *http.Client
-		oauthClient, err = newClient()
+		oauthClient, err = newOAuthClient()
 		if err == nil {
 			err = run(os.Stdin, os.Stdout, client, oauthClient)
 		}
