@@ -1,12 +1,18 @@
 # Antigravity Gateway
 
-当前版本：**2.0.4**。
+当前版本：**2.0.5**。
 
 将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.8** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.0.5 更新
+
+- 修复 Hermes 默认身份段落与官方框架之间插入多段 SOUL／自定义规则后，网关无法识别框架的问题。仍以精确指纹处理默认身份句，保留用户规则、权限、技能、记忆、工具参数与结果。
+- 将 Google 明确返回的 `RESOURCE_EXHAUSTED` 状态保留到 Messages／Responses 的 JSON 和 SSE 错误中，避免 Hermes 把通用资源耗尽误报为确定的余额耗尽；账号轮询、粘性和额度策略不变。
+- 新增完整请求真实环境验收脚本。本地及服务器使用原始 Hermes 失败请求、原模型及全部 19 个工具验证，不改 Hermes 配置。真实客户端的对话、文件读取及错误分类另行验收，详见 [2.0.5 验收记录](docs/hermes-2.0.5-live-validation.md)。
 
 ## 2.0.4 更新
 

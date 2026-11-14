@@ -111,16 +111,21 @@ function detectTemplate(text) {
   if (claude) return { client: 'claude', evidence: claude.tui ? 'claude-tui-system-template' : claude.searchHelper ? 'claude-sdk-search-helper-template'
     : claude.compact ? 'claude-sdk-compact-system-template' : 'claude-sdk-system-template' };
   const paragraphs = text.trimStart().split(/\n\s*\n/);
-  const hermesDocs = [HERMES_DOCS, HERMES_DOCS_NO_SKILLS].find(value => paragraphs[1] === value);
+  // SOUL.md may contain multiple paragraphs, including user rules appended to
+  // the unchanged default intro. Locate the exact framework boundary instead
+  // of assuming that all user-owned instructions fit into paragraph zero.
+  const docsIndex = paragraphs.findIndex((paragraph, index) => index > 0
+    && [HERMES_DOCS, HERMES_DOCS_NO_SKILLS].includes(paragraph));
+  const hermesDocs = docsIndex >= 0 ? paragraphs[docsIndex] : null;
   const docsAt = hermesDocs ? text.indexOf(hermesDocs) : -1;
   // Hermes adds its enforcement paragraph only for selected model families.
   // The captured Sonnet/file-only template instead has these exact two
   // behavioral paragraphs plus the bounded runtime environment section.
-  const hermesWithoutEnforcement = hash(paragraphs[2] || '') === '3baa51af2f4d627c2b1b2cffee38919540472a1215558c88e8616443efb7da1c'
-    && hash(paragraphs[3] || '') === 'f47069f4d7c2b7fb68365437cab3225e11ab3fbdf2f6bf42d1f8109d8b61dd30'
+  const hermesWithoutEnforcement = hash(paragraphs[docsIndex + 1] || '') === '3baa51af2f4d627c2b1b2cffee38919540472a1215558c88e8616443efb7da1c'
+    && hash(paragraphs[docsIndex + 2] || '') === 'f47069f4d7c2b7fb68365437cab3225e11ab3fbdf2f6bf42d1f8109d8b61dd30'
     && text.includes('\n# Hermes runtime environment\n') && text.includes('\n<!-- End Hermes runtime environment -->');
   if (docsAt >= 0 && !quotedAt(text, docsAt)
-    && paragraphs[2]?.startsWith('# Finishing the job\n')
+    && paragraphs[docsIndex + 1]?.startsWith('# Finishing the job\n')
     && text.includes('\n# Parallel tool calls\n')
     && (text.includes('\n# Tool-use enforcement\n') || hermesWithoutEnforcement)) {
     return { client: 'hermes', evidence: hermesDocs === HERMES_DOCS_NO_SKILLS

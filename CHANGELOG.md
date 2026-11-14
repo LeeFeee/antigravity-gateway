@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.5 - 2026-11-15
+
+- Hermes 框架识别改为定位精确文档段落及相邻框架边界，兼容默认首段后追加多段 SOUL。仅在首段精确指纹仍匹配时清理默认身份句，不删除用户自定义身份或规则。
+- 依据真实 Google 429 的结构化 `RESOURCE_EXHAUSTED` 保留客户端错误码，统一 Messages／Responses 的 JSON 和 SSE 边界；保留内部诊断码与账号调度行为。实际 Hermes SDK／错误处理器识别为 `rate_limit`、可重试，不再误报 billing。
+- 新增 `verify-live-request.js` 及真实环境验收约定：完整私有请求经实际部署入口访问 Google，同时检查流内错误、终止事件、正文与用量。只提交脱敏摘要与证据哈希。
+- 本地和服务器的原始 Messages／Responses 请求均完成 JSON、SSE 实连验收；原配置 Hermes 完成对话及随机中文文件读取闭环。首次英文标识读取出现模型额外搜索并被中止，保留该未通过样本，不把它计入通过结果。
+
 ## 2.0.4 - 2026-11-14
 
 - 修正 2.0.3 依赖客户端审核路径设置的方案：网关直接处理 Claude Code 默认 `dangerous_tool_use`／`classifier_context` v1，以 Flash Low／LOW 评估实际工具调用，并在 JSON／SSE 返回按调用 ID 对应的 `safeguard_results`。

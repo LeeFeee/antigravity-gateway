@@ -1,0 +1,447 @@
+{
+  "releaseVersion": "2.0.5",
+  "candidatePackageSha256": "4889fb2ba918e3d2447cb518fe546cfd75176f5bf88d3d979c88db511f89cdc3",
+  "candidateLiveRequests": [
+    {
+      "target": "local Responses",
+      "sourceSha256": "7890a28ba6141601e2466ff470aba51e2c151baef80aa692c7645174149fa88e",
+      "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+      "toolsSha256": "659c09be1ee2af2d8525719009cea442bdd96ad816e7c1160a2b04f26b64b5f5",
+      "model": "gemini-3.8-flash-high",
+      "clientToolCount": 19,
+      "cases": [
+        {
+          "mode": "json",
+          "startedAt": "2026-11-14T16:14:39.350Z",
+          "requestSha256": "e96ba93fd9a73b1243735b870d2edf89416fb5a1cf6a09299ba1c80d76ce319e",
+          "httpStatus": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseSha256": "10daf54eff19931f671c4396c2e59eca72432d6e5aaabed906725e3c36677cc5",
+          "passed": true,
+          "terminalEvent": "completed",
+          "textCharacters": 14,
+          "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+          "toolCalls": 0,
+          "usage": {
+            "input_tokens": 24895,
+            "output_tokens": 665,
+            "total_tokens": 25560
+          },
+          "elapsedMs": 35829
+        },
+        {
+          "mode": "sse",
+          "startedAt": "2026-11-14T16:15:15.180Z",
+          "requestSha256": "fac60b3556751b900add9989c3540ba6f4309962e1383f55db7b619ae357ad41",
+          "httpStatus": 200,
+          "contentType": "text/event-stream; charset=utf-8",
+          "responseSha256": "6ff4f6b96e1c6b37c668aacb3b6c955160641d2328631f0c41fac24a7ac8661c",
+          "passed": true,
+          "terminalEvent": "response.completed",
+          "textCharacters": 18,
+          "textSha256": "985089aab7670cc701135342c7a84f43ea0da5963497c3e5c2a03d8c5f0f7349",
+          "toolCalls": 0,
+          "usage": {
+            "input_tokens": 24895,
+            "output_tokens": 615,
+            "total_tokens": 25510
+          },
+          "elapsedMs": 21765
+        }
+      ]
+    },
+    {
+      "target": "local Messages",
+      "sourceSha256": "a7b3657c0e6e22231914d761c3c1ad6c92a3a9131c4d3679c7fac95a7a7bbee7",
+      "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+      "toolsSha256": "f786a70ce2e5f60e0776098274e91b8a7f9ded1989a0c460f8536eb0bfebb180",
+      "model": "gemini-3.8-flash-high",
+      "clientToolCount": 19,
+      "cases": [
+        {
+          "mode": "json",
+          "startedAt": "2026-11-14T16:15:58.843Z",
+          "requestSha256": "6b8603b21f842b71282d502cc9189b7d3168a43d7808f174b5dcc68f32ad4ad9",
+          "httpStatus": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseSha256": "8db09987fec454952e2c7db500aba92d2803f45dd45bb063f9eaff593707c2af",
+          "passed": true,
+          "terminalEvent": "message",
+          "stopReason": "end_turn",
+          "textCharacters": 21,
+          "textSha256": "09a202d82093b9a5034f4938ec9fa5daf2f0cd6f88aa8adc6ced75494b233e6a",
+          "usage": {
+            "input_tokens": 24896,
+            "output_tokens": 520,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "elapsedMs": 17825
+        },
+        {
+          "mode": "sse",
+          "startedAt": "2026-11-14T16:16:16.668Z",
+          "requestSha256": "9deff30e0254d6347c4ae6e358f841e20198cca543aafef4169027dcd75cc561",
+          "httpStatus": 200,
+          "contentType": "text/event-stream; charset=utf-8",
+          "responseSha256": "8e0710591b077f9d1a0c4e13a6bb5751a81e4ad093c613d9135052998876676e",
+          "passed": true,
+          "terminalEvent": "message_stop",
+          "stopReason": "end_turn",
+          "textCharacters": 14,
+          "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+          "usage": {
+            "input_tokens": 24896,
+            "output_tokens": 558,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "elapsedMs": 22182
+        }
+      ]
+    },
+    {
+      "target": "server Responses",
+      "sourceSha256": "7890a28ba6141601e2466ff470aba51e2c151baef80aa692c7645174149fa88e",
+      "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+      "toolsSha256": "659c09be1ee2af2d8525719009cea442bdd96ad816e7c1160a2b04f26b64b5f5",
+      "model": "gemini-3.8-flash-high",
+      "clientToolCount": 19,
+      "cases": [
+        {
+          "mode": "json",
+          "startedAt": "2026-11-14T16:15:21.253Z",
+          "requestSha256": "e96ba93fd9a73b1243735b870d2edf89416fb5a1cf6a09299ba1c80d76ce319e",
+          "httpStatus": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseSha256": "44617ba958251123e09079ba50b6efcbb3470216c273910af6cc802b9f1281ec",
+          "passed": true,
+          "terminalEvent": "completed",
+          "textCharacters": 14,
+          "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+          "toolCalls": 0,
+          "usage": {
+            "input_tokens": 24895,
+            "output_tokens": 624,
+            "total_tokens": 25519
+          },
+          "elapsedMs": 39459
+        },
+        {
+          "mode": "sse",
+          "startedAt": "2026-11-14T16:16:00.712Z",
+          "requestSha256": "fac60b3556751b900add9989c3540ba6f4309962e1383f55db7b619ae357ad41",
+          "httpStatus": 200,
+          "contentType": "text/event-stream; charset=utf-8",
+          "responseSha256": "e5fa6084bc756c7b4158a1f3354f0fa92a8ca1202bfba82766c7e8296bd49d9f",
+          "passed": true,
+          "terminalEvent": "response.completed",
+          "textCharacters": 14,
+          "textSha256": "5ca2694fc7b9baf749326ceb6b31894786b36c40521ee468762860b4984c288b",
+          "toolCalls": 0,
+          "usage": {
+            "input_tokens": 24895,
+            "output_tokens": 503,
+            "total_tokens": 25398
+          },
+          "elapsedMs": 25351
+        }
+      ]
+    },
+    {
+      "target": "server Messages",
+      "sourceSha256": "a7b3657c0e6e22231914d761c3c1ad6c92a3a9131c4d3679c7fac95a7a7bbee7",
+      "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+      "toolsSha256": "f786a70ce2e5f60e0776098274e91b8a7f9ded1989a0c460f8536eb0bfebb180",
+      "model": "gemini-3.8-flash-high",
+      "clientToolCount": 19,
+      "cases": [
+        {
+          "mode": "json",
+          "startedAt": "2026-11-14T16:17:10.465Z",
+          "requestSha256": "6b8603b21f842b71282d502cc9189b7d3168a43d7808f174b5dcc68f32ad4ad9",
+          "httpStatus": 200,
+          "contentType": "application/json; charset=utf-8",
+          "responseSha256": "506821da4784ba227aa52a56e1dd248f525c905fa1a42309f58e5bcd1f016b64",
+          "passed": true,
+          "terminalEvent": "message",
+          "stopReason": "end_turn",
+          "textCharacters": 14,
+          "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+          "usage": {
+            "input_tokens": 24896,
+            "output_tokens": 593,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "elapsedMs": 33413
+        },
+        {
+          "mode": "sse",
+          "startedAt": "2026-11-14T16:17:43.879Z",
+          "requestSha256": "9deff30e0254d6347c4ae6e358f841e20198cca543aafef4169027dcd75cc561",
+          "httpStatus": 200,
+          "contentType": "text/event-stream; charset=utf-8",
+          "responseSha256": "9504799b7b1835e36fe58242739ce5418b20a9c1da4956472617f40cc7982ba4",
+          "passed": true,
+          "terminalEvent": "message_stop",
+          "stopReason": "end_turn",
+          "textCharacters": 20,
+          "textSha256": "edce6707cd8386e6cda5fff77ce5d7cf33445002384df3d1a4ea8cfed519c5cc",
+          "usage": {
+            "input_tokens": 24896,
+            "output_tokens": 559,
+            "cache_creation_input_tokens": 0,
+            "cache_read_input_tokens": 0
+          },
+          "elapsedMs": 64155
+        }
+      ]
+    }
+  ],
+  "finalDeploymentVerification": {
+    "passed": true,
+    "realCases": 8,
+    "runs": [
+      {
+        "target": "local Responses",
+        "gatewayVersion": "2.0.5",
+        "sourceSha256": "7890a28ba6141601e2466ff470aba51e2c151baef80aa692c7645174149fa88e",
+        "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+        "toolsSha256": "659c09be1ee2af2d8525719009cea442bdd96ad816e7c1160a2b04f26b64b5f5",
+        "model": "gemini-3.8-flash-high",
+        "clientToolCount": 19,
+        "cases": [
+          {
+            "mode": "json",
+            "startedAt": "2026-11-14T16:30:34.917Z",
+            "requestSha256": "e96ba93fd9a73b1243735b870d2edf89416fb5a1cf6a09299ba1c80d76ce319e",
+            "httpStatus": 200,
+            "contentType": "application/json; charset=utf-8",
+            "responseSha256": "8a3ba1ad36b971ab2e3f6e397930d0e53d267295b6830f07fcac8f5f1823f6c3",
+            "passed": true,
+            "terminalEvent": "completed",
+            "textCharacters": 16,
+            "textSha256": "bcdfc52485b8f3d6e33a150bf6b4c6740df8817b94754af64dfae88190cba5b6",
+            "toolCalls": 0,
+            "usage": {
+              "input_tokens": 24895,
+              "output_tokens": 664,
+              "total_tokens": 25559
+            },
+            "elapsedMs": 31965
+          },
+          {
+            "mode": "sse",
+            "startedAt": "2026-11-14T16:31:06.883Z",
+            "requestSha256": "fac60b3556751b900add9989c3540ba6f4309962e1383f55db7b619ae357ad41",
+            "httpStatus": 200,
+            "contentType": "text/event-stream; charset=utf-8",
+            "responseSha256": "a817cd8ada6cebffc0772e83be67bc5cb635bc4d72d053b7e5ddfa1ad49da05d",
+            "passed": true,
+            "terminalEvent": "response.completed",
+            "textCharacters": 14,
+            "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+            "toolCalls": 0,
+            "usage": {
+              "input_tokens": 24895,
+              "output_tokens": 691,
+              "total_tokens": 25586
+            },
+            "elapsedMs": 35906
+          }
+        ]
+      },
+      {
+        "target": "local Messages",
+        "gatewayVersion": "2.0.5",
+        "sourceSha256": "a7b3657c0e6e22231914d761c3c1ad6c92a3a9131c4d3679c7fac95a7a7bbee7",
+        "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+        "toolsSha256": "f786a70ce2e5f60e0776098274e91b8a7f9ded1989a0c460f8536eb0bfebb180",
+        "model": "gemini-3.8-flash-high",
+        "clientToolCount": 19,
+        "cases": [
+          {
+            "mode": "json",
+            "startedAt": "2026-11-14T16:32:26.635Z",
+            "requestSha256": "6b8603b21f842b71282d502cc9189b7d3168a43d7808f174b5dcc68f32ad4ad9",
+            "httpStatus": 200,
+            "contentType": "application/json; charset=utf-8",
+            "responseSha256": "4346010e4e5151a4ff4a6e4561f23cc8e92b15050a213221792281c734c080c6",
+            "passed": true,
+            "terminalEvent": "message",
+            "stopReason": "end_turn",
+            "textCharacters": 18,
+            "textSha256": "e480f96e76fffc83d9bb09b093ca89c0a4482ec76dea9fa49c425e310ec82e12",
+            "usage": {
+              "input_tokens": 24896,
+              "output_tokens": 620,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0
+            },
+            "elapsedMs": 39094
+          },
+          {
+            "mode": "sse",
+            "startedAt": "2026-11-14T16:33:05.730Z",
+            "requestSha256": "9deff30e0254d6347c4ae6e358f841e20198cca543aafef4169027dcd75cc561",
+            "httpStatus": 200,
+            "contentType": "text/event-stream; charset=utf-8",
+            "responseSha256": "788b72a444265924c0dc672291bb40279913e2ae4ee679ec156ea445843d0f92",
+            "passed": true,
+            "terminalEvent": "message_stop",
+            "stopReason": "end_turn",
+            "textCharacters": 20,
+            "textSha256": "edce6707cd8386e6cda5fff77ce5d7cf33445002384df3d1a4ea8cfed519c5cc",
+            "usage": {
+              "input_tokens": 24896,
+              "output_tokens": 669,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0
+            },
+            "elapsedMs": 37057
+          }
+        ]
+      },
+      {
+        "target": "server Responses",
+        "gatewayVersion": "2.0.5",
+        "sourceSha256": "7890a28ba6141601e2466ff470aba51e2c151baef80aa692c7645174149fa88e",
+        "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+        "toolsSha256": "659c09be1ee2af2d8525719009cea442bdd96ad816e7c1160a2b04f26b64b5f5",
+        "model": "gemini-3.8-flash-high",
+        "clientToolCount": 19,
+        "cases": [
+          {
+            "mode": "json",
+            "startedAt": "2026-11-14T16:31:19.786Z",
+            "requestSha256": "e96ba93fd9a73b1243735b870d2edf89416fb5a1cf6a09299ba1c80d76ce319e",
+            "httpStatus": 200,
+            "contentType": "application/json; charset=utf-8",
+            "responseSha256": "8be212c500c5bd1881f6947fbe6cb26cb31ba8112fabffce198f4a08848d63b1",
+            "passed": true,
+            "terminalEvent": "completed",
+            "textCharacters": 18,
+            "textSha256": "985089aab7670cc701135342c7a84f43ea0da5963497c3e5c2a03d8c5f0f7349",
+            "toolCalls": 0,
+            "usage": {
+              "input_tokens": 24895,
+              "output_tokens": 584,
+              "total_tokens": 25479
+            },
+            "elapsedMs": 35485
+          },
+          {
+            "mode": "sse",
+            "startedAt": "2026-11-14T16:31:55.271Z",
+            "requestSha256": "fac60b3556751b900add9989c3540ba6f4309962e1383f55db7b619ae357ad41",
+            "httpStatus": 200,
+            "contentType": "text/event-stream; charset=utf-8",
+            "responseSha256": "b2ffe10b864da93db770b0d9e7ead7a3549248d38f682d9befc8aa3d1da6918a",
+            "passed": true,
+            "terminalEvent": "response.completed",
+            "textCharacters": 14,
+            "textSha256": "61e232d165e7765909b612e30b2c90b81fe8bc8a66dd97e732ca0eba2e6270b2",
+            "toolCalls": 0,
+            "usage": {
+              "input_tokens": 24895,
+              "output_tokens": 766,
+              "total_tokens": 25661
+            },
+            "elapsedMs": 36904
+          }
+        ]
+      },
+      {
+        "target": "server Messages",
+        "gatewayVersion": "2.0.5",
+        "sourceSha256": "a7b3657c0e6e22231914d761c3c1ad6c92a3a9131c4d3679c7fac95a7a7bbee7",
+        "systemSha256": "c03c4e7b1cd71162968e92e4ed9efb2e5a59a85e426dfb082c7c2118cb8ebe8d",
+        "toolsSha256": "f786a70ce2e5f60e0776098274e91b8a7f9ded1989a0c460f8536eb0bfebb180",
+        "model": "gemini-3.8-flash-high",
+        "clientToolCount": 19,
+        "cases": [
+          {
+            "mode": "json",
+            "startedAt": "2026-11-14T16:32:34.070Z",
+            "requestSha256": "6b8603b21f842b71282d502cc9189b7d3168a43d7808f174b5dcc68f32ad4ad9",
+            "httpStatus": 200,
+            "contentType": "application/json; charset=utf-8",
+            "responseSha256": "8761bc21a23a72d132786f9c590d55b696c6e4bd243d02b6770a563e67d98dad",
+            "passed": true,
+            "terminalEvent": "message",
+            "stopReason": "end_turn",
+            "textCharacters": 16,
+            "textSha256": "bcdfc52485b8f3d6e33a150bf6b4c6740df8817b94754af64dfae88190cba5b6",
+            "usage": {
+              "input_tokens": 24896,
+              "output_tokens": 475,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0
+            },
+            "elapsedMs": 26119
+          },
+          {
+            "mode": "sse",
+            "startedAt": "2026-11-14T16:33:00.189Z",
+            "requestSha256": "9deff30e0254d6347c4ae6e358f841e20198cca543aafef4169027dcd75cc561",
+            "httpStatus": 200,
+            "contentType": "text/event-stream; charset=utf-8",
+            "responseSha256": "e3ae09b9304ca7a7727454e89c98985f42ccc11e0935baaf80b98e699a8e9cc0",
+            "passed": true,
+            "terminalEvent": "message_stop",
+            "stopReason": "end_turn",
+            "textCharacters": 20,
+            "textSha256": "edce6707cd8386e6cda5fff77ce5d7cf33445002384df3d1a4ea8cfed519c5cc",
+            "usage": {
+              "input_tokens": 24896,
+              "output_tokens": 535,
+              "cache_creation_input_tokens": 0,
+              "cache_read_input_tokens": 0
+            },
+            "elapsedMs": 19407
+          }
+        ]
+      }
+    ]
+  },
+  "actualHermes": {
+    "version": "0.23.1+4394.gc9b20d7",
+    "greeting": true,
+    "chineseFileReadRoundTrip": true,
+    "firstEnglishFileRead": "interrupted; excluded"
+  },
+  "actualHermesStreamError": {
+    "passed": true,
+    "liveRequest": true,
+    "provider": "antigravity",
+    "model": "gemini-3.8-flash-high",
+    "reason": "rate_limit",
+    "retryable": true,
+    "errorType": "_StreamErrorEvent",
+    "elapsedMs": 47481
+  },
+  "runtimeSha256": "785e1fd4f0c950e94aeaf8f96adca3c6234bc23430e791c6b77828cb3017bfe5",
+  "runtimeFiles": 99,
+  "actualHermesAfterRestart": {
+    "passed": true,
+    "gatewayVersion": "2.0.5",
+    "readAfterGatewayRestart": true,
+    "sameClientSession": true,
+    "toolsInFinalTurn": [
+      "read_file"
+    ],
+    "actualReadTextSha256": "e15dfa13b9a104405826b2672a1e896ba7bc046778e54ee3b00351fa88d14189",
+    "source": "actual installed Hermes session database"
+  },
+  "integrity": {
+    "gatewayConfigurationsPreserved": true,
+    "serverOriginalApiKeyAndDashboardPasswordVerified": true,
+    "localAccountCount": 4,
+    "serverAccountCount": 10,
+    "accountIdentityAndRefreshCredentialsPreserved": true,
+    "portsUnchanged": true,
+    "hermesConfigurationSoulAndEnvByteIdentical": true,
+    "clientGeneratedUiTipRestored": true
+  }
+}

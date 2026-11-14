@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Local Anthropic Messages and OpenAI Responses gateway for managed accounts using Google Antigravity API (agy 1.5.8).",
   "license": "MIT",
   "type": "commonjs",
@@ -14,7 +14,8 @@
     "docs/",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "AGENTS.md"
   ],
   "bin": {
     "antigravity-gateway": "antigravity-gateway.js"
@@ -31,7 +32,8 @@
     "check:native": "node --check src/agy-native-transport.js && node --check src/agy-request-profile.js && node --check src/agy-session-state.js && node --check src/agy-file-lease.js && node --check src/agy-context-state.js && node --check src/agy-image-references.js && node --check src/agy-tool-results.js && node --check src/agy-structured-output.js && node --check scripts/build-native-transport.js",
     "postinstall": "node scripts/check-environment.js",
     "check": "node scripts/check-syntax.js",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "verify:live-request": "node scripts/verify-live-request.js"
   },
   "engines": {
     "node": ">=20"

@@ -15,6 +15,7 @@ const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemain
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DiagnosticLog } = require('./src/diagnostic-log');
 const { DirectProviderError } = require('./src/direct-provider');
+const { clientError } = require('./src/client-error');
 const { closeNativeTransport } = require('./src/agy-native-transport');
 const { imageReferencePaths } = require('./src/agy-image-references');
 const { nativeImageToolResponse } = require('./src/agy-tool-results');
@@ -717,10 +718,14 @@ function parseMultipart(buffer, contentType) {
 }
 
 function errorBody(error, protocol) {
-  const message = error.message || 'Gateway error';
-  const code = error.code || 'gateway_error';
-  if (protocol === 'anthropic') return { type: 'error', error: { type: code, message } };
-  return { error: { message, type: code, code } };
+  const mapped = clientError(error);
+  if (protocol === 'anthropic') {
+    // Retain the existing Anthropic shape except where upstream evidence adds
+    // a meaningful code (also needed for errors arriving after HTTP 200).
+    if (!mapped.upstream_status) return { type: 'error', error: { type: mapped.type, message: mapped.message } };
+    return { type: 'error', error: mapped };
+  }
+  return { error: mapped };
 }
 
 function mapAgyError(error) {
@@ -1144,7 +1149,11 @@ function emitResponsesItem(emit, item, outputIndex) {
 
 const responsesStreamErrors = new WeakMap();
 function sendResponsesStreamError(res, error) {
-  const event = { type: 'error', code: error.code || 'server_error', message: error.message, param: null };
+  const mapped = clientError(error);
+  const event = { type: 'error', code: mapped.code, message: mapped.message, param: null };
+  if (mapped.upstream_status) Object.assign(event, {
+    gateway_code: mapped.gateway_code, upstream_status: mapped.upstream_status
+  });
   const emit = responsesStreamErrors.get(res);
   if (emit) emit(event);
   else sendSse(res, null, { ...event, sequence_number: 0 });
