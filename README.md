@@ -1,6 +1,6 @@
 # Antigravity Gateway
 
-当前版本：**2.0.3**。
+当前版本：**2.0.4**。
 
 将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.8** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
@@ -8,12 +8,18 @@
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
 
+## 2.0.4 更新
+
+- 直接兼容 Claude Code 2.1.322 默认 Auto 请求中的 `safeguards`，由网关调用 Flash Low／LOW 评估待执行工具，再按工具 ID 返回 `safeguard_results`；支持 JSON 和 SSE。
+- 不修改 Claude Code 配置，不要求审核环境变量或分类器模型覆盖。旧的独立 `claude-sonnet-5` 分类请求仍自动路由 Flash Low。
+- 判定错误、缺失、重复、截断或上游不可用时返回审核不可用；保留模型明确的阻止结果，不生成默认批准。客户端工具继续由客户端执行。
+
 ## 2.0.3 更新
 
 - 对齐 agy 1.5.8 的 UA/build 和模型 HTTP/1.1 传输；OAuth 继续使用独立 HTTP/2 传输。
 - 修复 Claude Code 原始 Auto 判断请求的思考额度转换，保留默认 Flash Low／LOW 路由，无需配置分类器模型覆盖。
 - 截断或过滤的 Auto 判定明确返回错误，由客户端处理。
-- 生成的 Claude 配置选择客户端独立审核路径；对不支持的服务器 `safeguards` 请求明确返回 400，避免静默忽略。
+- 当时通过客户端审核路径设置兼容 Auto；这一方案已由 2.0.4 的网关端协议适配替代。
 
 Claude Code 2.1.322 的 TUI、SDK **独立分类器请求**已重放至真实 Google 并返回完整判定。该记录不代表默认服务器审核路径已受支持。补充使用生成配置的实际 TUI 测试已完成“主模型调用 → 独立模型判断 → 客户端执行工具 → 主模型续答”闭环，1112 项回归通过。范围见 [Auto Mode 验收记录](docs/response-termination-and-json-boundaries.md#auto-mode-分类器的闭合停止序列)。
 
@@ -99,8 +105,7 @@ Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回
   "env": {
     "ANTHROPIC_BASE_URL": "http://127.0.0.1:9897",
     "ANTHROPIC_AUTH_TOKEN": "antigravity-gateway",
-    "ANTHROPIC_MODEL": "gemini-3.8-flash-high",
-    "CLAUDE_CODE_AUTO_MODE_SERVER": "0"
+    "ANTHROPIC_MODEL": "gemini-3.8-flash-high"
   }
 }
 ```
@@ -111,11 +116,13 @@ Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回
 claude --settings "$(antigravity-gateway --claude-config-path)"
 ```
 
-该文件仍位于原数据目录，随账号池模型目录更新，并包含 `CLAUDE_CODE_AUTO_MODE_SERVER=0`。使用已有自建配置时也须合并这一项并重启 Claude 会话。现有项目规则、权限设置和工具审批由 Claude Code 保持。
+该文件仍位于原数据目录，随账号池模型目录更新。网关只生成模型目录，不写入审核模式、权限规则或分类器模型设置。
 
-Claude Code 2.1.322 默认把审核放进主请求的 `safeguards`，等待 Anthropic 服务器返回 `safeguard_results`。Google Antigravity 不提供这项服务。上述 `CLAUDE_CODE_AUTO_MODE_SERVER=0` 让 Claude 自己发起独立判断请求，**不是关闭 Auto 审核**。本机该版本实测：仅返回“不支持 safeguards”的 400 并不会恢复独立判断；必须使用兼容配置。官方参数说明见 [服务器审核文档](https://code.claude.com/docs/en/permission-modes#server-side-classifier-review)。
+Claude Code 默认 Auto 会在主请求中携带 `safeguards`。网关保持所选主模型，获得完整工具调用后，再用 `gemini-3.8-flash-low`／LOW 对工具参数、会话中的用户边界和 `classifier_context` 规则做一次独立模型评估。结果按原工具调用 ID 返回；客户端继续决定是否执行，网关不执行 shell、文件或 MCP 工具。JSON 响应返回 `safeguard_results`，SSE 在结束的 `message_delta.delta` 中返回同一结构。
 
-Auto Mode 无需额外配置分类器模型：网关将识别到的默认 `claude-sonnet-5` 判断请求自动路由至 `gemini-3.8-flash-low`。普通对话仍使用所选主模型；其他显式分类器模型也保留原选择。分类政策和判断由 Claude 与实际模型负责，网关只转换并转发，不补写允许执行结论。
+此路径不要求 `CLAUDE_CODE_AUTO_MODE_SERVER`，也不要求修改 Claude Code 的默认审核方式。旧版配置若已显式选择客户端独立审核，下面的旧分类请求路由仍兼容。当前覆盖 `dangerous_tool_use`／上下文 v1；未知契约明确返回错误。服务端 Anthropic 的私有审核政策并未由 Google 提供：本实现是使用请求上下文和网关公开评估指令的独立模型审核，不宣称判定与 Anthropic 服务端完全相同。模型截断、无效返回或调用失败均不能转成放行。详见 [服务器审核适配](docs/response-termination-and-json-boundaries.md#claude-code-21322-的服务器审核与客户端独立审核)。
+
+对于旧的独立 Auto 分类请求，也无需额外配置分类器模型：网关将识别到的默认 `claude-sonnet-5` 判断请求自动路由至 `gemini-3.8-flash-low`。普通对话仍使用所选主模型；其他显式分类器模型也保留原选择。分类政策和判断由 Claude 与实际模型负责，网关只转换并转发，不补写允许执行结论。
 
 Auto 判断请求会在上游输出额度中预留思考空间，避免 Claude 的 `max_tokens=64` 在 Gemini 生成判定前耗尽：带思考配置的分类请求至少申请 4096 tokens，数值思考预算另计，并受模型输出上限约束。模型名称对应的思考档位保持不变。被截断或过滤的判定返回 `incomplete_auto_mode_classifier_output`，交给客户端处理；普通对话的输出额度保持原有规则。
 

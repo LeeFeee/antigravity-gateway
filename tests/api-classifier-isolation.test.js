@@ -8,7 +8,7 @@ delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
 const { AccountPool } = require('../src/account-pool');
 const { createServer, resolveModel, refreshClientModelCatalogs } = require('../antigravity-gateway');
 
-test('server safeguards are rejected before upstream allocation or SSE; business fields remain intact', async t => {
+test('unsupported safeguards are rejected before upstream allocation or SSE; business fields remain intact', async t => {
   const calls = [];
   t.mock.method(AccountPool.prototype, 'send', async input => {
     calls.push(input);
@@ -31,7 +31,7 @@ test('server safeguards are rejected before upstream allocation or SSE; business
       const body = await response.json();
       assert.equal(body.error.type, 'invalid_request_error');
       assert.match(body.error.message, /safeguards/);
-      assert.match(body.error.message, /CLAUDE_CODE_AUTO_MODE_SERVER=0/);
+      assert.doesNotMatch(body.error.message, /CLAUDE_CODE_AUTO_MODE_SERVER/);
       assert.equal(calls.length, 0);
     }
   }

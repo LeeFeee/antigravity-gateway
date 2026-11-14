@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Local Anthropic Messages and OpenAI Responses gateway for managed accounts using Google Antigravity API (agy 1.5.8).",
   "license": "MIT",
   "type": "commonjs",

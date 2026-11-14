@@ -29,6 +29,7 @@ const { TerminalConsole } = require('./src/terminal-console');
 const { UsageStore } = require('./src/usage-store');
 const { SessionManager, credentialScope } = require('./src/session-manager');
 const { resolveModelConfiguration } = require('./src/antigravity-model-config');
+const { readSafeguards, evaluateSafeguards } = require('./src/anthropic-safeguards');
 const { isConversionError } = require('./src/conversion-errors');
 const { withAsyncSchemaBoundary } = require('./src/schema-contract');
 const { ServerSearchReceipts } = require('./src/server-search-contract');
@@ -481,9 +482,6 @@ function claudeConfigBody(models) {
   const ordered = displayModels(models);
   return {
     $schema: 'https://json.schemastore.org/claude-code-settings.json',
-    // Google Antigravity does not provide Anthropic's server-side safeguards.
-    // Keep Claude's own classifier active; its default model is routed below.
-    env: { CLAUDE_CODE_AUTO_MODE_SERVER: '0' },
     modelPicker: {
       options: ordered.map((model) => ({
         model,
@@ -874,6 +872,7 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
     try {
       return await finalize(raw);
     } catch (error) {
+      if (normalized.serverAutoReview) throw error;
       if (error.code === 'invalid_auto_mode_classifier_output') {
         raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
         return await finalize(raw);
@@ -1088,7 +1087,8 @@ function emitAnthropicStream(res, body) {
   });
   sendSse(res, 'message_delta', {
     type: 'message_delta',
-    delta: { stop_reason: body.stop_reason, stop_sequence: null },
+    delta: { stop_reason: body.stop_reason, stop_sequence: null,
+      ...(body.safeguard_results ? { safeguard_results: body.safeguard_results } : {}) },
     usage: body.usage,
     ...(body.usage_known === false ? { usage_known: false } : {}),
     ...(body.artifacts ? { artifacts: body.artifacts } : {})
@@ -1343,7 +1343,7 @@ async function handleFileUpload(req, res) {
   sendJson(res, 200, saved);
 }
 
-async function handleServerSearchForward(prepared, payload, req, res, signal) {
+async function handleServerSearchForward(prepared, payload, req, res, signal, safeguardContext) {
   const { normalized, query, contents, instructions, generationConfig, tool } = prepared;
   const scope = clientScope(req);
   const identity = clientSessionIdentity(req, payload, normalized, null);
@@ -1368,24 +1368,45 @@ async function handleServerSearchForward(prepared, payload, req, res, signal) {
       release();
     }
   }
+  if (safeguardContext) body.safeguard_results = (await evaluateSafeguards({ context: safeguardContext,
+    normalized, body, signal })).results;
   if (normalized.stream) emitAnthropicStream(res, body);
   else sendJson(res, 200, body, { 'x-antigravity-model': body.model });
 }
 
 async function handleAnthropic(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
-  const search = await prepareServerSearchForwardAsync(payload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
-  if (search && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal);
+  const safeguardContext = readSafeguards(payload);
+  const { safeguards: _safeguards, ...searchPayload } = payload;
+  const search = await prepareServerSearchForwardAsync(searchPayload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
+  if (search && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal, safeguardContext);
   const normalized = search?.normalized || await normalizeAnthropicAsync(payload, { signal });
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
   const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
   const identity = clientSessionIdentity(req, payload, normalized, null);
   gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
-  const liveEmitter = textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
-  let result;
-  try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
-  const body = anthropicResponse(normalized.model || model, result);
+  const liveEmitter = !safeguardContext && textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
+  let body;
+  try {
+    const result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined });
+    body = anthropicResponse(normalized.model || model, result);
+    if (safeguardContext) {
+      const reviewed = await evaluateSafeguards({ context: safeguardContext, normalized, body, signal,
+        evaluate: async (review, reviewModel) => {
+          gatewayLog(`[Antigravity Gateway] class=server-auto-review model=${reviewModel} ${identityTrace(identity)}`);
+          return runTurnWithModelDiagnostic(review, reviewModel, signal, {
+            ...identity, sessionId: `${identity.sessionId}:server-auto-review:${identity.requestId}`,
+            auxiliaryScope: 'server-auto-review', reuseConversation: false, mediaScope: clientScope(req)
+          });
+        },
+        onResult: summary => gatewayLog(`[Antigravity Gateway] server-auto-review result=${JSON.stringify(summary)} ${identityTrace(identity)}`)
+      });
+      if (reviewed.usage) body.usage = anthropicResponse(normalized.model || model,
+        { ...result, usage: combinedUsage(result.usage, reviewed.usage) }).usage;
+      body.safeguard_results = reviewed.results;
+    }
+  } finally { stopHeartbeat?.(); }
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }

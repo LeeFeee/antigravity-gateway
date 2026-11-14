@@ -1,6 +1,6 @@
 # 响应结束状态与工具 JSON 边界
 
-更新：2026-11-13。本页说明本地协议修复、对应实测范围及保留的边界。
+更新：2026-11-14。本页说明本地协议修复、对应实测范围及保留的边界。
 
 ## 结束状态
 
@@ -47,15 +47,21 @@ Claude Code 默认以 `claude-sonnet-5` 发起的 Auto Mode 分类请求，内�
 
 ## Claude Code 2.1.322 的服务器审核与客户端独立审核
 
-默认 Auto 会在主 Messages 请求中发送 `dangerous-tool-use-2026-09-03` beta 和顶层 `safeguards: [{ type, classifier_context }]`，从响应读取 `safeguard_results`。Google Antigravity 没有等价的 Anthropic 服务器审核接口；网关不能忽略这一要求后声称已审核，也不能编造允许执行结果。
+2.0.4 取消 2.0.3 通过修改客户端审核路径的方案，直接适配默认服务器审核。主请求携带 `dangerous-tool-use-2026-09-03` beta 及 `safeguards: [{ type: "dangerous_tool_use", classifier_context: { v: 1, ... } }]`。请求上下文包括权限模式、工作目录、可信目录、规则、Auto 策略、环境和 git 状态。此契约取自未修改的实际客户端请求；返回 Schema 从同版客户端内置 parser 核对，并经真实 TUI 验证。
 
-2026-11-13 使用本机实际 Claude Code 2.1.322 TUI、隔离 HOME 和仅允许回环网络的合成服务复现：Gemini Flash High 和 Sonnet 4.6 主模型收到缺少审核结果的响应时，均提示无法检查；明确返回命名 `safeguards` 的 `400 invalid_request_error` 后，客户端虽去掉该字段重试，但仍未发起独立分类器。此行为与官方文档所述自动回退并不一致，不能依赖该回退。
+网关保持主模型，先获取其合法完整工具调用，然后以 Flash Low／LOW 进行一次独立的结构化审核。传入完整规则、用户边界、历史调用和待执行的精确客户端工具名／参数；剔除工具返回正文、思考和签名，不把助手自己的判断当作用户授权。每个工具 ID 必须有且只有一个模型判定。网关不执行客户端工具，也不通过本地关键词生成允许结果。无工具时返回空的已支持结果，不额外调用审核模型。
 
-设置官方参数 `CLAUDE_CODE_AUTO_MODE_SERVER=0` 后，同一客户端改为自己发送 `claude-sonnet-5` 独立分类器请求，并根据判定管理执行；已有路由将该请求转到 Flash Low。网关生成的 Claude 配置现包含此项，用户自建配置需要合并并重启会话。不设置 `CLAUDE_CODE_AUTO_MODE_MODEL`，不修改权限模式或允许列表，也不改变用户所选主模型。该选择保留审核，只改变审核请求的发起方式。[官方服务器审核说明](https://code.claude.com/docs/en/permission-modes#server-side-classifier-review)
+成功结果为 `safeguard_results: [{ type: "dangerous_tool_use", status: { type: "available", tool_uses: { "<id>": { type: "evaluated", outcome: "flagged|not_flagged", explanation: "..." } } } }]`。JSON 顶层和 SSE 结束的 `message_delta.delta` 返回同一结果，调用 ID 与交付的 `tool_use` 一致。审核完成前不交付可执行工具块。审核用量并入响应，用量看板仍按实际模型统计。
 
-网关现在对非空或格式错误的顶层 `safeguards` 返回 `400 invalid_request_error`，明确说明兼容设置；在账号分配和 SSE 开始前返回。缺省、`null`、空数组和工具 Schema 等业务数据中的同名字段不被拒绝。回归覆盖以上入口边界和生成配置持久化。客户端工具始终由 Claude 执行。
+未知契约或上下文版本返回 400；普通对话不做审核。主工具响应截断，或审核超时、截断、过滤、JSON 无效、重复／缺少／未知 ID、账号不可用时，返回对应工具的 `{ type: "unavailable", reason }`，由 Claude 拒绝、提示或重试；不生成 not_flagged，也不进行隐藏的格式修复重发。客户端断开会取消尚未结束的审核。
 
-2026-11-13 补充真实闭环：实际 Claude Code 2.1.322 TUI 加载网关生成配置，使用 Flash High 主模型和 Auto 模式，无允许规则、无手动确认；客户端置于独立 HOME 和仅允许回环的沙箱。三次请求全部经本机网关实连 Google：主请求 9.680 秒 → 独立 `claude-sonnet-5` 请求路由 Flash Low，10.117 秒返回 `<severity>0</severity>`／`end_turn` → Claude 执行只输出固定字符串的 `node -e` 命令 → 主模型 12.099 秒正常续答。请求不含 `safeguards`，无合成模型响应、无分类器模型覆盖。工具结果为 `AGW_AUTO_ACTION_OK`、`is_error=false`。本轮 1112 项 Node 回归通过。此结论限定当前已捕获客户端版本及所测路径。
+Google 不提供 Anthropic 私有服务器审核器。本实现的评估指令可在 `src/anthropic-safeguards.js` 审阅，采用调用方传入规则和任务上下文进行独立模型判断；协议兼容不代表与 Anthropic 的私有审核政策完全等价。当前以 `dangerous_tool_use`／上下文 v1、Claude Code 2.1.322 为验收边界。参见 [官方服务器审核机制](https://code.claude.com/docs/en/permission-modes#server-side-classifier-review)。
+
+2026-11-14 真实正例：原版 TUI、不设置 `CLAUDE_CODE_AUTO_MODE_SERVER` 或分类模型覆盖，默认请求保留 safeguards；网关真实 Google 调用顺序为 Flash High → Flash Low（LOW、4096）→ Flash High，三次 HTTP 200。Low 返回 not_flagged，客户端实际执行只输出固定字符串的命令，回传 `AGW_AUTO_ACTION_OK` 后续答；生产账号文件摘要一致。该测试客户端处于独立 HOME 和仅允许回环网络的沙箱。
+
+同日阻止分支：使用合成主模型响应提出无害的 `node -p 2+2`，但用户明确要求不执行 shell。审核模型仍实连 Google Flash Low／LOW，返回 flagged 并引用用户边界；原版 TUI 回传拒绝执行的工具结果，未执行命令。此反例仅主模型为夹具，审核模型和客户端判定处理均为真实调用，生产账号文件摘要一致。
+
+历史说明：2.0.3 的 33.401／60.884 秒记录仅重放显式客户端独立分类器；之后的生成配置测试也设置了审核环境变量，因此均不能证明默认服务器审核可用。上述 2.0.4 正例才覆盖用户要求的默认路径。独立分类器旧路径仍保留原政策转发、默认 Sonnet 5 → Flash Low 映射和完整 XML 校验。
 
 ## 客户端历史与统一账号切换
 

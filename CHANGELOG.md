@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.4 - 2026-11-14
+
+- 修正 2.0.3 依赖客户端审核路径设置的方案：网关直接处理 Claude Code 默认 `dangerous_tool_use`／`classifier_context` v1，以 Flash Low／LOW 评估实际工具调用，并在 JSON／SSE 返回按调用 ID 对应的 `safeguard_results`。
+- 移除生成配置中的审核环境变量；独立 Sonnet 5 分类请求的 Low 路由继续保留。
+- 保留用户规则和对话边界，审核不执行客户端工具。阻止判定原样映射，截断、无效、缺失或失败的审核返回 unavailable，不默认批准、不重放格式修复。
+- 默认原版 Claude Code TUI、不设置审核环境变量的真实 Google 工具往返已通过；另以合成主工具调用和真实 Low 审核验证了客户端拒绝执行分支。
+
 ## 2.0.3 - 2026-11-13
 
 - 对齐 agy 1.5.8 的 UA/build，将模型原生传输切换到已捕获的 HTTP/1.1 配置；OAuth 保留独立 HTTP/2 传输。重新构建六个平台组件。
