@@ -9,6 +9,7 @@ const { spawn } = require('node:child_process');
 const DASHBOARD_FILE = path.join(__dirname, 'dashboard.html');
 const DASHBOARD_ASSETS = Object.freeze({
   'account-auth.js': { absolutePath: path.join(__dirname, 'dashboard-account-auth-ui.js'), contentType: 'text/javascript; charset=utf-8' },
+  'dashboard-tools.js': { absolutePath: path.join(__dirname, 'dashboard-tools-ui.js'), contentType: 'text/javascript; charset=utf-8' },
   'community-qr.png': { file: 'community-qr.png', contentType: 'image/png' },
   'community-poster.png': { file: 'community-poster.png', contentType: 'image/png' },
   'html2canvas.min.js': {
@@ -21,9 +22,11 @@ const assetCache = new Map();
 
 function dashboardHtml() {
   if (!htmlCache) {
-    const revision = crypto.createHash('sha256').update(dashboardAsset('account-auth.js').body).digest('hex').slice(0, 16);
+    const authRevision = crypto.createHash('sha256').update(dashboardAsset('account-auth.js').body).digest('hex').slice(0, 16);
+    const toolsRevision = crypto.createHash('sha256').update(dashboardAsset('dashboard-tools.js').body).digest('hex').slice(0, 16);
     htmlCache = fs.readFileSync(DASHBOARD_FILE, 'utf8')
-      .replace('/dashboard/assets/account-auth.js"', `/dashboard/assets/account-auth.js?v=${revision}"`);
+      .replace('/dashboard/assets/account-auth.js"', `/dashboard/assets/account-auth.js?v=${authRevision}"`)
+      .replace('/dashboard/assets/dashboard-tools.js"', `/dashboard/assets/dashboard-tools.js?v=${toolsRevision}"`);
   }
   return htmlCache;
 }

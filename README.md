@@ -77,11 +77,11 @@ antigravity-gateway service uninstall
 antigravity-gateway stats
 ```
 
-或打开 `http://127.0.0.1:9897/dashboard`。在“账号池与额度”中点击添加账号，打开 Google 授权链接并完成 OAuth。若浏览器无法访问网关所在机器的 localhost 回调页，可将地址栏中的完整回调 URL 粘贴回看板提交。授权令牌保存在网关端。
+或打开 `http://127.0.0.1:9897/dashboard`。在“账号池与额度”中点击 **添加 Antigravity 账号**（完成 Google OAuth；远程部署可将完整回调 URL 粘贴回看板提交），或点击 **导入 Cockpit 账号** 一键扫描并解密 `~/.cockpit_tools` / `~/.antigravity_cockpit` 中的 Antigravity 账号（命令行可执行 `antigravity-gateway --import-cockpit-tools`）。也可在看板顶部 **网络代理** 中图形化配置并热更新全局 `HTTP / HTTPS / SOCKS5` 代理。
 
-**看板 OAuth 是新增账号的唯一入口。** 已有 `accounts/` 数据继续沿用；空账号池会明确返回不可用，不读取本机登录态或其他凭据补齐账号。看板继续提供账号启停、权重、删除、重新检测、额度和用量。
+已有 `accounts/` 数据继续沿用；看板继续提供账号启停、权重、删除、重新检测、额度和用量。
 
-当需要指定 OAuth 客户端元数据的发现位置时，可使用 `--agy-path /absolute/path/to/agy` 或 `ANTIGRAVITY_CLI_PATH`。这个路径不选择推理通道。
+当需要指定 OAuth 客户端元数据的发现位置时，可使用 `--agy-path /absolute/path/to/agy` 或 `ANTIGRAVITY_CLI_PATH`（桌面端未装 CLI 时会自动回退扫描 Antigravity Desktop 二进制）。这个路径不选择推理通道。
 
 ## 客户端接口和模型
 
@@ -312,6 +312,9 @@ HTTP 请求默认不接受网关服务器上的 `file_path` 或 `file://`。客�
 | `ANTIGRAVITY_FAST_MODEL` | 未提供模型的已识别辅助请求默认模型 |
 | `ANTIGRAVITY_GATEWAY_MAX_CONCURRENCY` | 网关推理并发上限 |
 | `ANTIGRAVITY_GATEWAY_TIMEOUT_MS` | 请求期限，默认 `300000` 毫秒 |
+| `ANTIGRAVITY_DIRECT_STREAM_IDLE_TIMEOUT_MS` | SSE 流式读取空闲超时，默认 `300000` 毫秒（`0` 关闭） |
+| `HTTPS_PROXY` / `HTTP_PROXY` / `NO_PROXY` | 全局上游代理（也可直接在 `/dashboard` 顶部“网络代理”热配置并持久化至 `state/proxy.json`） |
+| `COCKPIT_TOOLS_DATA_DIR` | Cockpit Tools 自定义数据目录（配合 `--import-cockpit-tools` 或看板导入使用） |
 | `ANTIGRAVITY_GATEWAY_MEDIA_LOCAL_PATHS` | 仅值为 `1` 时开启受限本地媒体路径，默认关闭 |
 | `ANTIGRAVITY_GATEWAY_MEDIA_ALLOWED_ROOTS` | 本地媒体允许目录的绝对路径 JSON 数组，开启本地路径时必须非空 |
 

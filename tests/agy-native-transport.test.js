@@ -9,18 +9,27 @@ const path = require('node:path');
 const test = require('node:test');
 const { AgyNativeTransport, resolveNativeBinary } = require('../src/agy-native-transport');
 
+async function closeAndCleanup(transport, directory, closeServer) {
+  const child = transport?.child;
+  const exited = child && child.exitCode === null && child.signalCode === null
+    ? new Promise(resolve => child.once('exit', resolve))
+    : Promise.resolve();
+  if (closeServer) await closeServer();
+  transport?.close();
+  await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 1000))]);
+  fs.rmSync(directory, { recursive: true, force: true, maxRetries: 15, retryDelay: 30 });
+}
+
 async function fixture(t, handler) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'agy-native-test-'));
   const binary = resolveNativeBinary({ cacheDir: directory });
   const transport = new AgyNativeTransport({ binaryPath: binary });
   const server = http.createServer(handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  t.after(async () => {
-    transport.close();
+  t.after(() => closeAndCleanup(transport, directory, () => {
     server.closeAllConnections();
-    await new Promise(resolve => server.close(resolve));
-    fs.rmSync(directory, { recursive: true, force: true });
-  });
+    return new Promise(resolve => server.close(resolve));
+  }));
   return { transport, url: `http://127.0.0.1:${server.address().port}`, directory, binary };
 }
 
@@ -207,10 +216,10 @@ test('packaged native helper selects HTTP2 ALPN for both captured OAuth endpoint
       await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
       const transport = new AgyNativeTransport({ binaryPath: resolveNativeBinary({ cacheDir: directory }), env: { ...process.env,
         HTTPS_PROXY: `http://127.0.0.1:${proxy.address().port}`, NO_PROXY: '', no_proxy: '' } });
-      t.after(async () => {
-        transport.close(); for (const socket of sockets) socket.destroy();
-        await new Promise(resolve => proxy.close(resolve)); fs.rmSync(directory, { recursive: true, force: true });
-      });
+      t.after(() => closeAndCleanup(transport, directory, () => {
+        for (const socket of sockets) socket.destroy();
+        return new Promise(resolve => proxy.close(resolve));
+      }));
       const controller = new AbortController();
       const rejected = assert.rejects(transport.fetch(endpoint, { signal: controller.signal }), { name: 'AbortError' });
       const handshake = await Promise.race([hello, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('no OAuth ClientHello')), 5000); timer.unref(); })]);
@@ -263,11 +272,10 @@ test('native TLS matches captured agy extensions, including signature algorithms
   await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
   const transport = new AgyNativeTransport({ binaryPath: binary, env: { ...process.env,
     HTTPS_PROXY: `http://127.0.0.1:${proxy.address().port}`, NO_PROXY: '', no_proxy: '' } });
-  t.after(async () => {
-    transport.close(); for (const socket of sockets) socket.destroy();
-    await new Promise(resolve => proxy.close(resolve));
-    fs.rmSync(directory, { recursive: true, force: true });
-  });
+  t.after(() => closeAndCleanup(transport, directory, () => {
+    for (const socket of sockets) socket.destroy();
+    return new Promise(resolve => proxy.close(resolve));
+  }));
   const controller = new AbortController();
   const request = transport.fetch('https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist', { signal: controller.signal });
   const rejected = assert.rejects(request, { name: 'AbortError' });

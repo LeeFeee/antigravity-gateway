@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { setTimeout: scheduleTimeout, clearTimeout: cancelScheduledTimeout } = require('node:timers');
 const { errorDetails } = require('./diagnostic-log');
 const { LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
 const { nativeCloudCodeFetch } = require('./agy-native-transport');
@@ -23,7 +24,7 @@ const { prepareStructuredOutput, prepareStructuredOutputAsync, finishResultAsync
 const { nativeClientToolResponse, attachClientToolResult } = require('./agy-tool-results');
 const { runSync, runAsync } = require('./schema-steps');
 const { prepareAntigravityTools, prepareAntigravityToolsAsync } = require('./antigravity-tool-contract');
-const { CAPTURED_MODEL, nativeRetryDecision, nativeRetryDelayMs } = require('./agy-retry-policy');
+const { CAPTURED_MODEL, hasNonRetryableReason, isHardQuotaError, isNonRetryableUpstreamError, nativeRetryDecision, nativeRetryDelayMs, retryInfoMs } = require('./agy-retry-policy');
 const { GatewayError, upstreamTermination, validateToolChoice } = require('./protocol');
 const { hasToolResultHistory } = require('./tool-history');
 
@@ -37,6 +38,10 @@ const MODELS_PATH = '/v1internal:fetchAvailableModels';
 const IMAGE_MODEL = DEFAULT_IMAGE_MODEL;
 const IMAGE_ASPECT_RATIOS = new Set(['1:1', '2:3', '3:2', '3:4', '4:3', '9:16', '16:9']);
 const MODEL_DISCOVERY_TIMEOUT_MS = Number(process.env.ANTIGRAVITY_DIRECT_MODEL_DISCOVERY_TIMEOUT_MS || 8000);
+const rawStreamIdleTimeoutMs = process.env.ANTIGRAVITY_DIRECT_STREAM_IDLE_TIMEOUT_MS;
+const DEFAULT_STREAM_IDLE_TIMEOUT_MS = rawStreamIdleTimeoutMs === undefined
+  ? 300_000
+  : Math.max(0, Number(rawStreamIdleTimeoutMs) || 0);
 const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MAX_RETRIES || 1));
 const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
 const DEFAULT_USER_AGENT = cliUserAgent();
@@ -403,9 +408,19 @@ function imageFromResponse(value, requestedModel = IMAGE_MODEL) {
 
 function consumeUpstreamValue(value, state, onDelta, onThinkingDelta) {
   if (!value || typeof value !== 'object') return;
-  if (value.error) throw new DirectProviderError('Antigravity 直连上游返回错误。', {
-    code: 'direct_upstream_error', status: Number(value.error.code) || 502, details: redact(value.error.message || compact(value.error))
-  });
+  if (value.error) {
+    const rawBody = compact({ error: value.error });
+    const status = Number(value.error.code) || 502;
+    const detail = redact(value.error.message || '');
+    const error = new DirectProviderError(
+      detail ? `Antigravity 直连上游返回错误：${detail}` : 'Antigravity 直连上游返回错误。',
+      { code: 'direct_upstream_error', status, details: redact(rawBody) }
+    );
+    error.inBandError = true;
+    error.rawBody = rawBody;
+    error.detailMessage = detail;
+    throw error;
+  }
   const root = value.response || value;
   const reason = (root.candidates?.[0] || value.candidates?.[0])?.finishReason;
   if (reason) state.finishReason = reason;
@@ -466,8 +481,87 @@ async function readBody(response) {
   try { return await response.text(); } catch (error) { throw new DirectProviderError('读取 Antigravity 直连响应失败。', { details: redact(error.message), cause: error }); }
 }
 
+/**
+ * Read the next chunk from an SSE stream, cancelling stalled upstream bodies after idleTimeoutMs.
+ */
+async function readChunkWithIdleTimeout(reader, idleTimeoutMs) {
+  if (!(idleTimeoutMs > 0)) return reader.read();
+  let timer;
+  try {
+    return await Promise.race([
+      reader.read(),
+      new Promise((_, reject) => {
+        timer = scheduleTimeout(() => {
+          Promise.resolve().then(() => reader.cancel?.()).catch(() => {});
+          reject(new DirectProviderError('Antigravity 流式响应读取超时。', {
+            code: 'upstream_read_error',
+            status: 504,
+            details: `stream idle timeout after ${idleTimeoutMs}ms`
+          }));
+        }, idleTimeoutMs);
+        timer.unref?.();
+      })
+    ]);
+  } finally {
+    cancelScheduledTimeout(timer);
+  }
+}
+
+/**
+ * Consume and parse an SSE response body until completion or stream failure.
+ */
+async function consumeSseResponse(response, { state, nativeEventBoundary, idleTimeoutMs, onDelta, onThinkingDelta }) {
+  const reader = response.body?.getReader?.();
+  if (!reader) throw new DirectProviderError('Antigravity 流式响应缺少可读正文。', { code: 'direct_response_invalid' });
+  const decoder = new TextDecoder();
+  let buffer = '', eventLines = [];
+  const consumeEvent = () => {
+    const data = eventLines.join('\n'); eventLines = [];
+    if (!data || data === '[DONE]') return;
+    let parsed;
+    try { parsed = JSON.parse(data); }
+    catch {
+      // Legacy non-captured profiles also accepted one complete JSON per
+      // data line without event separators. Prefer the real SSE grammar;
+      // use this fallback only if every individual line is complete JSON.
+      const lines = data.split('\n');
+      const values = lines.map(line => line === '[DONE]' ? null : jsonFromSseLine(line));
+      if (!nativeEventBoundary && lines.every((line, i) => line === '[DONE]' || values[i])) {
+        for (const value of values) if (value) consumeUpstreamValue(value, state, onDelta, onThinkingDelta);
+        return;
+      }
+      throw new GatewayError('上游 SSE 事件不是有效 JSON。', { code: 'invalid_upstream_response', status: 502 });
+    }
+    consumeUpstreamValue(parsed, state, onDelta, onThinkingDelta);
+  };
+  const consumeLine = line => {
+    // Captured agy does not dispatch a JSON data line until the SSE event's
+    // terminating blank line arrives. A complete tool event does not need
+    // a later STOP event; an unfinished event is never an executable call.
+    if (line === '') consumeEvent();
+    else if (line.startsWith('data:')) eventLines.push(line.slice(5).replace(/^ /, ''));
+  };
+  try {
+    while (true) {
+      const { done, value } = await readChunkWithIdleTimeout(reader, idleTimeoutMs);
+      if (done) { buffer += decoder.decode(); break; }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+      for (const line of lines) consumeLine(line);
+    }
+    // Other profiles retain their existing clean-EOF compatibility. This
+    // does not extend high-profile read-error recovery or EOF tool dispatch.
+    if (!nativeEventBoundary) { if (buffer) consumeLine(buffer); consumeEvent(); }
+  } finally {
+    // Release the upstream body on parser errors and downstream cancellation.
+    try { await reader.cancel?.(); } catch { /* ignore reader cancel errors */ }
+    reader.releaseLock();
+  }
+}
+
 class DirectAntigravityProvider {
-  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = '', localAuth = null, baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = '', refreshToken = '', projectId = '', userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = [], maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore, directoryGuard = null } = {}) {
+  constructor({ fetchImpl = nativeCloudCodeFetch, authFile = '', localAuth = null, baseUrl = process.env.ANTIGRAVITY_DIRECT_BASE_URL || '', accessToken = '', refreshToken = '', projectId = '', userAgent = process.env.ANTIGRAVITY_DIRECT_USER_AGENT || DEFAULT_USER_AGENT, models = [], maxRetries = DEFAULT_MAX_RETRIES, retryBaseMs = DEFAULT_RETRY_BASE_MS, streamIdleTimeoutMs = DEFAULT_STREAM_IDLE_TIMEOUT_MS, retryPolicy = process.env.ANTIGRAVITY_DIRECT_RETRY_POLICY || '', diagnosticReporter, sessionStore, directoryGuard = null } = {}) {
     this.fetchImpl = fetchImpl;
     this.authFile = authFile;
     this.localAuth = localAuth;
@@ -479,6 +573,10 @@ class DirectAntigravityProvider {
     this.modelList = models;
     this.maxRetries = Math.max(0, Number(maxRetries) || 0);
     this.retryBaseMs = Math.max(1, Number(retryBaseMs) || DEFAULT_RETRY_BASE_MS);
+    const parsedStreamIdle = Number(streamIdleTimeoutMs);
+    this.streamIdleTimeoutMs = Number.isFinite(parsedStreamIdle)
+      ? Math.max(0, parsedStreamIdle)
+      : DEFAULT_STREAM_IDLE_TIMEOUT_MS;
     const policy = String(retryPolicy).trim();
     if (policy && !['agy', 'legacy'].includes(policy)) throw new TypeError('Unknown Antigravity retry policy.');
     // Request translation is not an agent task-recovery policy. Restore the
@@ -905,32 +1003,17 @@ class DirectAntigravityProvider {
         }
         const detail = upstreamErrorMessage(text);
         lastFailure = { response, status: response.status, detail, diagnostic: redact(text) };
-        // A confirmed account/model quota reset cannot recover by changing
-        // hosts. Hand the original 429 to the pool before a later transport
-        // failure can replace it and lose the model-specific reset time.
-        let hardQuota = false;
-        if (response.status === 429) {
-          try {
-            const details = JSON.parse(text)?.error?.details;
-            if (Array.isArray(details)) {
-              const quota = details.find(item => item?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo'
-                && item.reason === 'QUOTA_EXHAUSTED');
-              const positiveDuration = value => typeof value === 'string'
-                && /^(?:\d+(?:\.\d+)?(?:ms|[smhd]))+$/.test(value)
-                && [...value.matchAll(/\d+(?:\.\d+)?/g)].some(match => Number(match[0]) > 0);
-              hardQuota = Boolean(quota && (Date.parse(quota.metadata?.quotaResetTimeStamp) > Date.now()
-                || positiveDuration(quota.metadata?.quotaResetDelay)
-                || details.some(item => item?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo'
-                  && /^\d+(?:\.\d{1,9})?s$/.test(item.retryDelay || '') && positiveDuration(item.retryDelay))));
-            }
-          } catch { /* Unstructured/transient 429 retains the existing retry policy. */ }
-        }
-        if (hardQuota) {
+        // A confirmed account/model quota reset or non-retryable billing/capacity/validation
+        // failure cannot recover by changing hosts. Hand it to the pool before a later
+        // transport failure can replace it and lose structured error metadata.
+        const hardQuota = isHardQuotaError(response.status, text, { requireReset: true });
+        const nonRetryable = hasNonRetryableReason(text);
+        if (hardQuota || nonRetryable) {
           throw new DirectProviderError(detail ? `Antigravity 上游生图失败：${detail}` : 'Antigravity 上游生图失败。', {
-            code: 'direct_image_upstream_error', status: 429, details: lastFailure.diagnostic
+            code: 'direct_image_upstream_error', status: response.status, details: lastFailure.diagnostic
           });
         }
-        if (response.status !== 429 && response.status < 500) {
+        if (response.status !== 408 && response.status !== 429 && response.status < 500) {
           throw new DirectProviderError(detail ? `Antigravity 上游生图失败：${detail}` : 'Antigravity 上游生图失败。', {
             code: 'direct_image_upstream_error', status: response.status, details: detail
           });
@@ -1069,149 +1152,73 @@ class DirectAntigravityProvider {
     const bases = this.baseUrls();
     let nativeRetry = this.retryPolicy === 'agy' && model === CAPTURED_MODEL;
     const retryLimit = () => nativeRetry ? (native.checkpoint ? 4 : 8) : this.maxRetries;
-    try {
-    while (true) {
-    response = undefined;
-    lastFailure = undefined;
-    requestRounds:
-    for (let retry = 0; retry <= retryLimit(); retry += 1) {
-      for (const base of bases) {
-        let candidate;
-        try {
-          candidate = await attempt(base, false);
-          if (candidate.status === 401 && this.refreshToken) {
-            await candidate.body?.cancel?.().catch(() => {});
-            candidate = await attempt(base, true);
-          }
-        } catch (error) {
-          signal?.throwIfAborted();
-          lastFailure = { error };
-          // No native transport-error baseline: retain existing failover.
-          nativeRetry = false;
-          continue;
-        }
-        if (candidate.ok) {
-          response = candidate;
-          break requestRounds;
-        }
-        const text = await readBody(candidate);
-        const detail = upstreamErrorMessage(text);
-        lastFailure = { response: candidate, status: candidate.status, detail, diagnostic: redact(text) };
-        const decision = nativeRetry ? nativeRetryDecision(candidate.status, text) : null;
-        if (!decision) nativeRetry = false;
-        // Captured alternating 503 / response-read failures share one native
-        // consecutive-failure budget, even when a stream error creates a new
-        // logical request. A successful response header alone does not reset it.
-        if (nativeRetry && !native.checkpoint) nativeFailures += 1;
-        // Real agy also retains the final failed step when retries are exhausted
-        // or cancelled during backoff. Persist the observed error now, not only
-        // if another request is dispatched. Do not add a fake model message.
-        // Only these HTTP statuses have a captured native agent baseline.
-        if (!native.checkpoint && NATIVE_HTTP_ERROR_STATUSES.has(candidate.status)) {
-          nativeState.nextStep = Math.max(native.context.step, nativeState.nextStep || 0) + 1;
-          retryStepPending = true;
-          if (streamContents.length) recordStreamRecovery(nativeState, streamPrefix, model,
-            streamContents, visiblePrefix, Date.now(), false, nativeFailures);
+    const handlePreContentFailure = (status, text, rawResponse) => {
+      const detail = upstreamErrorMessage(text);
+      const diagnostic = redact(text);
+      lastFailure = { response: rawResponse, status, detail, diagnostic };
+      const decision = nativeRetry ? nativeRetryDecision(status, text) : null;
+      if (!decision) nativeRetry = false;
+      // Captured alternating 503 / response-read failures share one native
+      // consecutive-failure budget, even when a stream error creates a new
+      // logical request. A successful response header alone does not reset it.
+      if (nativeRetry && !native.checkpoint) nativeFailures += 1;
+      // Real agy also retains the final failed step when retries are exhausted
+      // or cancelled during backoff. Persist the observed error now, not only
+      // if another request is dispatched. Do not add a fake model message.
+      // Only these HTTP statuses have a captured native agent baseline.
+      if (!native.checkpoint && NATIVE_HTTP_ERROR_STATUSES.has(status)) {
+        nativeState.nextStep = Math.max(native.context.step, nativeState.nextStep || 0) + 1;
+        retryStepPending = true;
+        if (streamContents.length) recordStreamRecovery(nativeState, streamPrefix, model,
+          streamContents, visiblePrefix, Date.now(), false, nativeFailures);
+        checkpoint();
+      } else if (native.checkpoint && NATIVE_CHECKPOINT_RETRY_STATUSES.has(status)) {
+        retryStepPending = true;
+      }
+      lastFailure.nativeMinimumMs = decision?.minimumMs || 0;
+      const nonRetryable = isNonRetryableUpstreamError(status, text);
+      const retryable = decision
+        ? decision.retryable
+        : !nonRetryable && (status === 408 || status === 429 || status >= 500);
+      if (!retryable) {
+        throw new DirectProviderError(detail ? `Antigravity 上游请求失败：${detail}` : 'Antigravity 上游请求失败。', {
+          code: 'direct_upstream_error',
+          status,
+          details: decision || nonRetryable ? diagnostic : detail
+        });
+      }
+      // Captured native HTTP failures retry the same endpoint. Do not add an
+      // immediate normal-endpoint attempt between native retries. The pool
+      // still rotates accounts after this account's policy is exhausted.
+      return nativeRetry ? 'retry_round' : 'next_base';
+    };
+    const isRetryableStreamError = (error) => {
+      if (error.inBandError) {
+        return !isNonRetryableUpstreamError(error.status, error.rawBody)
+          && (error.status === 408 || error.status === 429 || error.status >= 500);
+      }
+      return error.code === 'upstream_read_error';
+    };
+    const handleStreamException = async (error, contentType) => {
+      const isSse = contentType.includes('text/event-stream');
+      if (!isRetryableStreamError(error) || !isSse) {
+        if (error.inBandError && isSse && state.receivedContent && nativeEventBoundary && !state.calls.length) {
+          interruptNativeContext(nativeState, native.context, model,
+            { receivedContent: state.receivedContent, text: state.text, signature: state.textSignature });
+          nativeState.lastExecutionId = crypto.randomUUID();
           checkpoint();
-        } else if (native.checkpoint && NATIVE_CHECKPOINT_RETRY_STATUSES.has(candidate.status)) {
-          retryStepPending = true;
         }
-        lastFailure.nativeMinimumMs = decision?.minimumMs || 0;
-        const retryable = decision ? decision.retryable : candidate.status === 429 || candidate.status >= 500;
-        if (!retryable) {
-          throw new DirectProviderError(detail ? `Antigravity 上游请求失败：${detail}` : 'Antigravity 上游请求失败。', {
-            code: 'direct_upstream_error', status: candidate.status, details: decision ? redact(text) : detail
-          });
-        }
-        // Captured native HTTP failures retry the same endpoint. Do not add an
-        // immediate normal-endpoint attempt between native retries. The pool
-        // still rotates accounts after this account's policy is exhausted.
-        if (nativeRetry) break;
-        // Explicit legacy configuration, unobserved statuses and other models
-        // retain daily -> normal failover, including transient HTTP 429.
+        throw error;
       }
-      if (nativeRetry && !native.checkpoint && nativeFailures >= 9) break;
-      if (retry < retryLimit()) {
-        const delay = nativeRetry
-          ? nativeRetryDelayMs(native.checkpoint ? retry : nativeFailures - 1, { checkpoint: native.checkpoint, minimumMs: lastFailure?.nativeMinimumMs })
-          : retryAfterMs(lastFailure?.response, retry, this.retryBaseMs);
-        await waitForRetry(delay, signal);
-      }
-    }
-    if (!response) {
-      if (lastFailure?.error) throw lastFailure.error;
-      const detail = lastFailure?.detail || '';
-      throw new DirectProviderError(detail ? `Antigravity 上游请求失败：${detail}` : 'Antigravity 上游请求失败。', {
-        code: 'direct_upstream_error', status: lastFailure?.status || 502, details: lastFailure?.diagnostic || detail
-      });
-    }
-    const contentType = String(response.headers.get('content-type') || '').toLowerCase();
-    try {
-    if (contentType.includes('text/event-stream')) {
-      const reader = response.body?.getReader?.();
-      if (!reader) throw new DirectProviderError('Antigravity 流式响应缺少可读正文。', { code: 'direct_response_invalid' });
-      const decoder = new TextDecoder();
-      let buffer = '', eventLines = [];
-      const consumeEvent = () => {
-        const data = eventLines.join('\n'); eventLines = [];
-        if (!data || data === '[DONE]') return;
-        let parsed;
-        try { parsed = JSON.parse(data); }
-        catch {
-          // Legacy non-captured profiles also accepted one complete JSON per
-          // data line without event separators. Prefer the real SSE grammar;
-          // use this fallback only if every individual line is complete JSON.
-          const lines = data.split('\n');
-          const values = lines.map(line => line === '[DONE]' ? null : jsonFromSseLine(line));
-          if (!nativeEventBoundary && lines.every((line, i) => line === '[DONE]' || values[i])) {
-            for (const value of values) if (value) consumeUpstreamValue(value, state, onDelta, onThinkingDelta);
-            return;
-          }
-          throw new GatewayError('上游 SSE 事件不是有效 JSON。', { code: 'invalid_upstream_response', status: 502 });
-        }
-        consumeUpstreamValue(parsed, state, onDelta, onThinkingDelta);
-      };
-      const consumeLine = line => {
-        // Captured agy does not dispatch a JSON data line until the SSE event's
-        // terminating blank line arrives. A complete tool event does not need
-        // a later STOP event; an unfinished event is never an executable call.
-        if (line === '') consumeEvent();
-        else if (line.startsWith('data:')) eventLines.push(line.slice(5).replace(/^ /, ''));
-      };
-      try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) { buffer += decoder.decode(); break; }
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split(/\r?\n/);
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          consumeLine(line);
-        }
-      }
-      // Other profiles retain their existing clean-EOF compatibility. This
-      // does not extend high-profile read-error recovery or EOF tool dispatch.
-      if (!nativeEventBoundary) { if (buffer) consumeLine(buffer); consumeEvent(); }
-      } finally {
-        // Release the upstream body on parser errors and downstream cancellation.
-        await reader.cancel().catch(() => {});
-        reader.releaseLock();
-      }
-    } else {
-      this._parseJson(await readBody(response), state, onDelta, onThinkingDelta);
-    }
-    } catch (error) {
-      signal?.throwIfAborted();
-      if (error.code !== 'upstream_read_error' || !contentType.includes('text/event-stream')) throw error;
       if (!canRecoverStream) {
         // Deliver a complete committed call to the real executor. Do not
         // regenerate it, invent a continuation user, or veto the agent's retry.
         if (nativeEventBoundary && !native.structuredSchema && state.calls.length && state.calls.every(call =>
-          call.id && call.thoughtSignature && call.arguments && typeof call.arguments === 'object' && !Array.isArray(call.arguments))) break;
+          call.id && call.thoughtSignature && call.arguments && typeof call.arguments === 'object' && !Array.isArray(call.arguments))) return 'break';
         if (nativeEventBoundary && !state.calls.length) {
           interruptNativeContext(nativeState, native.context, model,
             { receivedContent: state.receivedContent, text: state.text, signature: state.textSignature });
-          nativeState.lastExecutionId = crypto.randomUUID();checkpoint();
+          nativeState.lastExecutionId = crypto.randomUUID(); checkpoint();
         }
         throw error;
       }
@@ -1222,8 +1229,9 @@ class DirectAntigravityProvider {
         // Defer the raw native error until matching real tool receipts arrive.
         // No STOP requirement: independently observed before and after STOP.
         nativeFailures += 1;
-        toolReadRecovery = { retryCount: nativeFailures, readyAt: nativeFailures >= 9 ? 0 : Date.now() + nativeRetryDelayMs(nativeFailures - 1) };
-        break;
+        const minimumMs = error.inBandError ? retryInfoMs(error.status, error.rawBody) : 0;
+        toolReadRecovery = { retryCount: nativeFailures, readyAt: nativeFailures >= 9 ? 0 : Date.now() + nativeRetryDelayMs(nativeFailures - 1, { minimumMs }) };
+        return 'break';
       }
       if (!state.receivedContent) {
         // Actual agy retries a read failure before any parsed model content
@@ -1239,7 +1247,7 @@ class DirectAntigravityProvider {
         if (nativeFailures >= 9) throw error;
         state = emptyResponse();
         await waitForRetry(nativeRetryDelayMs(nativeFailures - 1), signal);
-        continue;
+        return 'continue';
       }
       const partial = state.text;
       nativeFailures += 1;
@@ -1280,16 +1288,90 @@ class DirectAntigravityProvider {
       // must not allocate an unsent logical request or repeat its model step.
       state = emptyResponse();
       checkpoint();
-      await waitForRetry(nativeRetryDelayMs(nativeFailures - 1), signal);
+      const minimumMs = error.inBandError ? retryInfoMs(error.status, error.rawBody) : 0;
+      await waitForRetry(nativeRetryDelayMs(nativeFailures - 1, { minimumMs }), signal);
       if (partial) onDelta?.('\n');
       requestBody.request.labels.last_step_index = String(native.context.step - 1);
       requestBody.request.labels.request_id = `${nativeState.trajectoryId}-${nativeState.requestIndex++}`;
       requestBody.requestId = `agent/${nativeState.cascadeId}/${Date.now()}/${nativeState.trajectoryId}/${native.context.step}`;
       retryStepPending = false;
       checkpoint();
-      continue;
+      return 'continue';
+    };
+    try {
+    while (true) {
+    response = undefined;
+    lastFailure = undefined;
+    let streamCompleted = false;
+    let streamFlow = '';
+    requestRounds:
+    for (let retry = 0; retry <= retryLimit(); retry += 1) {
+      for (const base of bases) {
+        let candidate;
+        try {
+          candidate = await attempt(base, false);
+          if (candidate.status === 401 && this.refreshToken) {
+            await candidate.body?.cancel?.().catch(() => {});
+            candidate = await attempt(base, true);
+          }
+        } catch (error) {
+          signal?.throwIfAborted();
+          lastFailure = { error };
+          // No native transport-error baseline: retain existing failover.
+          nativeRetry = false;
+          continue;
+        }
+        if (!candidate.ok) {
+          const text = await readBody(candidate);
+          const action = handlePreContentFailure(candidate.status, text, candidate);
+          if (action === 'retry_round') break;
+          continue;
+        }
+        response = candidate;
+        state = emptyResponse();
+        const contentType = String(candidate.headers.get('content-type') || '').toLowerCase();
+        try {
+          if (contentType.includes('text/event-stream')) {
+            await consumeSseResponse(candidate, {
+              state,
+              nativeEventBoundary,
+              idleTimeoutMs: this.streamIdleTimeoutMs,
+              onDelta,
+              onThinkingDelta
+            });
+          } else {
+            this._parseJson(await readBody(candidate), state, onDelta, onThinkingDelta);
+          }
+          streamCompleted = true;
+          break requestRounds;
+        } catch (error) {
+          signal?.throwIfAborted();
+          if (error.inBandError && !state.receivedContent) {
+            response = undefined;
+            state = emptyResponse();
+            const action = handlePreContentFailure(error.status, error.rawBody, candidate);
+            if (action === 'retry_round') break;
+            continue;
+          }
+          streamFlow = await handleStreamException(error, contentType);
+          break requestRounds;
+        }
+      }
+      if (nativeRetry && !native.checkpoint && nativeFailures >= 9) break;
+      if (retry < retryLimit()) {
+        const delay = nativeRetry
+          ? nativeRetryDelayMs(native.checkpoint ? retry : nativeFailures - 1, { checkpoint: native.checkpoint, minimumMs: lastFailure?.nativeMinimumMs })
+          : retryAfterMs(lastFailure?.response, retry, this.retryBaseMs);
+        await waitForRetry(delay, signal);
+      }
     }
-    break;
+    if (streamFlow === 'continue') continue;
+    if (streamCompleted || streamFlow === 'break') break;
+    if (lastFailure?.error) throw lastFailure.error;
+    const detail = lastFailure?.detail || '';
+    throw new DirectProviderError(detail ? `Antigravity 上游请求失败：${detail}` : 'Antigravity 上游请求失败。', {
+      code: 'direct_upstream_error', status: lastFailure?.status || 502, details: lastFailure?.diagnostic || detail
+    });
     }
     if (state.calls.length) {
       for (const call of state.calls) if (!call.id) call.id = `call_${crypto.randomUUID().replaceAll('-', '')}`;

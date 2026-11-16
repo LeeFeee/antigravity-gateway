@@ -9,14 +9,15 @@ const { execFileSync } = require('node:child_process');
 // command, never shell arguments interpolated into a command line.
 function windowsAclScript(file, directory) {
   const literal = `'${String(file).replace(/'/g, "''")}'`;
+  const ioType = directory ? 'Directory' : 'File';
   return `$ErrorActionPreference='Stop'; $p=${literal}; `
     + '$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User; '
     + `$acl=New-Object System.Security.AccessControl.${directory ? 'DirectorySecurity' : 'FileSecurity'}; `
     + '$acl.SetOwner($sid); $acl.SetAccessRuleProtection($true,$false); '
     + '$rule=New-Object System.Security.AccessControl.FileSystemAccessRule('
     + `$sid,'FullControl','${directory ? 'ContainerInherit, ObjectInherit' : 'None'}','None','Allow'); `
-    + '$acl.AddAccessRule($rule); Set-Acl -LiteralPath $p -AclObject $acl; '
-    + '$check=Get-Acl -LiteralPath $p; '
+    + `$acl.AddAccessRule($rule); [System.IO.${ioType}]::SetAccessControl($p,$acl); `
+    + `$check=[System.IO.${ioType}]::GetAccessControl($p,[System.Security.AccessControl.AccessControlSections]::Access); `
     + 'if (!$check.AreAccessRulesProtected) {throw "Credential ACL inheritance remains enabled"}; '
     + '$rules=$check.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier]); '
     + 'if ($rules.Count -ne 1 -or $rules[0].IdentityReference.Value -ne $sid.Value '

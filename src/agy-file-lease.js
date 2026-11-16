@@ -46,7 +46,7 @@ class DirectoryGuard {
     try {
       let curr = fs.realpathSync(targetPath);
       while (curr && curr !== path.dirname(curr)) {
-        const s = fs.statSync(curr);
+        const s = fs.statSync(curr, { bigint: true });
         if (s.dev === this.dev && s.ino === this.ino) return true;
         curr = path.dirname(curr);
       }
@@ -65,8 +65,8 @@ class DirectoryGuard {
 
 function canonicalDirectoryPort(configDir) {
   const realDir = fs.realpathSync(configDir);
-  const stat = fs.statSync(realDir);
-  if (!stat.isDirectory() || !Number.isSafeInteger(stat.dev) || !Number.isSafeInteger(stat.ino) || stat.dev === 0 || stat.ino === 0) {
+  const stat = fs.statSync(realDir, { bigint: true });
+  if (!stat.isDirectory() || stat.dev <= 0n || stat.ino <= 0n) {
     throw new Error('当前文件系统不支持稳定的设备与 Inode 物理标识，拒绝赋予托管独占资格。');
   }
   const identity = `${stat.dev}:${stat.ino}`;
@@ -77,7 +77,7 @@ function canonicalDirectoryPort(configDir) {
 async function acquireDirectoryGuard(configDir) {
   fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
   const realDir = fs.realpathSync(configDir);
-  const stat = fs.statSync(realDir);
+  const stat = fs.statSync(realDir, { bigint: true });
   const port = canonicalDirectoryPort(configDir);
   const server = net.createServer(socket => socket.destroy());
   server.unref();
@@ -93,7 +93,7 @@ async function acquireDirectoryGuard(configDir) {
       resolve();
     });
   });
-  const current = fs.statSync(fs.realpathSync(configDir));
+  const current = fs.statSync(fs.realpathSync(configDir), { bigint: true });
   if (current.dev !== stat.dev || current.ino !== stat.ino) {
     server.close();
     throw new Error('获取守护期间数据目录发生变化，拒绝启动。');
