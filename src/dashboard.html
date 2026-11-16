@@ -130,7 +130,7 @@
     .poster-overlay{border-color:var(--line);background:var(--panel-strong);box-shadow:0 24px 70px rgba(24,24,23,.22)}.poster-close{border-color:rgba(255,255,255,.45);background:var(--ink);color:var(--panel-strong)}
     .toast{border-color:var(--line);background:var(--ink);color:var(--panel-strong);box-shadow:0 16px 38px rgba(24,24,23,.18)}
     .save-overlay{background:rgba(241,241,239,.84)}.save-panel{border-color:var(--line);background:var(--panel-strong);box-shadow:0 24px 70px rgba(24,24,23,.2)}.save-head h2{color:var(--text)}.save-head p{color:var(--muted)}.save-close{border-color:var(--line);background:var(--surface);color:var(--text)}.save-preview{border-color:var(--line);background:var(--page)}
-    .is-capturing .share-action,.is-capturing .account-toolbar,.is-capturing .account-action{visibility:hidden!important}.is-capturing.capture-canvas .card{border-color:var(--line);box-shadow:none}
+    .is-capturing .share-action,.is-capturing .account-toolbar,.is-capturing .account-action,.is-capturing #openProxySettings{visibility:hidden!important}.is-capturing.capture-canvas .card{border-color:var(--line);box-shadow:none}
     @media(max-width:1080px){
       .shell{padding-inline:20px}.topbar{align-items:flex-start;flex-wrap:wrap}.controls{justify-content:flex-start}.stat-slab{padding:10px}.stat-slab strong{font-size:19px}.provider-group{grid-template-columns:minmax(0,1fr)}
     }
@@ -146,13 +146,20 @@
     @media(max-width:420px){
       .controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.select{grid-column:1/-1}.controls .button{width:100%}.period-summary{grid-template-columns:minmax(0,1fr)}.qr-block{grid-template-columns:auto 112px;justify-self:start}.qr-trigger{width:112px;height:112px}.stat-slab strong{font-size:clamp(12px,3.8vw,14px);letter-spacing:-.04em}.stat-slab small{font-size:9px}.account-toolbar{display:grid;grid-template-columns:minmax(0,1fr)}.footer{display:block}
     }
+    .controls .button[data-enabled="true"]{border-color:var(--success);color:var(--success);background:rgba(4,120,87,.08)}
+    .auth-check{display:flex;align-items:flex-start;gap:8px;margin-top:14px;font-weight:500;cursor:pointer}.auth-check input{width:18px;min-height:18px;margin:2px 0 0;flex:0 0 auto}
+    .cockpit-preview{max-height:220px;overflow:auto;margin-top:12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:6px 10px}
+    .cockpit-preview-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 2px;font-size:12px;border-bottom:1px solid var(--line)}
+    .cockpit-preview-row:last-child{border-bottom:0}
+    .cockpit-preview-row span{color:var(--muted);white-space:nowrap}
+    .cockpit-preview-empty{padding:10px 4px;font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
 <main class="shell">
   <header class="topbar">
     <div class="brand"><div class="brand-mark" aria-hidden="true">A</div><div><h1>Token 消耗看板</h1><p id="subtitle">Antigravity Gateway · 正在读取本地统计</p></div></div>
-    <div class="controls"><div class="segmented" id="ranges" aria-label="统计周期"><button data-hours="24" class="active">1 天</button><button data-hours="72">3 天</button><button data-hours="168">近 7 天</button><button data-hours="720">近 30 天</button></div><select class="select" id="accountFilter" aria-label="账号筛选"><option value="all">全部账号</option></select><button class="button share-action" id="shareDashboard">生成图片</button><button class="button" id="refresh"><span class="live">刷新数据</span></button></div>
+    <div class="controls"><div class="segmented" id="ranges" aria-label="统计周期"><button data-hours="24" class="active">1 天</button><button data-hours="72">3 天</button><button data-hours="168">近 7 天</button><button data-hours="720">近 30 天</button></div><select class="select" id="accountFilter" aria-label="账号筛选"><option value="all">全部账号</option></select><button class="button" id="openProxySettings" type="button" aria-haspopup="dialog" aria-controls="proxyConfigDialog">网络代理</button><button class="button share-action" id="shareDashboard">生成图片</button><button class="button" id="refresh"><span class="live">刷新数据</span></button></div>
   </header>
   <div class="error" id="error"></div>
   <section class="bento">
@@ -175,7 +182,7 @@
     </article>
     <article class="card trend"><div class="card-head"><div><h2>模型调用趋势</h2><p>按所选周期聚合各模型 Token 用量</p></div></div><div class="card-body"><div class="legend" id="trendLegend"></div><div id="trendChart"></div></div></article>
     <div class="column left-column">
-      <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><div class="account-toolbar"><button class="auth-button add" id="addAntigravityAccount" type="button" aria-haspopup="dialog" aria-controls="antigravityAuthDialog">添加 Antigravity 账号</button><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div></div><div class="card-body account-stack" id="accounts"></div></article>
+      <article class="card accounts"><div class="card-head"><div><h2>账号池与额度</h2><p>额度与 agy /usage 的模型组保持一致</p></div><div class="account-toolbar"><button class="auth-button add" id="addAntigravityAccount" type="button" aria-haspopup="dialog" aria-controls="antigravityAuthDialog">添加 Antigravity 账号</button><button class="auth-button" id="importCockpitToolsBtn" type="button" aria-haspopup="dialog" aria-controls="cockpitImportDialog">导入 Cockpit 账号</button><button class="quota-view-toggle" id="quotaViewToggle" type="button" aria-pressed="false" aria-controls="accounts">额度概览</button></div></div><div class="card-body account-stack" id="accounts"></div></article>
     </div>
     <div class="column right-column">
       <article class="card heat"><div class="card-head"><div><h2>Token 活动</h2><p id="heatCaption">连续日历 · 每格 1 天</p></div></div><div class="card-body"><div class="heat-scale" id="heatScale" aria-label="每日 Token 用量由少到多"><span>少</span><i></i><i></i><i></i><i></i><i></i><span>多</span></div><div class="heatmap-wrap" id="heatmap"></div></div></article>
@@ -201,6 +208,38 @@
     <div class="auth-actions"><button class="auth-button primary" id="antigravityAuthSubmit" type="submit">提交回调 URL</button></div>
   </form>
   <div class="auth-actions"><button class="auth-button" id="antigravityAuthRetry" type="button" hidden>重新授权</button><button class="auth-button" id="antigravityAuthClose" type="button">取消授权</button></div>
+</dialog>
+<dialog class="auth-dialog" id="proxyConfigDialog" aria-labelledby="proxyConfigTitle" aria-describedby="proxyConfigStatus">
+  <h2 id="proxyConfigTitle">全局网络代理配置</h2>
+  <p>配置通过 HTTP / HTTPS / SOCKS5 代理访问 Google Antigravity API、Google OAuth 与额度接口，保存后热更新原生传输通道。</p>
+  <p class="auth-status" id="proxyConfigStatus" role="status" aria-live="polite">正在读取代理配置…</p>
+  <form class="auth-step" id="proxyConfigForm">
+    <label class="auth-check" for="proxyEnabled"><input id="proxyEnabled" type="checkbox"><span>启用全局上游代理</span></label>
+    <div class="auth-step">
+      <label for="proxyUrlInput">代理地址</label>
+      <input id="proxyUrlInput" type="text" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:7897 或 socks5://127.0.0.1:1080">
+    </div>
+    <div class="auth-step">
+      <label for="proxyNoProxyInput">直连例外 (NO_PROXY)</label>
+      <input id="proxyNoProxyInput" type="text" autocomplete="off" spellcheck="false" placeholder="127.0.0.1,localhost">
+    </div>
+    <label class="auth-check" for="proxyMediaUse"><input id="proxyMediaUse" type="checkbox"><span>外部远程多媒体 URL 下载也经 HTTP/HTTPS 代理</span></label>
+    <p class="auth-error" id="proxyConfigError" role="alert"></p>
+    <div class="auth-actions"><button class="auth-button primary" id="proxySaveBtn" type="submit">保存并生效</button><button class="auth-button" id="proxyResetBtn" type="button" hidden>恢复环境变量默认</button><button class="auth-button" id="proxyCloseBtn" type="button">关闭</button></div>
+  </form>
+</dialog>
+<dialog class="auth-dialog" id="cockpitImportDialog" aria-labelledby="cockpitImportTitle" aria-describedby="cockpitImportStatus">
+  <h2 id="cockpitImportTitle">导入 Cockpit Tools 账号</h2>
+  <p>自动扫描并解密 <code>~/.cockpit_tools</code> 与 <code>~/.antigravity_cockpit</code> 中的 Antigravity OAuth 账号（AES-256-GCM 凭证或导出 JSON），只导入启用账号。</p>
+  <p class="auth-status" id="cockpitImportStatus" role="status" aria-live="polite">正在准备扫描…</p>
+  <div class="auth-step">
+    <label for="cockpitDataDirInput">Cockpit Tools 数据目录或导出文件（可选，留空自动扫描）</label>
+    <input id="cockpitDataDirInput" type="text" autocomplete="off" spellcheck="false" placeholder="留空自动扫描默认目录，或输入绝对路径">
+  </div>
+  <div class="cockpit-preview" id="cockpitImportPreview" aria-live="polite"></div>
+  <label class="auth-check" for="cockpitOverwrite"><input id="cockpitOverwrite" type="checkbox"><span>即使已存在也强制覆盖更新已有账号配置</span></label>
+  <p class="auth-error" id="cockpitImportError" role="alert"></p>
+  <div class="auth-actions"><button class="auth-button" id="cockpitScanBtn" type="button">重新扫描</button><button class="auth-button primary" id="cockpitImportConfirmBtn" type="button">一键导入全部可用账号</button><button class="auth-button" id="cockpitCloseBtn" type="button">关闭</button></div>
 </dialog>
 <div class="poster-overlay" id="posterOverlay" role="dialog" aria-label="「 Token 自由社群」" aria-hidden="true"><button class="poster-close" id="posterClose" type="button" aria-label="关闭海报">×</button><img class="poster-image" id="posterImage" data-src="/dashboard/assets/community-poster.png" alt="「 Token 自由社群」"></div>
 <div class="save-overlay" id="saveOverlay" role="dialog" aria-modal="true" aria-labelledby="saveTitle" aria-describedby="saveHint" aria-hidden="true"><div class="save-panel"><div class="save-head"><div><h2 id="saveTitle">图片已生成</h2><p id="saveHint">长按下方图片，选择“保存图片”或“存储到照片”。</p></div><button class="save-close" id="saveClose" type="button" aria-label="关闭图片预览">×</button></div><div class="save-preview"><img id="savePreview" alt="已脱敏的 Token 看板图片预览"></div><div class="save-actions"><a class="button save-download" id="saveDownload" href="#" download>下载 PNG</a><button class="button save-done" id="saveDone" type="button">完成</button></div></div></div>
@@ -403,5 +442,6 @@
 })();
 </script>
 <script src="/dashboard/assets/account-auth.js"></script>
+<script src="/dashboard/assets/dashboard-tools.js"></script>
 </body>
 </html>

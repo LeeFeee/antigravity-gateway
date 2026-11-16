@@ -107,8 +107,11 @@ test('remote dashboard allowlist gates page, data, and every bundled asset toget
   const routes = [
     '/dashboard',
     '/dashboard/data',
+    '/dashboard/proxy',
     '/dashboard/accounts/antigravity/oauth',
+    '/dashboard/accounts/cockpit-tools/scan',
     '/dashboard/assets/account-auth.js',
+    '/dashboard/assets/dashboard-tools.js',
     '/dashboard/assets/community-qr.png',
     '/dashboard/assets/community-poster.png',
     '/dashboard/assets/html2canvas.min.js'
@@ -118,6 +121,8 @@ test('remote dashboard allowlist gates page, data, and every bundled asset toget
   for (const route of routes) {
     assert.equal((await request({ port: denied.port, host: address, localAddress: address, route })).status, 403);
   }
+  assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/proxy', method: 'POST' })).status, 403);
+  assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/accounts/cockpit-tools/import', method: 'POST' })).status, 403);
   assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/accounts/example/recheck', method: 'POST' })).status, 403);
   assert.equal((await request({ port: denied.port, host: address, localAddress: address, route: '/dashboard/accounts/example', method: 'DELETE' })).status, 403);
 

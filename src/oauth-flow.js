@@ -103,8 +103,8 @@ class OAuthFlow {
     timeoutMs = 5 * 60_000,
     clientCredentials = [],
     openBrowserImpl = openBrowser,
-    onboardAttempts = 5,
-    onboardPollMs = 2000
+    onboardAttempts = 30,
+    onboardPollMs = 1000
   } = {}) {
     this.fetchImpl = fetchImpl;
     this.agyPath = agyPath;

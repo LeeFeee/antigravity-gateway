@@ -23,9 +23,10 @@ function errorCategory(error) {
   const status = Number(error?.status) || 0;
   const source = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''} ${error?.cause?.code || ''} ${error?.cause?.message || ''}`;
   if (error?.code === 'request_timeout' || error?.code === 'request_aborted' || /abort(?:ed|error)|请求已取消|网关请求超时/i.test(source)) return 'request';
-  if (status === 429 || /resource.*exhausted|quota|rate.?limit/i.test(source)) return 'quota';
+  if (status !== 402 && /MODEL_CAPACITY_EXHAUSTED/i.test(source)) return 'transient';
+  if (status === 402 || status === 429 || /resource.*exhausted|quota|rate.?limit|INSUFFICIENT_G1_CREDITS_BALANCE|MONETIZATION_DENIED/i.test(source)) return 'quota';
   if (/fetch failed|network|timeout|timed out|econnreset|econnrefused|enotfound|eai_again|socket|tls|dns/i.test(source)) return 'transient';
-  if (status === 401 || status === 403 || (status >= 400 && status < 500 && /direct_refresh_failed/i.test(source)) || /invalid_grant|refresh token|auth.*missing|登录态|unauthenticated|permission.?denied|forbidden|verify\s*your\s*account|account.*verif|security.*challenge|account.*(?:disabled|suspended)/i.test(source)) return 'account';
+  if (status === 401 || status === 403 || (status >= 400 && status < 500 && /direct_refresh_failed/i.test(source)) || /invalid_grant|refresh token|auth.*missing|登录态|unauthenticated|permission.?denied|forbidden|verify\s*your\s*account|account.*verif|security.*challenge|validation.?required|account.*(?:disabled|suspended)/i.test(source)) return 'account';
   if (status === 408 || status === 425 || status >= 500) return 'transient';
   return 'request';
 }
@@ -33,7 +34,7 @@ function errorCategory(error) {
 function accountHealth(error) {
   const status = Number(error?.status) || 0;
   const source = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''}`;
-  if (/verify\s*your\s*account|account.*verif|security.*challenge|安全核验|验证.*账号/i.test(source)) {
+  if (/verify\s*your\s*account|account.*verif|security.*challenge|validation.?required|安全核验|验证.*账号/i.test(source)) {
     return {
       state: 'verification_required',
       reason: 'google_account_verification',

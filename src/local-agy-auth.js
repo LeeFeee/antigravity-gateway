@@ -12,7 +12,7 @@ const KEYCHAIN_PREFIX = 'go-keyring-base64:';
 const DEFAULT_KEYCHAIN_SERVICE = 'gemini';
 const DEFAULT_KEYCHAIN_ACCOUNT = 'antigravity';
 const DEFAULT_WINDOWS_CREDENTIAL_TARGET = 'LegacyGeneric:target=gemini:antigravity';
-let discoveredClientCredentials;
+const discoveredClientCredentialsCache = new Map();
 
 class LocalAgyAuthError extends Error {
   constructor(message, { code = 'local_agy_auth_error', status = 401, details, cause } = {}) {
@@ -198,12 +198,17 @@ function agyBinaryPaths(homeDir = os.homedir(), platform = process.platform, env
     ? [
         env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'agy', 'bin', 'agy.exe'),
         path.join(homeDir, 'AppData', 'Local', 'agy', 'bin', 'agy.exe'),
-        path.join(homeDir, '.local', 'bin', 'agy.exe')
+        path.join(homeDir, '.local', 'bin', 'agy.exe'),
+        env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe'),
+        path.join(homeDir, 'AppData', 'Local', 'Programs', 'Antigravity', 'resources', 'bin', 'language_server.exe')
       ]
     : [
         path.join(homeDir, '.local', 'bin', 'agy'),
         path.join(homeDir, '.antigravity', 'antigravity', 'bin', 'agy'),
-        '/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity'
+        '/Applications/Antigravity.app/Contents/Resources/app/bin/antigravity',
+        '/Applications/Antigravity.app/Contents/Resources/bin/language_server',
+        '/usr/share/antigravity/resources/bin/language_server',
+        '/opt/Antigravity/resources/bin/language_server'
       ];
   return [env.ANTIGRAVITY_CLI_PATH, ...platformPaths]
     .filter(Boolean)
@@ -232,13 +237,26 @@ function scanClientMetadata(file) {
 }
 
 function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '', platform = process.platform, env = process.env } = {}) {
-  if (discoveredClientCredentials) return discoveredClientCredentials;
+  const cacheKey = [
+    homeDir,
+    agyPath,
+    platform,
+    env.ANTIGRAVITY_CLI_PATH || '',
+    env.LOCALAPPDATA || '',
+    env.ANTIGRAVITY_GOOGLE_CLIENT_ID || '',
+    env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET || ''
+  ].join('\0');
+  const cached = discoveredClientCredentialsCache.get(cacheKey);
+  if (cached) return cached;
   const configured = normalizeClientCredentials(
     env.ANTIGRAVITY_GOOGLE_CLIENT_ID && env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET
       ? [{ clientId: env.ANTIGRAVITY_GOOGLE_CLIENT_ID, clientSecret: env.ANTIGRAVITY_GOOGLE_CLIENT_SECRET }]
       : []
   );
-  if (configured.length) return (discoveredClientCredentials = configured);
+  if (configured.length) {
+    discoveredClientCredentialsCache.set(cacheKey, configured);
+    return configured;
+  }
   const paths = agyPath
     ? [path.resolve(agyPath), ...agyBinaryPaths(homeDir, platform, env)]
     : agyBinaryPaths(homeDir, platform, env);
@@ -246,7 +264,7 @@ function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '', platf
   for (const file of [...new Set(paths)]) {
     try {
       if (!fs.statSync(file).isFile()) continue;
-      // The official agy binary contains the installed OAuth client metadata.
+      // The official agy or Antigravity Desktop binary contains the installed OAuth client metadata.
       // Scan it incrementally: the current Windows executable is large enough
       // that converting the whole binary to a string can exhaust Node's heap.
       // Google desktop OAuth secrets use exactly 28 characters after GOCSPX-;
@@ -256,7 +274,8 @@ function discoverClientCredentials({ homeDir = os.homedir(), agyPath = '', platf
       if (candidates.length) break;
     } catch { /* another installation path may exist */ }
   }
-  return (discoveredClientCredentials = candidates);
+  if (candidates.length) discoveredClientCredentialsCache.set(cacheKey, candidates);
+  return candidates;
 }
 
 class LocalAgyAuthProvider {
@@ -267,6 +286,7 @@ class LocalAgyAuthProvider {
     fetchImpl = nativeCloudCodeFetch,
     tokenEndpoint = TOKEN_ENDPOINT,
     clientCredentials = [],
+    preferredClientId = '',
     platform = process.platform,
     keychainService = process.env.ANTIGRAVITY_KEYCHAIN_SERVICE || DEFAULT_KEYCHAIN_SERVICE,
     keychainAccount = process.env.ANTIGRAVITY_KEYCHAIN_ACCOUNT || DEFAULT_KEYCHAIN_ACCOUNT,
@@ -276,6 +296,7 @@ class LocalAgyAuthProvider {
     this.fetchImpl = fetchImpl;
     this.tokenEndpoint = tokenEndpoint;
     this.clientCredentials = normalizeClientCredentials(clientCredentials);
+    this.preferredClientId = String(preferredClientId || '').trim();
     this.platform = platform;
     this.homeDir = homeDir;
     this.agyPath = agyPath;
@@ -330,9 +351,12 @@ class LocalAgyAuthProvider {
 
   async refresh(signal, refreshToken) {
     if (!refreshToken) throw new LocalAgyAuthError('本地 agy 登录态缺少 refresh token。', { code: 'local_agy_refresh_missing' });
-    const candidates = this.clientCredentials.length
+    const rawCandidates = this.clientCredentials.length
       ? this.clientCredentials
       : discoverClientCredentials({ homeDir: this.homeDir, platform: this.platform, agyPath: this.agyPath });
+    const candidates = this.preferredClientId
+      ? [...rawCandidates].sort((left, right) => (right.clientId === this.preferredClientId ? 1 : 0) - (left.clientId === this.preferredClientId ? 1 : 0))
+      : rawCandidates;
     if (!candidates.length) throw new LocalAgyAuthError('无法从本地 agy 安装中发现 OAuth 客户端配置。', { code: 'local_agy_client_credentials_missing' });
     let lastStatus = 401;
     let lastDetails = '';

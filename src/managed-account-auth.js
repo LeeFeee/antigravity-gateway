@@ -44,6 +44,7 @@ class ManagedAccountAuthProvider {
       clientCredentials: account.clientId && account.clientSecret
         ? [{ clientId: account.clientId, clientSecret: account.clientSecret }]
         : [],
+      preferredClientId: account.clientId || '',
       useKeychain: false,
       authFile: '__managed_account__'
     });

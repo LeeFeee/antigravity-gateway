@@ -23,6 +23,9 @@ const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowse
 const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension, localMediaOptions, safeRasterImage } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { DashboardAccountAuth, handleDashboardAccountAuth } = require('./src/dashboard-account-auth');
+const { handleDashboardTools } = require('./src/dashboard-tools');
+const { importCockpitToolsAccounts } = require('./src/cockpit-tools-import');
+const { ProxyConfigManager } = require('./src/proxy-config');
 const { QuotaManager } = require('./src/quota-manager');
 const { acquireDirectoryGuard } = require('./src/agy-file-lease');
 const { manageService } = require('./src/service-manager');
@@ -67,6 +70,8 @@ function parseArgs(argv) {
     else if (arg === '--claude-config-path') result.claudeConfigPath = true;
     else if (arg === '--claude-config') result.claudeConfig = true;
     else if (arg === '--models') result.models = true;
+    else if (arg === '--import-cockpit-tools') result.importCockpitTools = true;
+    else if (arg === '--cockpit-dir') result.cockpitDir = argv[++index];
     else if (arg === 'stats') result.stats = true;
     else if (arg === 'service') {
       result.serviceRequested = true;
@@ -106,6 +111,11 @@ let diagnosticsEnabled = false;
 const diagnosticReporter = (event, fields) => {
   if (diagnosticsEnabled) DIAGNOSTIC_LOG.write(event, fields);
 };
+const PROXY_MANAGER = new ProxyConfigManager({
+  configDir: CONFIG_DIR,
+  onApplied: () => closeNativeTransport()
+});
+PROXY_MANAGER.apply();
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
@@ -121,7 +131,11 @@ const DASHBOARD_ACCOUNT_AUTH = new DashboardAccountAuth({
   flow: OAUTH_FLOW, store: ACCOUNT_STORE, pool: ACCOUNT_POOL, quotaManager: QUOTA_MANAGER,
   onAdded: () => { modelCache.at = 0; upstreamModelCache.at = 0; }
 });
-const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media'), ...localMediaOptions({ configDir: CONFIG_DIR }) });
+const MEDIA_STORE = new MediaStore({
+  directory: path.join(CONFIG_DIR, 'media'),
+  fetchImpl: (url, options) => PROXY_MANAGER.mediaFetch(url, options),
+  ...localMediaOptions({ configDir: CONFIG_DIR })
+});
 const SESSION_MANAGER = new SessionManager();
 // Only search results/history need this persistent key. Reading configuration,
 // displaying models or handling ordinary inference must not create it.
@@ -341,11 +355,11 @@ function codexModelInfo(slug, priority) {
   const supportsAudio = mediaCapability('supportsAudio', 'audio');
   const thinking = resolveModelConfiguration(slug, upstream).thinkingConfig;
   const effort = thinking?.thinkingLevel?.toLowerCase() || null;
-  // Google Antigravity API currently reports 1,048,576 input tokens for Gemini 3.7/3.8
-  // Flash. Keep that verified fallback even when a transient discovery request
-  // fails; otherwise the client would compact a healthy 1M context at 200K.
+  // Google Antigravity API reports 1,048,576 input tokens for Gemini 3.6/3.7/3.8
+  // Flash and Gemini 4 models (Desktop defaultmodels confirms 0x100000). Keep
+  // that verified fallback even when a transient discovery request fails.
   const contextWindow = upstream?.maxTokens
-    || (/^gemini-3\.[78]-flash(?:[.-]|$)/i.test(slug) ? 1048576 : 200000);
+    || (/^gemini-(?:3\.[678]-flash|4-(?:argon|carbon|hydrogen))(?:[.-]|$)/i.test(slug) ? 1048576 : 200000);
   return {
     slug,
     display_name: upstream?.displayName || slug,
@@ -568,6 +582,8 @@ function printHelp() {
   --agy-path <path>       OAuth 客户端配置所用的 agy 安装路径
   -m, --model <id>        默认 Antigravity 模型
   --models                 显示当前账号的全部真实模型 ID
+  --import-cockpit-tools   扫描并导入 Cockpit Tools 维护的 Antigravity 账号
+  --cockpit-dir <path>     指定 Cockpit Tools 数据目录或导出 JSON 文件路径
   --codex-catalog-path    显示自动生成的 Codex 模型目录绝对路径
   --claude-config-path    显示自动生成的 Claude Code 模型配置路径
   --claude-config         输出 Claude Code 模型与 Auto 兼容配置 JSON
@@ -1497,7 +1513,7 @@ async function requestHandler(req, res) {
     res.end();
     return;
   }
-  if (route === '/dashboard' || route === '/dashboard/data' || route.startsWith('/dashboard/assets/') || route.startsWith('/dashboard/accounts/')) {
+  if (route === '/dashboard' || route === '/dashboard/data' || route === '/dashboard/proxy' || route.startsWith('/dashboard/assets/') || route.startsWith('/dashboard/accounts/')) {
     if (!DASHBOARD_ACCESS.allows(req.socket?.remoteAddress)) {
       sendJson(res, 403, { error: { type: 'dashboard_local_only', message: 'Token 看板仅允许从网关所在设备或 ANTIGRAVITY_GATEWAY_DASHBOARD_ALLOW 所列来源访问。' } });
       return;
@@ -1522,6 +1538,15 @@ async function requestHandler(req, res) {
       }), { 'Cache-Control': 'no-store' });
       return;
     }
+    if (await handleDashboardTools(req, res, route, requestUrl, {
+      auth: DASHBOARD_ACCOUNT_AUTH,
+      proxyManager: PROXY_MANAGER,
+      accountStore: ACCOUNT_STORE,
+      accountPool: ACCOUNT_POOL,
+      quotaManager: QUOTA_MANAGER,
+      onAccountsChanged: () => { modelCache.at = 0; upstreamModelCache.at = 0; },
+      sendJson
+    })) return;
     if (await handleDashboardAccountAuth(req, res, route, DASHBOARD_ACCOUNT_AUTH, sendJson)) return;
     const accountRecheckMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/recheck$/);
     const accountDeleteMatch = route.match(/^\/dashboard\/accounts\/([^/]+)$/);
@@ -1766,6 +1791,24 @@ if (require.main === module) {
   }
   if (CLI_ARGS.codexCatalogPath) { console.log(codexCatalogPath()); return; }
   if (CLI_ARGS.claudeConfigPath) { console.log(claudeConfigPath()); return; }
+  if (CLI_ARGS.importCockpitTools) {
+    try {
+      const result = importCockpitToolsAccounts({
+        store: ACCOUNT_STORE,
+        dataDir: CLI_ARGS.cockpitDir || ''
+      });
+      console.log([
+        `已扫描 Cockpit Tools 目录：${result.scannedDirs.length ? result.scannedDirs.join(', ') : '未发现'}`,
+        `发现有效账号 ${result.totalFound} 个：新增 ${result.imported}，更新 ${result.updated}，已一致跳过 ${result.unchanged}`,
+        ...(result.errors.length ? [`解析失败 ${result.errors.length} 个文件`] : []),
+        ...((result.imported || result.updated) ? ['若后台服务正在运行，请执行 service restart 或在看板刷新。'] : [])
+      ].join('\n'));
+    } catch (error) {
+      console.error(`[Antigravity Gateway Error] ${error.message}`);
+      process.exitCode = 1;
+    }
+    return;
+  }
   if (CLI_ARGS.models || CLI_ARGS.claudeConfig) {
     void availableModels(true).then((models) => {
       console.log(CLI_ARGS.models ? displayModels(models).join('\n') : JSON.stringify(claudeConfigBody(models), null, 2));
@@ -1915,7 +1958,7 @@ module.exports = {
 
 const daemonStart = require.main === module && ![
   'help', 'version', 'serviceRequested', 'stats', 'codexCatalogPath',
-  'claudeConfigPath', 'models', 'claudeConfig'
+  'claudeConfigPath', 'models', 'claudeConfig', 'importCockpitTools'
 ].some(key => CLI_ARGS[key]);
 if (daemonStart) {
   void acquireDirectoryGuard(CONFIG_DIR).then(guard => {
