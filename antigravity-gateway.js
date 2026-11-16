@@ -11,6 +11,11 @@ const { resolveAgyCommand } = require('./src/agy-installation');
 const { AGY_CLI_VERSION } = require('./src/agy-request-profile');
 const { AccountPool } = require('./src/account-pool');
 const { AccountStore } = require('./src/account-store');
+const { GeminiAccountStore } = require('./src/gemini-account-store');
+const { GeminiProvider } = require('./src/gemini-provider');
+const { GeminiRpcError } = require('./src/gemini-rpc');
+const { GeminiInitializationError } = require('./src/gemini-onboarding');
+const { GatewayUpstreams } = require('./src/gateway-upstreams');
 const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DiagnosticLog } = require('./src/diagnostic-log');
@@ -23,6 +28,9 @@ const { checkDashboard, dashboardAsset, dashboardData, dashboardHtml, openBrowse
 const { MediaStore, MultimediaError, mediaParts, normalizeMime, imageFileExtension, localMediaOptions, safeRasterImage } = require('./src/multimedia');
 const { OAuthFlow } = require('./src/oauth-flow');
 const { DashboardAccountAuth, handleDashboardAccountAuth } = require('./src/dashboard-account-auth');
+const { DashboardGeminiAuth } = require('./src/dashboard-gemini-auth');
+const { GeminiOAuthFlow } = require('./src/gemini-oauth-flow');
+const { GeminiQuotaManager } = require('./src/gemini-quota-manager');
 const { QuotaManager } = require('./src/quota-manager');
 const { acquireDirectoryGuard } = require('./src/agy-file-lease');
 const { manageService } = require('./src/service-manager');
@@ -34,6 +42,8 @@ const { readSafeguards, evaluateSafeguards } = require('./src/anthropic-safeguar
 const { isConversionError } = require('./src/conversion-errors');
 const { withAsyncSchemaBoundary } = require('./src/schema-contract');
 const { ServerSearchReceipts } = require('./src/server-search-contract');
+const { prepareGeminiResponsesSearch, prepareAntigravityResponsesSearch } = require('./src/gemini-responses-search');
+const { prepareSearchCapability, forwardSearchCalls } = require('./src/antigravity-responses-search');
 const { prepareServerSearchForwardAsync, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
@@ -116,10 +126,24 @@ const ACCOUNT_POOL = new AccountPool({
 });
 const QUOTA_MANAGER = new QuotaManager({ configDir: CONFIG_DIR, accountPool: ACCOUNT_POOL });
 ACCOUNT_POOL.quotaManager = QUOTA_MANAGER;
+const GEMINI_ACCOUNT_STORE = new GeminiAccountStore({ configDir: CONFIG_DIR });
+const GEMINI_ACCOUNT_POOL = new AccountPool({ store: GEMINI_ACCOUNT_STORE, usageStore: USAGE_STORE,
+  providerType: 'gemini', diagnosticReporter,
+  providerFactory: account => new GeminiProvider({ account, store: GEMINI_ACCOUNT_STORE, timeoutMs: REQUEST_TIMEOUT,
+    diagnosticReporter: (event, fields) => diagnosticReporter(event, { ...fields, accountId: account.id, provider: 'gemini' }) }) });
+const UPSTREAMS = new GatewayUpstreams({ antigravity: ACCOUNT_POOL, gemini: GEMINI_ACCOUNT_POOL });
+const GEMINI_QUOTA_MANAGER = new GeminiQuotaManager({ configDir: CONFIG_DIR, accountPool: GEMINI_ACCOUNT_POOL });
+GEMINI_ACCOUNT_POOL.quotaManager = GEMINI_QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
 const DASHBOARD_ACCOUNT_AUTH = new DashboardAccountAuth({
   flow: OAUTH_FLOW, store: ACCOUNT_STORE, pool: ACCOUNT_POOL, quotaManager: QUOTA_MANAGER,
   onAdded: () => { modelCache.at = 0; upstreamModelCache.at = 0; }
+});
+const GEMINI_OAUTH_FLOW = new GeminiOAuthFlow();
+const DASHBOARD_GEMINI_AUTH = new DashboardGeminiAuth({
+  flow: GEMINI_OAUTH_FLOW, store: GEMINI_ACCOUNT_STORE, pool: GEMINI_ACCOUNT_POOL,
+  quotaManager: GEMINI_QUOTA_MANAGER, usageStore: USAGE_STORE,
+  onAdded: () => { modelCache.at = 0; }
 });
 const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media'), ...localMediaOptions({ configDir: CONFIG_DIR }) });
 const SESSION_MANAGER = new SessionManager();
@@ -247,7 +271,7 @@ async function availableModels(force = false) {
   if (force) upstreamModelCache.at = 0;
   if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
   try {
-    const models = ACCOUNT_POOL.hasManagedAccounts() ? await ACCOUNT_POOL.listModels(undefined, { force }) : [];
+    const models = await UPSTREAMS.listModels(undefined, { force });
     modelCache = { at: Date.now(), models, error: null };
   } catch (error) {
     modelCache = { at: Date.now(), models: modelCache.models, error };
@@ -260,7 +284,7 @@ async function availableApiModels() {
   if (Date.now() - upstreamModelCache.at < MODEL_CACHE_MS && upstreamModelCache.models.length) {
     return upstreamModelCache.models;
   }
-  const models = ACCOUNT_POOL.hasManagedAccounts() ? await ACCOUNT_POOL.listModels(undefined, { force: true }) : [];
+  const models = await UPSTREAMS.listModels(undefined, { force: true });
   upstreamModelCache = { at: Date.now(), models };
   return models;
 }
@@ -281,15 +305,17 @@ function preferredFastModel(models) {
     const match = models.find((model) => pattern.test(model));
     if (match) return match;
   }
+  const gemini = ['gemini-4-hydrogen-low-g', 'gemini-4-argon-low-g'].find(model => models.includes(model));
+  if (gemini) return gemini;
   return DEFAULT_MODEL;
 }
 
-async function resolveModel(requested, { preferFast = false } = {}) {
+async function resolveModel(requested, { preferFast = false, identity } = {}) {
   // Claude Code's built-in Auto Mode classifier selects Sonnet 5 separately
   // from the user's main model. Route that classifier to the supported fast
   // model without requiring a client override. Ordinary Sonnet requests and
   // other explicitly selected classifier models retain their own contracts.
-  if (preferFast && requested === 'claude-sonnet-5') return 'gemini-3.8-flash-low';
+  if (preferFast && requested === 'claude-sonnet-5') return UPSTREAMS.classifierModel(identity);
   const aliases = configuredAliases();
   const original = requested || DEFAULT_MODEL;
   const mapped = Object.prototype.hasOwnProperty.call(aliases, original) ? aliases[original] : original;
@@ -331,7 +357,8 @@ async function upstreamModelDiagnostic(error, model) {
 }
 
 function codexModelInfo(slug, priority) {
-  const upstream = ACCOUNT_POOL.modelInfo(slug);
+  const provider = UPSTREAMS.providerFor(slug);
+  const upstream = UPSTREAMS.poolFor(slug).modelInfo(slug);
   const mimeTypes = upstream?.supportedMimeTypes && typeof upstream.supportedMimeTypes === 'object'
     && !Array.isArray(upstream.supportedMimeTypes) ? structuredClone(upstream.supportedMimeTypes) : {};
   const mediaCapability = (field, prefix) => typeof upstream?.[field] === 'boolean' ? upstream[field]
@@ -339,8 +366,9 @@ function codexModelInfo(slug, priority) {
   const supportsImages = mediaCapability('supportsImages', 'image');
   const supportsVideo = mediaCapability('supportsVideo', 'video');
   const supportsAudio = mediaCapability('supportsAudio', 'audio');
-  const thinking = resolveModelConfiguration(slug, upstream).thinkingConfig;
-  const effort = thinking?.thinkingLevel?.toLowerCase() || null;
+  const thinking = provider === 'gemini' ? (upstream ? { requestedThinkingLevel: upstream.thinkingLevel } : null)
+    : resolveModelConfiguration(slug, upstream).thinkingConfig;
+  const effort = provider === 'gemini' ? upstream?.thinking || null : thinking?.thinkingLevel?.toLowerCase() || null;
   // Google Antigravity API currently reports 1,048,576 input tokens for Gemini 3.7/3.8
   // Flash. Keep that verified fallback even when a transient discovery request
   // fails; otherwise the client would compact a healthy 1M context at 200K.
@@ -349,6 +377,8 @@ function codexModelInfo(slug, priority) {
   return {
     slug,
     display_name: upstream?.displayName || slug,
+    upstream_provider: provider,
+    upstream_protocol: provider === 'gemini' ? 'Google Gemini API' : 'Google Antigravity API',
     description: 'Model provided through the local Antigravity Gateway.',
     prefer_websockets: false,
     support_verbosity: false,
@@ -460,7 +490,8 @@ function codexCatalogBody(models) {
   const catalog = ordered.map((id, index) => codexModelInfo(id, index));
   return {
     object: 'list',
-    data: catalog.map((model) => ({ id: model.slug, object: 'model', created: 0, owned_by: 'antigravity',
+    data: catalog.map((model) => ({ id: model.slug, object: 'model', created: 0, owned_by: model.upstream_provider === 'gemini' ? 'gemini' : 'antigravity',
+      upstream_provider: model.upstream_provider, upstream_protocol: model.upstream_protocol,
       display_name: model.display_name, input_modalities: model.input_modalities,
       supports_images: model.supports_images, supports_video: model.supports_video, supports_audio: model.supports_audio,
       supported_mime_types: structuredClone(model.supported_mime_types),
@@ -487,7 +518,7 @@ function claudeConfigBody(models) {
       options: ordered.map((model) => ({
         model,
         label: model,
-        description: 'Antigravity Gateway'
+        description: UPSTREAMS.providerFor(model) === 'gemini' ? 'Google Gemini API' : 'Google Antigravity API'
       })),
       replaceBuiltInOptions: true
     }
@@ -730,6 +761,7 @@ function errorBody(error, protocol) {
 
 function mapAgyError(error) {
   if (error instanceof GatewayError || error instanceof DirectProviderError
+    || error instanceof GeminiRpcError || error instanceof GeminiInitializationError
     || error instanceof MultimediaError || isConversionError(error)) return error;
   if (error?.name === 'AbortError' || error?.code === 'ABORT_ERR' || /request aborted/i.test(String(error?.message || ''))) {
     return new GatewayError('客户端已取消请求。', { code: 'request_aborted', status: 499 });
@@ -773,19 +805,61 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
   const taskScope = auxiliaryScope ? { auxiliaryScope } : {};
   try {
     const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
-    const prepared = prepareNativeMultimodal(resolved);
+    const pool = UPSTREAMS.poolFor(model);
+    const searchCapability = pool === GEMINI_ACCOUNT_POOL ? { normalized: resolved, enabled: false } : prepareSearchCapability(resolved);
+    const prepared = pool === GEMINI_ACCOUNT_POOL ? { normalized: resolved, imageToolInjected: false } : prepareNativeMultimodal(searchCapability.normalized);
     const finalize = raw => finalizeModelResultAsync(normalized, raw, { signal });
     const upstreamModel = model;
     const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
     const onAccountSelected = ({ accountId, email, source, attempt }) => {
       gatewayLog(`[Antigravity Gateway] 路由账号=${email || accountId} source=${source} model=${upstreamModel} attempt=${attempt} ${trace}`);
     };
-    let raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, {
-      signal, sessionId, routingKey, requestId, clientId, clientLabel, onDelta, onAccountSelected, reuseConversation, ...taskScope,
+    let raw = await pool.send(prepared.normalized, upstreamModel, {
+      signal, sessionId, routingKey, requestId, clientId, clientLabel, mediaScope, onDelta, onAccountSelected, reuseConversation, ...taskScope,
       ...(nativeCompaction ? { nativeCompaction } : {}),
       ...(nativeClientProfile ? { nativeClientProfile } : {}),
       onThinkingDelta: normalized.includeThinking ? onThinkingDelta : undefined
     });
+    if (searchCapability.enabled) {
+      let pending = prepared.normalized, searchUsage = null, searchRounds = 0, searchUsageKnown = true;
+      const sources = [];
+      for (;;) {
+        const planning = raw;
+        const searched = await forwardSearchCalls(planning, searchRounds
+          ? { ...resolved, serverSearch: { ...resolved.serverSearch, mode: 'auto' } } : resolved,
+        request => ACCOUNT_POOL.searchWeb(request, {
+          signal, sessionId, routingKey, accountId: planning.accountId, bindRouting: false,
+          onAccountSelected: ({ model: helperModel }) => gatewayLog(`[Antigravity Gateway] class=responses-server-search model=${helperModel} ${trace}`)
+        }));
+        if (!searched.searchReceipts?.length) break;
+        searchRounds++;
+        searchUsageKnown &&= searched.usageKnown !== false;
+        searchUsage = combinedUsage(searchUsage, searched.usage);
+        sources.push(...searched.webSearch.sources);
+        if (searched.toolCalls.length) { raw = { ...searched, usage: searchUsage }; searchUsage = null; break; }
+        // Resume the original model/tier with complete context and real search
+        // receipts. Further model-selected searches use the same forwarding
+        // path; the request's existing cancellation/deadline remains in force.
+        pending = { ...pending, stream: false,
+          toolChoice: resolved.serverSearch.mode === 'required' ? 'auto' : resolved.toolChoice,
+          messages: [...pending.messages,
+            { role: 'assistant', text: planning.text || '', parts: [
+              ...(planning.text ? [{ type: 'text', text: planning.text }] : []),
+              ...searched.searchReceipts.map(({ call }) => ({ type: 'tool_call', id: call.id,
+                name: call.name, arguments: call.arguments, thoughtSignature: call.thoughtSignature }))
+            ] },
+            { role: 'user', text: '', parts: searched.searchReceipts.map(({ call, output }) => ({
+              type: 'tool_result', id: call.id, name: call.name, content: JSON.stringify(output)
+            })) }
+          ] };
+        raw = await pool.send(pending, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel,
+          mediaScope, onAccountSelected, reuseConversation, ...taskScope, ...(nativeClientProfile ? { nativeClientProfile } : {}),
+          clientProjection: { source: prepared.normalized }
+        });
+      }
+      if (searchRounds) raw = { ...raw, webSearch: { sources }, usage: combinedUsage(searchUsage, raw.usage),
+        usageKnown: searchUsageKnown && raw.usageKnown !== false };
+    }
     const initialUsage = raw.usage;
     const internalCalls = prepared.imageToolInjected
       ? (raw.toolCalls || []).filter((call) => call.name === NATIVE_IMAGE_TOOL_NAME)
@@ -879,11 +953,11 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
     } catch (error) {
       if (normalized.serverAutoReview) throw error;
       if (error.code === 'invalid_auto_mode_classifier_output') {
-        raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
+        raw = await pool.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, mediaScope, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: 'Return only the XML verdict required by the client contract. No prose or Markdown.' });
         return await finalize(raw);
       }
       if (error.code === 'invalid_structured_output') {
-        raw = await ACCOUNT_POOL.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
+        raw = await pool.send(prepared.normalized, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel, mediaScope, onAccountSelected, reuseConversation, ...taskScope, repairInstruction: `Return only one valid JSON value conforming to this schema: ${JSON.stringify(normalized.structuredSchema)}` });
         return await finalize(raw);
       }
       throw error;
@@ -1127,6 +1201,8 @@ function emitResponsesItem(emit, item, outputIndex) {
     const part = item.content[0];
     emit({ type: 'response.content_part.added', item_id: item.id, output_index: outputIndex, content_index: 0, part: { type: 'output_text', text: '', annotations: [] } });
     emit({ type: 'response.output_text.delta', item_id: item.id, output_index: outputIndex, content_index: 0, delta: part.text });
+    (part.annotations || []).forEach((annotation, annotationIndex) => emit({ type: 'response.output_text.annotation.added',
+      item_id: item.id, output_index: outputIndex, content_index: 0, annotation_index: annotationIndex, annotation }));
     emit({ type: 'response.output_text.done', item_id: item.id, output_index: outputIndex, content_index: 0, text: part.text });
     emit({ type: 'response.content_part.done', item_id: item.id, output_index: outputIndex, content_index: 0, part });
   } else if (item.type === 'reasoning') {
@@ -1143,20 +1219,24 @@ function emitResponsesItem(emit, item, outputIndex) {
   } else if (item.type === 'custom_tool_call') {
     emit({ type: 'response.custom_tool_call_input.delta', item_id: item.id, output_index: outputIndex, delta: item.input });
     emit({ type: 'response.custom_tool_call_input.done', item_id: item.id, output_index: outputIndex, input: item.input });
+  } else if (item.type === 'web_search_call') {
+    emit({ type: 'response.web_search_call.completed', item_id: item.id, output_index: outputIndex });
   }
   emit({ type: 'response.output_item.done', output_index: outputIndex, item });
 }
 
 const responsesStreamErrors = new WeakMap();
 function sendResponsesStreamError(res, error) {
+  if (res.writableEnded || res.destroyed) return;
   const mapped = clientError(error);
   const event = { type: 'error', code: mapped.code, message: mapped.message, param: null };
   if (mapped.upstream_status) Object.assign(event, {
     gateway_code: mapped.gateway_code, upstream_status: mapped.upstream_status
   });
-  const emit = responsesStreamErrors.get(res);
-  if (emit) emit(event);
+  const fail = responsesStreamErrors.get(res);
+  if (fail) fail(event);
   else sendSse(res, null, { ...event, sequence_number: 0 });
+  responsesStreamErrors.delete(res);
   res.end();
 }
 
@@ -1166,7 +1246,6 @@ function createResponsesTextEmitter(res, model, responseId) {
   let started = false;
   const states = new Map();
   const emit = (event) => sendSse(res, null, { ...event, sequence_number: sequence++ });
-  responsesStreamErrors.set(res, emit);
   const start = () => {
     if (started) return;
     started = true;
@@ -1175,6 +1254,20 @@ function createResponsesTextEmitter(res, model, responseId) {
       status: 'in_progress', output: [], error: null, incomplete_details: null, usage: null
     } });
   };
+  responsesStreamErrors.set(res, ({ type: _type, param: _param, ...error }) => {
+    start();
+    // Responses clients distinguish a terminal failed response from an
+    // interrupted transport. Keep already delivered content as incomplete;
+    // never signal response.completed or synthesize successful tool output.
+    const output = [...states].map(([kind, state]) => kind === 'reasoning'
+      ? { id: state.id, type: 'reasoning', status: 'incomplete', summary: [{ type: 'summary_text', text: state.text }] }
+      : { id: state.id, type: 'message', role: 'assistant', status: 'incomplete',
+        content: [{ type: 'output_text', text: state.text, annotations: [] }] });
+    emit({ type: 'response.failed', response: {
+      id: responseId, object: 'response', created_at: createdAt, model,
+      status: 'failed', output, error, incomplete_details: null, usage: null
+    } });
+  });
   const emitDelta = (kind, value) => {
     const text = String(value || '');
     if (!text) return;
@@ -1214,6 +1307,8 @@ function createResponsesTextEmitter(res, model, responseId) {
         : { id: state.id, type: 'message', role: 'assistant', status: message?.status || body.status, content: [part] };
       const ids = { item_id: state.id, output_index: state.index,
         ...(kind === 'reasoning' ? { summary_index: 0 } : { content_index: 0 }) };
+      if (kind === 'message') (part.annotations || []).forEach((annotation, annotationIndex) => emit({
+        type: 'response.output_text.annotation.added', ...ids, annotation_index: annotationIndex, annotation }));
       emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_text.done' : 'response.output_text.done', ...ids, text: state.text });
       emit({ type: kind === 'reasoning' ? 'response.reasoning_summary_part.done' : 'response.content_part.done', ...ids, part });
       emit({ type: 'response.output_item.done', output_index: state.index, item });
@@ -1354,6 +1449,9 @@ async function handleFileUpload(req, res) {
 
 async function handleServerSearchForward(prepared, payload, req, res, signal, safeguardContext) {
   const { normalized, query, contents, instructions, generationConfig, tool } = prepared;
+  if (UPSTREAMS.providerFor(normalized.model || DEFAULT_MODEL) === 'gemini') {
+    throw new GatewayError('Gemini 服务器搜索协议尚未完成适配，不能切换到其他上游执行。', { code: 'gemini_search_not_supported', status: 501 });
+  }
   const scope = clientScope(req);
   const identity = clientSessionIdentity(req, payload, normalized, null);
   let body;
@@ -1390,9 +1488,10 @@ async function handleAnthropic(payload, req, res, signal) {
   const search = await prepareServerSearchForwardAsync(searchPayload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
   if (search && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal, safeguardContext);
   const normalized = search?.normalized || await normalizeAnthropicAsync(payload, { signal });
-  const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode });
-  const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
   const identity = clientSessionIdentity(req, payload, normalized, null);
+  const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode, identity });
+  const requestClass = normalized.autoMode ? 'auto-mode' : 'client';
+  if (!normalized.autoMode) UPSTREAMS.remember(identity, model);
   gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const liveEmitter = !safeguardContext && textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
@@ -1401,7 +1500,7 @@ async function handleAnthropic(payload, req, res, signal) {
     const result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined });
     body = anthropicResponse(normalized.model || model, result);
     if (safeguardContext) {
-      const reviewed = await evaluateSafeguards({ context: safeguardContext, normalized, body, signal,
+      const reviewed = await evaluateSafeguards({ context: safeguardContext, normalized, body, signal, model: UPSTREAMS.reviewModel(model),
         evaluate: async (review, reviewModel) => {
           gatewayLog(`[Antigravity Gateway] class=server-auto-review model=${reviewModel} ${identityTrace(identity)}`);
           return runTurnWithModelDiagnostic(review, reviewModel, signal, {
@@ -1427,7 +1526,10 @@ async function handleResponses(payload, req, res, signal) {
   if (payload.previous_response_id && !previous) {
     throw new GatewayError('previous_response_id 不属于当前客户端会话。', { code: 'previous_response_not_found', status: 400 });
   }
-  const normalized = await normalizeResponsesAsync(payload, previous, { signal });
+  const search = UPSTREAMS.providerFor(payload.model || DEFAULT_MODEL) === 'gemini'
+    ? prepareGeminiResponsesSearch(payload) : prepareAntigravityResponsesSearch(payload);
+  const normalized = await normalizeResponsesAsync(search.payload, previous, { signal });
+  if (search.serverSearch) normalized.serverSearch = search.serverSearch;
   const model = await resolveModel(normalized.model);
   const identity = clientSessionIdentity(req, payload, normalized, previous);
   gatewayLog(`[Antigravity Gateway] /v1/responses model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
@@ -1437,7 +1539,8 @@ async function handleResponses(payload, req, res, signal) {
   }
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
   const responseId = `resp_${crypto.randomUUID().replaceAll('-', '')}`;
-  const liveEmitter = textStreamingAllowed(normalized) ? createResponsesTextEmitter(res, normalized.model || model, responseId) : null;
+  const responseStream = normalized.stream ? createResponsesTextEmitter(res, normalized.model || model, responseId) : null;
+  const liveEmitter = !search.serverSearch && textStreamingAllowed(normalized) ? responseStream : null;
   let result;
   const sessionId = identity.sessionId;
   try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
@@ -1473,12 +1576,12 @@ async function handleResponses(payload, req, res, signal) {
 function dashboardAccountPool(requestUrl) {
   const providers = requestUrl.searchParams.getAll('provider');
   // Preserve the persisted discriminator accepted by existing dashboard links.
-  if (providers.length > 1 || (providers.length === 1 && providers[0] !== 'cloudcode')) {
-    throw new GatewayError('账号来源无效；当前仅支持 Google Antigravity API 账号池。', {
+  if (providers.length > 1 || (providers.length === 1 && !['cloudcode', 'gemini'].includes(providers[0]))) {
+    throw new GatewayError('账号来源无效。', {
       code: 'invalid_account_provider', status: 400
     });
   }
-  return ACCOUNT_POOL;
+  return providers[0] === 'gemini' ? GEMINI_ACCOUNT_POOL : ACCOUNT_POOL;
 }
 
 async function requestHandler(req, res) {
@@ -1518,11 +1621,13 @@ async function requestHandler(req, res) {
         usageStore: USAGE_STORE,
         accountPool: ACCOUNT_POOL,
         quotaManager: QUOTA_MANAGER,
+        upstreamPools: [{ accountPool: GEMINI_ACCOUNT_POOL, quotaManager: GEMINI_QUOTA_MANAGER }],
         version: GATEWAY_VERSION
       }), { 'Cache-Control': 'no-store' });
       return;
     }
     if (await handleDashboardAccountAuth(req, res, route, DASHBOARD_ACCOUNT_AUTH, sendJson)) return;
+    if (await handleDashboardAccountAuth(req, res, route, DASHBOARD_GEMINI_AUTH, sendJson)) return;
     const accountRecheckMatch = route.match(/^\/dashboard\/accounts\/([^/]+)\/recheck$/);
     const accountDeleteMatch = route.match(/^\/dashboard\/accounts\/([^/]+)$/);
     if (req.method === 'POST' && accountRecheckMatch) {
@@ -1640,6 +1745,7 @@ async function requestHandler(req, res) {
         listen: `http://${HOST}:${PORT}`, agy: { path: AGY_PATH, version: AGY_CLI_VERSION },
         transport: 'direct',
         upstream_protocol: 'Google Antigravity API',
+        upstream_protocols: ['Google Antigravity API', 'Google Gemini API'],
         auth: directAuthDescription(),
         credential_source: credentialSourceDescription(),
         codex_model_catalog: codexCatalogPath(),
@@ -1652,6 +1758,7 @@ async function requestHandler(req, res) {
           managed_accounts: ACCOUNT_POOL.status().length,
           accounts: ACCOUNT_POOL.status()
         },
+        gemini_account_pool: { managed_accounts: GEMINI_ACCOUNT_POOL.status().length, accounts: GEMINI_ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
         capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: false, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: true, local_agy_session_bridge: false, multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: true }
       });
@@ -1728,6 +1835,7 @@ async function requestHandler(req, res) {
 function createServer({ directoryGuard = null } = {}) {
   if (directoryGuard) {
     ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
+    GEMINI_ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
   }
   const server = http.createServer((req, res) => {
     void trackTransaction(withAsyncSchemaBoundary(() => requestHandler(req, res))).catch(() => {
@@ -1798,15 +1906,20 @@ if (require.main === module) {
       diagnosticReporter('gateway_process_stopping', { pid: process.pid });
       directoryGuard.hold();
       QUOTA_MANAGER.stop();
+      GEMINI_QUOTA_MANAGER.stop();
       await DASHBOARD_ACCOUNT_AUTH.stop();
+      await DASHBOARD_GEMINI_AUTH.stop();
       await new Promise((resolve) => server.close(resolve));
       await drainTransactions();
       await QUOTA_MANAGER.drain();
+      await GEMINI_QUOTA_MANAGER.drain();
       // 最后一条请求可能刚更新用量、账号亲和性；排空后才落盘和交接目录。
       USAGE_STORE.stop();
       ACCOUNT_POOL.stop();
+      GEMINI_ACCOUNT_POOL.stop();
       closeNativeTransport();
       ACCOUNT_POOL.bindDirectoryGuard(null);
+      GEMINI_ACCOUNT_POOL.bindDirectoryGuard(null);
       directoryGuard.close();
     })();
     return shutdownPromise;
@@ -1843,6 +1956,7 @@ if (require.main === module) {
   });
   USAGE_STORE.start();
   QUOTA_MANAGER.start();
+  GEMINI_QUOTA_MANAGER.start();
   server.requestTimeout = REQUEST_TIMEOUT + 10000;
   server.headersTimeout = 30000;
   server.listen(PORT, HOST, () => { void trackTransaction((async () => {

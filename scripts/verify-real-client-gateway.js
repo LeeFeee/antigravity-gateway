@@ -124,7 +124,10 @@ function scrub(value, secrets, root, key = '') {
   return value;
 }
 function sourceSnapshot() {
-  const files = ['antigravity-gateway.js', 'package.json', 'package-lock.json'];
+  const files = ['antigravity-gateway.js', 'package.json'];
+  // npm omits package-lock.json from installed packages. Hash it when checking
+  // a checkout; installed-runtime verification must not require this file.
+  if (fs.existsSync(path.join(ROOT, 'package-lock.json'))) files.push('package-lock.json');
   for (const name of fs.readdirSync(path.join(ROOT, 'src')).filter(name => name.endsWith('.js'))) files.push(`src/${name}`);
   for (const name of fs.readdirSync(path.join(ROOT, 'native/bin'))) files.push(`native/bin/${name}`);
   return { sha256: sha(files.sort().map(name => name + '\0' + sha(regularBytes(path.join(ROOT, name)))).join('\n')), files: files.length };

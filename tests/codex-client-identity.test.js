@@ -12,6 +12,22 @@ const { SessionManager } = require('../src/session-manager');
 const CURRENT_USER_AGENT = 'codex_exec/0.167.2 (Mac OS 15.7.0; arm64) dumb (codex_exec; 0.167.2)';
 const CURRENT_TUI_USER_AGENT = 'codex-tui/0.167.2 (Mac OS 15.7.0; arm64) xterm-256color (codex-tui; 0.167.2)';
 
+test('actual desktop-launched Codex CLI headers select the same versioned template profile', () => {
+  const { normalized, req } = capture('text-installation-metadata.json');
+  const headers = { ...req.headers, originator: 'Codex Desktop',
+    'user-agent': 'Codex Desktop/0.167.2 (Mac OS 15.7.0; arm64) dumb (codex_exec; 0.167.2)' };
+  const profile = capturedNativeClient({ headers }, normalized);
+  assert.equal(profile, CODEX_167_CLIENT_PROFILE);
+  const result = sanitizeClientIdentity(normalized, { clientProfile: profile });
+  assert.equal(result.metadata.profile.client, 'codex');
+  assert.deepEqual(result.normalized.tools, normalized.tools);
+  assert.deepEqual(result.normalized.messages, normalized.messages);
+  for (const changed of [{ ...headers, originator: 'other' }, { ...headers, 'session-id': '' },
+    { ...headers, 'user-agent': headers['user-agent'].replace('(codex_exec; 0.167.2)', '(codex_exec; 0.168.0)') }]) {
+    assert.equal(capturedNativeClient({ headers: changed }, normalized), '');
+  }
+});
+
 function capture(name, index = 0) {
   const fixture = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/codex-0.164.0-20261107', name), 'utf8'));
   assert.equal(fixture.version, 'codex-cli 0.164.0'); assert.equal(fixture.passed, true);

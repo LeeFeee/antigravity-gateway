@@ -168,6 +168,26 @@ test('idle workers do not prevent a standalone client process from exiting', asy
   await promisify(execFile)(process.execPath, ['-e', script], { cwd: path.resolve(__dirname, '..'), timeout: 5000 });
 });
 
+test('standalone clients finish retired-worker cleanup before exiting', async () => {
+  const script = `
+    const {SchemaWorkerPool, compileSchemaAsync} = require('./src/schema-contract');
+    (async () => {
+      for (let i = 0; i < 5; i++) {
+        const pool = new SchemaWorkerPool({validateMs: 30});
+        const validate = await compileSchemaAsync({type:'string', pattern:'^(a+)+$'}, {pool});
+        try { await validate('a'.repeat(32) + '!'); throw new Error('expected timeout'); }
+        catch (error) { if (error.code !== 'schema_execution_timeout') throw error; }
+        await pool.close();
+      }
+      process.stdout.write('cleanup-completed');
+    })().catch(() => { process.exitCode = 1; });
+  `;
+  const result = await promisify(execFile)(process.execPath, ['-e', script], {
+    cwd: path.resolve(__dirname, '..'), timeout: 10000
+  });
+  assert.equal(result.stdout, 'cleanup-completed');
+});
+
 
 test('async-only request scope also prevents invoking an offline-compiled validator later', async () => {
   const validate = compileSchema({ type: 'object' });

@@ -13,7 +13,7 @@ delete process.env.ANTIGRAVITY_GATEWAY_API_KEY;
 process.env.ANTIGRAVITY_GATEWAY_TRANSPORT = 'agy';
 const fixtureModels = ['claude-opus-4-6-thinking', 'claude-sonnet-4-6', 'gemini-test-high', 'gemini-test-low'];
 test.beforeEach(t => {
-  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', () => true);
+  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', function () { return this.providerType === 'cloudcode'; });
   t.mock.method(AccountPool.prototype, 'listModels', async () => fixtureModels);
   t.mock.method(AccountPool.prototype, 'send', async (normalized, model, options) => {
     const input = JSON.stringify(normalized.messages);

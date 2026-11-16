@@ -102,14 +102,15 @@ async function fetchJson(provider, token, path, body) {
 }
 
 class QuotaManager {
-  constructor({ configDir, accountPool, fsImpl = fs, intervalMs = REFRESH_INTERVAL_MS, now = () => Date.now(), refreshConcurrency = 2 } = {}) {
+  constructor({ configDir, accountPool, fsImpl = fs, intervalMs = REFRESH_INTERVAL_MS, now = () => Date.now(), refreshConcurrency = 2, snapshotFile = 'quota.json' } = {}) {
+    if (!/^[a-z][a-z0-9-]*\.json$/.test(snapshotFile)) throw new TypeError('Invalid quota snapshot filename');
     this.accountPool = accountPool;
     this.fs = fsImpl;
     this.intervalMs = intervalMs;
     this.now = now;
     this.refreshConcurrency = Math.max(1, Number(refreshConcurrency) || 2);
     this.directory = path.join(configDir, 'state');
-    this.file = path.join(this.directory, 'quota.json');
+    this.file = path.join(this.directory, snapshotFile);
     this.snapshots = this.load();
     this.protections = new Map(Object.entries(this.snapshots).map(([id, snapshot]) => [id,
       geminiQuotaProtection(snapshot, snapshot?.geminiQuotaProtection, snapshot?.groupsObservedAt || snapshot?.observedAt, { restore: true })

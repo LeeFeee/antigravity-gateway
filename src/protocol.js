@@ -888,6 +888,11 @@ function responsesResponse(model, result, responseId) {
   const status = termination === 'complete' ? 'completed' : 'incomplete';
   const output = [];
   const text = deliveryText(result);
+  if (result.webSearch) output.push({
+    id: `ws_${crypto.randomUUID().replaceAll('-', '')}`, type: 'web_search_call', status: 'completed',
+    action: { type: 'search', sources: [...new Set(result.webSearch.sources.map(source => source.url))]
+      .map(url => ({ type: 'url', url })) }
+  });
   if (result.thinking) output.push({
     id: `rs_${crypto.randomUUID().replaceAll('-', '')}`, type: 'reasoning', status,
     summary: [{ type: 'summary_text', text: result.thinking }]
@@ -896,7 +901,17 @@ function responsesResponse(model, result, responseId) {
     output.push({
       id: `msg_${crypto.randomUUID().replaceAll('-', '')}`,
       type: 'message', status, role: 'assistant',
-      content: [{ type: 'output_text', text, annotations: [] }]
+      content: [{ type: 'output_text', text, annotations: (result.sources || []).flatMap(source => {
+        const excerpt = source.annotatedText;
+        if (!excerpt) return [];
+        const start = text.indexOf(excerpt);
+        // Native annotation offsets refer to their local paragraph. Map only
+        // an unambiguous exact span in the delivered Markdown; do not invent
+        // citation offsets for text whose formatting differs.
+        if (start < 0 || text.indexOf(excerpt, start + 1) >= 0) return [];
+        return [{ type: 'url_citation', start_index: start, end_index: start + excerpt.length,
+          url: source.url, title: source.title || source.url }];
+      }) }]
     });
   }
   for (const call of result.toolCalls) {

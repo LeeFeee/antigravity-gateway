@@ -171,6 +171,32 @@ for (const [agent, scenario] of [['claude', 'write'], ['claude', 'edit'], ['pi',
   });
 }
 
+test('Pi preserves optional addenda, project context and skills between docs and cwd', () => {
+  const { normalized } = fixture('pi-first');
+  const identity = 'You are a coding assistant running inside pi, a coding agent harness. ';
+  const blocks = [
+    '<addendum>\nUser SOUL: keep my chosen persona.\n</addendum>\n\n',
+    '<project_context>\nProject-specific instructions and guidelines:\n\n<project_instructions path="/user/AGENTS.md">\nAsk before executing.\n' + identity + '\n</project_instructions>\n</project_context>\n\n',
+    '<skills>\n<available_skills>\n<skill>Keep this full tool contract.</skill>\n</available_skills>\n</skills>\n\n'
+  ];
+  for (const extra of [blocks[1], blocks[2], blocks.join('')]) {
+    const source = { ...normalized, system: normalized.system.replace('</docs>\n\n<cwd>', '</docs>\n\n' + extra + '<cwd>') };
+    const original = structuredClone(source);
+    const cleaned = sanitizeClientIdentity(freeze(source));
+    assert.equal(cleaned.metadata.profile?.client, 'pi');
+    assert.equal(cleaned.normalized.system, source.system.replace(identity, ''));
+    assert.ok(cleaned.normalized.system.includes(extra));
+    assert.deepEqual(cleaned.normalized.tools, original.tools);
+    assert.deepEqual(cleaned.normalized.messages, original.messages);
+    assert.deepEqual(source, original);
+  }
+  for (const extra of ['<custom>\nUser identity\n</custom>\n\n', '<skills>\nMissing close\n\n']) {
+    const source = { ...normalized, system: normalized.system.replace('</docs>\n\n<cwd>', '</docs>\n\n' + extra + '<cwd>') };
+    assert.equal(inferClientProfile(source), null);
+    assert.deepEqual(sanitizeClientIdentity(source).normalized, source);
+  }
+});
+
 test('Pi and dsh keep exact tool guidance, environment paths and execution constraints', () => {
   for (const client of ['pi', 'dsh']) {
     const { normalized } = fixture(client + '-first');
@@ -326,6 +352,26 @@ test('actual Claude compact template for Gemini preserves harness rules while re
   assert.equal(normalized.messages[0].parts[0], original.messages[0].parts[1]);
   assert.ok(metadata.rules.includes('claude-compact-default-attribution'));
   assert.deepEqual(sanitizeClientIdentity(normalized).normalized, normalized);
+});
+
+test('compact Claude with CLAUDE.md preserves the user block while cleaning the separate default attribution', () => {
+  const source = compactClaudeFixture(), message = source.messages[0];
+  const userText = '<system-reminder>\nCodebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.\n\n'
+    + 'Contents of /user/CLAUDE.md:\nUser SOUL and permissions must remain.\n'
+    + message.parts[0].text + '\n</system-reminder>\n';
+  const userPart = { type: 'text', text: userText };
+  message.parts.unshift(userPart);
+  message.text = userText + '\n' + message.text;
+  const original = structuredClone(source), cleaned = sanitizeClientIdentity(freeze(source));
+  assert.ok(cleaned.metadata.rules.includes('claude-compact-default-attribution'));
+  assert.deepEqual(cleaned.normalized.messages[0].parts, [userPart, message.parts[2]]);
+  assert.ok(cleaned.normalized.messages[0].text.startsWith(userText));
+  assert.deepEqual(cleaned.normalized.tools, sanitizeClientIdentity(compactClaudeFixture()).normalized.tools);
+  assert.deepEqual(source, original);
+  const unknown = structuredClone(source);
+  unknown.messages[0].parts[0].text = '<system-reminder>\nUser-authored example\n</system-reminder>';
+  unknown.messages[0].text = unknown.messages[0].text.replace(userText, unknown.messages[0].parts[0].text);
+  assert.equal(sanitizeClientIdentity(unknown).normalized.messages[0], unknown.messages[0]);
 });
 
 test('compact Claude attribution requires the proven first-turn layout and exact default, never a user quotation', () => {

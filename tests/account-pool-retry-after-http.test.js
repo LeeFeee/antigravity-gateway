@@ -90,9 +90,9 @@ for (const protocol of ['messages', 'responses']) {
     assert.equal(streamed.headers.get('retry-after'), null);
     const events = (await streamed.text()).split('\n').filter(line => line.startsWith('data: '))
       .map(line => JSON.parse(line.slice(6)));
-    assert.equal(events.length, 1);
-    assert.equal(events[0].type, 'error');
-    assert.equal(protocol === 'messages' ? events[0].error.type : events[0].code, 'direct_upstream_error');
+    assert.equal(events.length, protocol === 'messages' ? 1 : 2);
+    assert.equal(events.at(-1).type, protocol === 'messages' ? 'error' : 'response.failed');
+    assert.equal(protocol === 'messages' ? events[0].error.type : events.at(-1).response.error.code, 'direct_upstream_error');
     assert.equal(f.upstreamCalls(), 0);
   });
 
@@ -130,7 +130,7 @@ for (const protocol of ['messages', 'responses']) {
     assert.equal(f.upstreamCalls(), 0);
   });
 
-  test(`${protocol}: an already-started SSE response retains its original error event without new headers`, async t => {
+  test(`${protocol}: an already-started SSE response terminates with the original error without new headers`, async t => {
     const f = await fixture(t);
     const response = await f.post(protocol, true);
     assert.equal(response.status, 200);
@@ -139,12 +139,15 @@ for (const protocol of ['messages', 'responses']) {
     const wire = await response.text();
     const events = wire.split('\n').filter(line => line.startsWith('data: '))
       .map(line => JSON.parse(line.slice(6)));
-    assert.equal(events.length, 1);
-    assert.equal(events[0].type, 'error');
+    assert.equal(events.length, protocol === 'messages' ? 1 : 2);
+    assert.equal(events.at(-1).type, protocol === 'messages' ? 'error' : 'response.failed');
     if (protocol === 'messages') assert.equal(events[0].error.type, 'account_pool_unavailable');
     else {
-      assert.equal(events[0].code, 'account_pool_unavailable');
-      assert.equal(events[0].sequence_number, 0);
+      assert.equal(events[0].type, 'response.created');
+      assert.equal(events.at(-1).response.error.code, 'account_pool_unavailable');
+      assert.equal(events.at(-1).response.status, 'failed');
+      assert.deepEqual(events.at(-1).response.output, []);
+      assert.deepEqual(events.map(event => event.sequence_number), [0, 1]);
     }
     assert.equal(f.upstreamCalls(), 0);
   });

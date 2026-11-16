@@ -158,8 +158,10 @@ async function seed(install, root) {
   x.usage.recordUpstream({ model: MODEL, accountId: 'synthetic-second', success: false }); x.usage.save();
   const media = [];
   for (const purpose of ['assistants', 'generated']) {
-    const buffer = Buffer.from(`synthetic-${purpose}-media-bytes`);
-    const item = x.media.save(buffer, { mediaType: 'image/png', filename: `${purpose}.png`, purpose, scope: 'synthetic-scope' });
+    const buffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aZ1kAAAAASUVORK5CYII=', 'base64');
+    const options = { mediaType: 'image/png', filename: `${purpose}.png`, purpose, scope: 'synthetic-scope' };
+    const item = purpose === 'generated' && typeof x.media.saveGeneratedImage === 'function'
+      ? x.media.saveGeneratedImage(buffer, options) : x.media.save(buffer, options);
     media.push({ id: item.id, purpose, sha256: sha(buffer), scope: item.scope });
   }
   let session;
@@ -277,7 +279,11 @@ async function main() {
       assert(summary.packages[label].packedFiles.some(file => file.startsWith('native/bin/') && !file.endsWith('.json')), `${label} must include native binaries`);
     }
     const removed = summary.packages.old.packedFiles.filter(file => file.startsWith('src/') && !summary.packages.new.packedFiles.includes(file));
-    assert(removed.includes('src/robin-provider.js') && removed.includes('src/gemini-windows-provider.js') && removed.includes('src/agy-worker.js'));
+    const retired = ['src/robin-provider.js', 'src/gemini-windows-provider.js', 'src/agy-worker.js'];
+    for (const file of retired) {
+      assert(!summary.packages.new.packedFiles.includes(file), `New package restored retired runtime: ${file}`);
+      if (summary.packages.old.packedFiles.includes(file)) assert(removed.includes(file));
+    }
     summary.removedRuntimeFiles = removed;
     const guard = path.join(root, 'runtime-guard.cjs');
     fs.writeFileSync(guard, `const fs = require('node:fs'), os = require('node:os'), path = require('node:path');\nconst inside = ${inside.toString()};\n(${runtimeGuard.toString()})(process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR, process.env.UPGRADE_DENY_LEGACY === '1', process.env.UPGRADE_GUARD_REPORT);\n`);
@@ -313,7 +319,7 @@ async function main() {
         assert.equal(sha(fs.readFileSync(path.join(env.ANTIGRAVITY_GATEWAY_CONFIG_DIR, relative))), hash, relative);
       }
       summary.stages.push({ ...JSON.parse(result.stdout), postinstallExecuted: true, version: version.stdout.trim(),
-        binRelativePath: path.relative(prefix, bin), retiredRuntimePathsPresent: stage !== 'upgrade',
+        binRelativePath: path.relative(prefix, bin), retiredRuntimePathsPresent: retired.some(file => fs.existsSync(path.join(install, file))),
         versionLegacyAccessCount: versionAudit.accesses.length, moduleLegacyAccessCount: audit.accesses.length,
         persistentFilesByteIdentical: true });
       write(path.join(root, 'summary.json'), summary);

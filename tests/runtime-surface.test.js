@@ -27,7 +27,10 @@ const originalLoad = Module._load, originalRead = fs.readFileSync, originalReadD
 let gateway;
 try {
   Module._load = function (name, ...args) {
-    assert.doesNotMatch(name, /(?:^|\/)(?:provider-router|robin-account-pool|robin-oauth-flow|gemini-windows-login|gemini-account-store|local-account-importer)$/);
+    // The new Gemini account store is an explicit dashboard-only upstream.
+    // Retired Robin/Windows import paths and their on-disk credentials stay
+    // forbidden; the filesystem guards below enforce that distinction.
+    assert.doesNotMatch(name, /(?:^|\/)(?:provider-router|robin-account-pool|robin-oauth-flow|gemini-windows-login|local-account-importer)$/);
     return originalLoad.call(this, name, ...args);
   };
   fs.readFileSync = function (name, ...args) {
@@ -90,7 +93,7 @@ test('retired inference endpoint is rejected before body normalization or upstre
 
 test('runtime tree and npm scripts contain no executable retired channel implementation', () => {
   const root = path.join(__dirname, '..'), source = path.join(root, 'src');
-  const retired = /^(?:robin-|gemini-windows-|gemini-account-store\.js$|provider-router\.js$|local-account-importer\.js$|agy-worker\.js$)/;
+  const retired = /^(?:robin-|gemini-windows-|provider-router\.js$|local-account-importer\.js$|agy-worker\.js$)/;
   assert.deepEqual(fs.readdirSync(source).filter(name => retired.test(name)), []);
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
   assert.doesNotMatch(JSON.stringify(manifest.scripts), /(?:robin-|gemini-windows-|provider-router|local-account-importer|agy-worker)/);

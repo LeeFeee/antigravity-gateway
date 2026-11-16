@@ -19,6 +19,7 @@ const { assertGenerationCompatibility } = require('./antigravity-model-config');
 const { CAPTURED_IMAGE_MODEL, DEFAULT_IMAGE_MODEL, imageModelName, assertImageModel } = require('./image-model-config');
 const { validateSearchParameters, searchRequest, parseSearchResponse } = require('./antigravity-server-search');
 const { sanitizeClientIdentity } = require('./client-identity');
+const { prepareAntigravityClientInstructions } = require('./antigravity-client-instructions');
 const { prepareStructuredOutput, prepareStructuredOutputAsync, finishResultAsync, finishResponse } = require('./agy-structured-output');
 const { nativeClientToolResponse, attachClientToolResult } = require('./agy-tool-results');
 const { runSync, runAsync } = require('./schema-steps');
@@ -303,7 +304,8 @@ function* buildDirectRequestSteps(normalized, model, projectId, sessionId, repai
   const sourceTools = normalized.tools;
   const identity = sanitizeClientIdentity(normalized, { clientProfile: native.identityClientProfile || native.clientProfile || '' });
   native.clientIdentity = identity.metadata.profile;
-  native.toolAdapter = yield prepareTools(identity.normalized, { ...native, sourceTools, clientIdentity: identity.metadata.profile });
+  const clientInstructions = prepareAntigravityClientInstructions(identity.normalized, identity.metadata.profile);
+  native.toolAdapter = yield prepareTools(clientInstructions, { ...native, sourceTools, clientIdentity: identity.metadata.profile });
   normalized = native.toolAdapter.normalized;
   const structured = yield prepareStructured(normalized, native);
   normalized = structured.normalized;

@@ -79,7 +79,11 @@ function accountFingerprint(account = {}) {
 }
 
 class AccountPool {
-  constructor({ store, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter, directoryGuard = null } = {}) {
+  constructor({ store, usageStore, agyPath = '', fetchImpl = nativeCloudCodeFetch, providerFactory, fsImpl = fs, stateFile = '', now = () => Date.now(), diagnosticReporter, directoryGuard = null, providerType = 'cloudcode' } = {}) {
+    if (!['cloudcode', 'gemini'].includes(providerType)) throw new TypeError('Unknown account pool provider');
+    if (providerType === 'gemini' && typeof providerFactory !== 'function') throw new TypeError('Gemini pool requires its own provider factory');
+    this.providerType = providerType;
+    this.providerName = providerType === 'gemini' ? 'Gemini' : 'Antigravity';
     this.store = store;
     this.usageStore = usageStore;
     this.agyPath = agyPath;
@@ -89,7 +93,7 @@ class AccountPool {
     this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
     this.directoryGuard = directoryGuard;
     this.lastUnavailableDiagnosticAt = -Infinity;
-    this.stateFile = stateFile || path.join(path.dirname(this.store.directory), 'state', 'account-pool.json');
+    this.stateFile = stateFile || path.join(path.dirname(this.store.directory), 'state', providerType === 'gemini' ? 'gemini-account-pool.json' : 'account-pool.json');
     this.providerFactory = providerFactory || ((account) => {
       const report = (event, fields) => this.reportDiagnostic(event, account, fields);
       return new DirectAntigravityProvider({
@@ -191,7 +195,9 @@ class AccountPool {
       // Validate once at the storage boundary, before constructing a provider.
       // Legacy persisted agy labels remain compatible; foreign credentials
       // must never enter Google Antigravity API routing.
-      if (account.providerType === 'robin' || account.accountType === 'gemini-app') continue;
+      if (this.providerType === 'gemini') {
+        if (account.providerType !== 'gemini' || account.accountType !== 'gemini-app' || account.authMethod !== 'gemini-oauth') continue;
+      } else if (account.providerType === 'robin' || account.providerType === 'gemini' || account.accountType === 'gemini-app') continue;
       const previous = old.get(account.id);
       const generation = accountGrantGeneration(account);
       const sameGrant = previous?.grantGeneration === generation;
@@ -302,8 +308,8 @@ class AccountPool {
       code: 'account_pool_unavailable', status: 429
     }), { retryAfterSeconds });
     return new DirectProviderError(model
-      ? `当前没有可用于模型 ${model} 的 Antigravity 账号。${states.model_unsupported === entries.length ? '账号池的模型目录不支持该模型。' : ''}`
-      : '当前账号池没有可用的 Antigravity 账号。', {
+      ? `当前没有可用于模型 ${model} 的 ${this.providerName} 账号。${entries.length && states.model_unsupported === entries.length ? '账号池的模型目录不支持该模型。' : ''}`
+      : `当前账号池没有可用的 ${this.providerName} 账号。`, {
       code: 'account_pool_unavailable', status: 429
     });
   }
@@ -671,7 +677,7 @@ class AccountPool {
   attemptReporter(accountId, model) {
     return (event) => {
       if (event.phase === 'response') {
-        this.usageStore?.recordUpstream({ accountId, model, success: event.success, count: true });
+        this.usageStore?.recordUpstream({ accountId, model, success: event.success, count: event.count !== false });
       }
     };
   }
@@ -927,6 +933,16 @@ class AccountPool {
     const now = this.now();
     return [...this.entries.values()].map((entry) => ({
       id: entry.account.id,
+      providerType: this.providerType,
+      ...(this.providerType === 'gemini' ? { tokenUsageKnown: false,
+        initialization: entry.account.providerMetadata.initialization ? {
+          stage: entry.account.providerMetadata.initialization.stage,
+          complete: entry.account.providerMetadata.initialization.complete === true,
+          running: entry.account.providerMetadata.initialization.running === true,
+          activityOptOutVerified: entry.account.providerMetadata.initialization.activityOptOutVerified === true,
+          inferenceModel: entry.account.providerMetadata.initialization.inferenceModel || '',
+          errorCode: entry.account.providerMetadata.initialization.errorCode || ''
+        } : null } : {}),
       email: entry.account.email,
       enabled: entry.account.enabled !== false,
       weight: entry.account.weight,
@@ -950,6 +966,7 @@ class AccountPool {
   }
 
   stop() {
+    for (const entry of this.entries.values()) entry.provider.dispose?.();
     this.cleanupSessions({ persist: false });
     this.saveState();
   }

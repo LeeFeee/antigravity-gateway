@@ -114,18 +114,24 @@ function accountPoolUsage(usage, accountIds) {
   };
 }
 
-function dashboardData({ usageStore, accountPool, quotaManager, version }) {
-  const status = accountPool.status().map((account) => ({
+function dashboardData({ usageStore, accountPool, quotaManager, upstreamPools = [], version }) {
+  const pools = [{ accountPool, quotaManager }, ...upstreamPools];
+  const quotas = new Map();
+  const status = pools.flatMap(({ accountPool: pool, quotaManager: manager }) => pool.status().map((account) => {
+    quotas.set(account.id, manager);
+    return {
     ...account,
     providerType: account.providerType || 'cloudcode',
-    accountType: account.accountType || 'antigravity'
+    accountType: account.accountType || (account.providerType === 'gemini' ? 'gemini-app' : 'antigravity'),
+    tokenUsageKnown: account.tokenUsageKnown ?? account.providerType !== 'gemini'
+    };
   }));
   const accountIds = new Set(status.map((account) => account.id));
   const usage = accountPoolUsage(usageStore.summary({ live: true, detailed: true }), accountIds);
   const accounts = status.map((account) => ({
     ...account,
     tokenUsageKnown: typeof account.tokenUsageKnown === 'boolean' ? account.tokenUsageKnown : true,
-    quota: quotaManager?.peek?.(account.id) || quotaManager?.get(account.id) || null
+    quota: quotas.get(account.id)?.peek?.(account.id) || quotas.get(account.id)?.get(account.id) || null
   }));
   return {
     version,

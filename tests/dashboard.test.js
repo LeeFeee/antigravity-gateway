@@ -454,7 +454,8 @@ test('dashboard HTML contains the required monitoring surfaces and bundled asset
   assert.doesNotMatch(html, /每日 Token 构成/);
   assert.match(html, /每周剩余额度/);
   assert.match(html, /5 小时剩余额度/);
-  assert.match(html, /agy \/usage/);
+  assert.match(html, /Google Antigravity API/);
+  assert.match(html, /Google Gemini API/);
   assert.match(html, /hourlyByAccountModel/);
   assert.match(html, /fetch\('\/dashboard\/data'/);
   assert.doesNotMatch(html, /https?:\/\/[^'" ]+\.(?:js|css)/);

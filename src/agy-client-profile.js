@@ -41,6 +41,11 @@ function capturedNativeClient(req, normalized) {
   if (normalized.protocol !== 'responses' || typeof headers['session-id'] !== 'string' || !headers['session-id'].trim()) return '';
   const ua = headers['user-agent'] || '';
   if (headers.originator === 'codex_exec' && /^codex_exec\/0\.159\.2(?:\s|$)/.test(ua)) return CODEX_CLIENT_PROFILE;
+  // The real CLI launched from Codex Desktop keeps the desktop originator
+  // and reports its executable/version in the final UA tuple. Identity edits
+  // still require the exact developer-template fingerprint downstream.
+  if (headers.originator === 'Codex Desktop'
+    && /^Codex Desktop\/0\.167\.2 \([^\r\n]+\) [^\r\n]*\(codex_exec; 0\.167\.2\)$/.test(ua)) return CODEX_167_CLIENT_PROFILE;
   const current = /^(codex_exec|codex-tui)\/0\.167\.2(?:\s|$)/.exec(ua);
   return current && current[1] === headers.originator ? CODEX_167_CLIENT_PROFILE : '';
 }

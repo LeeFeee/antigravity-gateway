@@ -1,12 +1,22 @@
 # Antigravity Gateway
 
-当前版本：**2.0.5**。
+当前版本：**2.1.0**。
 
-将看板管理的多个 Antigravity 账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 等客户端使用。上游统一采用 **Google Antigravity API 协议**，请求格式固定以 **agy 1.5.8** 的捕获证据为基线；客户端仅使用 **Anthropic Messages** 或 **OpenAI Responses**。
+将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端继续使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.1.0：Gemini 任务模式与完整客户端兼容
+
+新增 **Google Gemini API** 上游，直接使用 Gemini app 的任务模式接口，运行时无需安装或启动 Gemini app。通过看板“添加 Gemini 账号”完成授权并检查账号状态，凭据保存在独立的 `gemini-accounts/`，不导入旧 Robin/Windows Gemini 文件。原有 Antigravity 账号、端口和密钥继续沿用。
+
+Gemini 模型以 `-g` 区分：`gemini-4-hydrogen-g`、`gemini-4-argon-g` 及其明确的 `-low-g` 名称。默认别名指向 Low。目录依据真实 Task 策略，不发布聊天模式的 High/Medium；没有客户端工具的文本请求和 Claude Auto 审批也使用 Task 接口。对外继续使用原有 Messages/Responses 地址，Gemini 模型只使用 Gemini 账号池，不跨上游降级。
+
+Gemini 的任务多模态暂未接入，图片生成、编辑和视频理解继续使用 Antigravity 模型。首次原生登录弹窗与“不参加改进计划”选项的完整对应验证按用户决定暂缓，不宣称已覆盖所有新账号。实际验收范围、初始化与偏好设置的已验证项及缺口见 [Gemini 实施记录](docs/gemini-app-protocol-evidence.md)，完整边界见 [双上游改造说明](docs/gemini-app-upstream-spec.md)。
+
+本版还修复 Pi、Claude、Hermes 固定框架文本触发的已复现 429，以及从 Codex Desktop 启动 CLI 时的识别缺口。只转换有来源和精确指纹的框架内容，保留用户规则、工具、权限、模型和思考档位。原 Antigravity 的真实工具、Auto、媒体与升级验收，以及 Gemini 五客户端的实际覆盖范围见 [2.1.0 验收](docs/release-2.1.0-preflight.md)和 [429 修复证据](docs/antigravity-429-compatibility-20261116.md)。
 
 ## 2.0.5 更新
 
@@ -79,7 +89,7 @@ antigravity-gateway stats
 
 或打开 `http://127.0.0.1:9897/dashboard`。在“账号池与额度”中点击添加账号，打开 Google 授权链接并完成 OAuth。若浏览器无法访问网关所在机器的 localhost 回调页，可将地址栏中的完整回调 URL 粘贴回看板提交。授权令牌保存在网关端。
 
-**看板 OAuth 是新增账号的唯一入口。** 已有 `accounts/` 数据继续沿用；空账号池会明确返回不可用，不读取本机登录态或其他凭据补齐账号。看板继续提供账号启停、权重、删除、重新检测、额度和用量。
+**看板 OAuth 是新增账号的唯一入口。** 面板分别提供“添加 Antigravity 账号”和“添加 Gemini 账号”，并按两个上游展示账号与额度。Antigravity 的 `accounts/` 与 Gemini 的 `gemini-accounts/` 独立保存，已有 `accounts/` 数据继续沿用；空账号池会明确返回不可用，不读取本机登录态或其他凭据补齐账号。看板继续提供账号启停、权重、删除、重新检测、额度和用量。
 
 当需要指定 OAuth 客户端元数据的发现位置时，可使用 `--agy-path /absolute/path/to/agy` 或 `ANTIGRAVITY_CLI_PATH`。这个路径不选择推理通道。
 
@@ -124,11 +134,11 @@ claude --settings "$(antigravity-gateway --claude-config-path)"
 
 该文件仍位于原数据目录，随账号池模型目录更新。网关只生成模型目录，不写入审核模式、权限规则或分类器模型设置。
 
-Claude Code 默认 Auto 会在主请求中携带 `safeguards`。网关保持所选主模型，获得完整工具调用后，再用 `gemini-3.8-flash-low`／LOW 对工具参数、会话中的用户边界和 `classifier_context` 规则做一次独立模型评估。结果按原工具调用 ID 返回；客户端继续决定是否执行，网关不执行 shell、文件或 MCP 工具。JSON 响应返回 `safeguard_results`，SSE 在结束的 `message_delta.delta` 中返回同一结构。
+Claude Code 默认 Auto 会在主请求中携带 `safeguards`。网关保持所选主模型，获得完整工具调用后，再按所选上游使用 Antigravity `gemini-3.8-flash-low`／LOW 或 Gemini `gemini-4-hydrogen-low-g` Task，对工具参数、会话中的用户边界和 `classifier_context` 规则做一次实际模型评估。结果按原工具调用 ID 返回；客户端继续决定是否执行，网关不执行 shell、文件或 MCP 工具。JSON 响应返回 `safeguard_results`，SSE 在结束的 `message_delta.delta` 中返回同一结构。
 
 此路径不要求 `CLAUDE_CODE_AUTO_MODE_SERVER`，也不要求修改 Claude Code 的默认审核方式。旧版配置若已显式选择客户端独立审核，下面的旧分类请求路由仍兼容。当前覆盖 `dangerous_tool_use`／上下文 v1；未知契约明确返回错误。服务端 Anthropic 的私有审核政策并未由 Google 提供：本实现是使用请求上下文和网关公开评估指令的独立模型审核，不宣称判定与 Anthropic 服务端完全相同。模型截断、无效返回或调用失败均不能转成放行。详见 [服务器审核适配](docs/response-termination-and-json-boundaries.md#claude-code-21322-的服务器审核与客户端独立审核)。
 
-对于旧的独立 Auto 分类请求，也无需额外配置分类器模型：网关将识别到的默认 `claude-sonnet-5` 判断请求自动路由至 `gemini-3.8-flash-low`。普通对话仍使用所选主模型；其他显式分类器模型也保留原选择。分类政策和判断由 Claude 与实际模型负责，网关只转换并转发，不补写允许执行结论。
+对于旧的独立 Auto 分类请求，也无需额外配置分类器模型：网关让识别到的默认 `claude-sonnet-5` 判断请求沿用同会话最近主请求的上游，分别选择 Flash Low 或 Hydrogen Low；没有会话记录时保留原有 Flash Low 路由。普通对话仍使用所选主模型；其他显式分类器模型也保留原选择。分类政策和判断由 Claude 与实际模型负责，网关只转换并转发，不补写允许执行结论。
 
 Auto 判断请求会在上游输出额度中预留思考空间，避免 Claude 的 `max_tokens=64` 在 Gemini 生成判定前耗尽：带思考配置的分类请求至少申请 4096 tokens，数值思考预算另计，并受模型输出上限约束。模型名称对应的思考档位保持不变。被截断或过滤的判定返回 `incomplete_auto_mode_classifier_output`，交给客户端处理；普通对话的输出额度保持原有规则。
 
@@ -139,7 +149,6 @@ Auto 判断请求会在上游输出额度中预留思考空间，避免 Claude �
 ```toml
 model = "gemini-3.8-flash-high"
 model_provider = "antigravity"
-web_search = "disabled"
 
 [model_providers.antigravity]
 name = "Antigravity Gateway"
@@ -160,7 +169,7 @@ codex exec "说明当前项目的结构"
 
 设置了网关专用 Key 时，将环境变量改为该值。`model_catalog_url` 是完整目录地址，`base_url` 是 Responses 基址；两者都应配置。目录向 Codex 提供模型名称、上下文、工具和固定思考档位。若已有 `model_catalog_json`，它会优先于远程目录：移除该旧配置以使用远程目录，或主动更新为 `antigravity-gateway --codex-catalog-path` 返回的本机目录文件。目录设置及优先级见 [OpenAI 官方网关接入说明](https://learn.chatgpt.com/docs/enterprise/roll-out-a-gateway)。
 
-选择其他思考档位时更换带档位模型名；Codex 的 `model_reasoning_effort` 不覆盖该约定。命令、补丁、图片查看及 MCP 工具由 Codex 执行，权限和审批沿用 Codex 配置。此接入使用 HTTP/SSE；`web_search = "disabled"` 关闭当前 Responses 入口未提供的服务器搜索工具。
+选择其他思考档位时更换带档位模型名；Codex 的 `model_reasoning_effort` 不覆盖该约定。命令、补丁、图片查看及 MCP 工具由 Codex 执行，权限和审批沿用 Codex 配置。此接入使用 HTTP/SSE。两类上游均可接收内置 `web_search` 声明，不需要为了普通对话关闭搜索；仅在模型实际选择搜索时调用相应上游的搜索能力。离线、域名过滤、位置限制等尚不能等价支持的附加合同会明确拒绝。
 
 ## Hermes
 
@@ -315,7 +324,7 @@ HTTP 请求默认不接受网关服务器上的 `file_path` 或 `file://`。客�
 | `ANTIGRAVITY_GATEWAY_MEDIA_LOCAL_PATHS` | 仅值为 `1` 时开启受限本地媒体路径，默认关闭 |
 | `ANTIGRAVITY_GATEWAY_MEDIA_ALLOWED_ROOTS` | 本地媒体允许目录的绝对路径 JSON 数组，开启本地路径时必须非空 |
 
-`ANTIGRAVITY_GATEWAY_TRANSPORT` 不再选择其他推理实现；Google Antigravity API 是唯一上游协议。已有 API Key、监听地址、看板访问设置和服务配置继续兼容。
+`ANTIGRAVITY_GATEWAY_TRANSPORT` 不选择其他推理实现；公开模型名的 `-g` 后缀选择 Google Gemini API，其余模型使用 Google Antigravity API。已有 API Key、监听地址、看板访问设置和服务配置继续兼容。
 
 ## 验证范围与开发
 
@@ -331,7 +340,7 @@ HTTP 请求默认不接受网关服务器上的 `file_path` 或 `file://`。客�
 
 [补充官方请求取证](docs/antigravity-api-1.5.2-additional-request-types.md)覆盖搜索、生图、编辑和视频摘要；[字段字典](docs/antigravity-api-1.5.2-rpc-field-dictionary.md)列出 64 个 RPC、66 条 REST 绑定及完整引用类型，分别标记实际发包和静态发现。它们不代表所有路径均已通过真实 Google 验收。
 
-搜索采用一次转发的明确边界：仅独立 Messages typed `web_search_20250305` 请求调用账号真实目录声明的官方搜索辅助模型，将 Google 真实来源链接和上游原摘要交回 agent，并准确显示实际 helper 模型。网关不抓取网页、不规划或另做总结；普通对话的模型名称和思考档位保持不变。非空 `allowed_domains`／`blocked_domains`、`user_location`、混合客户端工具等不能忠实转换的请求明确拒绝，Responses 不因此新增服务器搜索支持。
+独立 Messages typed `web_search_20250305` 沿用一次转发：调用真实目录声明的 Google 搜索辅助模型，将真实来源链接和上游摘要交回 agent。Responses 内置 `web_search` 可以与客户端工具共存：Antigravity 使用已捕获的 `search_web` 声明，让原模型决定查询，将搜索辅助接口的真实结果回传同一模型继续作答；Gemini 使用原生 Task 搜索。主模型与思考档位不变，网关不抓取网页、不代替客户端执行命令或文件工具，不把搜索摘要当作网页原文。非空域名过滤、离线和位置等未等价实现的附加合同仍明确拒绝。
 
 搜索的代表场景已分层验收：真实 Claude Code 经完整网关到合成 Google 的 WebSearch 闭环通过，另有 8 个 HTTP／SSE 与错误边界场景；[实抓辅助请求重放到真实 Google](tests/fixtures/gateway-server-search-20261107/README.md)也已通过，保留原 `max_tokens=32000`，真实目录选择 `gemini-3.5-flash-lite`，仅一次生成得到 200／STOP、真实链接及上游原摘要，模型展示、用量和 SSE 均核对一致。重放场景仅删除严格域名限制并替换测试 query，本批未启动 CLI，不能与 CLI → 合成上游证据合称同一次真实 CLI 直连 Google 搜索，也不扩大为其他模型或不支持组合。具体见[客户端搜索边界](docs/client-web-tool-boundaries.md)，当前完成项见[验收记录](docs/refactor-progress.md)。
 

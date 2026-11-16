@@ -154,11 +154,15 @@ for (const protocol of ['messages', 'responses']) test(`${protocol}: incomplete 
     else {
       const events = (await res.text()).split('\n').filter(line => line.startsWith('data: {')).map(line => JSON.parse(line.slice(6)));
       assert.ok(events.some(e => e.type === (protocol === 'messages' ? 'content_block_delta' : 'response.output_text.delta')));
-      assert.equal(events.at(-1).type, 'error');
+      assert.equal(events.at(-1).type, protocol === 'messages' ? 'error' : 'response.failed');
       if (protocol === 'messages') assert.equal(events.at(-1).error.type, code);
       else {
-        assert.equal(events.at(-1).code, code); assert.equal(events.at(-1).param, null);
-        assert.equal(typeof events.at(-1).message, 'string');
+        const failed = events.at(-1).response;
+        assert.equal(failed.status, 'failed');
+        assert.equal(failed.error.code, code);
+        assert.equal(typeof failed.error.message, 'string');
+        assert.equal(failed.output[0].status, 'incomplete');
+        assert.equal(failed.output[0].content[0].text, 'Thinking about an image.');
         assert.deepEqual(events.map(e => e.sequence_number), events.map((_, i) => i));
       }
       assert.ok(!events.some(e => ['response.completed', 'message_stop'].includes(e.type)));

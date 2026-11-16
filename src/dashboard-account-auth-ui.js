@@ -1,9 +1,11 @@
 /* finesse · component: account-authorization · register=product · tokens: inherited */
 (() => {
   'use strict';
-  const $ = id => document.getElementById('antigravityAuth' + id);
-  const dialog = $('Dialog'), entry = document.getElementById('addAntigravityAccount');
-  const base = '/dashboard/accounts/antigravity/oauth', storageKey = 'antigravity-dashboard-oauth-id';
+  function mount({ prefix, entryId, base, storageKey, authorizationPath, provider }) {
+  const $ = id => document.getElementById(prefix + id);
+  const dialog = $('Dialog'), entry = document.getElementById(entryId);
+  if (!dialog || !entry) return;
+  let requestOptions = {};
   const pending = new Set(['starting', 'waiting', 'processing']);
   let csrf = '', current = null, timer = null, busy = false, notified = '';
   const storeId = id => { try { if (id) sessionStorage.setItem(storageKey, id); else sessionStorage.removeItem(storageKey); } catch {} };
@@ -43,7 +45,7 @@
       // empty copy field or an anchor without a target visible to the user.
       let url;
       try { url = new URL(job.url); } catch {}
-      if (!url || url.origin !== 'https://accounts.google.com' || url.pathname !== '/o/oauth2/auth'
+      if (!url || url.origin !== 'https://accounts.google.com' || url.pathname !== authorizationPath
         || url.username || url.password || !url.searchParams.get('client_id') || !url.searchParams.get('state')) {
         throw Object.assign(new Error('授权链接无效，请取消后重新授权。'), { code: 'invalid_authorization_url' });
       }
@@ -52,7 +54,8 @@
     $('Login').hidden = !waiting;
     $('Form').hidden = !waiting;
     $('Retry').hidden = active || job.status === 'completed';
-    $('Close').textContent = active ? '取消授权' : '关闭';
+    $('Close').textContent = active ? (job.account ? '停止初始化' : '取消授权') : '关闭';
+    $('Retry').textContent = provider === 'gemini' && job.account ? '继续初始化' : '重新授权';
     if (waiting) {
       $('Url').value = authorizationUrl;
       $('Open').href = authorizationUrl;
@@ -67,7 +70,7 @@
     if (!active) {
       storeId(null);
       clearTimeout(timer);
-      if (success && notified !== job.id) { notified = job.id; document.getElementById('refresh').click(); }
+      if ((success || (provider === 'gemini' && job.account)) && notified !== job.id) { notified = job.id; document.getElementById('refresh').click(); }
     }
     lock(busy);
   }
@@ -109,7 +112,7 @@
       id ||= [...crypto.getRandomValues(new Uint8Array(24))].map(n => n.toString(16).padStart(2, '0')).join('');
       storeId(id);
       current = { id, status: 'starting' };
-      render(await request('', 'POST', { id }));
+      render(await request('', 'POST', { id, ...requestOptions }));
     } catch (error) {
       // Preserve the ID if a POST response was lost: reopening can recover its status.
       if (error.status) { current = null; storeId(null); }
@@ -132,7 +135,12 @@
     } catch (error) { message(error.message || '取消失败，请重试。', 'error'); }
     finally { lock(false); }
   }
-  entry.addEventListener('click', () => { if (dialog.open) return; dialog.showModal(); void begin(true); });
+  entry.addEventListener('click', () => {
+    if (dialog.open) return;
+    requestOptions = entry.dataset.accountId ? { accountId: entry.dataset.accountId, action: entry.dataset.authAction || 'authorize' } : {};
+    delete entry.dataset.accountId; delete entry.dataset.authAction;
+    dialog.showModal(); void begin(!requestOptions.accountId);
+  });
   $('Close').addEventListener('click', close);
   dialog.addEventListener('cancel', event => { event.preventDefault(); void close(); });
   $('Retry').addEventListener('click', async () => {
@@ -143,6 +151,7 @@
       catch (error) { if (!expired(error)) { message(error.message, 'error'); lock(false); return; } }
       lock(false);
     }
+    if (provider === 'gemini' && current?.account) requestOptions = { accountId: current.account.id, action: 'resume' };
     storeId(null); void begin();
   });
   $('Form').addEventListener('submit', async event => {
@@ -163,4 +172,9 @@
     try { await navigator.clipboard.writeText($('Url').value); message('授权链接已复制，请在浏览器中打开并完成授权。'); }
     catch { $('Url').focus(); $('Url').select(); message('链接已选中，请使用系统复制功能，然后在浏览器中打开。'); }
   });
+  }
+  mount({ prefix: 'antigravityAuth', entryId: 'addAntigravityAccount', base: '/dashboard/accounts/antigravity/oauth',
+    storageKey: 'antigravity-dashboard-oauth-id', authorizationPath: '/o/oauth2/auth', provider: 'cloudcode' });
+  mount({ prefix: 'geminiAuth', entryId: 'addGeminiAccount', base: '/dashboard/accounts/gemini/oauth',
+    storageKey: 'gemini-dashboard-oauth-id', authorizationPath: '/o/oauth2/v2/auth', provider: 'gemini' });
 })();

@@ -51,7 +51,7 @@ test('unsupported safeguards are rejected before upstream allocation or SSE; bus
 test('auxiliary default discovery uses only the API account pool and explicit models remain fixed', async t => {
   let cloudCatalogCalls = 0;
   const sentModels = [];
-  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', () => true);
+  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', function () { return this.providerType === 'cloudcode'; });
   t.mock.method(AccountPool.prototype, 'listModels', async () => {
     cloudCatalogCalls++;
     return ['claude-sonnet-5', 'gemini-3.8-flash-low'];

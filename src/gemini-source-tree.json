@@ -1,0 +1,443 @@
+{
+  "evidence": "Gemini macOS 1.144.4.1467 Objective-C protobuf descriptors; message fields reachable from MessageTree to AnnotatedString. Schema only; actual sources require live response evidence.",
+  "root": "ROBINMessageTree",
+  "annotatedString": "ROBINAnnotatedString",
+  "messages": {
+    "ROBINMessageTree": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINBlockNode": [
+      [
+        1,
+        "ROBINParagraph"
+      ],
+      [
+        3,
+        "ROBINUnorderedList"
+      ],
+      [
+        4,
+        "ROBINOrderedList"
+      ],
+      [
+        6,
+        "ROBINTable"
+      ],
+      [
+        7,
+        "ROBINCitationBlock"
+      ],
+      [
+        10,
+        "ROBINBlockQuote"
+      ],
+      [
+        12,
+        "ROBINToolBlock"
+      ],
+      [
+        17,
+        "ROBINToolDisclaimerBlock"
+      ],
+      [
+        22,
+        "ROBINDisclaimerBlock"
+      ],
+      [
+        26,
+        "ROBINCollapsibleBlock"
+      ],
+      [
+        28,
+        "ROBINHighlightBlock"
+      ],
+      [
+        29,
+        "ROBINCardBlock"
+      ],
+      [
+        31,
+        "ROBINCarouselBlock"
+      ],
+      [
+        32,
+        "ROBINTapActionBlock"
+      ],
+      [
+        33,
+        "ROBINConditionalShowBlock"
+      ],
+      [
+        34,
+        "ROBINMemoryDeletionBlock"
+      ],
+      [
+        36,
+        "ROBINIconAndTextBlock"
+      ],
+      [
+        37,
+        "ROBINHeaderBlock"
+      ],
+      [
+        39,
+        "ROBINStepperBlock"
+      ],
+      [
+        41,
+        "ROBINActivityBlock"
+      ],
+      [
+        43,
+        "ROBINActivityStepBlock"
+      ],
+      [
+        50,
+        "ROBINSequenceBlock"
+      ],
+      [
+        51,
+        "ROBINTimelineBlock"
+      ],
+      [
+        52,
+        "ROBINElicitationsBlock"
+      ],
+      [
+        59,
+        "ROBINInlineQuizBlock"
+      ],
+      [
+        63,
+        "ROBINBrowserActuationsBlock"
+      ]
+    ],
+    "ROBINBrowserActuationsBlock": [
+      [
+        1,
+        "ROBINBrowserActuationsBlock_BrowserActuation"
+      ]
+    ],
+    "ROBINBrowserActuationsBlock_BrowserActuation": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINInlineQuizBlock": [
+      [
+        6,
+        "ROBINInlineQuizQuestion"
+      ]
+    ],
+    "ROBINInlineQuizQuestion": [
+      [
+        2,
+        "ROBINInlineQuizAnswer"
+      ],
+      [
+        7,
+        "ROBINAnnotatedString"
+      ],
+      [
+        8,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINInlineQuizAnswer": [
+      [
+        4,
+        "ROBINAnnotatedString"
+      ],
+      [
+        5,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINElicitationsBlock": [
+      [
+        1,
+        "ROBINElicitationsBlock_Elicitation"
+      ],
+      [
+        3,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINElicitationsBlock_Elicitation": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINTimelineBlock": [
+      [
+        1,
+        "ROBINTimelineBlock_Event"
+      ]
+    ],
+    "ROBINTimelineBlock_Event": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINAnnotatedString"
+      ],
+      [
+        3,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINSequenceBlock": [
+      [
+        1,
+        "ROBINSequenceBlock_Step"
+      ]
+    ],
+    "ROBINSequenceBlock_Step": [
+      [
+        2,
+        "ROBINAnnotatedString"
+      ],
+      [
+        3,
+        "ROBINAnnotatedString"
+      ],
+      [
+        4,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINActivityStepBlock": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINActivityBlock": [
+      [
+        1,
+        "ROBINActivityBlock_ActivityStep"
+      ]
+    ],
+    "ROBINActivityBlock_ActivityStep": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINStepperBlock": [
+      [
+        1,
+        "ROBINStepperBlock_Step"
+      ]
+    ],
+    "ROBINStepperBlock_Step": [
+      [
+        3,
+        "ROBINCollapsibleBlock"
+      ],
+      [
+        4,
+        "ROBINBlockNode"
+      ],
+      [
+        5,
+        "ROBINAnnotatedString"
+      ],
+      [
+        6,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINCollapsibleBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ],
+      [
+        2,
+        "ROBINCollapsibleBlock_Header"
+      ]
+    ],
+    "ROBINCollapsibleBlock_Header": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINAnnotatedString"
+      ],
+      [
+        4,
+        "ROBINCollapsibleBlock_Header_StatefulTitle"
+      ]
+    ],
+    "ROBINCollapsibleBlock_Header_StatefulTitle": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINHeaderBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINIconAndTextBlock": [
+      [
+        2,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINMemoryDeletionBlock": [
+      [
+        2,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINConditionalShowBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINTapActionBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINCarouselBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINCardBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ],
+      [
+        4,
+        "ROBINBlockNode"
+      ],
+      [
+        5,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINHighlightBlock": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ],
+      [
+        2,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINDisclaimerBlock": [
+      [
+        2,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINToolDisclaimerBlock": [
+      [
+        2,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINToolBlock": [
+      [
+        1,
+        "ROBINBlockNode"
+      ],
+      [
+        2,
+        "ROBINToolBlock_ToolAttributionSpec"
+      ]
+    ],
+    "ROBINToolBlock_ToolAttributionSpec": [
+      [
+        5,
+        "ROBINAnnotatedString"
+      ]
+    ],
+    "ROBINBlockQuote": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINCitationBlock": [
+      [
+        1,
+        "ROBINOrderedList"
+      ]
+    ],
+    "ROBINOrderedList": [
+      [
+        1,
+        "ROBINListItem"
+      ]
+    ],
+    "ROBINListItem": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINTable": [
+      [
+        1,
+        "ROBINTableRow"
+      ]
+    ],
+    "ROBINTableRow": [
+      [
+        1,
+        "ROBINTableCell"
+      ]
+    ],
+    "ROBINTableCell": [
+      [
+        1,
+        "ROBINBlockNode"
+      ]
+    ],
+    "ROBINUnorderedList": [
+      [
+        1,
+        "ROBINListItem"
+      ]
+    ],
+    "ROBINParagraph": [
+      [
+        1,
+        "ROBINAnnotatedString"
+      ]
+    ]
+  }
+}

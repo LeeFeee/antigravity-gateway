@@ -134,18 +134,19 @@ async function readAuthorizationBody(req) {
 }
 
 async function handleDashboardAccountAuth(req, res, route, auth, sendJson) {
-  if (route !== ROUTE && !route.startsWith(ROUTE + '/')) return false;
+  const base = auth.route || ROUTE;
+  if (route !== base && !route.startsWith(base + '/')) return false;
   const headers = { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' };
   try {
-    if (route === ROUTE && req.method === 'GET') {
+    if (route === base && req.method === 'GET') {
       sendJson(res, 200, { csrfToken: auth.csrfToken }, headers);
       return true;
     }
     auth.checkCsrf(req.headers['x-dashboard-csrf']);
-    const match = route.slice(ROUTE.length).match(/^\/([a-f0-9]{48})(\/callback)?$/);
-    if (route === ROUTE && req.method === 'POST') {
+    const match = route.slice(base.length).match(/^\/([a-f0-9]{48})(\/callback)?$/);
+    if (route === base && req.method === 'POST') {
       const body = await readAuthorizationBody(req);
-      sendJson(res, 202, await auth.start(body.id), headers);
+      sendJson(res, 202, await auth.start(body.id, { accountId: body.accountId, action: body.action }), headers);
     } else if (match && !match[2] && req.method === 'GET') {
       sendJson(res, 200, auth.snapshot(auth.get(match[1])), headers);
     } else if (match && !match[2] && req.method === 'DELETE') {

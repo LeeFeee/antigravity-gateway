@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.0 — 2026-11-16
+
+- 新增 Google Gemini API 直接上游，仅接入任务模式；Hydrogen/Argon Low 模型以 `-g` 区分，不依赖本机应用桥接。Messages/Responses 与原有端口、安装方式保持兼容。
+- 看板增加 Gemini OAuth 账号入口、独立账号池与额度分组；两类凭据分别保存，不导入旧 Robin/Windows Gemini 账号，不跨上游故障降级。保留原账号粘性、轮询和额度保护。
+- Claude 默认 Auto 审批按主请求上游选择 Antigravity Flash Low 或 Gemini Hydrogen Low；移除没有真实失败样本支撑的额外路由拒绝条件，不修改客户端审核设置。
+- 修复 Pi、Claude、Hermes 已复现的完整请求 429 兼容问题，严格匹配已知官方框架；保留 SOUL、工具、执行权限及安全规则。补齐 Codex Desktop 启动 CLI 的版本识别。
+- Responses 支持上游服务器搜索声明；Antigravity 转发官方搜索服务结果给同一主模型，Gemini 使用原生 Task 搜索。网关不读取网页、不执行客户端工具。
+- 五个客户端经正常配置实连 Gemini 本地/Linux 隔离网关；原 Antigravity 工具、Auto、图片生成编辑与视频理解完成实连回归。具体覆盖、失败样本与升级记录见 `docs/release-2.1.0-preflight.md`。
+- Gemini 多模态、原生首次登录弹窗与“不参加改进计划”选项的完整对应验证继续暂缓；不将已初始化账号的可用性当成全部首次初始化验收。
+
+
 ## 2.0.5 - 2026-11-15
 
 - Hermes 框架识别改为定位精确文档段落及相邻框架边界，兼容默认首段后追加多段 SOUL。仅在首段精确指纹仍匹配时清理默认身份句，不删除用户自定义身份或规则。

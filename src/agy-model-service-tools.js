@@ -38,6 +38,25 @@ function localSchema(schema) {
 const IMAGE_SCHEMA = { ...localSchema(IMAGE_DESCRIPTOR.parameters), additionalProperties: false };
 const IMAGE_MARKER = 'google-antigravity-api/1.5.2/generate_image';
 const issuedTools = new WeakSet();
+// Exact search_web declaration from official-request-types/web-search-v1/v2.
+const SEARCH_TOOL_NAME = 'search_web';
+const SEARCH_DESCRIPTOR = {
+  name: SEARCH_TOOL_NAME,
+  description: 'Performs a web search for a given query. Returns a summary of relevant information along with URL citations.',
+  parameters: { type: 'OBJECT', properties: {
+    domain: { type: 'STRING', description: 'Optional domain to recommend the search prioritize' },
+    query: { type: 'STRING' }
+  }, required: ['query'] }
+};
+const SEARCH_SCHEMA = { ...localSchema(SEARCH_DESCRIPTOR.parameters), additionalProperties: false };
+const SEARCH_MARKER = 'google-antigravity-api/1.5.2/search_web';
+const issuedSearchTools = new WeakSet();
+function createNativeSearchTool() {
+  const tool = { name: SEARCH_TOOL_NAME, description: SEARCH_DESCRIPTOR.description, kind: 'function', internal: true,
+    modelService: SEARCH_MARKER, schema: structuredClone(SEARCH_SCHEMA) };
+  issuedSearchTools.add(tool);
+  return tool;
+}
 
 function createNativeImageTool() {
   const tool = { name: IMAGE_TOOL_NAME, description: IMAGE_DESCRIPTOR.description, kind: 'function', internal: true,
@@ -55,8 +74,14 @@ function matchesImageContract(tool) {
 // model-service authority. Check the original factory-issued object before
 // the adapter clones declarations, plus the actual post-cleaning contract.
 function trustedModelServiceDefinition(source, tool = source) {
+  if (issuedSearchTools.has(source) && [source, tool].every(value => value?.name === SEARCH_TOOL_NAME
+    && value.kind === 'function' && value.internal === true && value.modelService === SEARCH_MARKER
+    && value.description === SEARCH_DESCRIPTOR.description && isDeepStrictEqual(value.schema, SEARCH_SCHEMA))) {
+    return { declaration: structuredClone(SEARCH_DESCRIPTOR), schema: structuredClone(SEARCH_SCHEMA), instructions: '' };
+  }
   if (!issuedTools.has(source) || !matchesImageContract(source) || !matchesImageContract(tool)) return null;
   return { declaration: structuredClone(IMAGE_DESCRIPTOR), schema: structuredClone(IMAGE_SCHEMA), instructions: IMAGE_SERVICE_INSTRUCTIONS };
 }
 
-module.exports = { IMAGE_TOOL_NAME, IMAGE_SERVICE_INSTRUCTIONS, createNativeImageTool, trustedModelServiceDefinition };
+module.exports = { IMAGE_TOOL_NAME, IMAGE_SERVICE_INSTRUCTIONS, createNativeImageTool, trustedModelServiceDefinition,
+  SEARCH_TOOL_NAME, createNativeSearchTool };

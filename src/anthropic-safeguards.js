@@ -61,7 +61,7 @@ function unavailable(calls, reason) {
   return envelope(Object.fromEntries(calls.map(call => [call.id, { type: 'unavailable', reason }])));
 }
 
-async function evaluateSafeguards({ context, normalized, body, signal, evaluate, onResult }) {
+async function evaluateSafeguards({ context, normalized, body, signal, evaluate, onResult, model = MODEL }) {
   const calls = body.content.filter(block => block.type === 'tool_use');
   if (!calls.length) return { results: envelope({}) };
   if (body.stop_reason !== 'tool_use') return { results: unavailable(calls, 'truncated') };
@@ -71,7 +71,7 @@ async function evaluateSafeguards({ context, normalized, body, signal, evaluate,
       throw new GatewayError('Duplicate or missing review tool id.', { code: 'invalid_safeguard_output', status: 502 });
     }
     const review = await normalizeAnthropicAsync({
-      model: MODEL, system: REVIEW_SYSTEM, max_tokens: Math.max(4096, calls.length * 256),
+      model, system: REVIEW_SYSTEM, max_tokens: Math.max(4096, calls.length * 256),
       messages: [{ role: 'user', content: JSON.stringify({
         classifier_context: context, transcript: reviewTranscript(normalized),
         proposed_tool_uses: calls.map(call => ({ id: call.id, name: call.name, input: call.input }))
@@ -79,7 +79,7 @@ async function evaluateSafeguards({ context, normalized, body, signal, evaluate,
       output_config: { format: { type: 'json_schema', schema: reviewSchema(ids) } }
     }, { signal });
     review.serverAutoReview = true;
-    const result = await evaluate(review, MODEL);
+    const result = await evaluate(review, model);
     if (upstreamTermination(result) !== 'complete' || result.toolCalls?.length) {
       return { results: unavailable(calls, 'truncated'), usage: result.usage };
     }
@@ -95,12 +95,12 @@ async function evaluateSafeguards({ context, normalized, body, signal, evaluate,
       seen.add(entry.id);
       decisions[entry.id] = { type: 'evaluated', outcome: entry.outcome, explanation: entry.explanation };
     }
-    onResult?.({ model: MODEL, calls: calls.length, flagged: entries.filter(entry => entry.outcome === 'flagged').length });
+    onResult?.({ model, calls: calls.length, flagged: entries.filter(entry => entry.outcome === 'flagged').length });
     return { results: envelope(decisions), usage: result.usage };
   } catch (error) {
     if (signal?.aborted) throw error;
     const reason = /timeout|timed.out/i.test(`${error.code} ${error.message}`) ? 'timeout' : 'error';
-    onResult?.({ model: MODEL, calls: calls.length, unavailable: reason, code: error.code || 'invalid_safeguard_output' });
+    onResult?.({ model, calls: calls.length, unavailable: reason, code: error.code || 'invalid_safeguard_output' });
     return { results: unavailable(calls, reason) };
   }
 }

@@ -17,7 +17,7 @@ async function withServer(t) {
 
 test('API error diagnostics never query retired providers through either client protocol', async t => {
   let cloudCatalogCalls = 0;
-  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', () => true);
+  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', function () { return this.providerType === 'cloudcode'; });
   t.mock.method(AccountPool.prototype, 'listModels', async () => {
     cloudCatalogCalls++;
     return ['claude-opus-5-5-high'];
@@ -42,7 +42,7 @@ test('API error diagnostics never query retired providers through either client 
 });
 
 test('explicit model discovery remains restricted to the API account pool', async t => {
-  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', () => true);
+  t.mock.method(AccountPool.prototype, 'hasManagedAccounts', function () { return this.providerType === 'cloudcode'; });
   t.mock.method(AccountPool.prototype, 'listModels', async () => ['claude-opus-5-5-high']);
   const base = await withServer(t);
   const response = await fetch(`${base}/v1/models`);

@@ -108,6 +108,7 @@ class SchemaWorkerPool {
     // waiting promise. A replacement is created only if another job needs it.
     // A retiring thread still occupies capacity until termination completes.
     // Cancellation bursts therefore cannot create unbounded live workers.
+    slot.worker.ref();
     slot.termination = slot.worker.terminate().catch(() => {}).then(() => {
       const index = this.slots.indexOf(slot);
       if (index !== -1) this.slots.splice(index, 1);
@@ -131,7 +132,9 @@ class SchemaWorkerPool {
       this.limits.compileMs);
       slot.worker.postMessage({ operation: job.operation, schema: job.schema, value: job.value });
     }
-    for (const slot of this.slots) if (slot.ready && !slot.job) slot.worker.unref();
+    // Termination is still outstanding work. Unref'ing a retiring worker can
+    // let Node exit before its termination promise (and pool.close) settles.
+    for (const slot of this.slots) if (!slot.retired && slot.ready && !slot.job) slot.worker.unref();
   }
   async close() {
     this.closed = true;

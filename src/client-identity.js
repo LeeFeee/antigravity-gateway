@@ -105,6 +105,24 @@ function claudePrefix(text) {
   return { end: text.length - rest.length, billing: Boolean(billing) };
 }
 
+function piContextTail(text) {
+  // Pi 1.5.2 inserts user addenda, project instructions and loaded skills
+  // between docs and cwd. Recognize their native order without inspecting or
+  // rewriting their contents; only the fixed opening identity is removed.
+  const boundary = '\n</docs>\n\n';
+  const start = text.indexOf(boundary);
+  if (start < 0) return false;
+  let tail = text.slice(start + boundary.length);
+  for (const name of ['addendum', 'project_context', 'skills']) {
+    if (!tail.startsWith(`<${name}>\n`)) continue;
+    const close = `\n</${name}>\n\n`;
+    const end = tail.indexOf(close);
+    if (end < 0) return false;
+    tail = tail.slice(end + close.length);
+  }
+  return tail.startsWith('<cwd>\n') && tail.includes('\n</cwd>');
+}
+
 function detectTemplate(text) {
   if (typeof text !== 'string') return null;
   const claude = claudePrefix(text);
@@ -133,7 +151,7 @@ function detectTemplate(text) {
   }
   if (text.trimStart().startsWith(PI_PREAMBLE + '\n\n<tools>\n')
     && text.includes('\n</tools>\n\n<rules>\n') && text.includes('\n</rules>\n\n<docs>\nPi documentation (')
-    && text.includes('\n</docs>\n\n<cwd>\n')) return { client: 'pi', evidence: 'pi-developer-template' };
+    && piContextTail(text)) return { client: 'pi', evidence: 'pi-developer-template' };
   if (text.trimStart().startsWith(DSH_IDENTITY + '\n\n')
     && /^You are a coding agent powered by the [A-Za-z0-9._:/\[\]-]{1,160} model\.$/.test(paragraphs[1] || '')
     && paragraphs[2] === 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.'
@@ -298,12 +316,18 @@ function sanitizeToolDescription(tool, profile, record = () => {}) {
 
 function frameworkReminderBundle(message, profile, index) {
   const parts = message.parts;
-  // In the captured compact template, the default attribution is the sole
-  // leading framework block. Restrict this rule to that exact first-turn layout.
+  // The installed compact client optionally prepends its CLAUDE.md block.
+  // Preserve that entire block, including any user-authored attribution; only
+  // the separate, exact default attribution block is eligible for removal.
+  const userContextPrefix = '<system-reminder>\nCodebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.\n\n';
+  const hasUserContext = parts?.length === 3 && parts[0]?.type === 'text'
+    && parts[0].text?.startsWith(userContextPrefix) && parts[0].text.trimEnd().endsWith('</system-reminder>');
+  const attributionIndex = hasUserContext ? 1 : 0;
   if (profile?.evidence.includes('claude-sdk-compact-system-template') && index === 0
-    && message.role === 'user' && Array.isArray(parts) && parts.length === 2
-    && parts[0]?.type === 'text' && parts[0].text?.trim() === COMPACT_ATTRIBUTION
-    && parts[1]?.type === 'text' && !parts[1].text.trim().startsWith('<system-reminder>')) return true;
+    && message.role === 'user' && Array.isArray(parts) && parts.length === attributionIndex + 2
+    && parts[attributionIndex]?.type === 'text' && parts[attributionIndex].text?.trim() === COMPACT_ATTRIBUTION
+    && parts[attributionIndex + 1]?.type === 'text'
+    && !parts[attributionIndex + 1].text.trim().startsWith('<system-reminder>')) return true;
   if (message.role !== 'user' || !Array.isArray(parts) || parts.length < 4) return false;
   const text = parts.filter(part => part?.type === 'text').map(part => part.text);
   return text[0]?.startsWith('<system-reminder>\n# Environment\nYou have been invoked in the following environment:')
