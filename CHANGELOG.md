@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 — 2026-11-17
+
+- 补齐 Claude Code 2.1.322 交互式 CLI 框架的兼容转换；与 SDK/print 模板使用相同的精确安全段落校验，保留全部拒绝规则、授权要求和用户内容。
+- 补齐 Hermes 0.23.1 交互后台附加的用户指示说明，只将指纹匹配段落中的 `Hermes delivers` 转为 `The client delivers`；消息标记、信任边界、重放规则、SOUL 与工具保持不变。
+- 将普通交互、问候及续聊纳入单独验收；不再用 print/stream-json 工具任务的通过结果代替交互终端。Google 真正的额度/限流错误、账号轮询、粘性及冷却规则不变。
+
 ## 2.1.0 — 2026-11-16
 
 - 新增 Google Gemini API 直接上游，仅接入任务模式；Hydrogen/Argon Low 模型以 `-g` 区分，不依赖本机应用桥接。Messages/Responses 与原有端口、安装方式保持兼容。

@@ -36,6 +36,10 @@ function prepareHermesInstructions(text) {
         + 'Report blocking tool, installation or network failures plainly, then try another package manager or approach, or ask the user. Do not fabricate data, file contents, API responses or any other output to stand in for unavailable real results. Always report a blocker honestly instead of inventing a result.';
     } else if (fingerprint === 'b79d84cb613e58210f8fbb22b052cac60cd9ccd4d9ced54ff2c9943ee98ed2b4') {
       paragraphs[i] = paragraphs[i].replace('# Google model operational directives', '# Model execution requirements');
+    } else if (fingerprint === '7af6922616db050fd7a240cc80aebee4cefc4d89e32dcacc0c69c54deac26d43') {
+      // Interactive gateway-backed Hermes adds this official steering block.
+      // Keep the delivery marker, trust boundary and replay rules verbatim.
+      paragraphs[i] = paragraphs[i].replace('Hermes delivers', 'The client delivers');
     }
   }
   let result = paragraphs.join('');
@@ -57,7 +61,10 @@ function prepareAntigravityClientInstructions(normalized, profile) {
     const system = prepareHermesInstructions(normalized.system);
     return system === normalized.system ? normalized : { ...normalized, system };
   }
-  const claudeCore = profile?.evidence?.includes('claude-sdk-compact-system-template') ? CLAUDE_COMPACT_CORE
+  // Interactive CLI and SDK/print mode carry the same verified policy, but
+  // the CLI framework starts with a newline and has its own source evidence.
+  const claudeCore = profile?.evidence?.includes('claude-tui-system-template') ? '\n' + CLAUDE_COMPACT_CORE
+    : profile?.evidence?.includes('claude-sdk-compact-system-template') ? CLAUDE_COMPACT_CORE
     : profile?.evidence?.includes('claude-sdk-system-template') ? CLAUDE_CORE : null;
   if (profile?.client === 'claude' && profile.templateVersion === '2.1.322'
     && claudeCore && normalized.system?.startsWith(claudeCore + '\n\n')) {

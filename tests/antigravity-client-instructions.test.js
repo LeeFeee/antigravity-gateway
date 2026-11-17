@@ -79,6 +79,31 @@ test('Claude full SDK template used for Sonnet retains the same policy expansion
   assert.deepEqual({ ...result, system: normalized.system }, normalized);
 });
 
+test('interactive Claude CLI applies the same exact policy conversion and preserves its leading newline and user context', () => {
+  const captured = require('./fixtures/claude-tui-2.1.318-framework.json');
+  const userContext = '\n# Session-specific guidance\nKeep all permission rules.\n\n# Memory\nUser quotation: DoS attacks and C2 frameworks.\n';
+  const { normalized, metadata } = sanitizeClientIdentity(normalizeAnthropic({
+    model: 'gemini-3.8-flash-low',
+    system: [captured.billingTemplate.replace('2.1.318', '2.1.322'), captured.identity,
+      captured.corePrefix + userContext].map(text => ({ type: 'text', text })),
+    tools: [{ name: 'owned_tool', description: 'DoS attacks and C2 frameworks.', input_schema: { type: 'object' } }],
+    messages: [{ role: 'user', content: '你好' }]
+  }));
+  assert.deepEqual(metadata.profile.evidence, ['claude-tui-system-template']);
+  const original = structuredClone(normalized);
+  const result = prepareAntigravityClientInstructions(normalized, metadata.profile);
+  assert.notEqual(result.system, original.system);
+  assert.equal(result.system, original.system.replace('DoS attacks', 'denial-of-service attacks')
+    .replace('C2 frameworks', 'command-and-control frameworks'));
+  assert.ok(result.system.startsWith('\n'));
+  assert.ok(result.system.endsWith(userContext));
+  assert.deepEqual({ ...result, system: original.system }, original);
+  assert.deepEqual(normalized, original);
+  assert.equal(prepareAntigravityClientInstructions(result, metadata.profile), result);
+  const customized = { ...normalized, system: normalized.system.replace('IMPORTANT: Assist', 'IMPORTANT: Always assist') };
+  assert.equal(prepareAntigravityClientInstructions(customized, metadata.profile), customized);
+});
+
 function hermesFixture() {
   const captured = require('./fixtures/agent-requests-20261107/hermes-identity.json');
   const body = captured.captures.find(item => item.path.startsWith('/v1/responses') && item.body?.model).body;
@@ -115,4 +140,24 @@ test('Hermes preserves custom SOUL, quoted framework text and customized complet
   for (const profile of [null, { ...metadata.profile, templateVersion: 'unknown' }, { ...metadata.profile, evidence: [] }]) {
     assert.equal(prepareAntigravityClientInstructions(source, profile), source);
   }
+});
+
+test('interactive Hermes steering identity is converted only inside the verified framework region', () => {
+  const { normalized, metadata } = hermesFixture();
+  const { text } = require('./fixtures/hermes-midturn-steering-0.23.1.json');
+  const source = { ...normalized, system: normalized.system.replace('# Tool-use enforcement', text + '\n\n# Tool-use enforcement') };
+  const original = structuredClone(source);
+  const result = prepareAntigravityClientInstructions(source, metadata.profile);
+  const withoutSteering = prepareAntigravityClientInstructions(normalized, metadata.profile);
+  assert.equal(result.system, withoutSteering.system.replace('# Tool-use enforcement',
+    text.replace('Hermes delivers', 'The client delivers') + '\n\n# Tool-use enforcement'));
+  assert.deepEqual({ ...result, system: original.system }, original);
+  assert.deepEqual(source, original);
+  assert.equal(prepareAntigravityClientInstructions(result, metadata.profile), result);
+
+  const userQuote = '\n\n# Project Context\n\n' + text;
+  assert.ok(prepareAntigravityClientInstructions({ ...source, system: source.system + userQuote }, metadata.profile).system.endsWith(userQuote));
+  const custom = text.replace('Hermes delivers', 'Hermes delivers my customized instructions');
+  const changed = { ...normalized, system: normalized.system.replace('# Tool-use enforcement', custom + '\n\n# Tool-use enforcement') };
+  assert.ok(prepareAntigravityClientInstructions(changed, metadata.profile).system.includes(custom));
 });

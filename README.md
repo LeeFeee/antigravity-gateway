@@ -1,12 +1,16 @@
 # Antigravity Gateway
 
-当前版本：**2.1.0**。
+当前版本：**2.1.1**。
 
 将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端继续使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.1.1：补齐真实交互模式
+
+修复 Claude Code 直接打开终端交互时遗漏的框架转换，以及 Hermes 交互后台附加的用户指示说明中的默认客户端身份。此前 `claude -p` 和 Hermes `--format stream-json` 的通过记录不能覆盖这两条交互路径。本次按真实交互请求单独核验，保留原模型、思考档位、用户规则、完整工具和审批合同；无需修改客户端审批设置。具体范围见 [交互模式修复记录](docs/interactive-greeting-2.1.1.md)。
 
 ## 2.1.0：Gemini 任务模式与完整客户端兼容
 
