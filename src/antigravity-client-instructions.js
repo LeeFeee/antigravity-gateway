@@ -56,6 +56,21 @@ function prepareHermesInstructions(text) {
 }
 
 function prepareAntigravityClientInstructions(normalized, profile) {
+  if (profile?.client === 'dsh' && profile.templateVersion === '0.2.1-rc.2'
+    && profile.evidence?.includes('dsh-web-developer-template') && typeof normalized.system === 'string') {
+    // Official dsh-harness-dev-context 0.2.1-rc.2 GUI guidance, verified
+    // against the installed source and a complete real web-client capture.
+    // Expand DOM without changing any browser, build or execution rule.
+    const paragraphs = normalized.system.split('\n\n');
+    const index = paragraphs.length - 1;
+    if (hash(paragraphs[index - 1] || '') === 'cacb12df44551f408df3e53d3d38cc680f55a62643ecc5102ed61e7965c83229'
+      && hash(paragraphs[index] || '') === '7496863f7f81a12cad97ff5c643339f8ddf344b6525c191c29ab086bec5a400a') {
+      paragraphs[index] = paragraphs[index].replace('no implicit DOM, route, or screenshot context',
+        'no implicit Document Object Model, route, or screenshot context');
+      return { ...normalized, system: paragraphs.join('\n\n') };
+    }
+    return normalized;
+  }
   if (profile?.client === 'hermes' && profile.templateVersion === '0.23.1'
     && profile.evidence?.includes('hermes-instructions-template') && typeof normalized.system === 'string') {
     const system = prepareHermesInstructions(normalized.system);

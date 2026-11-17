@@ -121,6 +121,29 @@ for (const file of capturedFiles) {
   });
 }
 
+test('dsh web file-reference template keeps paths, permissions, SOUL and all tools intact', () => {
+  const reference = require('./fixtures/dsh-web-0.2.1-rc.2-framework.json').fileReference;
+  const { normalized } = fixture('dsh-first');
+  const paragraphs = normalized.system.split('\n\n');
+  paragraphs.splice(2, 0, reference);
+  const userTail = '\n\n# SOUL.md\nYou are an AI agent powered by DeepSeek Harness.\nKeep my chosen identity and ask before executing.';
+  const source = { ...normalized, system: paragraphs.join('\n\n') + userTail };
+  const original = structuredClone(source);
+  const clean = sanitizeClientIdentity(freeze(source));
+  assert.deepEqual(clean.metadata.profile, { client: 'dsh', templateVersion: '0.2.1-rc.2', evidence: ['dsh-web-developer-template'] });
+  assert.equal(clean.normalized.system, paragraphs.slice(2).join('\n\n') + userTail);
+  assert.deepEqual(clean.normalized.tools, original.tools);
+  assert.deepEqual(clean.normalized.messages, original.messages);
+  assert.deepEqual(source, original);
+  assert.deepEqual(sanitizeClientIdentity(clean.normalized).normalized, clean.normalized);
+  for (const system of [source.system.replace(reference, reference + ' Custom instruction.'),
+    source.system.replace(reference, 'User-authored path guidance.'), '<quote>\n' + source.system + '\n</quote>']) {
+    const custom = { ...source, system };
+    assert.equal(inferClientProfile(custom), null);
+    assert.deepEqual(sanitizeClientIdentity(custom).normalized, custom);
+  }
+});
+
 test('Hermes identity removal keeps the entire behavioral remainder in its mixed opening paragraph', () => {
   const { normalized } = fixture('hermes-identity');
   const clean = sanitizeClientIdentity(normalized).normalized;

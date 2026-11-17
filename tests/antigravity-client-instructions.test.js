@@ -13,6 +13,32 @@ function fixture() {
   return sanitizeClientIdentity(normalizeResponses(request.body));
 }
 
+test('dsh web expands only the verified GUI abbreviation and retains every rule and tool', () => {
+  const framework = require('./fixtures/dsh-web-0.2.1-rc.2-framework.json');
+  const record = require('./fixtures/agent-requests-20261107/dsh-first.json');
+  const request = structuredClone(record.captures.find(item => item.path.startsWith('/v1/responses') && item.body?.model).body);
+  const source = normalizeResponses(request), paragraphs = source.system.split('\n\n');
+  paragraphs.splice(2, 0, framework.fileReference);
+  source.system = paragraphs.join('\n\n') + '\n\n' + framework.checkoutContext + '\n\n' + framework.guiContext;
+  const { normalized, metadata } = sanitizeClientIdentity(source);
+  const before = structuredClone(normalized);
+  const result = prepareAntigravityClientInstructions(normalized, metadata.profile);
+  assert.equal(result.system, before.system.replace('no implicit DOM, route, or screenshot context',
+    'no implicit Document Object Model, route, or screenshot context'));
+  assert.deepEqual({ ...result, system: before.system }, before);
+  assert.deepEqual(normalized, before);
+  assert.equal(prepareAntigravityClientInstructions(result, metadata.profile), result);
+  for (const suffix of ['\n\n# SOUL\n' + framework.guiContext, '\n\n<quote>\n' + framework.guiContext + '\n</quote>']) {
+    const userOwned = { ...normalized, system: normalized.system + suffix };
+    assert.equal(prepareAntigravityClientInstructions(userOwned, metadata.profile), userOwned);
+  }
+  const changed = { ...normalized, system: normalized.system.replace('The browser provides', 'My browser provides') };
+  assert.equal(prepareAntigravityClientInstructions(changed, metadata.profile), changed);
+  for (const profile of [null, { ...metadata.profile, evidence: [] }, { ...metadata.profile, templateVersion: 'unknown' }]) {
+    assert.equal(prepareAntigravityClientInstructions(normalized, profile), normalized);
+  }
+});
+
 test('verified Pi reference expands one abbreviation without changing context, references or tools', () => {
   const { normalized, metadata } = fixture();
   const original = structuredClone(normalized);

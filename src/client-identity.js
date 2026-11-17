@@ -45,6 +45,9 @@ const HERMES_DOCS = "For help with Hermes Agent itself — configuring, setting 
 const HERMES_DOCS_NO_SKILLS = 'For help with Hermes Agent itself — configuring, setting up, using, extending, or troubleshooting it — or to understand your own features, tools, or capabilities, the documentation at https://hermes-agent.nousresearch.com/docs is the authoritative reference and always holds the latest, most up-to-date information. Point the user there (or read it yourself if you have a way to fetch web content).';
 const PI_PREAMBLE = 'You are a coding assistant running inside pi, a coding agent harness. Help users inspect files, run commands, and modify code.';
 const DSH_IDENTITY = 'You are an AI agent powered by DeepSeek Harness.';
+// dsh web 0.2.1-rc.2 inserts the official FILE_REFERENCE_PROMPT before
+// tool guidance. Match it exactly; preserve the entire paragraph unchanged.
+const DSH_FILE_REFERENCE_HASH = '63738afd0d9fec43e1bac5dd6e199698afa47c081c6e7d2aa83f3a5e617e9505';
 const ATTRIBUTION = "Attribution for git commits and pull requests you create from here on (this replaces Claude Code's own earlier attribution guidance, such as a previous copy of this reminder; the user's own instructions about these lines, such as a CLAUDE.md or memory rule, take precedence over this reminder, but do not add attribution lines this reminder leaves out):";
 const DEFAULT_ATTRIBUTION = `<system-reminder>\n${ATTRIBUTION}\n- End git commit messages with:\nCo-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>\n- End pull request descriptions with:\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n</system-reminder>`;
 const COMPACT_ATTRIBUTION = DEFAULT_ATTRIBUTION.replace('Co-Authored-By: Claude Sonnet 4.6', 'Co-Authored-By: Claude Code');
@@ -152,11 +155,14 @@ function detectTemplate(text) {
   if (text.trimStart().startsWith(PI_PREAMBLE + '\n\n<tools>\n')
     && text.includes('\n</tools>\n\n<rules>\n') && text.includes('\n</rules>\n\n<docs>\nPi documentation (')
     && piContextTail(text)) return { client: 'pi', evidence: 'pi-developer-template' };
+  const dshFileReference = hash(paragraphs[2] || '') === DSH_FILE_REFERENCE_HASH;
+  const dshGuidance = dshFileReference ? 3 : 2;
   if (text.trimStart().startsWith(DSH_IDENTITY + '\n\n')
     && /^You are a coding agent powered by the [A-Za-z0-9._:/\[\]-]{1,160} model\.$/.test(paragraphs[1] || '')
-    && paragraphs[2] === 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.'
-    && paragraphs[3] === 'Use the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.') {
-    return { client: 'dsh', evidence: 'dsh-developer-template' };
+    && paragraphs[dshGuidance] === 'Check the [exit code: N] marker on every bash result; investigate failures before moving on.'
+    && paragraphs[dshGuidance + 1] === 'Use the read tool — not shell commands like cat — to inspect text files. Use offset and limit to continue reading large files.') {
+    return { client: 'dsh', evidence: dshFileReference ? 'dsh-web-developer-template' : 'dsh-developer-template',
+      templateVersion: dshFileReference ? '0.2.1-rc.2' : VERSIONS.dsh };
   }
   return null;
 }
@@ -252,7 +258,7 @@ function inferClientProfile(normalized, options = {}) {
   if (codex) found.push({ client: 'codex', evidence: codex });
   if (!found.length || new Set(found.map(item => item.client)).size !== 1) return null;
   const client = found[0].client;
-  return { client, templateVersion: VERSIONS[client], evidence: [...new Set(found.map(item => item.evidence))] };
+  return { client, templateVersion: found[0].templateVersion || VERSIONS[client], evidence: [...new Set(found.map(item => item.evidence))] };
 }
 
 function cleanInstruction(text, client, record) {
