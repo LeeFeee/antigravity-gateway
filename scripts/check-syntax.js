@@ -9,10 +9,10 @@ const root = path.resolve(__dirname, '..');
 function javascriptFiles(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
     const file = path.join(directory, entry.name);
-    return entry.isDirectory() ? javascriptFiles(file) : entry.isFile() && file.endsWith('.js') ? [file] : [];
+    return entry.isDirectory() ? javascriptFiles(file) : entry.isFile() && /\.(?:c|m)?js$/.test(file) ? [file] : [];
   });
 }
-const files = [path.join(root, 'antigravity-gateway.js'), ...javascriptFiles(path.join(root, 'src')), ...javascriptFiles(__dirname)];
+const files = [path.join(root, 'antigravity-gateway.js'), ...javascriptFiles(path.join(root, 'src')), ...javascriptFiles(__dirname), ...javascriptFiles(path.join(root, 'integrations'))];
 for (const file of files) {
   const result = spawnSync(process.execPath, ['--check', file], { stdio: 'inherit', windowsHide: true });
   if (result.error) { console.error(result.error.message); process.exit(1); }

@@ -1,12 +1,18 @@
 # Antigravity Gateway
 
-当前版本：**2.1.2**。
+当前版本：**2.1.3**。
 
 将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端继续使用 **Anthropic Messages** 或 **OpenAI Responses**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.1.3：Pi 与 dsh 动态模型发现
+
+新增客户端扩展与安装脚本，使 Pi、dsh 从网关 `/v1/models` 自动同步模型目录：启动时获取，运行期间每 60 秒刷新，新增模型无需手工追加本地清单。同步模型 ID、能力与固定思考档位，保留原连接、密钥和默认模型；网络失败时沿用上次成功的目录。
+
+本机 Pi、dsh 已自动发现 24 个模型，原默认 Flash High 与新发现的 `gemini-4-hydrogen-sonar` 均通过真实工具调用验收，包含 dsh 网页模式。安装方式和实际覆盖范围见 [动态模型发现说明](docs/dynamic-model-discovery.md)。此功能需在运行客户端的机器上安装扩展。
 
 ## 2.1.2：dsh 网页模式请求兼容
 
@@ -204,6 +210,8 @@ hermes chat --provider antigravity --model gemini-3.8-flash-high
 若要让 Hermes 原生传递图片，在其配置中按实际模型能力设置 `model.supports_vision: true` 与 `agent.image_input_mode: native`。当前采样已包含真实读取图片工具往返；`--image` 首轮直接附件场景在本次版本的隔离探测中未产生有效推理请求，不能据此声称已验证。
 
 ## Pi
+
+已有 Pi / dsh 网关连接可启用[动态模型发现](docs/dynamic-model-discovery.md)：在项目目录执行 `node scripts/install-model-discovery.js`。Pi 通过 provider 扩展、dsh 通过 Cordis 插件同步现有网关的 `/v1/models`，启动及运行期间自动刷新，不再逐项维护新增模型。安装器保留原连接、密钥、默认模型和原始配置，目录缓存不保存密钥。已打开的 Pi 首次安装后执行一次 `/reload`；dsh 首次安装后重启客户端进程。
 
 已捕获版本：**1.5.2**。将 provider 合并到 `~/.pi/agent/models.json`（或 `PI_CODING_AGENT_DIR` 指定目录），显式使用 `openai-responses`：
 
