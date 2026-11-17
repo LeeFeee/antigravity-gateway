@@ -418,7 +418,7 @@ test('normal Claude model IDs are never silently replaced', async (t) => {
   assert.equal(response.headers.get('x-antigravity-model'), 'claude-opus-4-6-thinking');
 });
 
-test('retired Chat Completions returns an upgrade error while Responses preserves the model ID', async (t) => {
+test('Chat Completions and Responses preserve the model ID', async (t) => {
   const base = await withServer(t);
   const chat = await fetch(`${base}/v1/chat/completions`, {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -427,8 +427,8 @@ test('retired Chat Completions returns an upgrade error while Responses preserve
       messages: [{ role: 'user', content: 'chat request' }]
     })
   });
-  assert.equal(chat.status, 410);
-  assert.equal((await chat.json()).error.code, 'unsupported_api');
+  assert.equal(chat.status, 200);
+  assert.equal((await chat.json()).model, 'claude-sonnet-4-6');
 
   const responses = await fetch(`${base}/v1/responses`, {
     method: 'POST', headers: { 'content-type': 'application/json' },

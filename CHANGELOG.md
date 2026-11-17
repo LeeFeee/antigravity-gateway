@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0 — 2026-11-17
+
+- 新增 `POST /v1/chat/completions`，复用原有 Google Antigravity API／Google Gemini API 转换、账号池、粘性、轮询与额度逻辑。
+- 支持 JSON、SSE、函数及自定义工具、旧式 functions 往返、JSON 输出约束、媒体输入和真实用量；新增参数仅在 Chat 边界处理，不更改 Messages／Responses 的请求契约。
+- 完整真实请求验证了 Hermes 工具往返、Pi 图片输入、Gemini Task、图片生成和 Claude Auto／Messages、Pi Responses 回归；覆盖范围与未实测分支见 `docs/chat-completions-verification.md`。
+
 ## 2.1.3 — 2026-11-17
 
 - 新增 Pi provider 扩展与 dsh Cordis 插件，从现有网关 `/v1/models` 动态获取模型目录，启动及每 60 秒自动刷新；同步上下文、输出预算、输入能力和固定思考档位。

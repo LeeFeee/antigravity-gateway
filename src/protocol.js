@@ -255,7 +255,7 @@ function* normalizeToolsSteps(tools, protocol, compiler = compileSchema) {
     });
   }) : tools;
   const mapped = declarations.map((tool) => {
-    const allowed = protocol === 'chat' ? ['function'] : ['function', 'custom'];
+    const allowed = ['function', 'custom'];
     if (tool?.type != null && !allowed.includes(tool.type)) {
       throw new GatewayError(`不支持此工具类型: ${String(tool.type)}。需要客户端可执行的 function 或已支持 custom 声明。`, {
         code: 'unsupported_tool_type', status: 400
@@ -272,7 +272,8 @@ function* normalizeToolsSteps(tools, protocol, compiler = compileSchema) {
     if (protocol === 'responses' && (typeof tool?.name !== 'string' || !tool.name.trim())) {
       throw new GatewayError('此工具没有可由客户端执行的名称或声明。', { code: 'unsupported_tool_type', status: 400 });
     }
-    if (protocol === 'responses' && tool?.type === 'custom') {
+    if (protocol === 'chat' && tool?.type === 'custom') tool = { ...tool.custom, type: 'custom' };
+    if (['responses', 'chat'].includes(protocol) && tool?.type === 'custom') {
       const applyPatchHint = tool.name === 'apply_patch'
         ? '\nThe raw input must be one complete Codex patch beginning with "*** Begin Patch" and ending with "*** End Patch".'
         : '';
@@ -491,11 +492,95 @@ function* normalizeAnthropicSteps(payload, compiler = compileSchema) {
   };
 }
 
-function* normalizeChatSteps(payload, compiler = compileSchema) {
+// Chat-specific wire compatibility stays at this boundary; other protocols
+// keep their existing normalization and upstream contracts.
+function chatPayload(payload, legacyCallIds) {
+  const invalid = message => { throw new GatewayError(message, { code: 'invalid_request_error', status: 400 }); };
+  const unsupported = name => { throw new GatewayError(`当前上游不支持 Chat Completions 参数: ${name}。`, { code: 'unsupported_parameter', status: 400 }); };
+  if (payload.messages != null && !Array.isArray(payload.messages)) invalid('messages 必须是数组。');
+  for (const name of ['stream', 'parallel_tool_calls']) {
+    if (payload[name] != null && typeof payload[name] !== 'boolean') invalid(`${name} 必须是布尔值。`);
+  }
+  if (payload.n != null && payload.n !== 1) unsupported('n（仅支持一个候选）');
+  if (payload.logprobs || payload.top_logprobs > 0) unsupported('logprobs');
+  if (payload.logit_bias && Object.keys(payload.logit_bias).length) unsupported('logit_bias');
+  if (payload.store === true) unsupported('store');
+  for (const name of ['audio', 'prediction', 'web_search_options', 'moderation', 'seed', 'verbosity']) {
+    if (payload[name] != null) unsupported(name);
+  }
+  for (const name of ['frequency_penalty', 'presence_penalty']) {
+    if (payload[name] != null && payload[name] !== 0) unsupported(name);
+  }
+  if (payload.service_tier != null && !['auto', 'default'].includes(payload.service_tier)) unsupported('service_tier');
+  if (payload.modalities != null && (!Array.isArray(payload.modalities)
+    || payload.modalities.length !== 1 || payload.modalities[0] !== 'text')) unsupported('modalities');
+  if (payload.stream_options != null) {
+    if (typeof payload.stream_options !== 'object' || Array.isArray(payload.stream_options)) invalid('stream_options 必须是对象。');
+    if (payload.stream_options.include_usage != null && typeof payload.stream_options.include_usage !== 'boolean') invalid('include_usage 必须是布尔值。');
+  }
+  for (const name of ['max_tokens', 'max_completion_tokens']) {
+    if (payload[name] != null && (!Number.isInteger(payload[name]) || payload[name] < 1)) invalid(`${name} 必须是正整数。`);
+  }
+  for (const [name, maximum] of [['temperature', 2], ['top_p', 1]]) {
+    if (payload[name] != null && (typeof payload[name] !== 'number' || !Number.isFinite(payload[name])
+      || payload[name] < 0 || payload[name] > maximum)) invalid(`${name} 超出有效范围。`);
+  }
+  if (payload.tools != null && !Array.isArray(payload.tools)) invalid('tools 必须是数组。');
+  if (payload.functions != null && (!Array.isArray(payload.functions) || payload.tools != null)) invalid('functions 必须是数组，且不能与 tools 同时提供。');
+  if (payload.function_call != null && payload.tool_choice != null) invalid('function_call 与 tool_choice 不能同时提供。');
+  const legacyFunctions = payload.functions != null || payload.function_call != null;
+  if (legacyFunctions && payload.tools != null) invalid('旧式 functions/function_call 不能与 tools 同时提供。');
+  const tools = legacyFunctions ? (payload.functions || []).map(fn => ({ type: 'function', function: fn })) : payload.tools;
+  let choice = payload.tool_choice ?? payload.function_call;
+  if (legacyFunctions && choice && typeof choice === 'object') choice = { type: 'function', function: { name: choice.name } };
+  if (choice != null && !['auto', 'none', 'required', 'any'].includes(choice)
+    && !['auto', 'none', 'required', 'any'].includes(choice?.type)
+    && !(choice && ['function', 'custom', 'tool'].includes(choice.type)
+      && typeof (choice.function?.name ?? choice.custom?.name ?? choice.name) === 'string')) invalid('tool_choice 必须是 auto、none、required 或指定的已声明工具。');
+  if (choice?.type === 'custom') choice = { type: 'custom', name: choice.custom?.name ?? choice.name };
+  const messages = [], pendingFunctions = new Map();
+  for (const [index, message] of (payload.messages || []).entries()) {
+    if (!message || !['system', 'developer', 'user', 'assistant', 'tool', 'function'].includes(message.role)) invalid('messages 包含无效角色。');
+    if (message.audio != null) unsupported('messages[].audio（需要显式音频输入）');
+    if (message.refusal != null && (message.role !== 'assistant' || typeof message.refusal !== 'string')) invalid('refusal 只能是 assistant 消息中的文本。');
+    if (message.content != null && typeof message.content !== 'string' && !Array.isArray(message.content)) invalid('message.content 必须是文本或内容数组。');
+    let converted = message;
+    if (message.function_call != null) {
+      if (message.role !== 'assistant' || message.tool_calls != null || typeof message.function_call.name !== 'string') invalid('旧式 function_call 消息无效。');
+      const id = legacyCallIds?.get(index) || `call_legacy_${index}`;
+      pendingFunctions.set(message.function_call.name, id);
+      converted = { ...message, tool_calls: [{ id, type: 'function', function: message.function_call }] };
+    } else if (message.role === 'function') {
+      const id = pendingFunctions.get(message.name);
+      if (!id) invalid('function 消息缺少此前对应的 function_call。');
+      pendingFunctions.delete(message.name);
+      converted = { ...message, role: 'tool', tool_call_id: id };
+    }
+    if (converted.role === 'tool' && (typeof converted.tool_call_id !== 'string' || !converted.tool_call_id)) invalid('tool 消息缺少 tool_call_id。');
+    if (converted.tool_calls != null && (!Array.isArray(converted.tool_calls) || converted.role !== 'assistant')) invalid('tool_calls 只能是 assistant 消息中的数组。');
+    for (const call of converted.tool_calls || []) {
+      const custom = call?.type === 'custom', declaration = custom ? call.custom : call?.function;
+      if (!call || !['function', 'custom'].includes(call.type ?? 'function')
+        || typeof call.id !== 'string' || !call.id || typeof declaration?.name !== 'string' || !declaration.name
+        || typeof (custom ? declaration.input : declaration.arguments) !== 'string') invalid('tool_calls 缺少有效的 id、名称或字符串参数。');
+      if (!custom) { try { JSON.parse(declaration.arguments); } catch { invalid('function.arguments 必须是有效 JSON 字符串。'); } }
+    }
+    messages.push(converted);
+  }
+  const format = payload.response_format;
+  if (format != null && !['text', 'json_object', 'json_schema'].includes(format.type)) unsupported('response_format');
+  return { ...payload, messages, tools, tool_choice: choice, legacyFunctions,
+    ...(legacyFunctions ? { parallel_tool_calls: false } : {}),
+    max_tokens: payload.max_completion_tokens ?? payload.max_tokens,
+    response_format: format?.type === 'json_object' ? { type: 'json_schema', json_schema: { schema: { type: 'object' } } } : format };
+}
+
+function* normalizeChatSteps(payload, compiler = compileSchema, legacyCallIds) {
+  payload = chatPayload(payload, legacyCallIds);
   const messages = [];
   const systemParts = [];
   for (const message of payload.messages || []) {
-    const text = textFromContent(message.content, 'chat');
+    const text = [textFromContent(message.content, 'chat'), message.refusal].filter(value => value != null && value !== '').join('\n');
     if (message.role === 'system' || message.role === 'developer') systemParts.push(text);
     else if (message.role === 'tool') messages.push({
       role: 'user',
@@ -505,10 +590,13 @@ function* normalizeChatSteps(payload, compiler = compileSchema) {
     else {
       let combined = text;
       const parts = internalPartsFromContent(message.content, 'chat');
+      if (message.refusal) parts.push({ type: 'text', text: message.refusal });
       if (Array.isArray(message.tool_calls)) {
         for (const call of message.tool_calls) {
-          combined += `\n[ASSISTANT_TOOL_CALL id=${call.id || ''} name=${call.function?.name || ''}]\n${call.function?.arguments || '{}'}`;
-          parts.push(toolCallPart(call.id, call.function?.name, parseJsonValue(call.function?.arguments)));
+          const custom = call.type === 'custom', name = custom ? call.custom.name : call.function.name;
+          const input = custom ? call.custom.input : call.function.arguments;
+          combined += `\n[ASSISTANT_TOOL_CALL id=${call.id} name=${name}]\n${input}`;
+          parts.push(toolCallPart(call.id, name, custom ? { input } : parseJsonValue(input), undefined, custom ? 'custom' : 'function'));
         }
       }
       messages.push({ role: message.role || 'user', text: combined, parts });
@@ -516,6 +604,8 @@ function* normalizeChatSteps(payload, compiler = compileSchema) {
   }
   return {
     protocol: 'chat', model: payload.model, system: systemParts.join('\n'), messages,
+    ...(payload.legacyFunctions ? { legacyFunctions: true } : {}),
+    ...(typeof payload.parallel_tool_calls === 'boolean' ? { parallelToolCalls: payload.parallel_tool_calls } : {}),
     tools: yield* requestToolsSteps(payload, 'chat', compiler), toolChoice: payload.tool_choice,
     generationConfig: generationConfigFrom(payload),
     ...reasoningOptionsFrom(payload, "chat"),
@@ -857,14 +947,21 @@ function anthropicResponse(model, result) {
   return response;
 }
 
-function chatResponse(model, result) {
+function chatResponse(model, result, { legacyFunctions = false } = {}) {
   const termination = upstreamTermination(result);
   const text = deliveryText(result);
   const message = { role: 'assistant', content: text || null };
   if (result.thinking) message.reasoning_content = result.thinking;
-  if (result.toolCalls.length) message.tool_calls = result.toolCalls.map((call) => ({
+  if (result.toolCalls.length) message.tool_calls = result.toolCalls.map((call) => call.kind === 'custom' ? {
+    id: call.id, type: 'custom', custom: { name: call.name, input: call.input ?? call.arguments?.input ?? '' }
+  } : ({
     id: call.id, type: 'function', function: { name: call.name, arguments: compactJson(call.arguments) }
   }));
+  if (legacyFunctions && message.tool_calls?.length) {
+    if (message.tool_calls.length !== 1 || message.tool_calls[0].type !== 'function') throw new GatewayError('旧式 functions 响应只能包含一个函数。', { code: 'invalid_tool_call', status: 502 });
+    message.function_call = message.tool_calls[0].function;
+    delete message.tool_calls;
+  }
   if (result.images?.length) message.images = result.images.map((image) => ({
     id: image.id,
     type: 'image_url',
@@ -874,11 +971,13 @@ function chatResponse(model, result) {
   return {
     id: `chatcmpl_${crypto.randomUUID().replaceAll('-', '')}`,
     object: 'chat.completion', created: Math.floor(Date.now() / 1000), model,
-    choices: [{ index: 0, message, finish_reason: termination === 'length' ? 'length' : termination === 'filtered' ? 'content_filter' : result.toolCalls.length ? 'tool_calls' : 'stop' }],
+    choices: [{ index: 0, message, logprobs: null, finish_reason: termination === 'length' ? 'length' : termination === 'filtered' ? 'content_filter' : result.toolCalls.length ? (legacyFunctions ? 'function_call' : 'tool_calls') : 'stop' }],
     ...(result.usageKnown === false ? { usage_known: false } : { usage: {
       prompt_tokens: result.usage?.input_tokens || 0,
       completion_tokens: billedOutputTokens(result.usage),
-      total_tokens: result.usage?.total_tokens || 0
+      total_tokens: result.usage?.total_tokens || 0,
+      prompt_tokens_details: { cached_tokens: result.usage?.cache_read_tokens || 0 },
+      completion_tokens_details: { reasoning_tokens: result.usage?.thinking_tokens || 0 }
     } })
   };
 }
@@ -964,12 +1063,13 @@ const parseToolCalls = (...args) => runSync(parseToolCallsSteps(...args));
 const normalizeStructured = (...args) => runSync(normalizeStructuredSteps(...args));
 const finalizeModelResult = (...args) => runSync(finalizeModelResultSteps(...args));
 const normalizeAnthropicAsync = (payload, options) => runAsync(normalizeAnthropicSteps(payload, schema => compileSchemaAsync(schema, options)));
+const normalizeChatAsync = (payload, options) => runAsync(normalizeChatSteps(payload, schema => compileSchemaAsync(schema, options), options?.legacyCallIds));
 const normalizeResponsesAsync = (payload, previous, options) => runAsync(normalizeResponsesSteps(payload, previous, schema => compileSchemaAsync(schema, options)));
 const normalizeStructuredAsync = (text, schema, options) => runAsync(normalizeStructuredSteps(text, schema, (value, contract) => validateSchemaAsync(value, contract, options)));
 const finalizeModelResultAsync = (normalized, result, options) => runAsync(finalizeModelResultSteps(normalized, result, (value, schema) => validateSchemaAsync(value, schema, options)));
 
 module.exports = {
-  normalizeAnthropicAsync, normalizeResponsesAsync, normalizeStructuredAsync, finalizeModelResultAsync,
+  normalizeAnthropicAsync, normalizeChatAsync, normalizeResponsesAsync, normalizeStructuredAsync, finalizeModelResultAsync,
   GatewayError,
   anthropicResponse,
   buildPrompt,

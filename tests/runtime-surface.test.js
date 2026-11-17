@@ -63,7 +63,7 @@ test('empty account pool remains empty despite local credentials and retired tra
   assert.equal(health.transport, 'direct');
   assert.equal(health.upstream_protocol, 'Google Antigravity API');
   assert.equal(health.agy.version, '1.5.8');
-  assert.equal(health.capabilities.chat_completions, false);
+  assert.equal(health.capabilities.chat_completions, true);
   assert.equal(health.capabilities.local_agy_session_bridge, false);
   assert.deepEqual(health.account_pool.accounts, []);
   assert.equal(health.account_pool.managed_accounts, 0);
@@ -71,6 +71,7 @@ test('empty account pool remains empty despite local credentials and retired tra
   for (const [route, body] of [
     ['messages', { messages: [{ role: 'user', content: 'test' }] }],
     ['responses', { input: 'test' }],
+    ['chat/completions', { messages: [{ role: 'user', content: 'test' }] }],
     ['images/generations', { prompt: 'test' }]
   ]) {
     const response = await fetch(base + '/v1/' + route, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -81,13 +82,13 @@ test('empty account pool remains empty despite local credentials and retired tra
   assert.deepEqual(fs.readdirSync(path.join(directory, 'accounts')), []);
 });
 
-test('retired inference endpoint is rejected before body normalization or upstream calls', async t => {
+test('Chat Completions rejects invalid JSON and empty conversations before dispatch', async t => {
   const base = await server(t);
   for (const body of ['{not valid json', JSON.stringify({ model: 'legacy', messages: [] })]) {
     const response = await fetch(base + '/v1/chat/completions', { method: 'POST', headers: { 'content-type': 'application/json' }, body });
-    assert.equal(response.status, 410);
+    assert.equal(response.status, 400);
     const error = (await response.json()).error;
-    assert.equal(error.type, 'unsupported_api'); assert.match(error.message, /Messages.*Responses/);
+    assert.ok(['invalid_json', 'invalid_request_error'].includes(error.type), error.type);
   }
 });
 

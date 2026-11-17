@@ -1,12 +1,18 @@
 # Antigravity Gateway
 
-当前版本：**2.1.3**。
+当前版本：**2.2.0**。
 
-将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端继续使用 **Anthropic Messages** 或 **OpenAI Responses**。
+将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端可以使用 **Anthropic Messages**、**OpenAI Responses** 或 **OpenAI Chat Completions**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.2.0：新增 OpenAI Chat Completions
+
+新增 `POST /v1/chat/completions`，与原有 Messages、Responses 并行提供服务；基址仍为 `/v1`，鉴权、模型名称、账号池、粘性、轮询及额度判断沿用原规则。
+
+支持普通 JSON、SSE、工具往返、旧式 functions、结构化输出与原有媒体能力。真实验证覆盖 Antigravity／Gemini 工具调用、图片输入和生成，以及 Messages、Responses、Claude Auto 回归；1,206 项测试全部通过。接入方式见 [Chat Completions](docs/chat-completions.md)，具体覆盖与边界见 [验收记录](docs/chat-completions-verification.md)。
 
 ## 2.1.3：Pi 与 dsh 动态模型发现
 
@@ -113,7 +119,8 @@ antigravity-gateway stats
 | --- | --- |
 | Anthropic Messages 基址 | `http://127.0.0.1:9897` |
 | OpenAI Responses 基址 | `http://127.0.0.1:9897/v1` |
-| 推理接口 | `POST /v1/messages`、`POST /v1/responses` |
+| OpenAI Chat Completions 基址 | `http://127.0.0.1:9897/v1` |
+| 推理接口 | `POST /v1/messages`、`POST /v1/responses`、`POST /v1/chat/completions` |
 | 模型目录 | `GET /v1/models` |
 | 文件 | `/v1/files` 及已有文件读取、删除接口 |
 | 图片生成与编辑 | `POST /v1/images/generations`、`POST /v1/images/edits` |
@@ -124,7 +131,7 @@ antigravity-gateway stats
 
 **带档位模型名唯一决定上游思考配置。** 例如选择 `gemini-3.8-flash-high` 时，即使客户端同时发送 `low`、`none`、budget 等冲突思考参数，上游仍按该名称的配置发送；冲突参数直接忽略，不报错、不警告。除下文明确列出的默认 Auto Mode 分类器映射外，辅助分类或标题请求也不会改写显式模型。未提供模型时才使用相应默认模型。
 
-Chat Completions 推理入口已退役，访问 `/v1/chat/completions` 会返回明确的 `unsupported_api`。客户端须显式选择 Messages 或 Responses，不能依赖自动探测切换到旧入口。未知模型与不支持的工具/参数组合会按实际校验结果明确失败，不静默换成其他模型。
+三个推理入口共用原有模型目录、鉴权、账号粘性、轮询和额度判断。Chat Completions 支持普通 JSON、SSE、客户端工具往返、结构化输出与现有媒体输入转换；详见 [Chat Completions 接入说明](docs/chat-completions.md)。基址同为 `/v1` 不代表使用同一种协议，客户端需要选择相应的传输方式。未知模型与不支持的工具/参数组合会按实际校验结果明确失败，不静默换成其他模型。
 
 ## Claude Code CLI
 

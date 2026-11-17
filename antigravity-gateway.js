@@ -49,14 +49,18 @@ const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
   anthropicResponse,
+  chatResponse,
   finalizeModelResultAsync,
   normalizeAnthropicAsync,
+  normalizeChatAsync,
   normalizeResponsesAsync,
   NATIVE_IMAGE_TOOL_NAME,
   prepareNativeMultimodal,
   responsesResponse,
   upstreamTermination
 } = require('./src/protocol');
+const { LegacyChatCalls } = require('./src/chat-legacy-calls');
+const LEGACY_CHAT_CALLS = new LegacyChatCalls();
 
 const CONFIG_DIR = path.resolve(
   process.env.ANTIGRAVITY_GATEWAY_CONFIG_DIR
@@ -627,7 +631,8 @@ function printHelp() {
   POST /v1/images/edits
   POST /v1/messages
   POST /v1/messages/count_tokens
-  POST /v1/responses`);
+  POST /v1/responses
+  POST /v1/chat/completions`);
 }
 
 function sendJson(res, status, body, headers = {}) {
@@ -1183,6 +1188,7 @@ function emitChatStream(res, body, { includeUsage = false } = {}) {
   if (choice.message.content) first.content = choice.message.content;
   if (choice.message.reasoning_content) first.reasoning_content = choice.message.reasoning_content;
   if (choice.message.tool_calls) first.tool_calls = choice.message.tool_calls.map((call, index) => ({ index, ...call }));
+  if (choice.message.function_call) first.function_call = choice.message.function_call;
   if (choice.message.images) first.images = choice.message.images;
   if (choice.message.artifacts) first.artifacts = choice.message.artifacts;
   sendChatChunk(res, body, [{ index: 0, delta: first, finish_reason: null }], { includeUsage });
@@ -1519,6 +1525,35 @@ async function handleAnthropic(payload, req, res, signal) {
   else if (normalized.stream) emitAnthropicStream(res, body); else sendJson(res, 200, body, { 'x-antigravity-model': model });
 }
 
+async function handleChat(payload, req, res, signal) {
+  USAGE_STORE.recordClientRequest();
+  if (!Array.isArray(payload.messages) || !payload.messages.length) {
+    throw new GatewayError('messages 必须是非空数组。', { code: 'invalid_request_error', status: 400 });
+  }
+  const scope = clientScope(req), requestedModel = payload.model || DEFAULT_MODEL;
+  const legacyCallIds = LEGACY_CHAT_CALLS.resolve(scope, payload, requestedModel);
+  const normalized = await normalizeChatAsync(payload, { signal, legacyCallIds });
+  const model = await resolveModel(normalized.model);
+  const identity = clientSessionIdentity(req, payload, normalized, null);
+  gatewayLog(`[Antigravity Gateway] /v1/chat/completions model=${model} requested=${normalized.model || '-'} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} stream=${normalized.stream} ${identityTrace(identity)}`);
+  const stopHeartbeat = normalized.stream ? beginSse(res) : null;
+  const liveEmitter = textStreamingAllowed(normalized)
+    ? createChatTextEmitter(res, normalized.model || model, { includeUsage: normalized.includeUsage }) : null;
+  let body;
+  try {
+    const result = await runTurnWithModelDiagnostic(normalized, model, signal, {
+      ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req),
+      onDelta: liveEmitter?.onDelta,
+      onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined
+    });
+    body = chatResponse(normalized.model || model, result, { legacyFunctions: normalized.legacyFunctions });
+    LEGACY_CHAT_CALLS.record(scope, payload, requestedModel, body.choices[0].message, result.toolCalls[0]?.id);
+  } finally { stopHeartbeat?.(); }
+  if (liveEmitter) liveEmitter.finish(body);
+  else if (normalized.stream) emitChatStream(res, body, { includeUsage: normalized.includeUsage });
+  else sendJson(res, 200, body, { 'x-antigravity-model': model });
+}
+
 async function handleResponses(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   cleanupResponseStore();
@@ -1714,6 +1749,7 @@ async function requestHandler(req, res) {
     // Uploads may be stalled; aborting upstream alone does not end readJson.
     if (!res.headersSent) sendJson(res, 504, errorBody(controller.signal.reason, protocol));
     else if (route === '/v1/responses') sendResponsesStreamError(res, controller.signal.reason);
+    else if (route === '/v1/chat/completions') { sendSse(res, null, errorBody(controller.signal.reason, protocol)); res.end(); }
     else { sendSse(res, 'error', errorBody(controller.signal.reason, protocol)); res.end(); }
   }, REQUEST_TIMEOUT);
   deadline.unref();
@@ -1760,7 +1796,7 @@ async function requestHandler(req, res) {
         },
         gemini_account_pool: { managed_accounts: GEMINI_ACCOUNT_POOL.status().length, accounts: GEMINI_ACCOUNT_POOL.status() },
         usage: { file: USAGE_STORE.file, ...USAGE_STORE.summary() },
-        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: false, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: true, local_agy_session_bridge: false, multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: true }
+        capabilities: { anthropic_messages: true, openai_responses: true, chat_completions: true, image_generation: true, image_edits: true, image_understanding: true, video_understanding: true, file_uploads: true, tools_experimental: true, direct_upstream_sse: true, local_agy_session_bridge: false, multi_account: true, persistent_usage: true, web_dashboard: true, interactive_console: true, credentials_read_by_gateway: true }
       });
       return;
     }
@@ -1794,10 +1830,10 @@ async function requestHandler(req, res) {
       sendJson(res, 200, { input_tokens: Math.max(1, Math.ceil(text.length / 4)) }, { 'x-token-count-estimated': 'true' });
       return;
     }
-    if (route === '/v1/chat/completions') throw new GatewayError('Chat Completions 已移除，请将客户端配置为 Messages 或 Responses。', { code: 'unsupported_api', status: 410 });
     const payload = await readJson(req);
     if (req.method === 'POST' && route === '/v1/images/generations') return await handleImageGeneration(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/messages') return await handleAnthropic(payload, req, res, controller.signal);
+    if (req.method === 'POST' && route === '/v1/chat/completions') return await handleChat(payload, req, res, controller.signal);
     if (req.method === 'POST' && route === '/v1/responses') return await handleResponses(payload, req, res, controller.signal);
 
     throw new GatewayError(`接口不存在: ${route}`, { code: 'not_found', status: 404 });
