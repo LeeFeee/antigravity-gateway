@@ -14,6 +14,34 @@ const CLAUDE_CORE = CLAUDE_COMPACT_CORE + ' Use the instructions below and the t
 const CLAUDE_SECURITY_HASH = '10591efdcea75a1645b7f19037b36c979849ad4ec27f11ce87a8393423597b44';
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 
+function hermesRuntimeRange(text, after) {
+  const heading = '\n# Hermes runtime environment\n';
+  const end = '<!-- End Hermes runtime environment -->';
+  // prompt_builder.py emits this metadata immediately before the runtime
+  // block. Embedders may append user instructions AFTER the closing marker.
+  // The closing marker, not the end of the entire prompt, owns this boundary.
+  const metadata = /(?:^|\n\n)Conversation started: [^\n]+\nModel: [^\n]+\nProvider: [^\n]+\nPlatform: [^\n]+\n$/;
+  const candidates = [];
+  let from = after;
+  for (;;) {
+    const start = text.indexOf(heading, from);
+    if (start < 0) break;
+    from = start + heading.length;
+    if (!metadata.test(text.slice(0, start))) continue;
+    const stop = text.indexOf(end, from);
+    if (stop < 0 || text[stop - 1] !== '\n'
+      || (stop + end.length < text.length && text[stop + end.length] !== '\n')
+      || text.slice(from, stop).includes(heading)) continue;
+    candidates.push({ start, stop });
+  }
+  // Duplicated source markers are ambiguous; leave quoted/user text intact.
+  if (candidates.length) return candidates.length === 1 ? candidates[0] : null;
+  // Keep the previously captured terminal layout, including clients that
+  // omit metadata. An unproven non-terminal lookalike is never rewritten.
+  const start = text.lastIndexOf(heading), stop = text.lastIndexOf(end);
+  return start > after && stop > start && text.trimEnd().endsWith(end) ? { start, stop } : null;
+}
+
 // These fingerprints match Hermes 0.23.1 prompt_builder.py and its default
 // opening paragraph. Only the recognized framework region is converted;
 // project context, custom SOUL paragraphs and tool contracts remain verbatim.
@@ -44,11 +72,11 @@ function prepareHermesInstructions(text) {
   }
   let result = paragraphs.join('');
   const heading = '\n# Hermes runtime environment\n', end = '<!-- End Hermes runtime environment -->';
-  const start = result.lastIndexOf(heading);
-  if (start > result.indexOf(paragraphs[docs]) && result.trimEnd().endsWith(end)) {
-    // Hermes appends this outer block after project prose. Preserve every
-    // dynamic environment value, including user-supplied environment hints.
-    const stop = result.lastIndexOf(end);
+  const runtime = hermesRuntimeRange(result, result.indexOf(paragraphs[docs]) + paragraphs[docs].length);
+  if (runtime) {
+    // Change only framework labels. Environment values and all appended
+    // SOUL/custom instructions retain their exact bytes and original order.
+    const { start, stop } = runtime;
     result = result.slice(0, start) + result.slice(start, stop).replace(heading, '\n# Client runtime environment\n')
       + '<!-- End client runtime environment -->' + result.slice(stop + end.length);
   }

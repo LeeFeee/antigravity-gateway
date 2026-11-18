@@ -168,6 +168,33 @@ test('Hermes preserves custom SOUL, quoted framework text and customized complet
   }
 });
 
+test('Hermes runtime labels are normalized before appended user instructions without editing those instructions', () => {
+  const { normalized, metadata } = hermesFixture();
+  const tail = '\n\nMy custom SOUL: preserve my identity, permissions and exact tool contracts.\n'
+    + 'Quoted example:\n# Hermes runtime environment\n\nHost: quoted example\n<!-- End Hermes runtime environment -->\nEnd of custom instructions.';
+  const source = { ...normalized, system: normalized.system + tail };
+  const original = structuredClone(source);
+  const expected = prepareAntigravityClientInstructions(normalized, metadata.profile);
+  const result = prepareAntigravityClientInstructions(source, metadata.profile);
+  assert.equal(result.system, expected.system + tail);
+  assert.deepEqual({ ...result, system: source.system }, source);
+  assert.deepEqual(source, original);
+  assert.equal(prepareAntigravityClientInstructions(result, metadata.profile), result);
+});
+
+test('Hermes does not select between duplicated runtime provenance or unproven non-terminal labels', () => {
+  const { normalized, metadata } = hermesFixture();
+  const start = normalized.system.lastIndexOf('Conversation started:');
+  assert.ok(start > 0);
+  const repeated = normalized.system.slice(start);
+  const source = { ...normalized, system: normalized.system + '\n\n' + repeated + '\n\nUser tail.' };
+  const result = prepareAntigravityClientInstructions(source, metadata.profile);
+  assert.equal(result.system.split('# Hermes runtime environment').length, 3);
+  assert.ok(result.system.endsWith(repeated + '\n\nUser tail.'));
+  const unproven = { ...normalized, system: normalized.system.replace('Conversation started:', 'User-authored date:') + '\n\nUser tail.' };
+  assert.ok(prepareAntigravityClientInstructions(unproven, metadata.profile).system.includes('# Hermes runtime environment'));
+});
+
 test('interactive Hermes steering identity is converted only inside the verified framework region', () => {
   const { normalized, metadata } = hermesFixture();
   const { text } = require('./fixtures/hermes-midturn-steering-0.23.1.json');

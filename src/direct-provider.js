@@ -25,6 +25,7 @@ const { nativeClientToolResponse, attachClientToolResult } = require('./agy-tool
 const { runSync, runAsync } = require('./schema-steps');
 const { prepareAntigravityTools, prepareAntigravityToolsAsync } = require('./antigravity-tool-contract');
 const { CAPTURED_MODEL, nativeRetryDecision, nativeRetryDelayMs } = require('./agy-retry-policy');
+const { upstreamError, isModelCapacityFailure, selectGenerationFailure } = require('./agy-upstream-error');
 const { GatewayError, upstreamTermination, validateToolChoice } = require('./protocol');
 const { hasToolResultHistory } = require('./tool-history');
 
@@ -1068,6 +1069,7 @@ class DirectAntigravityProvider {
     };
     let response;
     let lastFailure;
+    let capacityFailure;
     const bases = this.baseUrls();
     let nativeRetry = this.retryPolicy === 'agy' && model === CAPTURED_MODEL;
     const retryLimit = () => nativeRetry ? (native.checkpoint ? 4 : 8) : this.maxRetries;
@@ -1075,6 +1077,7 @@ class DirectAntigravityProvider {
     while (true) {
     response = undefined;
     lastFailure = undefined;
+    capacityFailure = undefined;
     requestRounds:
     for (let retry = 0; retry <= retryLimit(); retry += 1) {
       for (const base of bases) {
@@ -1099,6 +1102,15 @@ class DirectAntigravityProvider {
         const text = await readBody(candidate);
         const detail = upstreamErrorMessage(text);
         lastFailure = { response: candidate, status: candidate.status, detail, diagnostic: redact(text) };
+        if (isModelCapacityFailure(candidate.status, text)) capacityFailure = lastFailure;
+        const upstream = upstreamError(text);
+        this.reportDiagnostic('generation_upstream_failed', {
+          model, upstreamIndex: bases.indexOf(base) + 1, status: candidate.status,
+          upstreamStatus: String(upstream?.status || ''),
+          reasons: Array.isArray(upstream?.details) ? upstream.details
+            .filter(value => value?.['@type'] === 'type.googleapis.com/google.rpc.ErrorInfo')
+            .map(value => String(value.reason || '')).filter(Boolean) : []
+        });
         const decision = nativeRetry ? nativeRetryDecision(candidate.status, text) : null;
         if (!decision) nativeRetry = false;
         // Captured alternating 503 / response-read failures share one native
@@ -1141,6 +1153,7 @@ class DirectAntigravityProvider {
       }
     }
     if (!response) {
+      lastFailure = selectGenerationFailure(lastFailure, capacityFailure);
       if (lastFailure?.error) throw lastFailure.error;
       const detail = lastFailure?.detail || '';
       throw new DirectProviderError(detail ? `Antigravity 上游请求失败：${detail}` : 'Antigravity 上游请求失败。', {

@@ -304,7 +304,7 @@ class AccountPool {
     if (quotaProtected) return new DirectProviderError('暂无满足条件的账号：Gemini 5 小时额度低于 10% 或周额度低于 5% 的账号已受保护，请等待额度恢复或使用其他可用账号。', {
       code: 'account_quota_protected', status: 429
     });
-    if (retryAfterSeconds) return Object.assign(new DirectProviderError(`模型 ${model} 的账号因上游限流暂时冷却，最早 ${retryAfterSeconds} 秒后可重试。`, {
+    if (retryAfterSeconds) return Object.assign(new DirectProviderError(`模型 ${model} 的可用账号因上游请求失败暂时冷却，最早 ${retryAfterSeconds} 秒后可重试；冷却不代表账号额度已耗尽。`, {
       code: 'account_pool_unavailable', status: 429
     }), { retryAfterSeconds });
     return new DirectProviderError(model

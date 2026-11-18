@@ -1,6 +1,6 @@
 {
   "name": "antigravity-gateway",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Anthropic Messages, OpenAI Responses and Chat Completions gateway with separate Google Antigravity API and Google Gemini API account pools.",
   "license": "MIT",
   "type": "commonjs",

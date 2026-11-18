@@ -1,12 +1,16 @@
 # Antigravity Gateway
 
-当前版本：**2.2.0**。
+当前版本：**2.2.1**。
 
 将看板管理的多个账号提供给 Claude Code CLI、Codex CLI、Hermes、Pi、dsh 使用。支持 **Google Antigravity API**（agy 1.5.8 协议基线）与 **Google Gemini API**（Gemini app 原生任务模式）两套直接上游，各用自己的账号池；客户端可以使用 **Anthropic Messages**、**OpenAI Responses** 或 **OpenAI Chat Completions**。
 
 网关负责协议转换、账号选择、额度保护、请求历史转换与返回格式转换。文件读取、命令执行等客户端工具仍由客户端执行，保留客户端的权限和审批规则。Files、图片生成和图片编辑接口继续提供。
 
 完整约定见 [重构产品说明](docs/antigravity-gateway-refactor-spec.md)，最初四客户端的实际请求结构见 [Agent 请求目录](docs/agent-request-catalog.md)，Codex 扩展见 [Codex 接入与验收](docs/codex-cli-integration.md)，当前实现与验收缺口见 [实施进度](docs/refactor-progress.md)。
+
+## 2.2.1 修复 Hermes 完整请求返回 429
+
+当 Hermes 在运行环境段后追加自定义指令时，网关现在能识别该段的结束标记。原先失败的请求已用同一模型和全部 21 个工具验证通过。Google 明确报告模型容量不足、备用入口随后返回通用 429 时，客户端会收到 `model_capacity_exhausted`。详见[完整请求对照记录](docs/hermes-runtime-boundary-20261118.md)。
 
 ## 2.2.0：新增 OpenAI Chat Completions
 

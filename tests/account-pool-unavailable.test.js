@@ -55,7 +55,8 @@ test('actual upstream 429 cooldowns report the earliest retry without clearing o
     assert.equal(error.status, 429);
     assert.equal(error.code, 'account_pool_unavailable');
     assert.equal(error.retryAfterSeconds, 3);
-    assert.match(error.message, /上游限流暂时冷却，最早 3 秒后可重试/);
+    assert.match(error.message, /上游请求失败暂时冷却，最早 3 秒后可重试/);
+    assert.match(error.message, /冷却不代表账号额度已耗尽/);
     assert.doesNotMatch(error.message, /额度耗尽|认证失败/);
     return true;
   });
