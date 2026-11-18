@@ -25,7 +25,10 @@ export default async function (pi) {
     const result = await catalog.load({ baseUrl: current.baseUrl, api: current.api, apiKey,
       headers: resolveHeadersOrThrow(current.headers, 'gateway discovery', env), signal: context.signal,
       force: context.force ?? true, allowNetwork: context.allowNetwork ?? true });
-    warning = result.stale ? `网关目录刷新失败，沿用上次目录：${result.error || '离线模式'}` : result.cacheError || '';
+    // Pi also reads the cache during startup. Only an online refresh updates its last warning.
+    if (context.allowNetwork !== false) {
+      warning = result.stale ? `网关目录刷新失败，沿用上次目录：${result.error || '网络请求失败'}` : result.cacheError || '';
+    }
     models = toPiModels(result.models, current);
     return models;
   }
