@@ -17,6 +17,19 @@ function redactText(value) {
 
 function errorDetails(error) {
   if (!error) return {};
+  const schemaError = error.schemaWorker ? error : error.cause?.schemaWorker ? error.cause : null;
+  if (schemaError) {
+    const cause = schemaError.cause;
+    const causeCode = /^(?:ERR_[A-Z0-9_]+|E[A-Z0-9_]+|MODULE_NOT_FOUND)$/.test(String(cause?.code || ''))
+      ? String(cause.code).slice(0, 100) : '';
+    return {
+      errorName: 'SchemaContractError', errorCode: 'schema_worker_unavailable', status: 503,
+      message: schemaError.schemaWorker.exitCode !== undefined && !cause ? 'Schema 校验线程已退出。' : 'Schema 校验线程异常退出。',
+      details: causeCode === 'ERR_WORKER_OUT_OF_MEMORY' ? 'Schema Worker 达到 V8 内存上限。' : '',
+      causeName: /^(?:Error|TypeError|RangeError|ReferenceError|SyntaxError|EvalError|URIError|AggregateError|SystemError)$/.test(cause?.name || '') ? cause.name : '',
+      causeCode, schemaWorker: schemaWorkerMetadata(schemaError.schemaWorker)
+    };
+  }
   return {
     errorName: String(error.name || ''),
     errorCode: String(error.code || error.cause?.code || ''),
@@ -24,6 +37,23 @@ function errorDetails(error) {
     message: redactText(error.message || error),
     details: redactText(error.details || error.cause?.message || '')
   };
+}
+
+function schemaWorkerMetadata(value) {
+  const result = {};
+  for (const key of ['threadId', 'schemaBytes', 'exitCode']) {
+    if (Number.isSafeInteger(value?.[key])) result[key] = value[key];
+  }
+  if (['busy', 'idle', 'startup'].includes(value?.phase)) result.phase = value.phase;
+  if (['compile', 'validate'].includes(value?.operation)) result.operation = value.operation;
+  if (/^[a-f0-9]{64}$/.test(value?.schemaSha256 || '')) result.schemaSha256 = value.schemaSha256;
+  if (/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value?.requestId || '')) result.requestId = value.requestId;
+  const limits = {};
+  for (const key of ['maxOldGenerationSizeMb', 'maxYoungGenerationSizeMb', 'stackSizeMb']) {
+    if (Number.isSafeInteger(value?.limits?.[key]) && value.limits[key] > 0) limits[key] = value.limits[key];
+  }
+  result.limits = limits;
+  return result;
 }
 
 function maskEmail(value) {

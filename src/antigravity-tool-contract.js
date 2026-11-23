@@ -10,6 +10,9 @@ const VERSION = 1;
 const MAX_ARGUMENT_BYTES = 4 * 1024 * 1024;
 const SUMMARY = "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'.";
 const VERSIONS = { claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1' };
+// 2.1.330's real TUI emits the same complete Read/Write/Edit contracts as
+// the compact 2.1.322 capture. The identity template has its own version/hash.
+const CLAUDE_TOOL_TEMPLATE_VERSIONS = new Set(['2.1.322', '2.1.330']);
 // Full declaration fingerprints, not name-only rules. Evidence lives in
 // tests/fixtures/agent-requests-20261107. No runtime dependency on test files.
 const PROFILES = {
@@ -164,11 +167,13 @@ function customValidator(tool, options) {
 function recognizedRule(tool, normalized, options) {
   const profile = options.clientIdentity;
   if (options.checkpoint || normalized.autoMode || !profile || !own(VERSIONS, profile.client)
-    || VERSIONS[profile.client] !== profile.templateVersion) return null;
-  if (options.clientVersion && options.clientVersion !== VERSIONS[profile.client]) return null;
+    || (profile.client === 'claude' ? !CLAUDE_TOOL_TEMPLATE_VERSIONS.has(profile.templateVersion)
+      : VERSIONS[profile.client] !== profile.templateVersion)) return null;
+  if (options.clientVersion && options.clientVersion !== profile.templateVersion) return null;
   const rules = own(PROFILES, profile.client) ? PROFILES[profile.client] : null;
   const rule = rules && own(rules, tool.name) ? rules[tool.name] : null;
-  return rule && rule.slice(2).includes(fingerprint(tool)) ? { operation: rule[0], pathField: rule[1], client: profile.client } : null;
+  return rule && rule.slice(2).includes(fingerprint(tool))
+    ? { operation: rule[0], pathField: rule[1], client: profile.client, templateVersion: profile.templateVersion } : null;
 }
 
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.mdx', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.json', '.jsonl', '.yaml', '.yml', '.toml', '.xml', '.html', '.css', '.scss', '.py', '.go', '.rs', '.c', '.h', '.cpp', '.hpp', '.java', '.kt', '.sh', '.bash', '.zsh', '.sql', '.csv', '.log', '.ini', '.conf', '.env', '.svg']);
@@ -313,7 +318,7 @@ function* prepareAntigravityToolsSteps(normalized, options = {}) {
       ...(source.clientName != null ? { clientWireName: source.clientName } : {}),
       ...(source.namespace != null ? { clientNamespace: source.namespace } : {}),
       ...(source.format ? { clientFormat: clone(source.format) } : {}), compatibilityName: contract.fullName,
-      profile: contract.rule ? { client: contract.rule.client, templateVersion: VERSIONS[contract.rule.client] } : null,
+      profile: contract.rule ? { client: contract.rule.client, templateVersion: contract.rule.templateVersion } : null,
       views: contract.views.map(view => ({ name: view.declaration.name, mode: view.mode })),
       ...(contract.rule && nativeCounts.get(contract.rule.operation) > 1 ? { nativeOmitted: 'ambiguous-native-name' } : {}) });
   }

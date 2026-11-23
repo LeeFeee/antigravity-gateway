@@ -1,6 +1,7 @@
 'use strict';
 
 const { GatewayError, upstreamTermination } = require('./protocol');
+const { CODEX_171_CLIENT_PROFILE } = require('./agy-client-profile');
 const { SEARCH_TOOL_NAME, createNativeSearchTool } = require('./agy-model-service-tools');
 
 function prepareSearchCapability(normalized) {
@@ -47,4 +48,16 @@ async function forwardSearchCalls(result, normalized, search) {
     usage: Object.fromEntries(keys.map(key => [key, usages.reduce((total, usage) => total + (Number(usage?.[key]) || 0), 0)])) };
 }
 
-module.exports = { prepareSearchCapability, forwardSearchCalls };
+// Observed Codex 0.171 serde retains the search action type and omits sources
+// when echoing a completed record. Register this expected view separately;
+// never remove fields from an incoming record or change the emitted sources.
+function expectedResponsesSearchEcho(output, clientProfile) {
+  if (clientProfile !== CODEX_171_CLIENT_PROFILE) return null;
+  return output.map(item => {
+    if (item.type !== 'web_search_call' || !item.action || !Object.hasOwn(item.action, 'sources')) return item;
+    const { sources, ...action } = item.action;
+    return { ...item, action };
+  });
+}
+
+module.exports = { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho };

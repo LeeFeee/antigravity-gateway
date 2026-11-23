@@ -9,8 +9,13 @@ const MAX_SCHEMA_BYTES = 1024 * 1024;
 const MAX_SCHEMA_DEPTH = 64;
 const CACHE_CAPACITY = 256;
 const CACHE_BYTES = 8 * 1024 * 1024;
+const CONTEXT_LIMIT = 4;
+const CONTEXT_CAPACITY = CACHE_CAPACITY / CONTEXT_LIMIT;
+const CONTEXT_BYTES = CACHE_BYTES / CONTEXT_LIMIT;
 let cacheBytes = 0;
 const cache = new Map();
+const contexts = new Set();
+const currentContexts = new Map();
 
 class SchemaContractError extends Error {
   constructor(message, cause) {
@@ -89,7 +94,42 @@ function createValidator(dialect) {
   return validator;
 }
 
-const validators = new Map();
+function touchContext(context) {
+  contexts.delete(context);
+  contexts.add(context);
+}
+
+function retireContext(context) {
+  // Ajv's code-generation scope retains every compiled schema and validator,
+  // even after removeSchema(). Evict all entries sharing that scope together;
+  // a surviving cached validator would otherwise keep the entire scope alive.
+  for (const key of context.keys) {
+    const entry = cache.get(key);
+    if (entry?.context !== context) continue;
+    cache.delete(key);
+    cacheBytes -= entry.bytes;
+  }
+  context.keys.clear();
+  contexts.delete(context);
+  if (currentContexts.get(context.dialect) === context) currentContexts.delete(context.dialect);
+  context.validator = null;
+}
+
+function compilationContext(dialect, bytes) {
+  let context = currentContexts.get(dialect);
+  if (!context || context.attempts >= CONTEXT_CAPACITY || context.bytes + bytes > CONTEXT_BYTES) {
+    while (contexts.size >= CONTEXT_LIMIT) retireContext(contexts.values().next().value);
+    context = { dialect, validator: createValidator(dialect), attempts: 0, bytes: 0, keys: new Set() };
+    currentContexts.set(dialect, context);
+    contexts.add(context);
+  }
+  // Failed compilation can also retain code-generation scope values. Charge
+  // its attempt and source bytes before compiling, not only after success.
+  context.attempts++;
+  context.bytes += bytes;
+  touchContext(context);
+  return context;
+}
 
 function compileSchema(schema) {
   const source = schema === undefined ? true : schema;
@@ -99,32 +139,34 @@ function compileSchema(schema) {
   let serialized;
   try { serialized = JSON.stringify(source); }
   catch (cause) { throw new SchemaContractError('工具 Schema 不是可序列化的 JSON。', cause); }
-  if (Buffer.byteLength(serialized) > MAX_SCHEMA_BYTES) throw new SchemaContractError('工具 Schema 超过 1 MiB。');
+  const bytes = Buffer.byteLength(serialized);
+  if (bytes > MAX_SCHEMA_BYTES) throw new SchemaContractError('工具 Schema 超过 1 MiB。');
   if (cache.has(serialized)) {
-    const result = cache.get(serialized);
+    const entry = cache.get(serialized);
     cache.delete(serialized);
-    cache.set(serialized, result);
-    return result;
+    cache.set(serialized, entry);
+    touchContext(entry.context);
+    return entry.validate;
   }
   const copy = JSON.parse(serialized);
   assertSchemaDepth(copy);
   const dialect = dialectFor(copy);
-  if (!validators.has(dialect)) validators.set(dialect, createValidator(dialect));
-  const validator = validators.get(dialect);
+  const context = compilationContext(dialect, bytes);
+  const validator = context.validator;
   let result;
   try {
     result = validator.compile(copy);
   } catch (cause) {
     throw new SchemaContractError('工具 Schema 无效，或包含无法解析的引用。', cause);
   } finally {
-    // Ajv's internal object cache must not grow outside our bounded LRU.
+    // Avoid Ajv's object cache as well as bounding its code-generation scope.
     if (copy && typeof copy === 'object') validator.removeSchema(copy);
   }
-  cache.set(serialized, result);
-  cacheBytes += Buffer.byteLength(serialized);
+  cache.set(serialized, { validate: result, context, bytes });
+  context.keys.add(serialized);
+  cacheBytes += bytes;
   while (cache.size > CACHE_CAPACITY || cacheBytes > CACHE_BYTES) {
-    const first = cache.keys().next().value;
-    cacheBytes -= Buffer.byteLength(first); cache.delete(first);
+    retireContext(cache.values().next().value.context);
   }
   return result;
 }

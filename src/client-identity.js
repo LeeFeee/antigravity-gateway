@@ -1,7 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const { CODEX_167_CLIENT_PROFILE } = require('./agy-client-profile');
+const { CODEX_167_CLIENT_PROFILE, CODEX_171_CLIENT_PROFILE } = require('./agy-client-profile');
 
 // Evidence: tests/fixtures/agent-requests-20261107; these are template matches, not client authentication.
 const VERSIONS = Object.freeze({ claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1', codex: '0.167.2' });
@@ -10,6 +10,13 @@ const VERSIONS = Object.freeze({ claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2
 // template and its intact normalized instruction projection as well.
 const CODEX_FALLBACK_LENGTH = 16979;
 const CODEX_FALLBACK_HASH = '3b08633fa672906666659d764864dfda1d7af5b5111ea5817c8f46e5de4e1a8d';
+const CODEX_FRAMEWORKS = Object.freeze({
+  [CODEX_167_CLIENT_PROFILE]: Object.freeze({ templateVersion: '0.167.2', length: CODEX_FALLBACK_LENGTH, hash: CODEX_FALLBACK_HASH }),
+  // Official rust-v0.171.0 models-manager/prompt.md is byte-identical to the
+  // installed binary. The fixture records source and binary verification.
+  [CODEX_171_CLIENT_PROFILE]: Object.freeze({ templateVersion: '0.171.0', length: 20751,
+    hash: 'ac8ae107a0d72fe3476b430afb161ea4e67da2e446d778aefc44828160559807' })
+});
 const CODEX_IDENTITY = 'You are a coding agent running in the Codex CLI, a terminal-based coding assistant. Codex CLI is an open source project led by OpenAI. ';
 const CODEX_IDENTITY_NOTE = 'Within this context, Codex refers to the open-source agentic coding interface (not the old Codex language model built by OpenAI).\n\n';
 const CODEX_NEUTRAL_CATALOG = 'Follow the client instructions and use only client-provided tools when needed.';
@@ -21,7 +28,13 @@ const CLAUDE_TUI_IDENTITY = "You are Claude Code, Anthropic's official CLI for C
 // instructions begin after that exact prefix and are never part of this edit.
 const CLAUDE_TUI_CORE_LENGTH = 2111;
 const CLAUDE_TUI_CORE_HASH = '2fb163696951183b1ef28b34885a5475bc968591c78c24ccb2a85b9de7a27bcd';
-const CLAUDE_CLI_BILLING = /^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=cli;$/;
+const CLAUDE_TUI_FRAMEWORKS = Object.freeze({
+  '2.1.322': Object.freeze({ length: CLAUDE_TUI_CORE_LENGTH, hash: CLAUDE_TUI_CORE_HASH }),
+  // Current installed TUI, captured before any gateway conversion. The hash
+  // stops at Session-specific guidance, ahead of user rules and environment.
+  '2.1.330': Object.freeze({ length: 3333, hash: '35bad1bfb496d159312f11f42744ec3e5e10f2ae830c5e83a7b4d6bd4d97a2d7' })
+});
+const CLAUDE_CLI_BILLING = /^x-anthropic-billing-header: cc_version=(2\.1\.322|2\.1\.330)(?:\.[a-z0-9]+)?; cc_entrypoint=cli;$/;
 // The same classifier policies were captured from interactive and print mode.
 // Keep this broader entrypoint match scoped to classifier source evidence;
 // the independent interactive search helper still requires its own CLI match.
@@ -69,13 +82,14 @@ function quotedAt(text, offset) {
 function claudeTuiPrefix(text) {
   const leading = text.length - text.trimStart().length;
   const rest = text.slice(leading);
-  const billing = rest.match(/^x-anthropic-billing-header: cc_version=2\.1\.322(?:\.[a-z0-9]+)?; cc_entrypoint=cli;\n/);
+  const billing = rest.match(/^x-anthropic-billing-header: cc_version=(2\.1\.322|2\.1\.330)(?:\.[a-z0-9]+)?; cc_entrypoint=cli;\n/);
   if (!billing || !rest.startsWith(CLAUDE_TUI_IDENTITY + '\n', billing[0].length)) return null;
   const end = leading + billing[0].length + CLAUDE_TUI_IDENTITY.length + 1;
   const framework = text.slice(end);
-  if (hash(framework.slice(0, CLAUDE_TUI_CORE_LENGTH)) !== CLAUDE_TUI_CORE_HASH
-    || !framework.slice(CLAUDE_TUI_CORE_LENGTH).startsWith('\n# Session-specific guidance\n')) return null;
-  return { end, billing: true, tui: true };
+  const contract = CLAUDE_TUI_FRAMEWORKS[billing[1]];
+  if (hash(framework.slice(0, contract.length)) !== contract.hash
+    || !framework.slice(contract.length).startsWith('\n# Session-specific guidance\n')) return null;
+  return { end, billing: true, tui: true, templateVersion: billing[1] };
 }
 
 function claudePrefix(text) {
@@ -129,7 +143,7 @@ function piContextTail(text) {
 function detectTemplate(text) {
   if (typeof text !== 'string') return null;
   const claude = claudePrefix(text);
-  if (claude) return { client: 'claude', evidence: claude.tui ? 'claude-tui-system-template' : claude.searchHelper ? 'claude-sdk-search-helper-template'
+  if (claude) return { client: 'claude', ...(claude.templateVersion ? { templateVersion: claude.templateVersion } : {}), evidence: claude.tui ? 'claude-tui-system-template' : claude.searchHelper ? 'claude-sdk-search-helper-template'
     : claude.compact ? 'claude-sdk-compact-system-template' : 'claude-sdk-system-template' };
   const paragraphs = text.trimStart().split(/\n\s*\n/);
   // SOUL.md may contain multiple paragraphs, including user rules appended to
@@ -178,14 +192,16 @@ function instructionSources(normalized) {
 }
 
 function codexTemplate(normalized, { clientProfile } = {}) {
-  if (clientProfile !== CODEX_167_CLIENT_PROFILE || normalized?.protocol !== 'responses' || normalized.instructions) return null;
+  const framework = CODEX_FRAMEWORKS[clientProfile];
+  if (!framework || normalized?.protocol !== 'responses' || normalized.instructions) return null;
   const first = normalized.instructionMessages?.[0];
   if (first?.role !== 'developer' || typeof first.text !== 'string') return null;
   const projected = normalized.instructionMessages.map(item => item.text).filter(Boolean).join('\n\n');
   if (normalized.system !== projected) return null;
-  if (first.text === CODEX_NEUTRAL_CATALOG) return 'codex-neutral-catalog-template';
-  if (first.text.length >= CODEX_FALLBACK_LENGTH && hash(first.text.slice(0, CODEX_FALLBACK_LENGTH)) === CODEX_FALLBACK_HASH) {
-    return 'codex-cli-fallback-template';
+  const profile = evidence => ({ client: 'codex', templateVersion: framework.templateVersion, evidence });
+  if (first.text === CODEX_NEUTRAL_CATALOG) return profile('codex-neutral-catalog-template');
+  if (first.text.length >= framework.length && hash(first.text.slice(0, framework.length)) === framework.hash) {
+    return profile('codex-cli-fallback-template');
   }
   return null;
 }
@@ -255,7 +271,7 @@ function inferClientProfile(normalized, options = {}) {
   if (tuiSearchHelperPrefix(normalized)) return tuiSearchHelperProfile();
   const found = instructionSources(normalized).map(source => detectTemplate(source.text)).filter(Boolean);
   const codex = codexTemplate(normalized, options);
-  if (codex) found.push({ client: 'codex', evidence: codex });
+  if (codex) found.push(codex);
   if (!found.length || new Set(found.map(item => item.client)).size !== 1) return null;
   const client = found[0].client;
   return { client, templateVersion: found[0].templateVersion || VERSIONS[client], evidence: [...new Set(found.map(item => item.evidence))] };
@@ -320,6 +336,11 @@ function sanitizeToolDescription(tool, profile, record = () => {}) {
   return { ...tool, description };
 }
 
+function compactAttributionProfile(profile) {
+  return profile?.evidence.includes('claude-sdk-compact-system-template')
+    || (profile?.templateVersion === '2.1.330' && profile.evidence.includes('claude-tui-system-template'));
+}
+
 function frameworkReminderBundle(message, profile, index) {
   const parts = message.parts;
   // The installed compact client optionally prepends its CLAUDE.md block.
@@ -329,7 +350,7 @@ function frameworkReminderBundle(message, profile, index) {
   const hasUserContext = parts?.length === 3 && parts[0]?.type === 'text'
     && parts[0].text?.startsWith(userContextPrefix) && parts[0].text.trimEnd().endsWith('</system-reminder>');
   const attributionIndex = hasUserContext ? 1 : 0;
-  if (profile?.evidence.includes('claude-sdk-compact-system-template') && index === 0
+  if (compactAttributionProfile(profile) && index === 0
     && message.role === 'user' && Array.isArray(parts) && parts.length === attributionIndex + 2
     && parts[attributionIndex]?.type === 'text' && parts[attributionIndex].text?.trim() === COMPACT_ATTRIBUTION
     && parts[attributionIndex + 1]?.type === 'text'
@@ -418,8 +439,9 @@ function sanitizeClientIdentity(normalized, options = {}) {
   if (profile?.client === 'codex') {
     if (profile.evidence.includes('codex-cli-fallback-template')) {
       const first = normalized.instructionMessages[0];
-      const template = first.text.slice(0, CODEX_FALLBACK_LENGTH);
-      const text = template.slice(CODEX_IDENTITY.length).replace(CODEX_IDENTITY_NOTE, '') + first.text.slice(CODEX_FALLBACK_LENGTH);
+      const framework = CODEX_FRAMEWORKS[options.clientProfile];
+      const template = first.text.slice(0, framework.length);
+      const text = template.slice(CODEX_IDENTITY.length).replace(CODEX_IDENTITY_NOTE, '') + first.text.slice(framework.length);
       result.instructionMessages = [{ ...first, text }, ...normalized.instructionMessages.slice(1)];
       result.system = result.instructionMessages.map(item => item.text).filter(Boolean).join('\n\n');
       record('codex-cli-framework-identity');
@@ -446,7 +468,7 @@ function sanitizeClientIdentity(normalized, options = {}) {
         if (counts.get(text.trim()) !== 1) return text;
         if (text.trim() === DEFAULT_MODEL_NOTICE) { pending.push('claude-model-reminder'); return ''; }
         if (text.trim() === DEFAULT_ATTRIBUTION) { pending.push('claude-default-attribution'); return ''; }
-        if (text.trim() === COMPACT_ATTRIBUTION && profile.evidence.includes('claude-sdk-compact-system-template')) {
+        if (text.trim() === COMPACT_ATTRIBUTION && compactAttributionProfile(profile)) {
           pending.push('claude-compact-default-attribution'); return '';
         }
         return text;

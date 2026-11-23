@@ -682,6 +682,16 @@ class AccountPool {
     };
   }
 
+  async registerResponsesProjection(projection, model, { accountId, ...options } = {}) {
+    // Registration belongs to the provider that produced this result. It is
+    // local bookkeeping, never a new routing or authentication attempt.
+    const entry = this.entries.get(String(accountId || ''));
+    if (!entry || !this.isCurrentEntry(entry) || !entry.provider.registerResponsesProjection
+      || !await entry.provider.registerResponsesProjection(projection, model, options)) {
+      throw new GatewayError('无法保存服务器搜索响应的原生历史投影。', { code: 'native_projection_unavailable', status: 502 });
+    }
+  }
+
   async send(normalized, model, options = {}) {
     if (!this.hasManagedAccounts()) throw this.noAccountError(model);
 

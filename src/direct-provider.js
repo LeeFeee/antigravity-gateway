@@ -7,7 +7,7 @@ const path = require('node:path');
 const { errorDetails } = require('./diagnostic-log');
 const { LocalAgyAuthError, discoverClientCredentials } = require('./local-agy-auth');
 const { nativeCloudCodeFetch } = require('./agy-native-transport');
-const { AgySessionStore, newState, contentFingerprint, restoreClientProjections, recordClientProjection,
+const { AgySessionStore, newState, contentFingerprint, historyPrefix, restoreClientProjections, recordClientProjection,
   recordStreamProjection, recordStreamRecovery, clearStreamRecovery, recordToolStreamError } = require('./agy-session-state');
 const { deliveryText, streamTextRemainder } = require('./artifacts');
 const { prepareNativeContext, prepareNativeContextAsync, completeNativeContext, interruptNativeContext, interruptCheckpointContext, continueInterruptedStream } = require('./agy-context-state');
@@ -498,6 +498,7 @@ class DirectAntigravityProvider {
     this.diagnosticReporter = typeof diagnosticReporter === 'function' ? diagnosticReporter : null;
     this.sessionStore = sessionStore || new AgySessionStore({ diagnosticReporter, directoryGuard });
     this.imageStore = this.sessionStore.directory ? new AgyImageStore({ directory: path.join(this.sessionStore.directory, 'images') }) : null;
+    this.responsesProjectionTokens = new WeakMap();
   }
 
   bindDirectoryGuard(guard) {
@@ -952,6 +953,39 @@ class DirectAntigravityProvider {
       : JSON.stringify([auth.sourcePath || this.authFile, auth.refreshToken || auth.accessToken]);
   }
 
+  async registerResponsesProjection({ source, visible, visibleVariants = [], nativeProjection, searchReceipts = [] }, model, { sessionId, signal, auxiliaryScope = '' } = {}) {
+    const issued = nativeProjection && this.responsesProjectionTokens.get(nativeProjection);
+    if (!issued || issued.model !== model || !sessionId) return false;
+    const owner = this.sessionOwner(this.loadAuth());
+    const scope = auxiliaryScope === 'compaction' ? '' : auxiliaryScope;
+    return this.sessionStore.transact(owner, `${sessionId}\0${scope}`, signal, (state, checkpoint) => {
+      if (state.owner !== issued.owner || state.key !== issued.key) return false;
+      const tail = issued.contents.at(-1);
+      const recorded = state.responses[historyPrefix(issued.contents)];
+      if (recorded?.model !== model || !recorded.content || contentFingerprint(recorded.content) !== contentFingerprint(tail)) return false;
+      const prefix = restoreClientProjections(state, contentsFromNormalized(source, null, model), model,
+        { restoreStreamRecovery: this.retryPolicy === 'agy', toolAdapter: issued.toolAdapter });
+      if (prefix.length >= issued.contents.length || !prefix.every((c, i) =>
+        contentFingerprint(c) === contentFingerprint(issued.contents[i]))) return false;
+      const contents = structuredClone(issued.contents.slice(prefix.length));
+      // Only the internally issued search calls from this exact native step
+      // can receive the real helper results. Client tools are never executed.
+      const calls = tail.parts.filter(p => p.functionCall).map(p => p.functionCall);
+      if (searchReceipts.some(({ call }) => call.name !== 'search_web' || calls.filter(c => c.id === call.id
+        && c.name === call.name && JSON.stringify(c.args) === JSON.stringify(call.arguments)).length !== 1)) return false;
+      if (searchReceipts.length) contents.push({ role: 'model', parts: searchReceipts.map(({ call, output }) => ({
+        functionResponse: { id: call.id, name: call.name, response: { output: structuredClone(output) } }
+      })) });
+      for (const variant of [visible, ...visibleVariants]) {
+        const span = contentsFromNormalized(variant, null, model);
+        if (!recordClientProjection(state, prefix, span, model, contents, Date.now(),
+          { kind: 'responses_search', mergeToolResults: searchReceipts.length > 0 })) return false;
+      }
+      checkpoint();
+      return true;
+    });
+  }
+
   async send(normalized, model, options = {}) {
     const { signal, sessionId, auxiliaryScope = '' } = options;
     await this.access(signal);
@@ -1377,6 +1411,13 @@ class DirectAntigravityProvider {
     nativeState.usedClaude ||= /claude/i.test(model);
     nativeState.usedNonGemini ||= !/^gemini-/i.test(model);
     checkpoint();
+    let nativeProjection;
+    if (!native.checkpoint && normalized.protocol === 'responses' && normalized.serverSearch) {
+      nativeProjection = {};
+      this.responsesProjectionTokens.set(nativeProjection, { owner: nativeState.owner, key: nativeState.key, model,
+        toolAdapter: native.toolAdapter, contents: structuredClone([...native.context.sourceContents,
+          { role: 'model', parts: historyParts }, ...(finished ? [finishResponse(finished.call)] : [])]) });
+    }
     return {
       text: finished ? finished.text : combinedText,
       thinking: recoveredThinking + state.thinking,
@@ -1391,7 +1432,8 @@ class DirectAntigravityProvider {
       // The image subrequest occupies the tool step after this agent response;
       // its receipt will advance the timeline before the following generation.
       ...(clientCalls.length ? { nativeToolContext: { trajectoryId: nativeState.trajectoryId, stepIndex: nativeState.nextStep } } : {}),
-      internalToolUsed: false
+      internalToolUsed: false,
+      ...(nativeProjection ? { nativeProjection } : {})
     };
     } catch (error) {
       // Captured terminal HTTP failures and backoff cancellations end the

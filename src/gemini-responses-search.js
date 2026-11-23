@@ -12,9 +12,15 @@ function prepareResponsesSearch(payload, upstream = 'Gemini', code = 'gemini_ser
   if (!declarations.length && !history) return { payload, serverSearch: null };
   if (declarations.length > 1) unsupported('Gemini 一次请求仅支持一个原生搜索声明。');
   const tool = declarations[0];
-  if (tool && (Object.keys(tool).some(key => !['type', 'external_web_access'].includes(key))
+  if (tool && (Object.keys(tool).some(key => !['type', 'external_web_access', 'search_content_types'].includes(key))
     || (tool.external_web_access != null && tool.external_web_access !== true))) {
     unsupported('Gemini 原生搜索尚不能等价支持离线、域名或位置等额外搜索限制。');
+  }
+  if (tool?.search_content_types != null) {
+    const types = tool.search_content_types;
+    if (!Array.isArray(types) || !types.includes('text') || types.some(type => !['text', 'image'].includes(type))) {
+      unsupported('Gemini 服务器搜索的 search_content_types 必须允许文本来源，支持 text 或 text 与 image 的组合。');
+    }
   }
   const choice = payload.tool_choice ?? 'auto';
   const required = choice && typeof choice === 'object' && choice.type === 'web_search' && Object.keys(choice).length === 1;

@@ -3,11 +3,21 @@
 const { CAPTURED_MODELS, thinkingLevel, modelProfile, generationProfile,
   resolveModelConfiguration, assertGenerationCompatibility } = require('./antigravity-model-config');
 
-// Observed Google Antigravity API protocol requests from agy 1.5.8 (2026-11-13).
+// Observed Google Antigravity API protocol requests from agy 1.5.14 (2026-11-22).
 const AGY_SESSION_ID = '-3750763034362895579';
 
-const AGY_CLI_VERSION = '1.5.8';
-const AGY_BUILD = '1020628950';
+const AGY_CLI_VERSION = '1.5.14';
+const AGY_BUILD = '1026970498';
+
+// Official 1.5.14 TUI agent/checkpoint requests use the same signed FNV-1a
+// value for their cascade. The historical constant is the empty-input hash.
+function upstreamSessionId(cascadeId = '') {
+  let hash = 0xcbf29ce484222325n;
+  for (const byte of Buffer.from(cascadeId, 'utf8')) {
+    hash = BigInt.asUintN(64, (hash ^ BigInt(byte)) * 0x100000001b3n);
+  }
+  return BigInt.asIntN(64, hash).toString();
+}
 // OAuth keeps its own Go user agent and the dashboard's state-bound callback.
 const AGY_OAUTH_PROFILE = Object.freeze({
   authorizationEndpoint: 'https://accounts.google.com/o/oauth2/auth',
@@ -64,7 +74,7 @@ function agentEnvelope({ model, project, contents, systemInstruction, tools, gen
       labels,
       ...(generationConfig ? { generationConfig } : {}),
       ...(toolConfig ? { toolConfig } : {}),
-      sessionId: AGY_SESSION_ID
+      sessionId: upstreamSessionId(state.cascadeId)
     },
     model,
     userAgent: 'antigravity',
@@ -91,6 +101,6 @@ function nativeSchema(schema) {
   return result;
 }
 
-module.exports = { AGY_SESSION_ID, AGY_CLI_VERSION, AGY_BUILD, AGY_OAUTH_PROFILE, cliUserAgent, thinkingLevel,
+module.exports = { AGY_SESSION_ID, AGY_CLI_VERSION, AGY_BUILD, AGY_OAUTH_PROFILE, cliUserAgent, upstreamSessionId, thinkingLevel,
   CAPTURED_MODELS, agentEnvelope, generationProfile, modelProfile, nativeSchema, compatibleHistoryModels,
   resolveModelConfiguration, assertGenerationCompatibility };

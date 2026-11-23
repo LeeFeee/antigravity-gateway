@@ -2,9 +2,11 @@
 
 const { capturedClaudeClient } = require('./agy-client-compaction');
 const { capturedHermesClient } = require('./agy-hermes-profile');
+const { clientRuntime } = require('./client-versions');
 
 const CODEX_CLIENT_PROFILE = 'codex-exec-0.159.2';
 const CODEX_167_CLIENT_PROFILE = 'codex-cli-0.167.2';
+const CODEX_171_CLIENT_PROFILE = 'codex-cli-0.171.0';
 const CLAUDE_304_CLIENT_PROFILE = 'claude-code-2.1.304';
 const CLAUDE_284_CLIENT_PROFILE = 'claude-code-2.1.284';
 
@@ -39,15 +41,14 @@ function capturedNativeClient(req, normalized) {
   if (hermes) return hermes;
   const headers = req?.headers || {};
   if (normalized.protocol !== 'responses' || typeof headers['session-id'] !== 'string' || !headers['session-id'].trim()) return '';
-  const ua = headers['user-agent'] || '';
-  if (headers.originator === 'codex_exec' && /^codex_exec\/0\.159\.2(?:\s|$)/.test(ua)) return CODEX_CLIENT_PROFILE;
+  const runtime = clientRuntime(req);
+  if (runtime?.client !== 'codex') return '';
+  if (runtime.entrypoint === 'codex_exec' && runtime.version === '0.159.2') return CODEX_CLIENT_PROFILE;
   // The real CLI launched from Codex Desktop keeps the desktop originator
   // and reports its executable/version in the final UA tuple. Identity edits
   // still require the exact developer-template fingerprint downstream.
-  if (headers.originator === 'Codex Desktop'
-    && /^Codex Desktop\/0\.167\.2 \([^\r\n]+\) [^\r\n]*\(codex_exec; 0\.167\.2\)$/.test(ua)) return CODEX_167_CLIENT_PROFILE;
-  const current = /^(codex_exec|codex-tui)\/0\.167\.2(?:\s|$)/.exec(ua);
-  return current && current[1] === headers.originator ? CODEX_167_CLIENT_PROFILE : '';
+  if (runtime.version === '0.167.2') return CODEX_167_CLIENT_PROFILE;
+  return runtime.version === '0.171.0' ? CODEX_171_CLIENT_PROFILE : '';
 }
 
-module.exports = { capturedNativeClient, CODEX_CLIENT_PROFILE, CODEX_167_CLIENT_PROFILE, CLAUDE_304_CLIENT_PROFILE, CLAUDE_284_CLIENT_PROFILE };
+module.exports = { capturedNativeClient, CODEX_CLIENT_PROFILE, CODEX_167_CLIENT_PROFILE, CODEX_171_CLIENT_PROFILE, CLAUDE_304_CLIENT_PROFILE, CLAUDE_284_CLIENT_PROFILE };

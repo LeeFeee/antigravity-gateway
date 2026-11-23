@@ -1,10 +1,14 @@
 'use strict';
 
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 const { Worker } = require('node:worker_threads');
 const { AsyncLocalStorage } = require('node:async_hooks');
 const { setTimeout, clearTimeout } = require('node:timers');
+const { errorDetails } = require('./diagnostic-log');
 const schemaBoundary = new AsyncLocalStorage();
+const detachedDiagnosticContext = AsyncLocalStorage.snapshot();
+let schemaDiagnosticReporter = null;
 const MAX_SCHEMA_BYTES = 1024 * 1024;
 const MAX_VALUE_BYTES = 4 * 1024 * 1024;
 const MAX_SCHEMA_DEPTH = 64;
@@ -18,7 +22,12 @@ class SchemaContractError extends Error {
 }
 function failure(message, code, status = 400) { return new SchemaContractError(message, undefined, { code, status }); }
 function abortFailure(signal) { return signal?.reason instanceof Error ? signal.reason : new DOMException('Schema 校验已取消。', 'AbortError'); }
-function withAsyncSchemaBoundary(callback) { return schemaBoundary.run(true, callback); }
+function withAsyncSchemaBoundary(callback, { requestId } = {}) {
+  return schemaBoundary.run({ requestId: typeof requestId === 'string' && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(requestId) ? requestId : undefined }, callback);
+}
+function setSchemaDiagnosticReporter(reporter) {
+  schemaDiagnosticReporter = typeof reporter === 'function' ? reporter : null;
+}
 function assertSyncAllowed() {
   if (schemaBoundary.getStore()) throw failure('HTTP 请求不能使用同步 Schema 校验路径。', 'schema_sync_forbidden', 500);
 }
@@ -38,10 +47,12 @@ function serialize(value, limit, label) {
 }
 
 class SchemaWorkerPool {
-  constructor(limits = {}) {
+  constructor(limits = {}, { diagnosticReporter, workerFactory } = {}) {
     this.limits = { ...DEFAULT_LIMITS, ...limits };
     for (const [key, value] of Object.entries(this.limits)) if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`Invalid schema worker limit: ${key}`);
     this.slots = []; this.queue = []; this.queuedBytes = 0; this.closed = false;
+    this.diagnosticReporter = diagnosticReporter || ((event, fields) => schemaDiagnosticReporter?.(event, fields));
+    this.workerFactory = workerFactory || ((file, options) => new Worker(file, options));
   }
   execute(operation, schema, value, { signal } = {}) {
     if (this.closed) return Promise.reject(failure('Schema 校验服务已关闭。', 'schema_worker_unavailable', 503));
@@ -51,7 +62,8 @@ class SchemaWorkerPool {
       return Promise.reject(failure('Schema 校验队列已满，请稍后重试。', 'schema_capacity_exceeded', 503));
     }
     return new Promise((resolve, reject) => {
-      const job = { operation, schema, value, bytes, signal, resolve, reject, settled: false, slot: null };
+      const job = { operation, schema, value, bytes, signal, resolve, reject, settled: false, slot: null,
+        requestId: schemaBoundary.getStore()?.requestId, runInContext: AsyncLocalStorage.snapshot() };
       job.abort = () => this.cancel(job, abortFailure(signal));
       signal?.addEventListener('abort', job.abort, { once: true });
       job.queueTimer = setTimeout(() => this.cancel(job, failure('Schema 校验排队超时。', 'schema_capacity_exceeded', 503)), this.limits.queueMs);
@@ -75,10 +87,10 @@ class SchemaWorkerPool {
     }
   }
   spawn() {
-    const worker = new Worker(path.join(__dirname, 'schema-worker.js'), {
+    const worker = this.workerFactory(path.join(__dirname, 'schema-worker.js'), {
       resourceLimits: { maxOldGenerationSizeMb: this.limits.memoryMb, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 }
     });
-    const slot = { worker, ready: false, job: null, retired: false };
+    const slot = { worker, threadId: worker.threadId, ready: false, job: null, retired: false };
     this.slots.push(slot);
     slot.startupTimer = setTimeout(() => this.retire(slot, failure('Schema 校验线程启动超时。', 'schema_worker_unavailable', 503)), this.limits.startupMs);
     worker.on('message', message => {
@@ -96,9 +108,40 @@ class SchemaWorkerPool {
       const error = message.error ? failure(message.error.message, message.error.code, message.error.status) : null;
       this.settle(job, error, message); worker.unref(); this.drain();
     });
-    worker.on('error', () => this.retire(slot, failure('Schema 校验线程异常退出。', 'schema_worker_unavailable', 503)));
-    worker.on('exit', () => { if (!slot.retired) this.retire(slot, failure('Schema 校验线程已退出。', 'schema_worker_unavailable', 503)); });
+    worker.on('error', cause => {
+      if (slot.retired) return;
+      const error = new SchemaContractError('Schema 校验线程异常退出。', cause, { code: 'schema_worker_unavailable', status: 503 });
+      this.recordWorkerFailure(slot, error);
+      this.retire(slot, error);
+    });
+    worker.on('exit', exitCode => {
+      if (slot.failure) {
+        slot.failure.error.schemaWorker.exitCode = exitCode;
+        this.reportWorkerFailure(slot.failure, 'schema_worker_exit');
+      } else if (!slot.retired) {
+        const error = failure('Schema 校验线程已退出。', 'schema_worker_unavailable', 503);
+        this.recordWorkerFailure(slot, error, exitCode);
+        this.retire(slot, error);
+      }
+    });
     return slot;
+  }
+  recordWorkerFailure(slot, error, exitCode) {
+    const job = slot.job;
+    const metadata = { threadId: slot.threadId, phase: job ? 'busy' : slot.ready ? 'idle' : 'startup',
+      limits: { maxOldGenerationSizeMb: this.limits.memoryMb, maxYoungGenerationSizeMb: 16, stackSizeMb: 4 } };
+    if (job) Object.assign(metadata, { requestId: job.requestId, operation: job.operation,
+      schemaBytes: Buffer.byteLength(job.schema), schemaSha256: createHash('sha256').update(job.schema).digest('hex') });
+    if (exitCode !== undefined) metadata.exitCode = exitCode;
+    // The original exception remains available in memory. Only the explicit
+    // metadata allowlist in errorDetails may cross the diagnostic boundary.
+    Object.defineProperty(error, 'schemaWorker', { value: metadata });
+    slot.failure = { error, runInContext: job?.runInContext || detachedDiagnosticContext };
+    this.reportWorkerFailure(slot.failure, 'schema_worker_failed');
+  }
+  reportWorkerFailure(failure, event) {
+    try { failure.runInContext(() => this.diagnosticReporter(event, errorDetails(failure.error))); }
+    catch { /* diagnostics cannot change worker recovery or request outcomes */ }
   }
   retire(slot, error) {
     if (slot.retired) return;
@@ -191,4 +234,5 @@ function validateSchema(value, schema) {
 }
 async function closeSchemaWorkers() { const current = defaultPool; defaultPool = null; await current?.close(); }
 module.exports = { compileSchema, validateSchema, compileSchemaAsync, validateSchemaAsync, SchemaContractError,
-  MAX_SCHEMA_BYTES, MAX_SCHEMA_DEPTH, MAX_VALUE_BYTES, DEFAULT_LIMITS, SchemaWorkerPool, closeSchemaWorkers, withAsyncSchemaBoundary };
+  MAX_SCHEMA_BYTES, MAX_SCHEMA_DEPTH, MAX_VALUE_BYTES, DEFAULT_LIMITS, SchemaWorkerPool, closeSchemaWorkers, withAsyncSchemaBoundary,
+  setSchemaDiagnosticReporter };

@@ -14,6 +14,7 @@ const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const HASH = /^[a-f0-9]{64}$/;
 const TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
+const MAX_TIMELINE_CONTENTS = 2048;
 const locks = new Map();
 const hash = value => crypto.createHash('sha256').update(String(value)).digest('hex');
 
@@ -40,6 +41,23 @@ function contentFingerprint(content) {
 }
 
 function historyKey(prefix, content) { return hash(`${prefix}\0${contentFingerprint(content)}`); }
+// Only new search-span keys compare the JSON record semantically. The raw
+// marker and established history hashes remain byte-for-byte unchanged, so
+// upgrading cannot invalidate older signed-history prefixes.
+function responsesSearchFingerprint(content) {
+  const marker = '[Client-supplied previous server search record; not a new verified search]\n';
+  if (content.role !== 'model') return contentFingerprint(content);
+  const parts = content.parts.map(part => {
+    if (typeof part.text !== 'string' || !part.text.startsWith(marker)) return part;
+    try {
+      const record = JSON.parse(part.text.slice(marker.length));
+      if (record?.type !== 'web_search_call') return part;
+      return { ...part, text: marker + JSON.stringify(canonical(record)) };
+    } catch { return part; }
+  });
+  return contentFingerprint({ ...content, parts });
+}
+function responsesSearchKey(prefix, content) { return hash(`${prefix}\0agy-responses-search-v1\0${responsesSearchFingerprint(content)}`); }
 function historyPrefix(contents) {
   let prefix = hash('agy-history-v1');
   for (const content of contents) prefix = historyKey(prefix, content);
@@ -88,8 +106,12 @@ function validState(value, owner, key) {
       && (value.pendingCompaction.retainedTimeline === undefined || validTimeline(value.pendingCompaction.retainedTimeline))))
     && (value.projections === undefined || (value.projections && typeof value.projections === 'object' && !Array.isArray(value.projections)
       && Object.entries(value.projections).every(([k, v]) => HASH.test(k) && typeof v?.model === 'string' && Number.isFinite(v.at)
-        && (v.kind === undefined || v.kind === 'client_tools')
-        && Array.isArray(v.contents) && v.contents.length <= 3 && v.contents.every(c => c?.role === 'model' && Array.isArray(c.parts)))))
+        && (v.kind === undefined || ['client_tools', 'responses_search'].includes(v.kind))
+        && (v.visibleFingerprints === undefined || (v.kind === 'responses_search' && Array.isArray(v.visibleFingerprints)
+          && v.visibleFingerprints.length > 0 && v.visibleFingerprints.length <= 64 && v.visibleFingerprints.every(f => HASH.test(f))))
+        && (v.mergeToolResults === undefined || v.kind === 'responses_search' && v.mergeToolResults === true)
+        && Array.isArray(v.contents) && v.contents.length <= (v.kind === 'responses_search' ? MAX_TIMELINE_CONTENTS : 3)
+        && v.contents.every(c => c?.role === 'model' && Array.isArray(c.parts)))))
     && (value.receiptTransforms === undefined || validReceiptTransforms(value.receiptTransforms))
     && ['streamProjections', 'streamRecoveries'].every(group => value[group] === undefined || (value[group]
       && typeof value[group] === 'object' && !Array.isArray(value[group])
@@ -184,32 +206,59 @@ function restoreToolReceipts(state, submitted, prefix, model, toolNames, toolAda
 
 function restoreClientProjections(state, contents, model, { nativeErrors, pendingRecovery, clientProfile = '', restoreStreamRecovery = true,
   toolAdapter, now = Date.now(), verifiedToolSteps } = {}) {
-  let prefix = hash('agy-history-v1'), skipUntil = 0, awaitingToolError; const restored = [], toolNames = new Map();
+  let prefix = hash('agy-history-v1'), skipUntil = 0, awaitingToolError, mergeToolResults = false; const restored = [], toolNames = new Map();
   for (const [index, submitted] of contents.entries()) {
     if (index < skipUntil) continue;
     const content = restoreToolReceipts(state, submitted, prefix, model, toolNames, toolAdapter, now);
     const key = historyKey(prefix, content);
     const stream = restoreStreamRecovery && content.role === 'model' ? state.streamProjections?.[key] : null;
-    const entry = stream?.model === model ? stream : content.role === 'model' ? state.projections?.[key] : null;
+    const entry = stream?.model === model ? stream : content.role === 'model'
+      ? state.projections?.[key] || state.projections?.[responsesSearchKey(prefix, content)] : null;
     // Exact issued client-visible content AND full preceding history must
     // match. A copied receipt in another session or an edited prefix cannot
     // resurrect hidden exchanges or trigger broad text-pattern stripping.
     // Only explicitly marked client-tool projections share already verified
     // history-compatible models. Images, finish and stream projections do not.
-    const matchedProjection = entry?.model === model || entry?.kind === 'client_tools' && compatibleHistoryModels(entry.model, model);
+    const span = entry?.visibleFingerprints;
+    const fingerprint = entry?.kind === 'responses_search' ? responsesSearchFingerprint : contentFingerprint;
+    const matchesSpan = !span || span.every((expected, offset) => contents[index + offset]
+      && fingerprint(contents[index + offset]) === expected);
+    const matchedProjection = matchesSpan && (entry?.model === model || entry?.kind === 'client_tools' && compatibleHistoryModels(entry.model, model));
+    const visibleSpan = matchedProjection && span ? contents.slice(index, index + span.length) : [content];
+    const lastSubmittedIndex = index + visibleSpan.length - 1;
+    if (matchedProjection && span) skipUntil = index + span.length;
     const replacement = matchedProjection ? structuredClone(entry.contents) : [content];
-    for (const part of content.parts) if (part.functionCall) toolNames.delete(part.functionCall.id);
+    const visibleParts = visibleSpan.flatMap(c => c.parts);
+    for (const part of visibleParts) if (part.functionCall) toolNames.delete(part.functionCall.id);
     // Rename receipts only from an exact, previously issued call projection.
     // No global tool-name guessing, foreign-ID repair or rewriting old signed
     // client history when a tool adapter is first enabled mid-conversation.
     if (matchedProjection) {
       const calls = replacement.flatMap(c => c.parts).filter(p => p.functionCall).map(p => p.functionCall);
-      for (const p of content.parts) if (p.functionCall) {
+      for (const p of visibleParts) if (p.functionCall) {
         const matches = calls.filter(c => c.id === p.functionCall.id);
-        if (p.functionCall.id && matches.length === 1 && content.parts.filter(q => q.functionCall?.id === p.functionCall.id).length === 1)
-          toolNames.set(p.functionCall.id, { client: p.functionCall.name, native: matches[0].name, callKey: key });
+        if (p.functionCall.id && matches.length === 1 && visibleParts.filter(q => q.functionCall?.id === p.functionCall.id).length === 1)
+          toolNames.set(p.functionCall.id, { client: p.functionCall.name, native: matches[0].name,
+            callKey: entry.kind === 'responses_search' ? responsesSearchKey(prefix, content) : key });
       }
     }
+    // A mixed native step can execute server search before the real client
+    // executor returns its other results. Reunite only this recorded split;
+    // preserve each actual receipt and the original parallel-call ordering.
+    const onlyResults = c => c?.role === 'model' && c.parts.length > 0 && c.parts.every(p => p.functionResponse);
+    if (mergeToolResults && onlyResults(restored.at(-1)) && onlyResults(replacement[0])) {
+      const parts = [...restored.at(-1).parts, ...replacement[0].parts];
+      const ids = parts.map(p => p.functionResponse.id);
+      if (ids.every(Boolean) && new Set(ids).size === ids.length) {
+        restored.pop(); prefix = historyPrefix(restored);
+        const calls = restored.findLast(c => c.parts.some(p => p.functionCall))?.parts.filter(p => p.functionCall) || [];
+        const order = new Map(calls.map((p, i) => [p.functionCall.id, i]));
+        parts.sort((a, b) => (order.get(a.functionResponse.id) ?? Number.MAX_SAFE_INTEGER)
+          - (order.get(b.functionResponse.id) ?? Number.MAX_SAFE_INTEGER));
+        replacement[0] = { role: 'model', parts };
+      }
+    }
+    mergeToolResults = Boolean(matchedProjection && entry.mergeToolResults);
     for (const item of replacement) {
       if (entry === stream && stream?.model === model && isStreamError(item)) nativeErrors?.add(restored.length);
       if (matchedProjection && item.parts.some(part => part.functionCall)) verifiedToolSteps?.add(restored.length);
@@ -230,7 +279,7 @@ function restoreClientProjections(state, contents, model, { nativeErrors, pendin
             } else if (pendingRecovery && !awaitingToolError.entry.terminalRecorded) {
               (pendingRecovery.terminalToolRecords ||= []).push(awaitingToolError.entry);
             }
-            if (index === contents.length - 1) Object.assign(pendingRecovery || {}, { toolRecovery: awaitingToolError.entry });
+            if (lastSubmittedIndex === contents.length - 1) Object.assign(pendingRecovery || {}, { toolRecovery: awaitingToolError.entry });
             awaitingToolError = null;
           }
         }
@@ -243,22 +292,22 @@ function restoreClientProjections(state, contents, model, { nativeErrors, pendin
     // Ordinary user text, edited prefixes, unknown clients and timeout/HTTP
     // failures never authorize removing these strings from submitted history.
     if (clientProfile === CLAUDE_COMPACTION_PROFILE && matchedProjection
-      && entry.clientCancelled && capturedCancellationPair(contents, index + 1)) skipUntil = index + 3;
+      && entry.clientCancelled && capturedCancellationPair(contents, lastSubmittedIndex + 1)) skipUntil = lastSubmittedIndex + 3;
     // An interrupted API response may have delivered no assistant message at
     // all. Restore only an actually recorded hidden exchange at its exact
     // full prefix, either on an identical retry or before a new user turn.
     // Never insert it in front of an edited/echoed assistant response.
     const pending = restoreStreamRecovery && pendingRecovery && state.streamRecoveries?.[prefix];
-    if (pending?.model === model && (index === contents.length - 1 || contents[index + 1].role === 'user')) {
+    if (pending?.model === model && (lastSubmittedIndex === contents.length - 1 || contents[lastSubmittedIndex + 1].role === 'user')) {
       const recovery = structuredClone(pending);
-      if (index === contents.length - 1) Object.assign(pendingRecovery, { recovery, inputContents: [...restored] });
+      if (lastSubmittedIndex === contents.length - 1) Object.assign(pendingRecovery, { recovery, inputContents: [...restored] });
       for (const item of recovery.contents) {
         if (isStreamError(item)) nativeErrors?.add(restored.length);
         if (item.parts.some(part => part.functionCall)) verifiedToolSteps?.add(restored.length);
         restored.push(item); prefix = historyKey(prefix, item);
       }
       if (clientProfile === CLAUDE_COMPACTION_PROFILE && recovery.clientCancelled
-        && capturedCancellationPair(contents, index + 1)) skipUntil = index + 3;
+        && capturedCancellationPair(contents, lastSubmittedIndex + 1)) skipUntil = lastSubmittedIndex + 3;
     }
   }
   return restored;
@@ -295,13 +344,19 @@ function recordToolStreamError(state, prefix, model, content, retryCount, readyA
   pruneResponses(state);
 }
 
-function recordClientProjection(state, prefix, visible, model, contents, now = Date.now(), { kind } = {}) {
-  if (!contents.length || contents.length > 3 || contents.some(c => c.role !== 'model')) return;
-  if (kind !== undefined && kind !== 'client_tools') throw new TypeError('未知的客户端历史投影类型。');
+function recordClientProjection(state, prefix, visible, model, contents, now = Date.now(), { kind, mergeToolResults = false } = {}) {
+  if (kind !== undefined && !['client_tools', 'responses_search'].includes(kind)) throw new TypeError('未知的客户端历史投影类型。');
+  const span = Array.isArray(visible) ? visible : [visible];
+  if (!span.length || span.length > 64 || span.some(c => c.role !== 'model') || Array.isArray(visible) && kind !== 'responses_search') return;
+  if (!contents.length || contents.length > (kind === 'responses_search' ? MAX_TIMELINE_CONTENTS : 3) || contents.some(c => c.role !== 'model')) return;
   state.projections ||= {};
-  state.projections[historyKey(historyPrefix(prefix), visible)] = { model, contents: structuredClone(contents), at: now,
+  const fingerprint = kind === 'responses_search' ? responsesSearchFingerprint : contentFingerprint;
+  const key = kind === 'responses_search' ? responsesSearchKey(historyPrefix(prefix), span[0]) : historyKey(historyPrefix(prefix), span[0]);
+  state.projections[key] = { model, contents: structuredClone(contents), at: now,
+    ...(kind === 'responses_search' ? { visibleFingerprints: span.map(fingerprint), ...(mergeToolResults ? { mergeToolResults: true } : {}) } : {}),
     ...(kind ? { kind } : {}) };
   pruneResponses(state);
+  return Boolean(state.projections[key]);
 }
 
 async function waitUntil(promise, signal) {

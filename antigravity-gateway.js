@@ -40,10 +40,10 @@ const { SessionManager, credentialScope } = require('./src/session-manager');
 const { resolveModelConfiguration } = require('./src/antigravity-model-config');
 const { readSafeguards, evaluateSafeguards } = require('./src/anthropic-safeguards');
 const { isConversionError } = require('./src/conversion-errors');
-const { withAsyncSchemaBoundary } = require('./src/schema-contract');
+const { withAsyncSchemaBoundary, setSchemaDiagnosticReporter } = require('./src/schema-contract');
 const { ServerSearchReceipts } = require('./src/server-search-contract');
 const { prepareGeminiResponsesSearch, prepareAntigravityResponsesSearch } = require('./src/gemini-responses-search');
-const { prepareSearchCapability, forwardSearchCalls } = require('./src/antigravity-responses-search');
+const { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho } = require('./src/antigravity-responses-search');
 const { prepareServerSearchForwardAsync, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
@@ -120,6 +120,7 @@ let diagnosticsEnabled = false;
 const diagnosticReporter = (event, fields) => {
   if (diagnosticsEnabled) DIAGNOSTIC_LOG.write(event, fields);
 };
+setSchemaDiagnosticReporter(diagnosticReporter);
 const ACCOUNT_STORE = new AccountStore({ configDir: CONFIG_DIR });
 const USAGE_STORE = new UsageStore({ configDir: CONFIG_DIR });
 const ACCOUNT_POOL = new AccountPool({
@@ -858,11 +859,11 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
             })) }
           ] };
         raw = await pool.send(pending, upstreamModel, { signal, sessionId, routingKey, requestId, clientId, clientLabel,
-          mediaScope, onAccountSelected, reuseConversation, ...taskScope, ...(nativeClientProfile ? { nativeClientProfile } : {}),
-          clientProjection: { source: prepared.normalized }
+          mediaScope, onAccountSelected, reuseConversation, ...taskScope, ...(nativeClientProfile ? { nativeClientProfile } : {})
         });
       }
-      if (searchRounds) raw = { ...raw, webSearch: { sources }, usage: combinedUsage(searchUsage, raw.usage),
+      if (searchRounds) raw = { ...raw, webSearch: { sources }, responsesProjectionSource: prepared.normalized,
+        usage: combinedUsage(searchUsage, raw.usage),
         usageKnown: searchUsageKnown && raw.usageKnown !== false };
     }
     const initialUsage = raw.usage;
@@ -1580,6 +1581,19 @@ async function handleResponses(payload, req, res, signal) {
   const sessionId = identity.sessionId;
   try { result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined }); } finally { stopHeartbeat?.(); }
   const body = responsesResponse(normalized.model || model, result, responseId);
+  let visibleSearch;
+  if (result.webSearch && result.nativeProjection && result.responsesProjectionSource) {
+    // Generate the actual ws ID first, then register precisely the same
+    // contents that full-input clients and previous_response_id will echo.
+    visibleSearch = await normalizeResponsesAsync(prepareAntigravityResponsesSearch({ input: body.output }).payload, null, { signal });
+    const expectedEcho = expectedResponsesSearchEcho(body.output, identity.nativeClientProfile);
+    const visibleVariants = expectedEcho ? [await normalizeResponsesAsync(
+      prepareAntigravityResponsesSearch({ input: expectedEcho }).payload, null, { signal })] : [];
+    await UPSTREAMS.poolFor(model).registerResponsesProjection({
+      source: result.responsesProjectionSource, visible: visibleSearch, visibleVariants,
+      nativeProjection: result.nativeProjection, searchReceipts: result.searchReceipts
+    }, model, { sessionId, signal, auxiliaryScope: identity.auxiliaryScope, accountId: result.accountId });
+  }
   SESSION_MANAGER.bindResponse(responseId, req, {
     sessionId,
     ...(identity.anonymousTask ? { anonymousTask: true } : {}),
@@ -1587,7 +1601,7 @@ async function handleResponses(payload, req, res, signal) {
     system: normalized.system,
     instructions: normalized.instructions,
     instructionMessages: normalized.instructionMessages,
-    messages: [...normalized.messages, {
+    messages: [...normalized.messages, ...(visibleSearch ? visibleSearch.messages : [{
       role: 'assistant',
       text: result.text || '',
       parts: [
@@ -1601,7 +1615,7 @@ async function handleResponses(payload, req, res, signal) {
           ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {})
         }))
       ]
-    }]
+    }])]
   }, payload);
   if (liveEmitter) liveEmitter.finish(body);
   else if (normalized.stream) emitResponsesStream(res, body);
@@ -1874,7 +1888,9 @@ function createServer({ directoryGuard = null } = {}) {
     GEMINI_ACCOUNT_POOL.bindDirectoryGuard(directoryGuard);
   }
   const server = http.createServer((req, res) => {
-    void trackTransaction(withAsyncSchemaBoundary(() => requestHandler(req, res))).catch(() => {
+    const requestId = crypto.randomUUID();
+    res.setHeader('x-request-id', requestId);
+    void trackTransaction(withAsyncSchemaBoundary(() => requestHandler(req, res), { requestId })).catch(() => {
       if (!res.headersSent && !res.destroyed) sendJson(res, 500, { error: { message: 'Antigravity Gateway 内部错误。' } });
       else res.destroy();
     });
