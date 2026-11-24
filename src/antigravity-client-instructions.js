@@ -24,7 +24,7 @@ const CLAUDE_330_PASTE = " - The harness wraps text pasted by the user from anot
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 
 function prepareClaude330Harness(system, profile) {
-  if (profile.templateVersion !== '2.1.330' || !profile.evidence?.includes('claude-tui-system-template')) return system;
+  if (!profile.evidence?.includes('claude-tui-system-template')) return system;
   const start = system.indexOf('# Harness\n');
   const boundary = system.indexOf('\n# Session-specific guidance\n');
   if (start < 0 || boundary < start + CLAUDE_330_HARNESS_LENGTH) return system;
@@ -89,7 +89,7 @@ function prepareDshInstructions(normalized) {
   // A later developer/SOUL quotation does not grant it a second source range.
   const blocks = normalized.instructionMessages.map(item => ({ item, identity: sanitizeClientIdentity({ system: item.text }) }));
   const owners = blocks.filter(({ item, identity }) => item.role === 'developer'
-    && identity.metadata.profile?.client === 'dsh' && identity.metadata.profile.templateVersion === '0.2.1-rc.2'
+    && identity.metadata.profile?.client === 'dsh'
     && identity.metadata.profile.evidence.includes('dsh-web-developer-template'));
   if (owners.length !== 1) return normalized.system;
   const projected = blocks.map(({ identity }) => identity.normalized.system);
@@ -171,7 +171,7 @@ function prepareHermesInstructions(text) {
 }
 
 function prepareAntigravityClientInstructions(normalized, profile) {
-  if (profile?.client === 'dsh' && profile.templateVersion === '0.2.1-rc.2'
+  if (profile?.client === 'dsh'
     && profile.evidence?.includes('dsh-web-developer-template') && typeof normalized.system === 'string') {
     // Official dsh-harness-dev-context 0.2.1-rc.2 GUI guidance, verified
     // against the installed source and a complete real web-client capture.
@@ -179,7 +179,7 @@ function prepareAntigravityClientInstructions(normalized, profile) {
     const system = prepareDshInstructions(normalized);
     return system === normalized.system ? normalized : { ...normalized, system };
   }
-  if (profile?.client === 'hermes' && profile.templateVersion === '0.23.1'
+  if (profile?.client === 'hermes'
     && profile.evidence?.includes('hermes-instructions-template') && typeof normalized.system === 'string') {
     const system = prepareHermesInstructions(normalized.system);
     return system === normalized.system ? normalized : { ...normalized, system };
@@ -189,7 +189,7 @@ function prepareAntigravityClientInstructions(normalized, profile) {
   const claudeCore = profile?.evidence?.includes('claude-tui-system-template') ? '\n' + CLAUDE_COMPACT_CORE
     : profile?.evidence?.includes('claude-sdk-compact-system-template') ? CLAUDE_COMPACT_CORE
     : profile?.evidence?.includes('claude-sdk-system-template') ? CLAUDE_CORE : null;
-  if (profile?.client === 'claude' && ['2.1.322', '2.1.330'].includes(profile.templateVersion)
+  if (profile?.client === 'claude'
     && claudeCore && normalized.system?.startsWith(claudeCore + '\n\n')) {
     let system = normalized.system;
     const start = claudeCore.length + 2, end = system.indexOf('\n', start);
@@ -204,7 +204,7 @@ function prepareAntigravityClientInstructions(normalized, profile) {
     system = prepareClaude330Harness(system, profile);
     return system === normalized.system ? normalized : { ...normalized, system };
   }
-  if (profile?.client !== 'pi' || profile.templateVersion !== '1.5.2'
+  if (profile?.client !== 'pi'
     || !profile.evidence?.includes('pi-developer-template') || typeof normalized.system !== 'string') return normalized;
   const text = normalized.system, start = text.indexOf(PI_DOCS);
   if (start < 0) return normalized;

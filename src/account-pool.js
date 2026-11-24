@@ -13,6 +13,7 @@ const { CAPTURED_IMAGE_MODEL, imageModelName, assertImageModel } = require('./im
 const { isConversionError } = require('./conversion-errors');
 const { GatewayError } = require('./protocol');
 const { validateSearchParameters } = require('./antigravity-server-search');
+const { isModelCapacityFailure } = require('./agy-upstream-error');
 
 const { SESSION_TTL_MS, SESSION_CAPACITY, TRANSIENT_COOLDOWN_MS, durationMs, retryDelay, affinityActive, geminiWeeklyPressure,
   geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
@@ -23,6 +24,7 @@ function errorCategory(error) {
   const status = Number(error?.status) || 0;
   const source = `${error?.code || ''} ${error?.message || ''} ${error?.details || ''} ${error?.cause?.code || ''} ${error?.cause?.message || ''}`;
   if (error?.code === 'request_timeout' || error?.code === 'request_aborted' || /abort(?:ed|error)|请求已取消|网关请求超时/i.test(source)) return 'request';
+  if (isModelCapacityFailure(status, error?.details)) return 'capacity';
   if (status === 429 || /resource.*exhausted|quota|rate.?limit/i.test(source)) return 'quota';
   if (/fetch failed|network|timeout|timed out|econnreset|econnrefused|enotfound|eai_again|socket|tls|dns/i.test(source)) return 'transient';
   if (status === 401 || status === 403 || (status >= 400 && status < 500 && /direct_refresh_failed/i.test(source)) || /invalid_grant|refresh token|auth.*missing|登录态|unauthenticated|permission.?denied|forbidden|verify\s*your\s*account|account.*verif|security.*challenge|account.*(?:disabled|suspended)/i.test(source)) return 'account';
@@ -744,6 +746,14 @@ class AccountPool {
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
         const category = errorCategory(error);
+        if (category === 'capacity') {
+          // Explicit Google model capacity is shared upstream availability,
+          // not evidence against this account or its signed conversation.
+          this.reportDiagnostic('account_model_attempt_failed', entry.account, {
+            model, attempt: attempted.size, category, code: String(error?.code || ''), status: Number(error?.status) || 0
+          });
+          throw error;
+        }
         if (!this.isCurrentEntry(entry)) {
           if (category === 'request' || outputDelivered) throw error;
           continue;
@@ -816,10 +826,16 @@ class AccountPool {
     } catch (error) {
       if (options.signal?.aborted || error?.name === 'AbortError' || error?.code === 'request_aborted' || error?.code === 'request_timeout') throw error;
       if (!responseSeen && attemptStarted) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
+      const category = errorCategory(error);
+      if (category === 'capacity') {
+        this.reportDiagnostic('account_model_attempt_failed', entry.account, {
+          model, attempt: 1, category, code: String(error?.code || ''), status: Number(error?.status) || 0
+        });
+        throw error;
+      }
       if (!this.isCurrentEntry(entry)) throw error;
       entry.lastFailureAt = new Date(this.now()).toISOString();
       entry.lastError = String(error.message || error);
-      const category = errorCategory(error);
       if (category === 'quota') {
         entry.modelCooldowns.set(model, this.now() + retryDelay(error.details || error.message));
         this.refreshAccountQuota(entry);
@@ -876,6 +892,12 @@ class AccountPool {
         lastError = error;
         if (!responseSeen) this.usageStore?.recordUpstream({ accountId: entry.account.id, model, success: false, count: true });
         const category = errorCategory(error);
+        if (category === 'capacity') {
+          this.reportDiagnostic('account_model_attempt_failed', entry.account, {
+            model, attempt: attempted.size, category, code: String(error?.code || ''), status: Number(error?.status) || 0
+          });
+          throw error;
+        }
         if (!this.isCurrentEntry(entry)) {
           if (category === 'request') throw error;
           continue;

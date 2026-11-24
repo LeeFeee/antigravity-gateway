@@ -16,6 +16,7 @@ const { GeminiProvider } = require('./src/gemini-provider');
 const { GeminiRpcError } = require('./src/gemini-rpc');
 const { GeminiInitializationError } = require('./src/gemini-onboarding');
 const { GatewayUpstreams } = require('./src/gateway-upstreams');
+const { clientRuntime } = require('./src/client-versions');
 const { imageArtifact, imageArtifacts, internalImageToolResult, streamTextRemainder } = require('./src/artifacts');
 const { createDashboardAccessPolicy } = require('./src/dashboard-access');
 const { DiagnosticLog } = require('./src/diagnostic-log');
@@ -44,7 +45,8 @@ const { withAsyncSchemaBoundary, setSchemaDiagnosticReporter } = require('./src/
 const { ServerSearchReceipts } = require('./src/server-search-contract');
 const { prepareGeminiResponsesSearch, prepareAntigravityResponsesSearch } = require('./src/gemini-responses-search');
 const { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho } = require('./src/antigravity-responses-search');
-const { prepareServerSearchForwardAsync, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
+const { prepareAnthropicSearchAsync, buildAnthropicSearchMessage, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
+const { SEARCH_TOOL_NAME } = require('./src/agy-model-service-tools');
 const { version: GATEWAY_VERSION } = require('./package.json');
 const {
   GatewayError,
@@ -679,12 +681,16 @@ function clientSessionScope(req, payload = {}, normalized = {}, previous = null)
 }
 
 function clientSessionIdentity(req, payload = {}, normalized = {}, previous = null, options) {
-  return SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous, options);
+  const identity = SESSION_MANAGER.resolveIdentity(req, payload, normalized, previous, options);
+  const runtime = clientRuntime(req);
+  return runtime ? { ...identity, runtime } : identity;
 }
 
 function identityTrace(identity = {}) {
   const short = (value) => String(value || '-').slice(0, 10);
-  return `request=${short(identity.requestId)} client=${identity.clientLabel || short(identity.clientId)} session=${short(identity.sessionId)} affinity=${short(identity.routingKey)}`;
+  return `request=${short(identity.requestId)} client=${identity.clientLabel || short(identity.clientId)} session=${short(identity.sessionId)} affinity=${short(identity.routingKey)}`
+    + (identity.runtime ? ` runtime=${identity.runtime.client}/${identity.runtime.version}`.slice(0, 96) : '')
+    + (identity.nativeClientProfile ? ` profile=${identity.nativeClientProfile}` : '');
 }
 
 function authorized(req) {
@@ -814,7 +820,9 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
     const pool = UPSTREAMS.poolFor(model);
     const searchCapability = pool === GEMINI_ACCOUNT_POOL ? { normalized: resolved, enabled: false } : prepareSearchCapability(resolved);
     const prepared = pool === GEMINI_ACCOUNT_POOL ? { normalized: resolved, imageToolInjected: false } : prepareNativeMultimodal(searchCapability.normalized);
-    const finalize = raw => finalizeModelResultAsync(normalized, raw, { signal });
+    const finalize = raw => finalizeModelResultAsync(raw.serverSearchEvents?.length
+      && (normalized.toolChoice === 'any' || normalized.toolChoice?.type === 'any')
+      ? { ...normalized, toolChoice: 'auto' } : normalized, raw, { signal });
     const upstreamModel = model;
     const trace = identityTrace({ sessionId, routingKey, requestId, clientId, clientLabel });
     const onAccountSelected = ({ accountId, email, source, attempt }) => {
@@ -828,26 +836,31 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
     });
     if (searchCapability.enabled) {
       let pending = prepared.normalized, searchUsage = null, searchRounds = 0, searchUsageKnown = true;
-      const sources = [];
+      const sources = [], serverSearchEvents = [];
+      const searchBudget = { remaining: Number.isSafeInteger(resolved.serverSearch.maxUses)
+        ? resolved.serverSearch.maxUses : Infinity };
       for (;;) {
         const planning = raw;
         const searched = await forwardSearchCalls(planning, searchRounds
           ? { ...resolved, serverSearch: { ...resolved.serverSearch, mode: 'auto' } } : resolved,
         request => ACCOUNT_POOL.searchWeb(request, {
           signal, sessionId, routingKey, accountId: planning.accountId, bindRouting: false,
-          onAccountSelected: ({ model: helperModel }) => gatewayLog(`[Antigravity Gateway] class=responses-server-search model=${helperModel} ${trace}`)
-        }));
+          onAccountSelected: ({ model: helperModel }) => gatewayLog(`[Antigravity Gateway] class=${normalized.protocol}-server-search model=${helperModel} ${trace}`)
+        }), searchBudget);
         if (!searched.searchReceipts?.length) break;
         searchRounds++;
         searchUsageKnown &&= searched.usageKnown !== false;
         searchUsage = combinedUsage(searchUsage, searched.usage);
         sources.push(...searched.webSearch.sources);
+        serverSearchEvents.push(...searched.searchReceipts);
         if (searched.toolCalls.length) { raw = { ...searched, usage: searchUsage }; searchUsage = null; break; }
         // Resume the original model/tier with complete context and real search
         // receipts. Further model-selected searches use the same forwarding
         // path; the request's existing cancellation/deadline remains in force.
         pending = { ...pending, stream: false,
-          toolChoice: resolved.serverSearch.mode === 'required' ? 'auto' : resolved.toolChoice,
+          ...(searchBudget.remaining <= 0 ? { tools: pending.tools.filter(tool => tool.name !== SEARCH_TOOL_NAME) } : {}),
+          toolChoice: resolved.serverSearch.mode === 'required' || resolved.toolChoice === 'any'
+            || resolved.toolChoice?.type === 'any' ? 'auto' : resolved.toolChoice,
           messages: [...pending.messages,
             { role: 'assistant', text: planning.text || '', parts: [
               ...(planning.text ? [{ type: 'text', text: planning.text }] : []),
@@ -862,7 +875,9 @@ async function runTurn(normalized, model, signal, { sessionId, routingKey, reque
           mediaScope, onAccountSelected, reuseConversation, ...taskScope, ...(nativeClientProfile ? { nativeClientProfile } : {})
         });
       }
-      if (searchRounds) raw = { ...raw, webSearch: { sources }, responsesProjectionSource: prepared.normalized,
+      if (searchRounds) raw = { ...raw, webSearch: { sources,
+        status: serverSearchEvents.some(event => !event.errorCode) ? 'completed' : 'failed' },
+        serverSearchEvents, responsesProjectionSource: prepared.normalized,
         usage: combinedUsage(searchUsage, raw.usage),
         usageKnown: searchUsageKnown && raw.usageKnown !== false };
     }
@@ -1226,7 +1241,7 @@ function emitResponsesItem(emit, item, outputIndex) {
   } else if (item.type === 'custom_tool_call') {
     emit({ type: 'response.custom_tool_call_input.delta', item_id: item.id, output_index: outputIndex, delta: item.input });
     emit({ type: 'response.custom_tool_call_input.done', item_id: item.id, output_index: outputIndex, input: item.input });
-  } else if (item.type === 'web_search_call') {
+  } else if (item.type === 'web_search_call' && item.status === 'completed') {
     emit({ type: 'response.web_search_call.completed', item_id: item.id, output_index: outputIndex });
   }
   emit({ type: 'response.output_item.done', output_index: outputIndex, item });
@@ -1476,7 +1491,11 @@ async function handleServerSearchForward(prepared, payload, req, res, signal, sa
           if (normalized.stream) stopHeartbeat = beginSse(res);
         }
       });
-      body = buildServerSearchMessage({ model: result.model, query, result, tool, receipts: SEARCH_RECEIPTS, scope });
+      if (result.searchUnavailable === true) {
+        body = buildServerSearchErrorMessage({ model: result.model, query, tool, errorCode: 'unavailable',
+          usage: result.usage, usageKnown: result.usageKnown, searchRequests: 1 });
+        if (result.derivedAnswer) body.content.push({ type: 'text', text: result.derivedAnswer });
+      } else body = buildServerSearchMessage({ model: result.model, query, result, tool, receipts: SEARCH_RECEIPTS, scope });
     } finally {
       stopHeartbeat?.();
       release();
@@ -1492,8 +1511,8 @@ async function handleAnthropic(payload, req, res, signal) {
   USAGE_STORE.recordClientRequest();
   const safeguardContext = readSafeguards(payload);
   const { safeguards: _safeguards, ...searchPayload } = payload;
-  const search = await prepareServerSearchForwardAsync(searchPayload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
-  if (search && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal, safeguardContext);
+  const search = await prepareAnthropicSearchAsync(searchPayload, { receipts: SEARCH_RECEIPTS, scope: clientScope(req), signal });
+  if (search?.execution === 'helper' && !search.skipSearch) return await handleServerSearchForward(search, payload, req, res, signal, safeguardContext);
   const normalized = search?.normalized || await normalizeAnthropicAsync(payload, { signal });
   const identity = clientSessionIdentity(req, payload, normalized, null);
   const model = await resolveModel(normalized.model, { preferFast: normalized.autoMode, identity });
@@ -1501,11 +1520,21 @@ async function handleAnthropic(payload, req, res, signal) {
   if (!normalized.autoMode) UPSTREAMS.remember(identity, model);
   gatewayLog(`[Antigravity Gateway] /v1/messages model=${model} requested=${normalized.model || '-'} class=${requestClass} chars=${JSON.stringify(payload).length} tools=${normalized.tools.length} maxOut=${normalized.generationConfig?.maxOutputTokens || '-'} stream=${normalized.stream} ${identityTrace(identity)}`);
   const stopHeartbeat = normalized.stream ? beginSse(res) : null;
-  const liveEmitter = !safeguardContext && textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
+  const liveEmitter = !safeguardContext && !normalized.serverSearch && textStreamingAllowed(normalized) ? createAnthropicTextEmitter(res, normalized.model || model) : null;
   let body;
   try {
     const result = await runTurnWithModelDiagnostic(normalized, model, signal, { ...identity, mediaScope: clientScope(req), publicBaseUrl: requestBaseUrl(req), onDelta: liveEmitter?.onDelta, onThinkingDelta: normalized.includeThinking ? liveEmitter?.onThinkingDelta : undefined });
-    body = anthropicResponse(normalized.model || model, result);
+    if (normalized.serverSearch) {
+      const projected = buildAnthropicSearchMessage({ model: normalized.model || model, result,
+        tool: search.tool, receipts: SEARCH_RECEIPTS, scope: clientScope(req) });
+      body = projected.body;
+      if (result.webSearch && result.nativeProjection && result.responsesProjectionSource) {
+        const visible = await normalizeAnthropicAsync({ model, tools: [], messages: projected.visibleMessages }, { signal });
+        await UPSTREAMS.poolFor(model).registerResponsesProjection({ source: result.responsesProjectionSource,
+          visible, nativeProjection: result.nativeProjection, searchReceipts: result.searchReceipts
+        }, model, { sessionId: identity.sessionId, signal, auxiliaryScope: identity.auxiliaryScope, accountId: result.accountId });
+      }
+    } else body = anthropicResponse(normalized.model || model, result);
     if (safeguardContext) {
       const reviewed = await evaluateSafeguards({ context: safeguardContext, normalized, body, signal, model: UPSTREAMS.reviewModel(model),
         evaluate: async (review, reviewModel) => {

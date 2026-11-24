@@ -58,6 +58,45 @@ function plainContent(content) {
   }
 }
 
+function helperContract(payload, identityMetadata) {
+  const evidence = identityMetadata.profile?.client === 'claude' ? identityMetadata.profile.evidence : [];
+  const tuiHelper = evidence.includes('claude-tui-search-helper-template');
+  const capturedHelper = tuiHelper || evidence.includes('claude-sdk-search-helper-template');
+  const query = payload.messages.length === 1 && payload.messages[0].role === 'user'
+    && Array.isArray(payload.messages[0].content) && payload.messages[0].content.length === 1
+    && payload.messages[0].content[0].type === 'text' ? payload.messages[0].content[0].text : null;
+  return { tuiHelper, capturedHelper, independent: capturedHelper && (!tuiHelper
+    || typeof query === 'string' && query.startsWith(QUERY_PREFIX) && nonempty(query.slice(QUERY_PREFIX.length))) };
+}
+
+// Tool revisions select a schema vocabulary, not access to the gateway. A new
+// dated revision with the same supported fields has the same executable
+// contract; unknown fields and unsupported execution constraints still fail.
+function compatibleSearchTool(tool) {
+  const canonical = /^web_search_\d{8}$/.test(tool?.type || '')
+    ? { ...tool, type: DEFAULT_TOOL.type } : tool;
+  return validateServerSearchTool(canonical);
+}
+
+function independentTextRequest(payload) {
+  try {
+    if (Object.keys(payload).some(key => !FORWARD_FIELDS.has(key))
+      || payload.output_format != null || payload.output_config?.format != null
+      || payload.output_config != null && (!object(payload.output_config)
+        || Object.keys(payload.output_config).some(key => !['effort', 'format'].includes(key)))) return false;
+    plainContent(payload.system);
+    for (const message of payload.messages) {
+      fields(message, ['role', 'content'], 'unsupported_server_search_content', '服务器搜索消息');
+      if (!['user', 'assistant', 'system', 'developer'].includes(message.role)) return false;
+      plainContent(message.content);
+    }
+    return true;
+  } catch (error) {
+    if (error instanceof ServerSearchContractError) return false;
+    throw error;
+  }
+}
+
 function generationControls(payload) {
   for (const key of ['max_tokens', 'max_output_tokens']) {
     if (payload[key] != null && (!Number.isSafeInteger(payload[key]) || payload[key] <= 0)) {
@@ -154,22 +193,15 @@ function* prepareServerSearchForwardSteps(payload, { receipts, scope, normalize 
   const { normalized, metadata: identityMetadata } = sanitizeClientIdentity(yield normalize(ordinary));
   if (skipSearch) return { tool, normalized, query: null, contents: null, instructions: normalized.system,
     generationConfig: normalized.generationConfig, skipSearch: true, blockedByBudget: false, identityMetadata };
-  const helperEvidence = identityMetadata.profile?.client === 'claude' ? identityMetadata.profile.evidence : [];
-  const tuiHelper = helperEvidence.includes('claude-tui-search-helper-template');
-  const capturedHelper = tuiHelper || helperEvidence.includes('claude-sdk-search-helper-template');
+  const { capturedHelper, independent } = helperContract(payload, identityMetadata);
   // The interactive helper capture is an independent, single-query request.
   // Its template must not turn an ordinary multi-turn auto conversation into
   // a forced search. Explicit any/named requests retain full text history.
-  const tuiQuery = payload.messages.length === 1 && payload.messages[0].role === 'user'
-    && Array.isArray(payload.messages[0].content) && payload.messages[0].content.length === 1
-    && payload.messages[0].content[0].type === 'text' ? payload.messages[0].content[0].text : null;
-  const capturedTuiQuery = typeof tuiQuery === 'string' && tuiQuery.startsWith(QUERY_PREFIX)
-    && nonempty(tuiQuery.slice(QUERY_PREFIX.length));
   // General auto means "the answer model may choose no search". Without a
   // planner this module cannot honor that contract by forcing a helper call.
   // The captured dedicated helper explicitly says to search once, so its full
   // template is sufficient even if the caller leaves tool_choice at auto.
-  if (choice === 'auto' && (!capturedHelper || (tuiHelper && !capturedTuiQuery))) {
+  if (choice === 'auto' && !independent) {
     fail('unsupported_server_search_tool_choice', '普通 auto 请求允许不搜索，不能强制转发为独立搜索；请明确指定 web_search 或 any。');
   }
   if (normalized.structuredSchema != null) fail('unsupported_server_search_request', '服务器搜索不支持结构化输出。');
@@ -193,6 +225,50 @@ function* prepareServerSearchForwardSteps(payload, { receipts, scope, normalize 
     generationConfig: normalized.generationConfig, skipSearch: false, blockedByBudget: tool.max_uses === 0, identityMetadata };
 }
 
+function* prepareAnthropicSearchSteps(payload, { receipts, scope, normalize = normalizeAnthropic } = {}) {
+  const tools = Array.isArray(payload?.tools) ? payload.tools : [];
+  const searchTools = tools.filter(typedSearch);
+  const hasHistory = Array.isArray(payload?.messages)
+    && payload.messages.some(message => Array.isArray(message?.content) && message.content.some(historyBlock));
+  if (!searchTools.length && !hasHistory) return null;
+  if (searchTools.length > 1) fail('unsupported_server_search_tools', '一次请求只能包含一个服务器搜索声明。');
+  if (!Array.isArray(payload.messages)) fail('invalid_server_search_request', '服务器搜索缺少 messages。');
+  const originalTool = searchTools[0];
+  const tool = originalTool ? compatibleSearchTool(originalTool) : null;
+  const clientChoice = object(payload.tool_choice) && payload.tool_choice.type === 'tool'
+    && nonempty(payload.tool_choice.name) && payload.tool_choice.name !== 'web_search';
+  if (clientChoice) {
+    fields(payload.tool_choice, ['type', 'name', 'disable_parallel_tool_use'], 'unsupported_server_search_tool_choice', '工具选择');
+    if (own(payload.tool_choice, 'disable_parallel_tool_use') && typeof payload.tool_choice.disable_parallel_tool_use !== 'boolean') {
+      fail('unsupported_server_search_tool_choice', 'disable_parallel_tool_use 必须为布尔值。');
+    }
+  }
+  const choice = tool ? clientChoice ? 'client' : searchChoice(payload.tool_choice) : 'none';
+  const messages = hasHistory ? projectHistory(payload.messages, { receipts, scope }) : payload.messages;
+  const remainingTools = tools.filter(item => !typedSearch(item));
+  const ordinary = { ...payload, messages, tools: remainingTools };
+  // Named client tools and any+mixed retain their original decision surface.
+  // Only a named server search needs the private search_web declaration later.
+  if (tool && choice === 'tool') delete ordinary.tool_choice;
+  const normalized = yield normalize(ordinary);
+  if (!tool || choice === 'none' || choice === 'client') return { execution: 'ordinary', tool, normalized,
+    query: null, contents: null, instructions: normalized.system, generationConfig: normalized.generationConfig,
+    skipSearch: true, blockedByBudget: false };
+  executionCapability(tool);
+  generationControls(payload);
+  const identity = sanitizeClientIdentity(normalized);
+  const helper = helperContract(payload, identity.metadata);
+  if (!remainingTools.length && (choice !== 'auto' || helper.independent) && independentTextRequest(payload)) {
+    const canonicalPayload = { ...payload, tools: [tool] };
+    return { ...(yield* prepareServerSearchForwardSteps(canonicalPayload, { receipts, scope, normalize })), execution: 'helper' };
+  }
+  const serverSearch = { declaration: structuredClone(originalTool), mode: choice === 'tool' ? 'required' : 'auto',
+    maxUses: tool.max_uses ?? null };
+  return { execution: 'planner', tool, normalized: { ...normalized, serverSearch }, serverSearch,
+    query: null, contents: null, instructions: normalized.system, generationConfig: normalized.generationConfig,
+    skipSearch: false, blockedByBudget: false, identityMetadata: identity.metadata };
+}
+
 function identity(model, query, callId) {
   if (!nonempty(model) || !nonempty(query) || !nonempty(callId)) fail('invalid_server_search_response', '服务器搜索响应缺少真实模型、查询或调用 ID。', 500);
 }
@@ -211,7 +287,7 @@ function buildServerSearchMessage({ model, query, result, tool = DEFAULT_TOOL, r
   const checkedTool = validateServerSearchTool(tool);
   executionCapability(checkedTool);
   if (checkedTool.max_uses === 0) fail('invalid_server_search_response', '零次搜索预算不能构造成功搜索结果。', 500);
-  if (!object(result) || result.model !== model || !nonempty(result.evidenceId)
+  if (!object(result) || result.searchUnavailable === true || result.model !== model || !nonempty(result.evidenceId)
     || !['STOP', 'MAX_TOKENS'].includes(result.finishReason) || typeof result.derivedAnswer !== 'string'
     || !Array.isArray(result.sourceCandidates) || !Array.isArray(result.queries)) {
     fail('invalid_server_search_response', '服务器搜索响应缺少真实辅助模型或检索证据。', 502);
@@ -239,18 +315,80 @@ function buildServerSearchMessage({ model, query, result, tool = DEFAULT_TOOL, r
   return response;
 }
 
-function buildServerSearchErrorMessage({ model, query, tool = DEFAULT_TOOL, errorCode, usage,
+function buildServerSearchErrorMessage({ model, query, tool = DEFAULT_TOOL, errorCode, usage, usageKnown,
   searchRequests = 0, callId = `srvtoolu_${crypto.randomUUID().replaceAll('-', '')}` } = {}) {
   identity(model, query, callId);
   validateServerSearchTool(tool);
   if (!ERROR_CODES.has(errorCode) || ![0, 1].includes(searchRequests)) fail('invalid_server_search_response', '服务器搜索错误代码或请求计数无效。', 500);
   if (errorCode === 'max_uses_exceeded' && searchRequests !== 0) fail('invalid_server_search_response', '预算阻止的搜索不能计为已执行。', 500);
-  const response = messageBase(model, usage, 'STOP', searchRequests === 0 || object(usage));
+  const response = messageBase(model, usage, 'STOP', usageKnown ?? (searchRequests === 0 || object(usage)));
   response.content = pair(callId, query, { type: 'web_search_tool_result_error', error_code: errorCode });
   response.usage.server_tool_use = { web_search_requests: searchRequests };
   return response;
 }
 
+function buildAnthropicSearchMessage({ model, result, tool = DEFAULT_TOOL, receipts, scope } = {}) {
+  if (!object(result) || !Array.isArray(result.toolCalls)) fail('invalid_server_search_response', '搜索规划结果缺少客户端工具列表。', 502);
+  const checkedTool = compatibleSearchTool(tool);
+  const events = result.serverSearchEvents ?? result.searchReceipts ?? [];
+  if (!Array.isArray(events)) fail('invalid_server_search_response', '搜索规划结果缺少有效的真实搜索记录。', 502);
+  const body = anthropicResponse(model, result);
+  const visibleText = body.content.filter(block => block.type === 'text').map(block => block.text).join('\n');
+  const blocks = [], ids = new Set(result.toolCalls.map(call => call.id));
+  let searchRequests = 0;
+  for (const event of events) {
+    const call = event?.call;
+    if (!call || call.name !== 'search_web' || !nonempty(call.id) || ids.has(call.id)
+      || !object(call.arguments) || !nonempty(call.arguments.query)) {
+      fail('invalid_server_search_response', '搜索规划记录缺少唯一的真实搜索调用。', 502);
+    }
+    ids.add(call.id);
+    let message;
+    if (event.errorCode === 'max_uses_exceeded') {
+      if (event.result != null) fail('invalid_server_search_response', '预算拒绝不能附带成功搜索结果。', 502);
+      message = buildServerSearchErrorMessage({ model, query: call.arguments.query, callId: call.id,
+        tool: checkedTool, errorCode: event.errorCode, searchRequests: 0 });
+    } else if (event.errorCode === 'unavailable') {
+      const unavailable = event.result;
+      const metadata = unavailable?.groundingMetadata;
+      if (checkedTool.max_uses === 0 || !object(unavailable) || unavailable.searchUnavailable !== true || unavailable.finishReason !== 'STOP'
+        || !nonempty(unavailable.model) || !nonempty(unavailable.evidenceId) || typeof unavailable.derivedAnswer !== 'string'
+        || !Array.isArray(unavailable.sourceCandidates) || unavailable.sourceCandidates.length
+        || !Array.isArray(unavailable.queries) || unavailable.queries.length
+        || (metadata !== undefined && (!object(metadata)
+          || (metadata.webSearchQueries !== undefined && (!Array.isArray(metadata.webSearchQueries) || metadata.webSearchQueries.length))
+          || (metadata.groundingChunks !== undefined && (!Array.isArray(metadata.groundingChunks)
+            || metadata.groundingChunks.some(chunk => !object(chunk) || chunk.web !== undefined)))))) {
+        fail('invalid_server_search_response', '搜索不可用记录缺少真实的无来源辅助模型结果。', 502);
+      }
+      message = buildServerSearchErrorMessage({ model: unavailable.model, query: call.arguments.query, callId: call.id,
+        tool: checkedTool, errorCode: 'unavailable', searchRequests: 1,
+        usage: unavailable.usage, usageKnown: unavailable.usageKnown });
+      if (unavailable.derivedAnswer) message.content.push({ type: 'text', text: unavailable.derivedAnswer });
+      searchRequests++;
+    } else {
+      if (event.errorCode != null || !object(event.result)) fail('invalid_server_search_response', '搜索规划记录缺少原始上游检索结果。', 502);
+      message = buildServerSearchMessage({ model: event.result.model, query: call.arguments.query, callId: call.id,
+        result: event.result, tool: checkedTool, receipts, scope });
+      searchRequests++;
+    }
+    if (message.usage_known === false) body.usage_known = false;
+    // Preserve the actual helper summary unless its complete text is already
+    // present in the final model's visible answer. Source blocks always remain.
+    blocks.push(...message.content.filter(block => block.type !== 'text' || !visibleText.includes(block.text)));
+  }
+  let prefix = 0;
+  while (body.content[prefix]?.type === 'thinking') prefix++;
+  body.content = [...body.content.slice(0, prefix), ...blocks, ...body.content.slice(prefix)];
+  if (events.length) body.usage.server_tool_use = { web_search_requests: searchRequests };
+  const visibleMessages = projectHistory([{ role: 'assistant', content: body.content }], { receipts, scope });
+  return { body, visibleMessages };
+}
+
 const prepareServerSearchForward = (...args) => runSync(prepareServerSearchForwardSteps(...args));
 const prepareServerSearchForwardAsync = (payload, options = {}) => runAsync(prepareServerSearchForwardSteps(payload, { ...options, normalize: ordinary => normalizeAnthropicAsync(ordinary, { signal: options.signal }) }));
-module.exports = { prepareServerSearchForward, prepareServerSearchForwardAsync, buildServerSearchMessage, buildServerSearchErrorMessage };
+const prepareAnthropicSearch = (...args) => runSync(prepareAnthropicSearchSteps(...args));
+const prepareAnthropicSearchAsync = (payload, options = {}) => runAsync(prepareAnthropicSearchSteps(payload, { ...options,
+  normalize: ordinary => normalizeAnthropicAsync(ordinary, { signal: options.signal }) }));
+module.exports = { prepareServerSearchForward, prepareServerSearchForwardAsync, prepareAnthropicSearch, prepareAnthropicSearchAsync,
+  buildServerSearchMessage, buildServerSearchErrorMessage, buildAnthropicSearchMessage };

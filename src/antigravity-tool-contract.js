@@ -9,10 +9,6 @@ const { trustedModelServiceDefinition } = require('./agy-model-service-tools');
 const VERSION = 1;
 const MAX_ARGUMENT_BYTES = 4 * 1024 * 1024;
 const SUMMARY = "Brief 2-5 word noun phrase describing the specific task. Capitalize like a sentence. Some examples: 'Directory analysis', 'Web search', 'Git status check', 'Test execution', 'Code search'.";
-const VERSIONS = { claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1' };
-// 2.1.330's real TUI emits the same complete Read/Write/Edit contracts as
-// the compact 2.1.322 capture. The identity template has its own version/hash.
-const CLAUDE_TOOL_TEMPLATE_VERSIONS = new Set(['2.1.322', '2.1.330']);
 // Full declaration fingerprints, not name-only rules. Evidence lives in
 // tests/fixtures/agent-requests-20261107. No runtime dependency on test files.
 const PROFILES = {
@@ -35,6 +31,13 @@ const PROFILES = {
     write: ['write', 'file_path', '63b01617d79ae5bcccd2c54c090823be793cfec2c53ebf5a1a080de4a44127f6'],
     edit: ['edit', 'file_path', 'ba3a448f27d8c5bd30308e2b0c84ca6eafac57b77f1eb0364b6b4a82c7b16b9a']
   }
+};
+
+const SOURCE_EVIDENCE = {
+  claude: new Set(['claude-tui-system-template', 'claude-sdk-system-template', 'claude-sdk-compact-system-template']),
+  hermes: new Set(['hermes-instructions-template', 'hermes-instructions-no-skills-template']),
+  pi: new Set(['pi-developer-template']),
+  dsh: new Set(['dsh-developer-template', 'dsh-web-developer-template'])
 };
 
 const APPLY_PATCH_GRAMMAR = 'start: begin_patch hunk+ end_patch\nbegin_patch: "*** Begin Patch" LF\nend_patch: "*** End Patch" LF?\n\nhunk: add_hunk | delete_hunk | update_hunk\nadd_hunk: "*** Add File: " filename LF add_line+\ndelete_hunk: "*** Delete File: " filename LF\nupdate_hunk: "*** Update File: " filename LF change_move? change?\n\nfilename: /(.+)/\nadd_line: "+" /(.*)/ LF -> line\n\nchange_move: "*** Move to: " filename LF\nchange: (change_context | change_line)+ eof_line?\nchange_context: ("@@" | "@@ " /(.+)/) LF\nchange_line: ("+" | "-" | " ") /(.*)/ LF\neof_line: "*** End of File" LF\n\n%import common.LF\n';
@@ -166,10 +169,10 @@ function customValidator(tool, options) {
 
 function recognizedRule(tool, normalized, options) {
   const profile = options.clientIdentity;
-  if (options.checkpoint || normalized.autoMode || !profile || !own(VERSIONS, profile.client)
-    || (profile.client === 'claude' ? !CLAUDE_TOOL_TEMPLATE_VERSIONS.has(profile.templateVersion)
-      : VERSIONS[profile.client] !== profile.templateVersion)) return null;
-  if (options.clientVersion && options.clientVersion !== profile.templateVersion) return null;
+  // A verified client/framework source and the complete tool fingerprint own
+  // this parameter view. Runtime version strings do not change its meaning.
+  if (options.checkpoint || normalized.autoMode || !profile || !own(PROFILES, profile.client)
+    || !Array.isArray(profile.evidence) || !profile.evidence.some(evidence => SOURCE_EVIDENCE[profile.client].has(evidence))) return null;
   const rules = own(PROFILES, profile.client) ? PROFILES[profile.client] : null;
   const rule = rules && own(rules, tool.name) ? rules[tool.name] : null;
   return rule && rule.slice(2).includes(fingerprint(tool))

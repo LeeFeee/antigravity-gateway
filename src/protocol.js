@@ -988,7 +988,8 @@ function responsesResponse(model, result, responseId) {
   const output = [];
   const text = deliveryText(result);
   if (result.webSearch) output.push({
-    id: `ws_${crypto.randomUUID().replaceAll('-', '')}`, type: 'web_search_call', status: 'completed',
+    id: `ws_${crypto.randomUUID().replaceAll('-', '')}`, type: 'web_search_call',
+    status: result.webSearch.status === 'failed' ? 'failed' : 'completed',
     action: { type: 'search', sources: [...new Set(result.webSearch.sources.map(source => source.url))]
       .map(url => ({ type: 'url', url })) }
   });

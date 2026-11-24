@@ -1,8 +1,12 @@
-# Antigravity Gateway 2.3.0
+# Antigravity Gateway 2.4.0
 
 将 Google Antigravity API 与 Google Gemini API 接入 Claude Code、Codex、Hermes、Pi 和 dsh，提供 Anthropic Messages、OpenAI Responses、Chat Completions，以及文件和图片接口。
 
-2.3.0 对齐 agy 1.5.14 请求，补齐 Codex 0.171.0 的 Desktop TUI 识别与图片工具／搜索混合续轮签名恢复，并修复 Schema 编译缓存累积占用内存的问题。请求错误附带 `x-request-id`，便于关联诊断。
+2.4.0 延续 agy 1.5.14 请求格式，改进 Claude Code、Codex、Hermes、Pi 和 dsh 的版本兼容。客户端版本用于记录和辅助选择转换规则；未知新版保留完整兼容请求，不会仅因版本号不同而被拒绝。身份清洗和工具标准化仍核对真实来源、内容指纹和字段边界，保留用户 SOUL、规则、技能、权限与完整工具契约。
+
+本版适配 dsh 0.2.2-rc.5，修复 Claude Code 2.1.330 内置 WebSearch 被误判为普通 `auto` 请求的问题。普通搜索声明与客户端工具混用时，由原模型决定是否搜索，并保留搜索次数预算和工具历史。Google 明确返回模型容量不足时，网关保留原始错误交给客户端，避免误冷却账号或换号后掩盖首因；真实账号额度、认证与网络错误继续使用原账号池调度。
+
+搜索服务正常结束但没有可验证检索来源时，返回工具级 `unavailable` 和上游实际摘要，不虚构来源或引文。客户端可自行决定下一步。既有 Codex 图片工具／搜索混合续轮签名恢复、Schema 缓存清理和 `x-request-id` 诊断继续保留。
 
 ## 安装与更新
 
@@ -41,7 +45,7 @@ antigravity-gateway service uninstall
 
 打开 `http://localhost:9897/dashboard`，或执行 `antigravity-gateway stats`。分别点击“添加 Antigravity 账号”和“添加 Gemini 账号”，在浏览器完成 Google OAuth。若无法打开网关机器的 localhost 回调页，可将浏览器中的完整回调 URL 粘贴回看板提交。
 
-**新增账号仅通过看板 OAuth。** 两个上游独立管理账号与额度，分别保存到 `accounts/` 和 `gemini-accounts/`。网关不导入本机客户端的登录账号，也不会用另一个池补齐空池。看板提供账号启停、权重、删除、重新检测、额度和用量。
+**新增账号仅通过看板 OAuth。** 两个上游独立管理账号与额度，分别保存到 `accounts/` 和 `gemini-accounts/`。网关不导入本机客户端的登录账号，也不会用另一个池补齐空池。看板提供账号删除、重新认证、额度和用量查看。
 
 Antigravity 授权所需的 OAuth 客户端元数据可从已安装的 agy 发现；需要指定位置时使用 `--agy-path /path/to/agy` 或 `ANTIGRAVITY_CLI_PATH`。网关不会启动 agy 执行推理。
 

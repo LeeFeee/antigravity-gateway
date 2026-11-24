@@ -823,7 +823,36 @@ class DirectAntigravityProvider {
     catch { throw new GatewayError('服务器搜索响应不是 JSON。', { code: 'invalid_server_search_response', status: 502 }); }
     const usage = result?.usageMetadata || result?.response?.usageMetadata || result?.usage;
     const knownCount = names => names.some(name => Number.isFinite(usage?.[name]) && usage[name] >= 0);
-    return { ...parseSearchResponse(result, { model }), usage: usageFrom(result),
+    let search;
+    try { search = parseSearchResponse(result, { model }); }
+    catch (error) {
+      const root = result?.response || result;
+      const candidate = root?.candidates?.[0], metadata = candidate?.groundingMetadata;
+      const parts = candidate?.content?.parts;
+      const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+      // The parser also uses this code for malformed grounding metadata.
+      // Only a complete, structurally valid result with no evidence is an
+      // unavailable tool result; transport, truncation and invalid data fail.
+      const validMetadata = metadata === undefined || (object(metadata)
+        && (metadata.webSearchQueries === undefined || (Array.isArray(metadata.webSearchQueries)
+          && metadata.webSearchQueries.every(query => typeof query === 'string' && query.trim())))
+        && (metadata.groundingChunks === undefined || Array.isArray(metadata.groundingChunks)));
+      if (error?.code !== 'server_search_not_grounded' || candidate?.finishReason !== 'STOP' || !validMetadata
+        || (candidate.content !== undefined && !object(candidate.content))
+        || (parts !== undefined && (!Array.isArray(parts) || parts.some(part => !object(part))))) throw error;
+      search = {
+        searchUnavailable: true, model, finishReason: candidate.finishReason,
+        modelVersion: typeof root.modelVersion === 'string' ? root.modelVersion : null,
+        evidenceId: crypto.createHash('sha256').update(JSON.stringify(result)).digest('hex'),
+        queries: [], sourceCandidates: [],
+        derivedAnswer: (parts || []).filter(part => !part.thought && typeof part.text === 'string').map(part => part.text).join(''),
+        ...(metadata === undefined ? {} : { groundingMetadata: structuredClone(metadata) }),
+        serverToolParts: structuredClone((parts || []).filter(part => part.toolCall || part.toolResponse))
+      };
+      this.reportDiagnostic('server_search_unavailable', { model, code: error.code,
+        finishReason: candidate.finishReason, evidenceId: search.evidenceId });
+    }
+    return { ...search, usage: usageFrom(result),
       usageKnown: knownCount(['promptTokenCount', 'inputTokens', 'input_tokens'])
         && knownCount(['candidatesTokenCount', 'outputTokens', 'output_tokens']) };
   }
@@ -1412,7 +1441,7 @@ class DirectAntigravityProvider {
     nativeState.usedNonGemini ||= !/^gemini-/i.test(model);
     checkpoint();
     let nativeProjection;
-    if (!native.checkpoint && normalized.protocol === 'responses' && normalized.serverSearch) {
+    if (!native.checkpoint && normalized.serverSearch && ['responses', 'anthropic'].includes(normalized.protocol)) {
       nativeProjection = {};
       this.responsesProjectionTokens.set(nativeProjection, { owner: nativeState.owner, key: nativeState.key, model,
         toolAdapter: native.toolAdapter, contents: structuredClone([...native.context.sourceContents,
