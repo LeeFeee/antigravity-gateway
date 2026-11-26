@@ -223,7 +223,6 @@
 <div class="poster-overlay" id="posterOverlay" role="dialog" aria-label="「 Token 自由社群」" aria-hidden="true"><button class="poster-close" id="posterClose" type="button" aria-label="关闭海报">×</button><img class="poster-image" id="posterImage" data-src="/dashboard/assets/community-poster.png" alt="「 Token 自由社群」"></div>
 <div class="save-overlay" id="saveOverlay" role="dialog" aria-modal="true" aria-labelledby="saveTitle" aria-describedby="saveHint" aria-hidden="true"><div class="save-panel"><div class="save-head"><div><h2 id="saveTitle">图片已生成</h2><p id="saveHint">长按下方图片，选择“保存图片”或“存储到照片”。</p></div><button class="save-close" id="saveClose" type="button" aria-label="关闭图片预览">×</button></div><div class="save-preview"><img id="savePreview" alt="已脱敏的 Token 看板图片预览"></div><div class="save-actions"><a class="button save-download" id="saveDownload" href="#" download>下载 PNG</a><button class="button save-done" id="saveDone" type="button">完成</button></div></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/dashboard/assets/html2canvas.min.js"></script>
 <script>
 (() => {
   'use strict';
@@ -231,7 +230,7 @@
   const ZERO={clientRequests:0,upstreamCalls:0,successfulUpstreamCalls:0,failedUpstreamCalls:0,inputTokens:0,outputTokens:0,thinkingTokens:0,cachedTokens:0,totalTokens:0};
   const QUOTA_VIEW_KEY='antigravity-dashboard-quota-view';
   const RANGE_KEY='antigravity-dashboard-range-hours';
-  let DATA=null,hours=24,account='all',quotaOverview=false;
+  let DATA=null,hours=24,account='all',quotaOverview=false,html2canvasPromise=null;
   try{quotaOverview=localStorage.getItem(QUOTA_VIEW_KEY)==='overview';const savedHours=Number(localStorage.getItem(RANGE_KEY));if([24,72,168,720].includes(savedHours))hours=savedHours}catch{}
   const $=(id)=>document.getElementById(id);
   const esc=(v)=>String(v??'').replace(/[&<>'"]/g,(c)=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -397,8 +396,21 @@
     context.save();context.setTransform(canvas.width/width,0,0,canvas.height/height,0,0);context.imageSmoothingEnabled=false;
     context.drawImage(image,rect.left-bounds.left+(rect.width-w)/2,rect.top-bounds.top+(rect.height-h)/2,w,h);context.restore();
   }
+  function loadHtml2Canvas(){
+    if(typeof window.html2canvas==='function')return Promise.resolve();
+    if(html2canvasPromise)return html2canvasPromise;
+    html2canvasPromise=new Promise((resolve,reject)=>{
+      const script=document.createElement('script');script.src='/dashboard/assets/html2canvas.min.js';script.async=true;
+      const finish=(error)=>{clearTimeout(timer);script.onload=null;script.onerror=null;if(error){script.remove();html2canvasPromise=null;reject(error)}else resolve()};
+      const timer=setTimeout(()=>finish(new Error('截图组件加载超时')),15000);
+      script.onload=()=>finish(typeof window.html2canvas==='function'?null:new Error('截图组件加载失败'));
+      script.onerror=()=>finish(new Error('截图组件加载失败'));document.head.appendChild(script);
+    });
+    return html2canvasPromise;
+  }
   async function dashboardPng(){
     await document.fonts?.ready;
+    await loadHtml2Canvas();
     if(typeof html2canvas!=='function')throw new Error('截图组件加载失败');
     const original=document.querySelector('.shell');if(!original)throw new Error('找不到看板主体');
     await Promise.all([...original.querySelectorAll('img')].map((image)=>image.complete?Promise.resolve():image.decode?.().catch(()=>{})));const imageSources=await shareImageSources(original);

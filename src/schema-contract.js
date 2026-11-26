@@ -12,6 +12,7 @@ let schemaDiagnosticReporter = null;
 const MAX_SCHEMA_BYTES = 1024 * 1024;
 const MAX_VALUE_BYTES = 4 * 1024 * 1024;
 const MAX_SCHEMA_DEPTH = 64;
+const COMPILED_SCHEMA_CACHE_CAPACITY = 1024;
 const DEFAULT_LIMITS = Object.freeze({ workers: 2, queue: 64, queueBytes: 16 * 1024 * 1024,
   compileMs: 1000, validateMs: 250, queueMs: 2000, startupMs: 10000, memoryMb: 64 });
 
@@ -51,8 +52,25 @@ class SchemaWorkerPool {
     this.limits = { ...DEFAULT_LIMITS, ...limits };
     for (const [key, value] of Object.entries(this.limits)) if (!Number.isSafeInteger(value) || value < 1) throw new TypeError(`Invalid schema worker limit: ${key}`);
     this.slots = []; this.queue = []; this.queuedBytes = 0; this.closed = false;
+    // Cache only the bounded hash of a successful compile, not worker-owned
+    // validators, schemas, request signals or mutable validation errors.
+    this.compiledSchemas = new Set();
     this.diagnosticReporter = diagnosticReporter || ((event, fields) => schemaDiagnosticReporter?.(event, fields));
     this.workerFactory = workerFactory || ((file, options) => new Worker(file, options));
+  }
+  hasCompiled(key) {
+    if (!this.compiledSchemas.has(key)) return false;
+    this.compiledSchemas.delete(key);
+    this.compiledSchemas.add(key);
+    return true;
+  }
+  rememberCompiled(key) {
+    if (this.closed) return;
+    this.compiledSchemas.delete(key);
+    this.compiledSchemas.add(key);
+    while (this.compiledSchemas.size > COMPILED_SCHEMA_CACHE_CAPACITY) {
+      this.compiledSchemas.delete(this.compiledSchemas.values().next().value);
+    }
   }
   execute(operation, schema, value, { signal } = {}) {
     if (this.closed) return Promise.reject(failure('Schema 校验服务已关闭。', 'schema_worker_unavailable', 503));
@@ -181,6 +199,7 @@ class SchemaWorkerPool {
   }
   async close() {
     this.closed = true;
+    this.compiledSchemas.clear();
     for (const job of this.queue.splice(0)) this.settle(job, failure('Schema 校验服务已关闭。', 'schema_worker_unavailable', 503));
     this.queuedBytes = 0;
     const slots = [...this.slots];
@@ -195,6 +214,11 @@ class SchemaWorkerPool {
 
 let defaultPool;
 const pool = () => defaultPool ||= new SchemaWorkerPool();
+function assertAsyncAvailable(workerPool, signal) {
+  if (workerPool.closed) throw failure('Schema 校验服务已关闭。', 'schema_worker_unavailable', 503);
+  if (signal?.aborted) throw abortFailure(signal);
+}
+function schemaCacheKey(serialized) { return createHash('sha256').update(serialized).digest('hex'); }
 async function compileSchemaAsync(schema, options = {}) {
   const source = schema === undefined ? true : schema;
   if (typeof source !== 'boolean' && (!source || typeof source !== 'object' || Array.isArray(source))) {
@@ -202,10 +226,19 @@ async function compileSchemaAsync(schema, options = {}) {
   }
   const serialized = serialize(source, MAX_SCHEMA_BYTES, '工具 Schema');
   const workerPool = options.pool || pool();
-  await workerPool.execute('compile', serialized, undefined, options);
+  assertAsyncAvailable(workerPool, options.signal);
+  const key = schemaCacheKey(serialized);
+  if (!workerPool.hasCompiled(key)) {
+    await workerPool.execute('compile', serialized, undefined, options);
+    workerPool.rememberCompiled(key);
+  }
+  // Each request gets its own closure. A worker may have retired or evicted its
+  // compiler since the positive cache entry; validate always compiles/looks up
+  // the full schema in its actual worker before checking these arguments.
   const validate = async value => {
     const serializedValue = serialize(value, MAX_VALUE_BYTES, '工具参数');
     const result = await workerPool.execute('validate', serialized, serializedValue, options);
+    workerPool.rememberCompiled(key);
     validate.errors = result.errors || null;
     return result.valid === true;
   };
@@ -213,7 +246,16 @@ async function compileSchemaAsync(schema, options = {}) {
   return validate;
 }
 async function validateSchemaAsync(value, schema, options = {}) {
-  try { return await (await compileSchemaAsync(schema, options))(value); }
+  try {
+    const source = schema === undefined ? true : schema;
+    if (typeof source !== 'boolean' && (!source || typeof source !== 'object' || Array.isArray(source))) return false;
+    const serialized = serialize(source, MAX_SCHEMA_BYTES, '工具 Schema');
+    const serializedValue = serialize(value, MAX_VALUE_BYTES, '工具参数');
+    const workerPool = options.pool || pool();
+    const result = await workerPool.execute('validate', serialized, serializedValue, options);
+    workerPool.rememberCompiled(schemaCacheKey(serialized));
+    return result.valid === true;
+  }
   catch (error) { if (error.code === 'invalid_tool_schema') return false; throw error; }
 }
 // Synchronous APIs are retained for offline conversion fixtures only. Runtime
@@ -234,5 +276,5 @@ function validateSchema(value, schema) {
 }
 async function closeSchemaWorkers() { const current = defaultPool; defaultPool = null; await current?.close(); }
 module.exports = { compileSchema, validateSchema, compileSchemaAsync, validateSchemaAsync, SchemaContractError,
-  MAX_SCHEMA_BYTES, MAX_SCHEMA_DEPTH, MAX_VALUE_BYTES, DEFAULT_LIMITS, SchemaWorkerPool, closeSchemaWorkers, withAsyncSchemaBoundary,
+  MAX_SCHEMA_BYTES, MAX_SCHEMA_DEPTH, MAX_VALUE_BYTES, COMPILED_SCHEMA_CACHE_CAPACITY, DEFAULT_LIMITS, SchemaWorkerPool, closeSchemaWorkers, withAsyncSchemaBoundary,
   setSchemaDiagnosticReporter };

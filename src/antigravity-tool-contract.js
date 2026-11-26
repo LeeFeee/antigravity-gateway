@@ -182,6 +182,16 @@ function recognizedRule(tool, normalized, options) {
 const TEXT_EXTENSIONS = new Set(['.txt', '.md', '.mdx', '.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs', '.json', '.jsonl', '.yaml', '.yml', '.toml', '.xml', '.html', '.css', '.scss', '.py', '.go', '.rs', '.c', '.h', '.cpp', '.hpp', '.java', '.kt', '.sh', '.bash', '.zsh', '.sql', '.csv', '.log', '.ini', '.conf', '.env', '.svg']);
 const absolutePath = value => typeof value === 'string' && value.startsWith('/') && !value.includes('\0');
 const textPath = value => absolutePath(value) && (TEXT_EXTENSIONS.has(path.posix.extname(value).toLowerCase()) || /^(?:README|LICENSE|Dockerfile|Makefile|\.gitignore|\.env)$/i.test(path.posix.basename(value)));
+const MCP_JSON_WRAPPER_SCHEMA = {
+  type: 'object',
+  properties: {
+    argumentsJson: { type: 'string', description: 'One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary.' },
+    toolSummary: { type: 'string', description: SUMMARY }
+  },
+  required: ['argumentsJson', 'toolSummary'],
+  additionalProperties: false
+};
+const MCP_JSON_WRAPPER_WIRE = projectSimple(MCP_JSON_WRAPPER_SCHEMA).wire;
 
 function nativeView(rule, tool, compatibilityName) {
   const string = { type: 'string' }, properties = { Path: { type: 'string', minLength: 1 } };
@@ -248,12 +258,13 @@ function* prepareAntigravityToolsSteps(normalized, options = {}) {
   const compiler = options.schemaCompiler || compileSchema;
   const run = options.runSteps || runSync;
   const tools = normalized.tools || [], sourceTools = options.sourceTools || tools;
-  const sources = new Map(), clients = new Map(), providers = new Map(), prepared = [], records = [], serviceInstructions = [];
+  const sources = new Map(), sourceValidators = new Map(), clients = new Map(), providers = new Map(), prepared = [], records = [], serviceInstructions = [];
+  let jsonWrapperValidator;
   for (const source of sourceTools) {
     if (!source || typeof source.name !== 'string' || !source.name || sources.has(source.name)) fail('工具名称为空或重复。', { code: 'invalid_tool_declaration', status: 400 });
-    // Bound and validate schemas before full fingerprint traversal as well as
-    // before declaration projection (including recognized-profile requests).
-    yield compiler(source.schema);
+    // Bound and validate before fingerprints/projection, retaining the same
+    // validator for the original contract throughout this request.
+    sourceValidators.set(source.name, yield compiler(source.schema === undefined ? { type: 'object' } : source.schema));
     sources.set(source.name, source);
   }
   const reserved = new Set();
@@ -279,7 +290,7 @@ function* prepareAntigravityToolsSteps(normalized, options = {}) {
     source.schema = source.schema === undefined ? { type: 'object' } : source.schema;
     source.kind ||= 'function';
     if (!['function', 'custom'].includes(source.kind)) fail('不支持此工具种类。', { code: 'unsupported_tool_type', status: 400 });
-    const validator = yield compiler(source.schema);
+    const validator = sourceValidators.get(tool.name);
     const checkCustom = customValidator(source, options);
     const executionOwner = modelService ? 'Gateway model-service tool' : 'Client-executed tool';
     const contract = { source, validator, checkCustom, views: [], rule: rules.get(tool.name) };
@@ -288,8 +299,8 @@ function* prepareAntigravityToolsSteps(normalized, options = {}) {
     const jsonName = needsJSON ? allocate(tool.name, 'json') : null;
     const directName = projected ? allocate(tool.name) : null;
     contract.fullName = modelService?.declaration.name || jsonName || directName;
-    function* register(declaration, mode) {
-      const view = { declaration, mode, contract, validator: yield compiler(declaration.schema) };
+    function* register(declaration, mode, validator) {
+      const view = { declaration, mode, contract, validator: validator || (yield compiler(declaration.schema)) };
       if (providers.has(declaration.name)) fail('上游工具名称冲突。', { code: 'tool_name_collision', status: 400 });
       providers.set(declaration.name, view); contract.views.push(view); prepared.push(declaration);
     }
@@ -309,8 +320,8 @@ function* prepareAntigravityToolsSteps(normalized, options = {}) {
       yield* register({ name: directName, kind: 'function', description: `${executionOwner} in the gateway MCP compatibility namespace.${extra}\n${tool.description || ''}`, schema, nativeSchema }, 'mcp-direct');
     }
     if (needsJSON) {
-      const schema = { type: 'object', properties: { argumentsJson: { type: 'string', description: 'One complete JSON value conforming to the original client schema below. Preserve all business fields, including any field named toolSummary.' }, toolSummary: { type: 'string', description: SUMMARY } }, required: ['argumentsJson', 'toolSummary'], additionalProperties: false };
-      yield* register({ name: jsonName, kind: 'function', description: `${executionOwner} in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\n${tool.description || ''}\nComplete original JSON Schema (validated locally before execution):\n${JSON.stringify(source.schema)}`, schema, nativeSchema: projectSimple(schema).wire }, 'mcp-json');
+      jsonWrapperValidator ||= yield compiler(MCP_JSON_WRAPPER_SCHEMA);
+      yield* register({ name: jsonName, kind: 'function', description: `${executionOwner} in the gateway MCP compatibility namespace. Decode argumentsJson once; no business fields are removed.\n${tool.description || ''}\nComplete original JSON Schema (validated locally before execution):\n${JSON.stringify(source.schema)}`, schema: clone(MCP_JSON_WRAPPER_SCHEMA), nativeSchema: clone(MCP_JSON_WRAPPER_WIRE) }, 'mcp-json', jsonWrapperValidator);
     }
     if (contract.rule && nativeCounts.get(contract.rule.operation) === 1) {
       const declaration = nativeView(contract.rule, tool, contract.fullName);

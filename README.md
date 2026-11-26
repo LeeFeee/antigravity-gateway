@@ -1,12 +1,14 @@
-# Antigravity Gateway 2.4.0
+# Antigravity Gateway 2.4.1
 
 将 Google Antigravity API 与 Google Gemini API 接入 Claude Code、Codex、Hermes、Pi 和 dsh，提供 Anthropic Messages、OpenAI Responses、Chat Completions，以及文件和图片接口。
 
-2.4.0 延续 agy 1.5.14 请求格式，改进 Claude Code、Codex、Hermes、Pi 和 dsh 的版本兼容。客户端版本用于记录和辅助选择转换规则；未知新版保留完整兼容请求，不会仅因版本号不同而被拒绝。身份清洗和工具标准化仍核对真实来源、内容指纹和字段边界，保留用户 SOUL、规则、技能、权限与完整工具契约。
+2.4.1 默认使用 Google Antigravity API 的 `gemini-4-hydrogen-high`，模型列表优先展示 Gemini 4 系列；用户显式指定的模型及档位仍原样路由。Claude Code 的 Antigravity Auto 审批使用 `gemini-4-hydrogen-low`，Gemini API 审批继续使用对应的 `-g` 模型，不依赖修改客户端 Auto 设置。
 
-本版适配 dsh 0.2.2-rc.5，修复 Claude Code 2.1.330 内置 WebSearch 被误判为普通 `auto` 请求的问题。普通搜索声明与客户端工具混用时，由原模型决定是否搜索，并保留搜索次数预算和工具历史。Google 明确返回模型容量不足时，网关保留原始错误交给客户端，避免误冷却账号或换号后掩盖首因；真实账号额度、认证与网络错误继续使用原账号池调度。
+本版减少重复 Schema 编译通信和模型目录请求，保留逐次工具参数校验及独立取消；完善采样空值、Responses 缓存/思考用量、辅助接口 401 刷新、异步解压与看板截图加载。普通带工具请求可实时输出正文，工具参数和签名仍完整校验，生成中途失败不跨账号拼接答案。搜索、生图及结构化响应保留各自回程约束。
 
-搜索服务正常结束但没有可验证检索来源时，返回工具级 `unavailable` 和上游实际摘要，不虚构来源或引文。客户端可自行决定下一步。既有 Codex 图片工具／搜索混合续轮签名恢复、Schema 缓存清理和 `x-request-id` 诊断继续保留。
+同时修复 Codex 生图后的 `image_generation_call` 历史回显，保留图片字节与严格签名关联。用户 SOUL、规则、技能、权限和完整工具契约继续保留。
+
+Google 已公告 Gemini 3.8 Flash、Gemini 4 Argon、GPT-OSS 120B 和 Claude 4.6 于 **2026 年 11 月 30 日**下线，见[官方模型说明](https://antigravity.google/docs/models)。网关仍依据账号的实时目录展示可用模型，不把旧模型请求静默替换成新模型。
 
 ## 安装与更新
 
@@ -66,7 +68,7 @@ antigravity-gateway --models
 按目录选择完整模型名：
 
 - 带 `-g` 后缀的已注册模型使用 Google Gemini API，例如 `gemini-4-hydrogen-low-g`；其他模型使用 Google Antigravity API。
-- 带档位的模型名固定思考配置。例如 `gemini-3.8-flash-high` 始终使用其 HIGH 档位，客户端冲突的 `reasoning_effort` 或 thinking budget 不覆盖它。切换档位应更换模型名。
+- 带档位的模型名固定思考配置。例如 `gemini-4-hydrogen-high` 始终使用其 HIGH 档位，客户端冲突的 `reasoning_effort` 或 thinking budget 不覆盖它。切换档位应更换模型名。
 - 不同上游使用各自账号池。网关不因失败而暗中改换模型或档位。
 
 Google Gemini API 当前使用任务模式，任务多模态暂未接入；图片生成、图片编辑和视频理解使用支持相应能力的 Antigravity 模型。
@@ -82,7 +84,7 @@ Google Gemini API 当前使用任务模式，任务多模态暂未接入；图�
   "env": {
     "ANTHROPIC_BASE_URL": "http://localhost:9897",
     "ANTHROPIC_AUTH_TOKEN": "xxxxx",
-    "ANTHROPIC_MODEL": "gemini-3.8-flash-high"
+    "ANTHROPIC_MODEL": "gemini-4-hydrogen-high"
   }
 }
 ```
@@ -100,7 +102,7 @@ Claude Code Auto 的工具审批由实际模型评估后返回客户端，客户
 推荐创建独立的 `~/.codex/antigravity.config.toml`。使用自定义 `CODEX_HOME` 时，将文件放入该目录。`--profile antigravity` 会将此文件叠加到原基础配置，保留原有规则、MCP、技能和审批设置；无需改写主 `config.toml` 或 ChatGPT 的 `auth.json`。
 
 ```toml
-model = "gemini-3.8-flash-high"
+model = "gemini-4-hydrogen-high"
 model_provider = "antigravity"
 
 [model_providers.antigravity]
@@ -131,13 +133,13 @@ codex --profile antigravity exec "说明当前项目的结构"
 ```yaml
 model:
   provider: antigravity
-  default: gemini-3.8-flash-high
+  default: gemini-4-hydrogen-high
 providers:
   antigravity:
     api: http://localhost:9897/v1
     api_key: xxxxx
     transport: codex_responses
-    default_model: gemini-3.8-flash-high
+    default_model: gemini-4-hydrogen-high
 ```
 
 ```bash
@@ -158,8 +160,8 @@ hermes
       "api": "openai-responses",
       "apiKey": "xxxxx",
       "models": [{
-        "id": "gemini-3.8-flash-high",
-        "name": "Antigravity Flash High",
+        "id": "gemini-4-hydrogen-high",
+        "name": "Gemini 4 Hydrogen (High)",
         "reasoning": true,
         "input": ["text", "image"],
         "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 },
@@ -172,7 +174,7 @@ hermes
 ```
 
 ```bash
-pi --provider antigravity --model gemini-3.8-flash-high
+pi --provider antigravity --model gemini-4-hydrogen-high
 ```
 
 示例的上下文与输出限制应按实际模型目录调整；`cost` 是客户端显示估算，不表示账号没有额度消耗。
@@ -185,7 +187,7 @@ pi --provider antigravity --model gemini-3.8-flash-high
 - id: agent-default-model
   config:
     provider: antigravity-gateway
-    model: gemini-3.8-flash-high
+    model: gemini-4-hydrogen-high
     reasoningEffort: high
 - id: llm-pi-ai
   config:
@@ -196,8 +198,8 @@ pi --provider antigravity --model gemini-3.8-flash-high
         api: openai-responses
         baseURL: http://localhost:9897/v1
         models:
-          - id: gemini-3.8-flash-high
-            name: Antigravity Flash High
+          - id: gemini-4-hydrogen-high
+            name: Gemini 4 Hydrogen (High)
             contextWindow: 200000
             maxTokens: 8192
             input: [text, image]
@@ -254,7 +256,7 @@ python3 "$(npm root -g)/antigravity-gateway/skills/antigravity-video-understandi
   "/path/to/video.mp4" \
   --base-url http://localhost:9897 \
   --api-key xxxxx \
-  --model gemini-3.8-flash-high \
+  --model gemini-4-hydrogen-high \
   --prompt "概括视频内容，并说明关键变化。"
 ```
 

@@ -43,6 +43,23 @@ const DEFAULT_MAX_RETRIES = Math.max(0, Number(process.env.ANTIGRAVITY_DIRECT_MA
 const DEFAULT_RETRY_BASE_MS = Math.max(100, Number(process.env.ANTIGRAVITY_DIRECT_RETRY_BASE_MS || 1500));
 const DEFAULT_USER_AGENT = cliUserAgent();
 const MODEL_SLUG = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
+
+function waitForShared(promise, signal) {
+  signal?.throwIfAborted();
+  if (!signal) return promise;
+  return new Promise((resolve, reject) => {
+    const abort = () => {
+      signal.removeEventListener('abort', abort);
+      reject(signal.reason || new DOMException('Request aborted', 'AbortError'));
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    promise.then(
+      value => { signal.removeEventListener('abort', abort); resolve(value); },
+      error => { signal.removeEventListener('abort', abort); reject(error); }
+    );
+    if (signal.aborted) abort();
+  });
+}
 // Only statuses observed in actual agy error/retry/recovery captures belong
 // here. HTTP failures are distinct from an uncaptured transport exception.
 const NATIVE_HTTP_ERROR_STATUSES = new Set([400, 429, 500, 502, 503, 504]);
@@ -610,11 +627,20 @@ class DirectAntigravityProvider {
   }
 
   async listModels(signal, { force = false } = {}) {
+    signal?.throwIfAborted();
     if (this.modelList.length) return [...this.modelList];
     if (!force && this.discoveredModels.length && Date.now() - this.modelsDiscoveredAt < 60_000) return [...this.discoveredModels];
-    if (this.modelDiscovery) return this.modelDiscovery;
-    this.modelDiscovery = this.discoverModels(signal);
-    try { return await this.modelDiscovery; } finally { this.modelDiscovery = null; }
+    if (!this.modelDiscovery) {
+      // Catalog discovery is shared work. Each waiter can leave independently;
+      // the exchange has its own budget, including one OAuth refresh.
+      const discoverySignal = AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS * 3 + 30_000);
+      const pending = this.discoverModels(discoverySignal).finally(() => {
+        if (this.modelDiscovery === pending) this.modelDiscovery = null;
+      });
+      pending.catch(() => {});
+      this.modelDiscovery = pending;
+    }
+    return waitForShared(this.modelDiscovery, signal);
   }
 
   modelCatalog() {
@@ -710,64 +736,82 @@ class DirectAntigravityProvider {
   }
 
   async discoverModels(signal) {
-    const token = await this.access(signal);
+    let token = await this.access(signal);
+    let refreshed = false;
     let lastError, accountError;
     for (const base of this.baseUrls()) {
-      try {
-        const response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
-          method: 'POST',
-          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
-          body: JSON.stringify(this.projectRequestBody()),
-          signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
-        });
-        const text = await readBody(response);
-        if (!response.ok) throw new DirectProviderError('Antigravity 模型目录查询失败。', {
-          code: 'direct_model_discovery_failed', status: response.status, details: upstreamErrorMessage(text)
-        });
-        let body;
-        try { body = JSON.parse(text); }
-        catch (cause) { throw new DirectProviderError('Antigravity 模型目录响应不是 JSON。', { code: 'direct_model_catalog_invalid', status: 502, cause }); }
-        if (!body.models || typeof body.models !== 'object') throw new DirectProviderError('Antigravity 模型目录缺少 models。', { code: 'direct_model_catalog_invalid', status: 502 });
-        const entries = Array.isArray(body.models)
-          ? body.models.map(value => [extractModelId(value), value])
-          : Object.entries(body.models).map(([id, value]) => [extractModelId(id) || extractModelId(value), value]);
-        // Discovery also contains unavailable upgrade offers. A catalog entry
-        // explicitly marked disabled is not an account's usable model, even
-        // when it has limits, capabilities and a valid-looking public ID.
-        const disabledModels = new Set(entries.filter(([, value]) => value?.disabled === true).map(([id]) => id));
-        const models = entries.map(([id]) => id).filter(id => id && !disabledModels.has(id));
-        this.discoveredModels = [...new Set(models)];
-        this.imageGenerationModels = Array.isArray(body.imageGenerationModelIds)
-          ? [...new Set(body.imageGenerationModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
-        this.webSearchModels = Array.isArray(body.webSearchModelIds)
-          ? [...new Set(body.webSearchModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
-        this.modelsDiscoveredAt = Date.now();
-        this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
-          const metadata = value && typeof value === 'object' ? value : {};
-          return [id, {
-            displayName: firstString(metadata.displayName, metadata.display_name) || id,
-            maxTokens: Math.max(0, Number(metadata.maxTokens ?? metadata.max_tokens ?? 0) || 0),
-            maxOutputTokens: Math.max(0, Number(metadata.maxOutputTokens ?? metadata.max_output_tokens ?? 0) || 0),
-            ...(typeof (metadata.supportsImages ?? metadata.supports_images) === 'boolean'
-              ? { supportsImages: metadata.supportsImages ?? metadata.supports_images } : {}),
-            ...(typeof (metadata.supportsThinking ?? metadata.supports_thinking) === 'boolean'
-              ? { supportsThinking: metadata.supportsThinking ?? metadata.supports_thinking } : {}),
-            ...(typeof metadata.supportsVideo === 'boolean' ? { supportsVideo: metadata.supportsVideo } : {}),
-            ...(typeof metadata.supportsAudio === 'boolean' ? { supportsAudio: metadata.supportsAudio } : {}),
-            ...(metadata.supportedMimeTypes && typeof metadata.supportedMimeTypes === 'object'
-              && !Array.isArray(metadata.supportedMimeTypes)
-              ? { supportedMimeTypes: structuredClone(metadata.supportedMimeTypes) } : {}),
-            ...(typeof metadata.model === 'string' ? { model: metadata.model } : {}),
-            ...(Number.isFinite(metadata.thinkingBudget) ? { thinkingBudget: metadata.thinkingBudget } : {}),
-            ...(Number.isFinite(metadata.thinkingLevel) || typeof metadata.thinkingLevel === 'string' ? { thinkingLevel: metadata.thinkingLevel } : {}),
-            ...(typeof metadata.apiProvider === 'string' ? { apiProvider: metadata.apiProvider } : {})
-          }];
-        }));
-        return [...this.discoveredModels];
-      } catch (error) {
-        signal?.throwIfAborted();
-        lastError = error;
-        if (error.status === 401 || error.status === 403) accountError ||= error;
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        let refreshing = false;
+        try {
+          signal?.throwIfAborted();
+          const response = await this.fetchImpl(`${base}${MODELS_PATH}`, {
+            method: 'POST',
+            headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
+            body: JSON.stringify(this.projectRequestBody()),
+            signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)]) : AbortSignal.timeout(MODEL_DISCOVERY_TIMEOUT_MS)
+          });
+          const text = await readBody(response);
+          if (response.status === 401 && !refreshed && (this.refreshToken || this.localAuth?.isConfigured?.())) {
+            refreshed = true;
+            refreshing = true;
+            token = await this.access(signal, true);
+            refreshing = false;
+            signal?.throwIfAborted();
+            continue;
+          }
+          if (!response.ok) throw new DirectProviderError('Antigravity 模型目录查询失败。', {
+            code: 'direct_model_discovery_failed', status: response.status, details: upstreamErrorMessage(text)
+          });
+          let body;
+          try { body = JSON.parse(text); }
+          catch (cause) { throw new DirectProviderError('Antigravity 模型目录响应不是 JSON。', { code: 'direct_model_catalog_invalid', status: 502, cause }); }
+          if (!body.models || typeof body.models !== 'object') throw new DirectProviderError('Antigravity 模型目录缺少 models。', { code: 'direct_model_catalog_invalid', status: 502 });
+          const entries = Array.isArray(body.models)
+            ? body.models.map(value => [extractModelId(value), value])
+            : Object.entries(body.models).map(([id, value]) => [extractModelId(id) || extractModelId(value), value]);
+          // Discovery also contains unavailable upgrade offers. A catalog entry
+          // explicitly marked disabled is not an account's usable model, even
+          // when it has limits, capabilities and a valid-looking public ID.
+          const disabledModels = new Set(entries.filter(([, value]) => value?.disabled === true).map(([id]) => id));
+          const models = entries.map(([id]) => id).filter(id => id && !disabledModels.has(id));
+          this.discoveredModels = [...new Set(models)];
+          this.imageGenerationModels = Array.isArray(body.imageGenerationModelIds)
+            ? [...new Set(body.imageGenerationModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
+          this.webSearchModels = Array.isArray(body.webSearchModelIds)
+            ? [...new Set(body.webSearchModelIds.map(extractModelId).filter(id => id && !disabledModels.has(id)))] : [];
+          this.modelsDiscoveredAt = Date.now();
+          this.discoveredModelInfo = new Map(entries.filter(([id]) => id).map(([id, value]) => {
+            const metadata = value && typeof value === 'object' ? value : {};
+            return [id, {
+              displayName: firstString(metadata.displayName, metadata.display_name) || id,
+              maxTokens: Math.max(0, Number(metadata.maxTokens ?? metadata.max_tokens ?? 0) || 0),
+              maxOutputTokens: Math.max(0, Number(metadata.maxOutputTokens ?? metadata.max_output_tokens ?? 0) || 0),
+              ...(typeof (metadata.supportsImages ?? metadata.supports_images) === 'boolean'
+                ? { supportsImages: metadata.supportsImages ?? metadata.supports_images } : {}),
+              ...(typeof (metadata.supportsThinking ?? metadata.supports_thinking) === 'boolean'
+                ? { supportsThinking: metadata.supportsThinking ?? metadata.supports_thinking } : {}),
+              ...(typeof metadata.supportsVideo === 'boolean' ? { supportsVideo: metadata.supportsVideo } : {}),
+              ...(typeof metadata.supportsAudio === 'boolean' ? { supportsAudio: metadata.supportsAudio } : {}),
+              ...(metadata.supportedMimeTypes && typeof metadata.supportedMimeTypes === 'object'
+                && !Array.isArray(metadata.supportedMimeTypes)
+                ? { supportedMimeTypes: structuredClone(metadata.supportedMimeTypes) } : {}),
+              ...(typeof metadata.model === 'string' ? { model: metadata.model } : {}),
+              ...(Number.isFinite(metadata.thinkingBudget) ? { thinkingBudget: metadata.thinkingBudget } : {}),
+              ...(Number.isFinite(metadata.thinkingLevel) || typeof metadata.thinkingLevel === 'string' ? { thinkingLevel: metadata.thinkingLevel } : {}),
+              ...(typeof metadata.apiProvider === 'string' ? { apiProvider: metadata.apiProvider } : {})
+            }];
+          }));
+          return [...this.discoveredModels];
+        } catch (error) {
+          signal?.throwIfAborted();
+          // A failed token exchange is authoritative for this attempt. Do not
+          // reuse the rejected token at another base and turn a refresh outage
+          // into an account authentication failure.
+          if (refreshing) throw error;
+          lastError = error;
+          if (error.status === 401 || error.status === 403) accountError ||= error;
+          break;
+        }
       }
     }
     // A temporary metadata outage may retain an actual previous catalog,
@@ -794,25 +838,33 @@ class DirectAntigravityProvider {
     if (!model || !this.webSearchModels.includes(model)) {
       throw new GatewayError('账号目录没有声明指定的专用搜索模型。', { code: 'server_search_model_unavailable', status: 400 });
     }
-    const token = await this.access(signal);
+    let token = await this.access(signal);
     const project = await this.project(signal, token);
     const body = searchRequest({ project, model, query, maxOutputTokens, contents, instructions, generationConfig });
     signal?.throwIfAborted();
     const base = this.baseUrls()[0];
-    // A logical server-tool execution performs one physical helper request.
-    // Do not hide retries or switch models behind the caller's max_uses.
-    onUpstreamAttempt?.({ phase: 'start', base, model });
+    // Only an explicit authentication rejection permits one token refresh.
+    // Every physical attempt stays visible; no model/account fallback occurs.
+    const serializedBody = JSON.stringify(body);
     let response;
-    try {
-      response = await this.fetchImpl(`${base}${GENERATE_PATH}`, {
-        method: 'POST', signal,
-        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
-        body: JSON.stringify(body)
-      });
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      signal?.throwIfAborted();
+      onUpstreamAttempt?.({ phase: 'start', base, model });
+      try {
+        response = await this.fetchImpl(`${base}${GENERATE_PATH}`, {
+          method: 'POST', signal,
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'user-agent': this.userAgent },
+          body: serializedBody
+        });
+      } catch (error) {
+        onUpstreamAttempt?.({ phase: 'response', base, model, status: 0, success: false });
+        throw error;
+      }
       onUpstreamAttempt?.({ phase: 'response', base, model, status: response.status, success: response.ok });
-    } catch (error) {
-      onUpstreamAttempt?.({ phase: 'response', base, model, status: 0, success: false });
-      throw error;
+      if (response.status !== 401 || attempt !== 0 || !(this.refreshToken || this.localAuth?.isConfigured?.())) break;
+      await response.body?.cancel?.().catch(() => {});
+      signal?.throwIfAborted();
+      token = await this.access(signal, true);
     }
     const text = await readBody(response);
     if (!response.ok) throw new DirectProviderError('Antigravity 搜索服务请求失败。', {

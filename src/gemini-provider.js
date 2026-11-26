@@ -10,6 +10,7 @@ const { parseGeminiModelCatalog, publicGeminiModels } = require('./gemini-model-
 const { prepareGeminiClientRequest, trailingGeminiToolResults, geminiClientToolResults, contractError } = require('./gemini-client-request');
 const { messageField } = require('./gemini-wire');
 const { geminiQuotaSnapshot } = require('./gemini-quota');
+const { waitForShared } = require('./shared-task');
 
 const CATALOG_TTL_MS = 60000;
 const MAX_ACTIVE_TURNS = 128;
@@ -24,6 +25,7 @@ class GeminiProvider {
     this.onFrame = onFrame;
     this.catalog = null;
     this.catalogAt = 0;
+    this.catalogDiscovery = null;
     this.active = new Set();
     this.receipts = new Map();
     const disableAuth = this.localAuth.disable.bind(this.localAuth);
@@ -42,11 +44,17 @@ class GeminiProvider {
   }
 
   async listModels(signal, { force = false } = {}) {
+    signal?.throwIfAborted();
     if (!force && this.catalog && Date.now() - this.catalogAt < CATALOG_TTL_MS) return this.modelCatalog();
-    const response = await this.probeAuthentication(signal);
-    this.catalog = parseGeminiModelCatalog(response);
-    this.catalogAt = Date.now();
-    return this.modelCatalog();
+    if (!this.catalogDiscovery) {
+      const pending = this.probeAuthentication(AbortSignal.timeout(45_000)).then(response => {
+        this.catalog = parseGeminiModelCatalog(response);
+        this.catalogAt = Date.now();
+        return this.modelCatalog();
+      }).finally(() => { if (this.catalogDiscovery === pending) this.catalogDiscovery = null; });
+      this.catalogDiscovery = pending;
+    }
+    return waitForShared(this.catalogDiscovery, signal);
   }
 
   modelCatalog() { return this.catalog ? publicGeminiModels(this.catalog).map(model => model.id) : null; }

@@ -4,7 +4,7 @@ const { GatewayError, normalizeAnthropicAsync, upstreamTermination } = require('
 const { sanitizeClientIdentity } = require('./client-identity');
 
 const TYPE = 'dangerous_tool_use';
-const MODEL = 'gemini-3.8-flash-low';
+const MODEL = 'gemini-4-hydrogen-low';
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 // Wire contract observed in the unmodified Claude Code 2.1.322 parser:

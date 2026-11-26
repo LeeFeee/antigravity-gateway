@@ -42,9 +42,10 @@ const { resolveModelConfiguration } = require('./src/antigravity-model-config');
 const { readSafeguards, evaluateSafeguards } = require('./src/anthropic-safeguards');
 const { isConversionError } = require('./src/conversion-errors');
 const { withAsyncSchemaBoundary, setSchemaDiagnosticReporter } = require('./src/schema-contract');
+const { waitForShared } = require('./src/shared-task');
 const { ServerSearchReceipts } = require('./src/server-search-contract');
 const { prepareGeminiResponsesSearch, prepareAntigravityResponsesSearch } = require('./src/gemini-responses-search');
-const { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho } = require('./src/antigravity-responses-search');
+const { prepareSearchCapability, forwardSearchCalls, expectedResponsesOutputEchoes } = require('./src/antigravity-responses-search');
 const { prepareAnthropicSearchAsync, buildAnthropicSearchMessage, buildServerSearchMessage, buildServerSearchErrorMessage } = require('./src/server-search-protocol');
 const { SEARCH_TOOL_NAME } = require('./src/agy-model-service-tools');
 const { version: GATEWAY_VERSION } = require('./package.json');
@@ -97,7 +98,7 @@ const CLI_ARGS = parseArgs(process.argv.slice(2));
 const HOST = CLI_ARGS.host || process.env.ANTIGRAVITY_GATEWAY_HOST || '127.0.0.1';
 const PORT = Number(CLI_ARGS.port || process.env.ANTIGRAVITY_GATEWAY_PORT || 9897);
 const AGY_PATH = resolveAgyCommand(CLI_ARGS.agyPath || process.env.ANTIGRAVITY_CLI_PATH);
-const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-3.8-flash-high';
+const DEFAULT_MODEL = CLI_ARGS.model || process.env.ANTIGRAVITY_DEFAULT_MODEL || 'gemini-4-hydrogen-high';
 const FAST_MODEL = String(process.env.ANTIGRAVITY_FAST_MODEL || '').trim();
 const API_KEY = process.env.ANTIGRAVITY_GATEWAY_API_KEY || '';
 // These are transport/memory guards measured in bytes, not model context
@@ -144,13 +145,13 @@ GEMINI_ACCOUNT_POOL.quotaManager = GEMINI_QUOTA_MANAGER;
 const OAUTH_FLOW = new OAuthFlow({ agyPath: AGY_PATH });
 const DASHBOARD_ACCOUNT_AUTH = new DashboardAccountAuth({
   flow: OAUTH_FLOW, store: ACCOUNT_STORE, pool: ACCOUNT_POOL, quotaManager: QUOTA_MANAGER,
-  onAdded: () => { modelCache.at = 0; upstreamModelCache.at = 0; }
+  onAdded: () => invalidateModelCaches()
 });
 const GEMINI_OAUTH_FLOW = new GeminiOAuthFlow();
 const DASHBOARD_GEMINI_AUTH = new DashboardGeminiAuth({
   flow: GEMINI_OAUTH_FLOW, store: GEMINI_ACCOUNT_STORE, pool: GEMINI_ACCOUNT_POOL,
   quotaManager: GEMINI_QUOTA_MANAGER, usageStore: USAGE_STORE,
-  onAdded: () => { modelCache.at = 0; }
+  onAdded: () => invalidateModelCaches()
 });
 const MEDIA_STORE = new MediaStore({ directory: path.join(CONFIG_DIR, 'media'), ...localMediaOptions({ configDir: CONFIG_DIR }) });
 const SESSION_MANAGER = new SessionManager();
@@ -198,8 +199,10 @@ const DASHBOARD_ACCESS = createDashboardAccessPolicy(
   { warn: (message) => gatewayWarn(`[Antigravity Gateway Warning] ${message}`) }
 );
 
-let modelCache = { at: 0, models: [], error: null };
-let upstreamModelCache = { at: 0, models: [] };
+let modelCache = { at: 0, models: [], error: null, revision: '' };
+let modelCacheEpoch = 0;
+let modelQuerySequence = 0;
+const pendingModelQueries = new Map();
 
 class Semaphore {
   constructor(limit, maxQueue) {
@@ -274,31 +277,54 @@ function directAuthDescription() {
   return `gateway account pool（${ACCOUNT_POOL.status().length} 个账号；仅看板 OAuth 添加）`;
 }
 
-async function availableModels(force = false) {
-  if (force) upstreamModelCache.at = 0;
-  if (!force && Date.now() - modelCache.at < MODEL_CACHE_MS && modelCache.models.length) return modelCache.models;
-  try {
-    const models = await UPSTREAMS.listModels(undefined, { force });
-    modelCache = { at: Date.now(), models, error: null };
-  } catch (error) {
-    modelCache = { at: Date.now(), models: modelCache.models, error };
-    if (!modelCache.models.length) throw error;
-  }
-  return modelCache.models;
+function modelSourceRevision() {
+  return `${modelCacheEpoch}:${ACCOUNT_POOL.catalogRevision}:${GEMINI_ACCOUNT_POOL.catalogRevision}`;
+}
+
+function invalidateModelCaches() {
+  modelCacheEpoch += 1;
+  modelQuerySequence += 1;
+  modelCache = { at: 0, models: [], error: null, revision: '' };
+  pendingModelQueries.clear();
+}
+
+async function availableModels(force = false, signal) {
+  signal?.throwIfAborted();
+  const revision = modelSourceRevision();
+  if (!force && modelCache.revision === revision && Date.now() - modelCache.at < MODEL_CACHE_MS) return [...modelCache.models];
+  const forced = pendingModelQueries.get(`${revision}:force`);
+  const existing = forced || (!force && pendingModelQueries.get(`${revision}:normal`));
+  if (existing) return waitForShared(existing.promise, signal);
+  const key = `${revision}:${force ? 'force' : 'normal'}`;
+  const flight = { sequence: ++modelQuerySequence, promise: null };
+  if (force) modelCache.at = 0;
+  flight.promise = Promise.resolve().then(async () => {
+    try {
+      const models = await UPSTREAMS.listModels(undefined, { force });
+      if (revision !== modelSourceRevision()) return availableModels();
+      if (flight.sequence === modelQuerySequence) modelCache = { at: Date.now(), models: [...models], error: null, revision };
+      return [...models];
+    } catch (error) {
+      if (revision !== modelSourceRevision()) return availableModels();
+      if (modelCache.revision !== revision || !modelCache.models.length) throw error;
+      // Retain a real previous catalog on transient discovery failure, but do
+      // not renew its TTL or keep models from a different account generation.
+      modelCache.error = error;
+      return [...modelCache.models];
+    }
+  }).finally(() => { if (pendingModelQueries.get(key) === flight) pendingModelQueries.delete(key); });
+  pendingModelQueries.set(key, flight);
+  return waitForShared(flight.promise, signal);
 }
 
 async function availableApiModels() {
-  if (Date.now() - upstreamModelCache.at < MODEL_CACHE_MS && upstreamModelCache.models.length) {
-    return upstreamModelCache.models;
-  }
-  const models = await UPSTREAMS.listModels(undefined, { force: true });
-  upstreamModelCache = { at: Date.now(), models };
-  return models;
+  return availableModels();
 }
 
 function preferredFastModel(models) {
   if (FAST_MODEL) return FAST_MODEL;
   const priorities = [
+    /^gemini-4-hydrogen-low$/i,
     /^gemini-3\.8-flash-low$/i,
     /^gemini-3\.7-flash-low$/i,
     /^gemini-3\.6-flash-low$/i,
@@ -448,6 +474,27 @@ function claudeConfigPath() {
 // Presentation order only. Request routing always uses the untouched model ID
 // supplied by the client and never depends on this list.
 const MODEL_DISPLAY_PRIORITY = [
+  'gemini-4-hydrogen-high',
+  'gemini-4-hydrogen-medium',
+  'gemini-4-hydrogen-low',
+  'gemini-4-hydrogen-xhigh',
+  'gemini-4-hydrogen-tiered-high',
+  'gemini-4-hydrogen-tiered-xhigh',
+  'gemini-4-hydrogen-sonar',
+  'gemini-4-neon-medium',
+  'gemini-4-neon-high',
+  'gemini-4-neon-low',
+  'gemini-4-neon-xhigh',
+  'gemini-4-carbon-medium',
+  'gemini-4-carbon-high',
+  'gemini-4-carbon-low',
+  'gemini-4-hydrogen-g',
+  'gemini-4-hydrogen-low-g',
+  'gemini-4-argon-medium',
+  'gemini-4-argon-high',
+  'gemini-4-argon-low',
+  'gemini-4-argon-g',
+  'gemini-4-argon-low-g',
   'gemini-3.8-flash-high',
   'gemini-3.7-flash-high',
   'claude-opus-4-6-thinking',
@@ -477,6 +524,11 @@ const MODEL_DISPLAY_RANK = new Map(MODEL_DISPLAY_PRIORITY.map((model, index) => 
 
 function displayModels(models) {
   return [...models].sort((left, right) => {
+    // Newly discovered Gemini 4 IDs also lead the legacy catalogue. This
+    // changes presentation only; it neither creates IDs nor reroutes calls.
+    const leftGemini4 = /^gemini-4-/i.test(left);
+    const rightGemini4 = /^gemini-4-/i.test(right);
+    if (leftGemini4 !== rightGemini4) return leftGemini4 ? -1 : 1;
     const leftRank = MODEL_DISPLAY_RANK.get(left);
     const rightRank = MODEL_DISPLAY_RANK.get(right);
     if (leftRank !== undefined || rightRank !== undefined) {
@@ -1040,9 +1092,23 @@ function beginSse(res) {
 
 function textStreamingAllowed(normalized) {
   return Boolean(normalized.stream)
-    && normalized.tools.length === 0
     && !normalized.structuredSchema
     && !normalized.autoMode;
+}
+
+function emitAnthropicContentBlock(res, block, index) {
+  const empty = block.type === 'text' ? { type: 'text', text: '' }
+    : block.type === 'thinking' ? { type: 'thinking', thinking: '' }
+      : ['tool_use', 'server_tool_use'].includes(block.type) ? { ...block, input: {} } : block;
+  sendSse(res, 'content_block_start', { type: 'content_block_start', index, content_block: empty });
+  if (block.type === 'text') sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'text_delta', text: block.text } });
+  else if (block.type === 'thinking') {
+    if (block.thinking) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'thinking_delta', thinking: block.thinking } });
+    if (block.signature) sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'signature_delta', signature: block.signature } });
+  } else if (['tool_use', 'server_tool_use'].includes(block.type)) {
+    sendSse(res, 'content_block_delta', { type: 'content_block_delta', index, delta: { type: 'input_json_delta', partial_json: JSON.stringify(block.input) } });
+  }
+  sendSse(res, 'content_block_stop', { type: 'content_block_stop', index });
 }
 
 function createAnthropicTextEmitter(res, model) {
@@ -1052,12 +1118,12 @@ function createAnthropicTextEmitter(res, model) {
   let activeBlock = null;
   let emittedText = '';
   let emittedThinking = '';
-  const start = () => {
+  const start = (usage) => {
     if (started) return;
     started = true;
     sendSse(res, 'message_start', { type: 'message_start', message: {
       id, type: 'message', role: 'assistant', model, content: [], stop_reason: null, stop_sequence: null,
-      usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
+      usage: usage || { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0 }
     } });
   };
   const closeBlock = () => {
@@ -1083,12 +1149,23 @@ function createAnthropicTextEmitter(res, model) {
     onDelta: (text) => emitBlock('text', text),
     onThinkingDelta: (text) => emitBlock('thinking', text),
     finish: (body) => {
-      start();
-      const finalThinking = (body.content || []).filter(block => block.type === 'thinking').map(block => block.thinking || '').join('');
-      emitBlock('thinking', streamTextRemainder(emittedThinking, finalThinking));
-      const finalText = (body.content || []).filter(block => block.type === 'text').map(block => block.text || '').join('');
-      emitBlock('text', streamTextRemainder(emittedText, finalText));
-      closeBlock();
+      const hadStreamed = started;
+      start(body.usage);
+      if (!hadStreamed) {
+        for (const block of body.content || []) emitAnthropicContentBlock(res, block, blockCount++);
+      } else {
+        const finalThinking = (body.content || []).filter(block => block.type === 'thinking' && !block.signature).map(block => block.thinking || '').join('');
+        emitBlock('thinking', streamTextRemainder(emittedThinking, finalThinking));
+        const finalText = (body.content || []).filter(block => block.type === 'text').map(block => block.text || '').join('');
+        emitBlock('text', streamTextRemainder(emittedText, finalText));
+        closeBlock();
+        // Dispatch complete, validated calls only after the provider has saved
+        // their signatures. No executable partial arguments leave the gateway.
+        for (const block of body.content || []) {
+          if (block.type === 'text' || (block.type === 'thinking' && !block.signature)) continue;
+          emitAnthropicContentBlock(res, block, blockCount++);
+        }
+      }
       // message_start went out before upstream usage existed; message_delta usage is cumulative per the Messages API.
       sendSse(res, 'message_delta', {
         type: 'message_delta',
@@ -1149,6 +1226,8 @@ function createChatTextEmitter(res, model, { includeUsage = false } = {}) {
         chunk({ content: remainder });
       }
       const finalMessage = body.choices?.[0]?.message || {};
+      if (finalMessage.tool_calls?.length) chunk({ tool_calls: finalMessage.tool_calls.map((call, index) => ({ index, ...call })) });
+      if (finalMessage.function_call) chunk({ function_call: finalMessage.function_call });
       if (finalMessage.images || finalMessage.artifacts) {
         const delta = {};
         if (finalMessage.images) delta.images = finalMessage.images;
@@ -1615,14 +1694,18 @@ async function handleResponses(payload, req, res, signal) {
     // Generate the actual ws ID first, then register precisely the same
     // contents that full-input clients and previous_response_id will echo.
     visibleSearch = await normalizeResponsesAsync(prepareAntigravityResponsesSearch({ input: body.output }).payload, null, { signal });
-    const expectedEcho = expectedResponsesSearchEcho(body.output, identity.nativeClientProfile);
-    const visibleVariants = expectedEcho ? [await normalizeResponsesAsync(
-      prepareAntigravityResponsesSearch({ input: expectedEcho }).payload, null, { signal })] : [];
+    const visibleVariants = [];
+    for (const echo of expectedResponsesOutputEchoes(body.output)) visibleVariants.push(await normalizeResponsesAsync(
+      prepareAntigravityResponsesSearch({ input: echo }).payload, null, { signal }));
     await UPSTREAMS.poolFor(model).registerResponsesProjection({
       source: result.responsesProjectionSource, visible: visibleSearch, visibleVariants,
       nativeProjection: result.nativeProjection, searchReceipts: result.searchReceipts
     }, model, { sessionId, signal, auxiliaryScope: identity.auxiliaryScope, accountId: result.accountId });
   }
+  // Store the same image-bearing history a full-input client echoes, including
+  // its canonical delivery receipt, for previous_response_id continuations.
+  if (!visibleSearch && result.images?.length) visibleSearch = await normalizeResponsesAsync(
+    { input: body.output }, null, { signal });
   SESSION_MANAGER.bindResponse(responseId, req, {
     sessionId,
     ...(identity.anonymousTask ? { anonymousTask: true } : {}),
@@ -1689,7 +1772,7 @@ async function requestHandler(req, res) {
         'Content-Type': 'text/html; charset=utf-8',
         'Content-Length': Buffer.byteLength(body),
         'Cache-Control': 'no-store',
-        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:"
+        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data: blob:"
       });
       res.end(body);
       return;
@@ -1713,8 +1796,7 @@ async function requestHandler(req, res) {
         const accountId = decodeURIComponent(accountRecheckMatch[1]);
         const pool = dashboardAccountPool(requestUrl, accountId);
         const result = await pool.recheckAccount(accountId, { signal: AbortSignal.timeout(45_000) });
-        modelCache.at = 0;
-        if (pool === ACCOUNT_POOL) upstreamModelCache.at = 0;
+        invalidateModelCaches();
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 502, {
@@ -1728,8 +1810,7 @@ async function requestHandler(req, res) {
         const accountId = decodeURIComponent(accountDeleteMatch[1]);
         const pool = dashboardAccountPool(requestUrl, accountId);
         const result = pool.removeAccount(accountId);
-        modelCache.at = 0;
-        if (pool === ACCOUNT_POOL) upstreamModelCache.at = 0;
+        invalidateModelCaches();
         sendJson(res, 200, result, { 'Cache-Control': 'no-store' });
       } catch (error) {
         sendJson(res, Number(error?.status) || 500, {
@@ -1844,7 +1925,8 @@ async function requestHandler(req, res) {
       return;
     }
     if (req.method === 'GET' && route === '/v1/models') {
-      const models = await availableModels(true);
+      const force = requestUrl.searchParams.get('refresh') === '1' || requestUrl.searchParams.get('force') === 'true';
+      const models = await availableModels(force, controller.signal);
       sendJson(res, 200, {
         ...codexCatalogBody(models),
         image_generation_model_ids: ACCOUNT_POOL.imageModelCatalog(),
@@ -2081,6 +2163,7 @@ if (require.main === module) {
 
 module.exports = {
   availableModels,
+  invalidateModelCaches,
   claudeConfigBody,
   claudeConfigPath,
   clientSessionScope,

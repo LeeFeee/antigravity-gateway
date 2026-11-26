@@ -14,6 +14,7 @@ const { isConversionError } = require('./conversion-errors');
 const { GatewayError } = require('./protocol');
 const { validateSearchParameters } = require('./antigravity-server-search');
 const { isModelCapacityFailure } = require('./agy-upstream-error');
+const { waitForShared } = require('./shared-task');
 
 const { SESSION_TTL_MS, SESSION_CAPACITY, TRANSIENT_COOLDOWN_MS, durationMs, retryDelay, affinityActive, geminiWeeklyPressure,
   geminiFiveHourResetTime, quotaRank, compareQuotaRanks, weightedPickWithRanks } = require('./account-scheduling');
@@ -120,6 +121,7 @@ class AccountPool {
     this.modelSupporters = new Map();
     this.modelCatalogsReady = false;
     this.modelCatalogDiscovery = null;
+    this.catalogRevision = 0;
     this.loadState();
     this.reload();
   }
@@ -246,6 +248,11 @@ class AccountPool {
     for (const accountId of this.health.keys()) {
       if (!next.has(accountId)) { this.health.delete(accountId); stateChanged = true; }
     }
+    if (old.size !== next.size || [...next].some(([id, entry]) => {
+      const previous = old.get(id);
+      return !previous || previous.provider !== entry.provider || previous.catalogEnabled !== (entry.account.enabled !== false);
+    })) this.catalogRevision += 1;
+    for (const entry of next.values()) entry.catalogEnabled = entry.account.enabled !== false;
     this.entries = next;
     this.rebuildModelSupporters();
     this.modelCatalogsReady = [...this.entries.values()]
@@ -373,6 +380,7 @@ class AccountPool {
       lastError: String(error?.message || error || '').slice(0, 1000)
     };
     entry.healthState = record.state;
+    if (previousState !== record.state) this.catalogRevision += 1;
     entry.healthReason = record.reason;
     entry.healthSince = record.since;
     entry.healthMessage = record.message;
@@ -410,6 +418,7 @@ class AccountPool {
     const previousState = entry.healthState;
     this.health.delete(entry.account.id);
     entry.healthState = 'available';
+    if (previousState !== 'available') this.catalogRevision += 1;
     entry.healthReason = '';
     entry.healthSince = '';
     entry.healthMessage = '';
@@ -427,7 +436,9 @@ class AccountPool {
   }
 
   async recheckAccount(accountId, { signal } = {}) {
-    if (this.rechecks.has(String(accountId))) return this.rechecks.get(String(accountId));
+    signal?.throwIfAborted();
+    const current = this.rechecks.get(String(accountId));
+    if (current && !current.controller.signal.aborted) return this.waitForRecheck(current, signal);
     const entry = this.entries.get(String(accountId || ''));
     if (!entry) throw new DirectProviderError('账号不存在或已被删除。', { code: 'account_not_found', status: 404 });
     if (entry.account.enabled === false) throw new DirectProviderError('账号已停用，无法重新检测。', { code: 'account_disabled', status: 409 });
@@ -435,11 +446,31 @@ class AccountPool {
       this.reportDiagnostic('account_recheck_skipped', entry.account, { state: entry.healthState, reason: 'account_not_unhealthy' });
       return { account: this.status().find((item) => item.id === entry.account.id), unchanged: true };
     }
-    const pending = Promise.resolve().then(() => this.recheckEntry(entry, recheckSignal(signal))).finally(() => {
+    const controller = new AbortController();
+    const pending = Promise.resolve().then(() => this.recheckEntry(entry, recheckSignal(controller.signal))).finally(() => {
+      pending.settled = true;
       if (this.rechecks.get(entry.account.id) === pending) this.rechecks.delete(entry.account.id);
     });
+    Object.assign(pending, { controller, waiters: 0, settled: false });
     this.rechecks.set(entry.account.id, pending);
-    return pending;
+    return this.waitForRecheck(pending, signal);
+  }
+
+  waitForRecheck(pending, signal) {
+    pending.waiters += 1;
+    let waiting = true;
+    const detach = () => {
+      if (!waiting) return;
+      waiting = false;
+      signal?.removeEventListener('abort', detach);
+      pending.waiters -= 1;
+      // A surviving dashboard caller still owns the verification. If everyone
+      // cancels, a late model answer must not silently restore the account.
+      if (!pending.waiters && !pending.settled) pending.controller.abort();
+    };
+    signal?.addEventListener('abort', detach, { once: true });
+    try { return waitForShared(pending, signal).finally(detach); }
+    catch (error) { detach(); throw error; }
   }
 
   currentRecheckEntry(entry) {
@@ -480,6 +511,7 @@ class AccountPool {
       this.currentRecheckEntry(entry);
       this.reportDiagnostic('account_recheck_inference_started', entry.account);
       const { model } = await probeAccountInference(entry.provider, models, signal);
+      signal.throwIfAborted();
       const current = this.currentRecheckEntry(entry);
       current.lastSuccessAt = new Date(this.now()).toISOString();
       this.clearAccountIssue(current, { source: 'manual_recheck' });
@@ -511,6 +543,7 @@ class AccountPool {
     entry?.provider?.localAuth?.disable?.();
     for (const key of accountIdentityKeys(account)) this.removedIdentities.add(key);
     this.entries.delete(id);
+    this.catalogRevision += 1;
     this.rebuildModelSupporters();
     this.modelCatalogsReady = [...this.entries.values()]
       .filter((candidate) => candidate.account.enabled !== false && this.isAccountHealthy(candidate))
@@ -571,6 +604,7 @@ class AccountPool {
       ? new Set(authoritative.map((model) => String(model || '').replace(/^models\//, '').trim()).filter(Boolean))
       : null;
     entry.modelCatalogChecked = true;
+    entry.modelCatalogRetryAt = 0;
     this.rebuildModelSupporters();
     return listed;
   }
@@ -581,24 +615,33 @@ class AccountPool {
   }
 
   async ensureModelCatalogs(signal) {
-    if (this.modelCatalogsReady) return;
-    if (this.modelCatalogDiscovery) return this.modelCatalogDiscovery;
+    signal?.throwIfAborted();
+    const retryDue = entry => entry.modelCatalogRetryAt && entry.modelCatalogRetryAt <= this.now();
+    if (this.modelCatalogsReady && ![...this.entries.values()].some(retryDue)) return;
+    if (this.modelCatalogDiscovery) {
+      await waitForShared(this.modelCatalogDiscovery, signal);
+      // Accounts/grants may have changed while the previous flight ran.
+      if (!this.modelCatalogsReady) return this.ensureModelCatalogs(signal);
+      return;
+    }
     const entries = [...this.entries.values()].filter((entry) => (
       entry.account.enabled !== false
       && this.isAccountHealthy(entry)
-      && !entry.modelCatalogChecked
+      && (!entry.modelCatalogChecked || retryDue(entry))
     ));
     if (!entries.length) {
       this.modelCatalogsReady = true;
       return;
     }
-    this.modelCatalogDiscovery = Promise.allSettled(entries.map(async (entry) => {
-      try { return await this.discoverEntryModels(entry, signal); }
+    const discoverySignal = AbortSignal.timeout(45_000);
+    const pending = Promise.allSettled(entries.map(async (entry) => {
+      try { return await this.discoverEntryModels(entry, discoverySignal); }
       catch (error) {
         this.observeAccountFailure(entry, error, { source: 'model_discovery' });
         if (this.isCurrentEntry(entry)) {
           entry.modelCatalogChecked = true;
           entry.supportedModels = null;
+          entry.modelCatalogRetryAt = this.now() + 60_000;
         }
         return [];
       }
@@ -607,9 +650,11 @@ class AccountPool {
         .filter(entry => entry.account.enabled !== false && this.isAccountHealthy(entry))
         .every(entry => entry.modelCatalogChecked);
     }).finally(() => {
-      this.modelCatalogDiscovery = null;
+      if (this.modelCatalogDiscovery === pending) this.modelCatalogDiscovery = null;
     });
-    return this.modelCatalogDiscovery;
+    this.modelCatalogDiscovery = pending;
+    await waitForShared(pending, signal);
+    if (!this.modelCatalogsReady) return this.ensureModelCatalogs(signal);
   }
 
   weightedPickWithRanks(ranks) {

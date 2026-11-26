@@ -75,4 +75,23 @@ function expectedResponsesSearchEcho(output) {
   });
 }
 
-module.exports = { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho };
+// These variants are built only from the response the gateway just issued.
+// Codex serde retains image bytes/id/status/prompt while omitting our optional
+// artifact/url delivery extensions. Never strip fields from incoming history.
+function expectedResponsesOutputEchoes(output) {
+  if (!Array.isArray(output)) return [];
+  const hasSearch = output.some(item => item?.type === 'web_search_call' && item.action && Object.hasOwn(item.action, 'sources'));
+  const hasImage = output.some(item => item?.type === 'image_generation_call' && (Object.hasOwn(item, 'artifact') || Object.hasOwn(item, 'url')));
+  const imageEcho = items => items.map(item => {
+    if (item?.type !== 'image_generation_call') return item;
+    const { artifact, url, ...echo } = item;
+    return echo;
+  });
+  const variants = [];
+  if (hasSearch) variants.push(expectedResponsesSearchEcho(output));
+  if (hasImage) variants.push(imageEcho(output));
+  if (hasSearch && hasImage) variants.push(imageEcho(expectedResponsesSearchEcho(output)));
+  return variants;
+}
+
+module.exports = { prepareSearchCapability, forwardSearchCalls, expectedResponsesSearchEcho, expectedResponsesOutputEchoes };

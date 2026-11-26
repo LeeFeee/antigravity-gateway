@@ -1,8 +1,18 @@
 'use strict';
 
-// Google Antigravity API protocol: agy 1.5.2 request captures, 2026-11-06.
+// Google Antigravity API protocol: original agy 1.5.2 request captures, plus
+// Hydrogen profiles confirmed in the managed OAuth catalog on 2026-11-26.
 // These are exact discovered IDs, not inferred combinations of model suffixes.
 const CAPTURED_MODELS = Object.freeze({
+  'gemini-4-hydrogen-high': Object.freeze({ model: 'MODEL_PLACEHOLDER_M525',
+    displayName: 'Gemini 4 Hydrogen (High)', maxTokens: 1048576, maxOutputTokens: 262144,
+    supportsThinking: true, thinkingLevel: 'HIGH' }),
+  'gemini-4-hydrogen-medium': Object.freeze({ model: 'MODEL_PLACEHOLDER_M526',
+    displayName: 'Gemini 4 Hydrogen (Medium)', maxTokens: 1048576, maxOutputTokens: 262144,
+    supportsThinking: true, thinkingLevel: 'MEDIUM' }),
+  'gemini-4-hydrogen-low': Object.freeze({ model: 'MODEL_PLACEHOLDER_M527',
+    displayName: 'Gemini 4 Hydrogen (Low)', maxTokens: 1048576, maxOutputTokens: 262144,
+    supportsThinking: true, thinkingLevel: 'LOW' }),
   'gemini-3.8-flash-high': Object.freeze({ model: 'MODEL_PLACEHOLDER_M318',
     displayName: 'Gemini 3.8 Flash (High)', maxOutputTokens: 65536, supportsThinking: true, thinkingLevel: 'HIGH' }),
   'gemini-3.8-flash-medium': Object.freeze({ model: 'MODEL_PLACEHOLDER_M319',

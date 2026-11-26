@@ -48,16 +48,16 @@ class GatewayUpstreams {
     while (this.sessions.size > 2000) this.sessions.delete(this.sessions.keys().next().value);
   }
 
-  reviewModel(model) { return this.providerFor(model) === 'gemini' ? 'gemini-4-hydrogen-low-g' : 'gemini-3.8-flash-low'; }
+  reviewModel(model) { return this.providerFor(model) === 'gemini' ? 'gemini-4-hydrogen-low-g' : 'gemini-4-hydrogen-low'; }
 
   classifierModel(identity) {
     const key = this.sessionKey(identity), associated = key && this.sessions.get(key);
     if (associated && Date.now() - associated.at <= 3600000) {
-      return associated.provider === 'gemini' ? 'gemini-4-hydrogen-low-g' : 'gemini-3.8-flash-low';
+      return associated.provider === 'gemini' ? 'gemini-4-hydrogen-low-g' : 'gemini-4-hydrogen-low';
     }
-    // Keep the established Sonnet 5 classifier route when there is no recorded
-    // main turn. Adding a Gemini account must not reject an existing client.
-    return 'gemini-3.8-flash-low';
+    // Keep legacy standalone Sonnet 5 classifier requests on Antigravity's
+    // current low-tier model even without a recorded main turn.
+    return 'gemini-4-hydrogen-low';
   }
 }
 

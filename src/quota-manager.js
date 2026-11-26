@@ -75,28 +75,50 @@ function usageQuotaSnapshot(body) {
   }).filter((group) => group.buckets.length);
 }
 
-async function fetchJson(provider, token, path, body) {
+async function fetchJson(provider, auth, path, body) {
   let lastError;
+  let retriedAuthentication = false;
   for (const base of provider.baseUrls()) {
-    try {
-      const response = await provider.fetchImpl(`${base}${path}`, {
-        method: 'POST', signal: AbortSignal.timeout(30_000),
-        headers: {
-          authorization: `Bearer ${token}`,
-          'content-type': 'application/json',
-          'user-agent': provider.userAgent
-        },
-        body: JSON.stringify(body)
-      });
-      const text = await response.text();
-      if (!response.ok) {
-        const error = new Error(text || `HTTP ${response.status}`);
-        error.status = response.status;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      let refreshing = false;
+      try {
+        const response = await provider.fetchImpl(`${base}${path}`, {
+          method: 'POST', signal: AbortSignal.timeout(30_000),
+          headers: {
+            authorization: `Bearer ${auth.token}`,
+            'content-type': 'application/json',
+            'user-agent': provider.userAgent
+          },
+          body: JSON.stringify(body)
+        });
+        const text = await response.text();
+        if (response.status === 401 && !retriedAuthentication && typeof provider.access === 'function') {
+          retriedAuthentication = true;
+          refreshing = true;
+          // All three quota sources use the same grant and share its one refresh,
+          // including a rejected refresh. Never retry an old token at another
+          // base after a failed exchange.
+          if (!auth.refresh) {
+            auth.refresh = Promise.resolve().then(() => provider.access(AbortSignal.timeout(30_000), true))
+              .then(token => { auth.token = token; });
+          }
+          await auth.refresh;
+          refreshing = false;
+          continue;
+        }
+        if (!response.ok) {
+          const error = new Error(text || `HTTP ${response.status}`);
+          error.status = response.status;
+          lastError = error;
+          break;
+        }
+        return JSON.parse(text || '{}');
+      } catch (error) {
+        if (refreshing || error?.name === 'AbortError' || error?.name === 'TimeoutError') throw error;
         lastError = error;
-        continue;
+        break;
       }
-      return JSON.parse(text || '{}');
-    } catch (error) { lastError = error; }
+    }
   }
   throw lastError || new Error(`${path} 读取失败`);
 }
@@ -257,10 +279,11 @@ class QuotaManager {
     if (!isCurrent() || !this.usableEntry(this.currentEntry(accountId))) return null;
     try {
       const token = await provider.access(AbortSignal.timeout(30_000));
+      const auth = { token, refresh: null };
       const [loadResult, modelsResult, usageResult] = await Promise.allSettled([
-        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
-        summaryOnly ? Promise.resolve(null) : fetchJson(provider, token, MODELS_PATH, provider.projectRequestBody?.() || {}),
-        fetchJson(provider, token, USAGE_PATH, provider.projectRequestBody?.() || {})
+        summaryOnly ? Promise.resolve(null) : fetchJson(provider, auth, LOAD_PATH, { metadata: { ideType: 'ANTIGRAVITY' } }),
+        summaryOnly ? Promise.resolve(null) : fetchJson(provider, auth, MODELS_PATH, provider.projectRequestBody?.() || {}),
+        fetchJson(provider, auth, USAGE_PATH, provider.projectRequestBody?.() || {})
       ]);
       if (!isCurrent() || !this.usableEntry(this.currentEntry(accountId))) return null;
       if ((summaryOnly || (loadResult.status === 'rejected' && modelsResult.status === 'rejected')) && usageResult.status === 'rejected') {

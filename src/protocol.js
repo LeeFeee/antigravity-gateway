@@ -2,7 +2,7 @@
 
 const crypto = require('node:crypto');
 const { deliveryText, imageArtifact, imageArtifacts } = require('./artifacts');
-const { mediaPartFromBlock, mediaParts } = require('./multimedia');
+const { mediaPartFromBlock, mediaParts, canonicalMedia, safeRasterImage, DEFAULT_MEDIA_LIMIT } = require('./multimedia');
 const { compileSchema, validateSchema, compileSchemaAsync, validateSchemaAsync } = require('./schema-contract');
 const { runSync, runAsync } = require('./schema-steps');
 const { anthropicSystemBlockEvidence } = require('./client-identity');
@@ -89,8 +89,44 @@ const CONTENT_BLOCK_TYPES = new Set(['text', 'input_text', 'output_text', 'think
   'image', 'image_url', 'input_image', 'video', 'video_url', 'input_video', 'audio', 'input_audio',
   'document', 'file', 'input_file', 'computer_screenshot', 'media']);
 const RESPONSE_INPUT_TYPES = new Set(['message', 'function_call', 'custom_tool_call', 'function_call_output',
-  'custom_tool_call_output', 'computer_call_output', 'image', 'image_url', 'input_image',
+  'custom_tool_call_output', 'computer_call_output', 'image_generation_call', 'image', 'image_url', 'input_image',
   'video', 'video_url', 'input_video', 'audio', 'input_audio', 'document', 'file', 'input_file', 'computer_screenshot', 'media']);
+
+function stableImageRecord(value) {
+  if (Array.isArray(value)) return value.map(stableImageRecord);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort().map(key => [key, stableImageRecord(value[key])]));
+  return value;
+}
+
+function imageGenerationHistory(item) {
+  if (item.result != null && typeof item.result !== 'string') {
+    throw new GatewayError('历史生图结果必须是 Base64 图片或 null。', { code: 'invalid_image_generation_result', status: 400 });
+  }
+  const metadata = { ...item };
+  const parts = [];
+  if (typeof item.result === 'string' && item.result.trim()) {
+    const encoded = item.result.replace(/\s+/g, '');
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(encoded) || encoded.length % 4 === 1) {
+      throw new GatewayError('历史生图结果不是有效的 Base64 图片。', { code: 'invalid_image_generation_result', status: 400 });
+    }
+    if (Buffer.byteLength(encoded, 'base64') > DEFAULT_MEDIA_LIMIT) {
+      throw new GatewayError('历史生图图片超过单文件传输上限。', { code: 'media_too_large', status: 413 });
+    }
+    const buffer = Buffer.from(encoded, 'base64');
+    const mediaType = ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif']
+      .find(type => safeRasterImage(buffer, type));
+    if (!mediaType) throw new GatewayError('历史生图结果不是受支持的图片。', { code: 'invalid_image_generation_result', status: 400 });
+    delete metadata.result;
+    parts.push(canonicalMedia({ id: item.id, mediaType, data: encoded }));
+  }
+  // This is client-supplied history, not proof of a tool execution or a request
+  // to generate again. Keep bytes in the media path, never as Base64 prose.
+  // Canonicalize only this new record's metadata: serde may reorder its keys;
+  // established history hashes and existing projection matching stay intact.
+  const text = '[Client-supplied previous image generation record; not a new verified generation]\n'
+    + JSON.stringify(stableImageRecord(metadata));
+  return { role: 'assistant', text, parts: [{ type: 'text', text }, ...parts] };
+}
 
 function unsupportedContent() {
   throw new GatewayError('内容块没有可转换的文本、媒体或客户端工具内容。', { code: 'unsupported_content_block', status: 400 });
@@ -326,9 +362,14 @@ function generationConfigFrom(payload) {
   const config = {};
   const maxTokens = payload.max_tokens ?? payload.max_output_tokens;
   if (Number.isFinite(Number(maxTokens)) && Number(maxTokens) > 0) config.maxOutputTokens = Number(maxTokens);
-  if (Number.isFinite(Number(payload.temperature))) config.temperature = Number(payload.temperature);
-  if (Number.isFinite(Number(payload.top_p))) config.topP = Number(payload.top_p);
-  if (Number.isFinite(Number(payload.top_k))) config.topK = Number(payload.top_k);
+  for (const [field, upstream] of [['temperature', 'temperature'], ['top_p', 'topP'], ['top_k', 'topK']]) {
+    const value = payload[field];
+    if (value == null) continue;
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      throw new GatewayError(`${field} 必须是有限数值或 null。`, { code: 'invalid_generation_config', status: 400 });
+    }
+    config[upstream] = value;
+  }
   const stop = payload.stop_sequences ?? payload.stop;
   if (stop != null) {
     const sequences = typeof stop === 'string' && payload.stop_sequences == null ? [stop] : stop;
@@ -649,6 +690,7 @@ function* normalizeResponsesSteps(payload, previousTranscript, compiler = compil
     const topLevelMedia = mediaPartFromBlock(item, 'responses');
     if (typeof item === 'string') messages.push({ role: 'user', text: item });
     else if (topLevelMedia) messages.push({ role: 'user', text: '', parts: [topLevelMedia] });
+    else if (item?.type === 'image_generation_call') messages.push(imageGenerationHistory(item));
     else if (['system', 'developer'].includes(item?.role)) {
       instructionMessages.push({ role: item.role, text: textFromContent(item.content, 'responses') });
     }
@@ -1043,7 +1085,9 @@ function responsesResponse(model, result, responseId) {
     output,
     usage: result.usageKnown === false ? null : {
       input_tokens: result.usage?.input_tokens || 0,
+      input_tokens_details: { cached_tokens: result.usage?.cache_read_tokens || 0 },
       output_tokens: billedOutputTokens(result.usage),
+      output_tokens_details: { reasoning_tokens: result.usage?.thinking_tokens || 0 },
       total_tokens: result.usage?.total_tokens || 0
     },
     ...(result.usageKnown === false ? { usage_known: false } : {})
