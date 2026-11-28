@@ -866,7 +866,12 @@ function artifactUrl(base, id) {
 
 async function runTurn(normalized, model, signal, { sessionId, routingKey, requestId, clientId, clientLabel, auxiliaryScope, nativeCompaction, nativeClientProfile, onDelta, onThinkingDelta, reuseConversation = false, mediaScope = '', publicBaseUrl = '' } = {}) {
   const release = await requestSlots.acquire(signal);
-  const taskScope = auxiliaryScope ? { auxiliaryScope } : {};
+  // A concurrent title/helper may finish after the main tool response. Keep
+  // its normal account selection without replacing the main task's affinity.
+  const taskScope = auxiliaryScope ? {
+    auxiliaryScope,
+    ...(auxiliaryScope === 'no-client-tools' ? { bindRouting: false } : {})
+  } : {};
   try {
     const resolved = await MEDIA_STORE.resolveNormalized(normalized, { scope: mediaScope, signal });
     const pool = UPSTREAMS.poolFor(model);

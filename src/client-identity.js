@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const { CODEX_167_CLIENT_PROFILE, CODEX_171_CLIENT_PROFILE, CODEX_COMPATIBLE_CLIENT_PROFILE } = require('./client-versions');
+const { IMAGE_TOOL_NAME, trustedModelServiceDefinition } = require('./agy-model-service-tools');
 
 // Evidence: tests/fixtures/agent-requests-20261107; these are template matches, not client authentication.
 const VERSIONS = Object.freeze({ claude: '2.1.322', hermes: '0.23.1', pi: '1.5.2', dsh: '0.2.2-rc.1', codex: '0.167.2' });
@@ -223,9 +224,13 @@ function codexTemplate(normalized, { clientProfile } = {}) {
 }
 
 function anthropicSystemBlockEvidence(blocks) {
-  if (!Array.isArray(blocks) || blocks.length !== 3
+  if (!Array.isArray(blocks) || ![2, 3].includes(blocks.length)
     || blocks.some(block => block?.type !== 'text' || typeof block.text !== 'string' || !block.text.length)
     || !CLAUDE_CLASSIFIER_BILLING.test(blocks[0].text)) return null;
+  // The 2.1.330 WebFetch helper has exactly these two framework blocks and
+  // no main-agent Harness. Do not grant arbitrary two-block text provenance.
+  if (blocks.length === 2 && (!CLAUDE_CLI_BILLING.test(blocks[0].text)
+    || blocks[1].text !== CLAUDE_TUI_IDENTITY)) return null;
   // Retain source boundaries without copying any policy or user context. The
   // normalizer creates this field itself; similarly named API input is ignored.
   return Object.freeze({ kind: 'anthropic-system-blocks', blocks: Object.freeze(blocks.map(block => Object.freeze({
@@ -236,7 +241,7 @@ function anthropicSystemBlockEvidence(blocks) {
 function anthropicSystemBlocks(normalized) {
   const evidence = normalized.clientSystemProvenance;
   if (evidence?.kind !== 'anthropic-system-blocks' || !Array.isArray(evidence.blocks)
-    || evidence.blocks.length !== 3 || typeof normalized.system !== 'string') return null;
+    || ![2, 3].includes(evidence.blocks.length) || typeof normalized.system !== 'string') return null;
   const source = normalized.system, blocks = [];
   let offset = 0;
   for (const [index, block] of evidence.blocks.entries()) {
@@ -246,7 +251,7 @@ function anthropicSystemBlocks(normalized) {
     blocks.push(text); offset += block.length;
     // Anthropic text blocks join with one newline; separate system-role
     // messages, if present, join after that original source with two newlines.
-    if (index < 2 && source[offset++] !== '\n') return null;
+    if (index < evidence.blocks.length - 1 && source[offset++] !== '\n') return null;
   }
   if (source.length > offset && !source.startsWith('\n\n', offset)) return null;
   return { blocks, end: offset };
@@ -258,7 +263,7 @@ function classifierBillingPrefix(normalized) {
   const policy = Object.hasOwn(CLAUDE_CLASSIFIER_POLICIES, normalized.autoModeFormat)
     ? CLAUDE_CLASSIFIER_POLICIES[normalized.autoModeFormat] : null;
   const source = policy && anthropicSystemBlocks(normalized);
-  if (!source) return null;
+  if (!source || source.blocks.length !== 3) return null;
   const { blocks } = source;
   if (!CLAUDE_CLASSIFIER_BILLING.test(blocks[0]) || blocks[1].length !== policy.length
     || hash(blocks[1]) !== policy.sha256) return null;
@@ -269,15 +274,28 @@ function tuiSearchHelperPrefix(normalized) {
   if (normalized?.protocol !== 'anthropic' || normalized.autoMode || normalized.tools?.length
     || normalized.structuredSchema != null) return null;
   const source = anthropicSystemBlocks(normalized);
-  if (!source || !CLAUDE_CLI_BILLING.test(source.blocks[0])
+  if (!source || source.blocks.length !== 3 || !CLAUDE_CLI_BILLING.test(source.blocks[0])
     || source.blocks[1] !== CLAUDE_TUI_IDENTITY || source.blocks[2] !== CLAUDE_SEARCH_CORE) return null;
   return source;
 }
 
-function claudeAuxiliaryProfile(source, evidence) {
+function tuiWebFetchHelperPrefix(normalized) {
+  // The gateway injects its existing image service before identity cleanup.
+  // Only the actual factory-issued service may stand in for no client tools;
+  // a copied name/internal flag cannot turn a client request into this helper.
+  const clientTools = normalized?.tools?.some(tool => tool?.name !== IMAGE_TOOL_NAME || !trustedModelServiceDefinition(tool));
+  if (normalized?.protocol !== 'anthropic' || normalized.autoMode || clientTools
+    || normalized.structuredSchema != null) return null;
+  const source = anthropicSystemBlocks(normalized);
+  if (!source || source.blocks.length !== 2 || !CLAUDE_CLI_BILLING.test(source.blocks[0])
+    || source.blocks[1] !== CLAUDE_TUI_IDENTITY) return null;
+  return source;
+}
+
+function claudeAuxiliaryProfile(source, evidence, lineage = VERSIONS.claude) {
   const version = CLAUDE_CLASSIFIER_BILLING.exec(source.blocks[0])[1];
   return { client: 'claude', templateVersion: version,
-    ...(version !== VERSIONS.claude ? { templateLineage: VERSIONS.claude } : {}), evidence: [evidence] };
+    ...(version !== lineage ? { templateLineage: lineage } : {}), evidence: [evidence] };
 }
 
 function inferClientProfile(normalized, options = {}) {
@@ -285,6 +303,8 @@ function inferClientProfile(normalized, options = {}) {
   if (classifier) return claudeAuxiliaryProfile(classifier, 'claude-auto-mode-system-template');
   const helper = tuiSearchHelperPrefix(normalized);
   if (helper) return claudeAuxiliaryProfile(helper, 'claude-tui-search-helper-template');
+  const fetchHelper = tuiWebFetchHelperPrefix(normalized);
+  if (fetchHelper) return claudeAuxiliaryProfile(fetchHelper, 'claude-tui-web-fetch-helper-template', '2.1.330');
   const found = instructionSources(normalized).map(source => detectTemplate(source.text)).filter(Boolean);
   const codex = codexTemplate(normalized, options);
   if (codex) found.push(codex);
@@ -451,6 +471,16 @@ function sanitizeClientIdentity(normalized, options = {}) {
     normalized: { ...normalized, system: NEUTRAL_SEARCH_CORE + normalized.system.slice(searchHelper.end) },
     metadata: { profile: claudeAuxiliaryProfile(searchHelper, 'claude-tui-search-helper-template'),
       rules: ['claude-billing-marker', 'claude-tui-identity', 'claude-search-helper-model-identity'] }
+  };
+  const fetchHelper = tuiWebFetchHelperPrefix(normalized);
+  if (fetchHelper) return {
+    // Real fixed-account A/B/A/B rejected the original billing/Claude identity
+    // pair but accepted this neutral role with the entire webpage task intact.
+    // Only these source-verified framework blocks change; appended system-role
+    // instructions and all user content retain their exact bytes and roles.
+    normalized: { ...normalized, system: CLAUDE_COMPACT_CORE + normalized.system.slice(fetchHelper.end) },
+    metadata: { profile: claudeAuxiliaryProfile(fetchHelper, 'claude-tui-web-fetch-helper-template', '2.1.330'),
+      rules: ['claude-billing-marker', 'claude-tui-identity'] }
   };
   const profile = inferClientProfile(normalized, options), rules = [];
   const record = rule => { if (!rules.includes(rule)) rules.push(rule); };

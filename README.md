@@ -1,12 +1,16 @@
-# Antigravity Gateway 2.4.1
+# Antigravity Gateway 2.4.2
 
 将 Google Antigravity API 与 Google Gemini API 接入 Claude Code、Codex、Hermes、Pi 和 dsh，提供 Anthropic Messages、OpenAI Responses、Chat Completions，以及文件和图片接口。
 
-2.4.1 默认使用 Google Antigravity API 的 `gemini-4-hydrogen-high`，模型列表优先展示 Gemini 4 系列；用户显式指定的模型及档位仍原样路由。Claude Code 的 Antigravity Auto 审批使用 `gemini-4-hydrogen-low`，Gemini API 审批继续使用对应的 `-g` 模型，不依赖修改客户端 Auto 设置。
+2.4.2 修复 Claude Code WebFetch 的网页处理辅助请求：根据原始系统块识别并转换官方框架声明，解决该请求触发 Google `429 RESOURCE_EXHAUSTED` 后反复重试的问题。完整网页内容、用户指令、工具和所选模型档位继续保留，无需修改 Claude 配置。
 
-本版减少重复 Schema 编译通信和模型目录请求，保留逐次工具参数校验及独立取消；完善采样空值、Responses 缓存/思考用量、辅助接口 401 刷新、异步解压与看板截图加载。普通带工具请求可实时输出正文，工具参数和签名仍完整校验，生成中途失败不跨账号拼接答案。搜索、生图及结构化响应保留各自回程约束。
+同时修复 dsh 异步标题请求覆盖主对话账号绑定的问题，避免正常工具续轮因此切换账号并丢失签名关联。
 
-同时修复 Codex 生图后的 `image_generation_call` 历史回显，保留图片字节与严格签名关联。用户 SOUL、规则、技能、权限和完整工具契约继续保留。
+默认使用 Google Antigravity API 的 `gemini-4-hydrogen-high`，模型列表优先展示 Gemini 4 系列；用户显式指定的模型及档位仍原样路由。Claude Code 的 Antigravity Auto 审批使用 `gemini-4-hydrogen-low`，Gemini API 审批继续使用对应的 `-g` 模型，不依赖修改客户端 Auto 设置。
+
+网关复用 Schema 编译结果和模型目录缓存，保留逐次工具参数校验及独立取消，并支持 Responses 缓存/思考用量、辅助接口 401 刷新和异步解压。普通带工具请求可实时输出正文，工具参数和签名仍完整校验，生成中途失败不跨账号拼接答案。搜索、生图及结构化响应保留各自回程约束。
+
+Codex 生图后的 `image_generation_call` 历史回显保留图片字节与严格签名关联。用户 SOUL、规则、技能、权限和完整工具契约继续保留。
 
 Google 已公告 Gemini 3.8 Flash、Gemini 4 Argon、GPT-OSS 120B 和 Claude 4.6 于 **2026 年 11 月 30 日**下线，见[官方模型说明](https://antigravity.google/docs/models)。网关仍依据账号的实时目录展示可用模型，不把旧模型请求静默替换成新模型。
 
